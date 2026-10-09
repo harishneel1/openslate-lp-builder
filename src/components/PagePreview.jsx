@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { CalendarDays, Clock, Globe, Video, Check, Monitor, Smartphone, Info } from 'lucide-react';
+import { CalendarDays, Clock, Globe, Video, Check } from 'lucide-react';
+import PreviewFrame from './PreviewFrame';
 import { landingSections, defaultCtaLabel } from '../data/webinarQuestions';
 import './PagePreview.css';
 
@@ -220,10 +221,6 @@ const PLACEHOLDERS = {
 const heroSections = landingSections.filter((s) => s.themeSection === 'hero');
 const otherSections = landingSections.filter((s) => s.themeSection !== 'hero');
 
-const MODES = [
-  { id: 'mobile', label: 'Mobile', icon: Smartphone },
-  { id: 'desktop', label: 'Desktop', icon: Monitor },
-];
 
 function Placeholder({ name, variant }) {
   return (
@@ -292,40 +289,15 @@ export default function PagePreview({ answers, currentSection, mode = 'mobile', 
   };
 
   return (
-    <div className={`pv pv--${mode}`}>
-      <div className="pv__header">
-        <p className="pv__caption">Page outline</p>
-        <div className="pv__toggle" role="group" aria-label="Preview size">
-          {MODES.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={mode === id}
-              className={`pv__toggle-btn ${mode === id ? 'pv__toggle-btn--active' : ''}`}
-              onClick={() => onModeChange?.(id)}
-            >
-              <Icon size={14} /> {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-       <p className="pv__note">
-        <Info size={14} /> Shows where your content goes. You'll choose a design after this.
-      </p>
-
-      <div className="pv__frame">
-        {mode === 'desktop' && (
-          <div className="pv__browserbar">
-            <span className="pv__dots"><span /><span /><span /></span>
-            <span className="pv__url">openslate.ai/your-webinar</span>
-          </div>
-        )}
-        <div className="pv__screen" ref={screenRef}>
-          <div className="pv__heroband">{heroSections.map(renderSection)}</div>
-          {otherSections.map(renderSection)}
-        </div>
-      </div>
-    </div>
+    <PreviewFrame
+      mode={mode}
+      onModeChange={onModeChange}
+      caption="Page outline"
+      note="Shows where your content goes. You'll choose a design after this."
+      screenRef={screenRef}
+    >
+      <div className="pv__heroband">{heroSections.map(renderSection)}</div>
+      {otherSections.map(renderSection)}
+    </PreviewFrame>
   );
 }

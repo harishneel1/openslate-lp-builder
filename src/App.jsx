@@ -9,15 +9,17 @@ import PagePreview from './components/PagePreview';
 import { funnelTypes } from './data/funnelTypes';
 import { aboutQuestions, landingQuestions } from './data/webinarQuestions';
 import Transition from './screens/Transition';
+import DesignStep from './screens/DesignStep';
 
 function App() {
   const [activeNav, setActiveNav] = useState('get-started');
   const [funnelId, setFunnelId] = useState(null);
-  const [step, setStep] = useState('overview'); // 'overview' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing'
+  const [step, setStep] = useState('overview'); // 'overview' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'registration'
   const [answers, setAnswers] = useState({});
   const [editingId, setEditingId] = useState(null);      // which about screen is being edited
   const [resumeAtEnd, setResumeAtEnd] = useState(false); // Back from checkpoint → last about screen
   const [previewMode, setPreviewMode] = useState('mobile'); // live preview: 'desktop' | 'mobile'
+  const [landingAtEnd, setLandingAtEnd] = useState(false); // Back from the design step → last landing screen
 
   const funnel = funnelTypes.find((f) => f.id === funnelId);
 
@@ -85,6 +87,36 @@ function App() {
       );
     }
 
+    if (step === 'design') {
+      return (
+        <DesignStep
+          answers={answers}
+          mode={previewMode}
+          onModeChange={setPreviewMode}
+          onBack={() => {
+            setLandingAtEnd(true);
+            setStep('landing');
+          }}
+          onUse={() => setStep('registration')}
+        />
+      );
+    }
+
+    // Placeholder until the registration page is built
+    if (step === 'registration') {
+      return (
+        <div className="transition">
+          <h1 className="transition__title">Next: your registration page</h1>
+          <p className="transition__text">This page isn't built yet.</p>
+          <div className="transition__nav">
+            <button type="button" className="flow__back" onClick={() => setStep('design')}>
+              Back to your design
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (step === 'edit') {
       return (
         <QuestionFlow
@@ -104,7 +136,10 @@ function App() {
       return (
         <Transition
           onBack={() => setStep('checkpoint')}
-          onContinue={() => setStep('landing')}
+          onContinue={() => {
+            setLandingAtEnd(false);
+            setStep('landing');
+          }}
         />
       );
     }
@@ -116,7 +151,8 @@ function App() {
         answers={answers}
         onAnswer={handleAnswer}
         onExit={() => setStep('transition')}
-        onComplete={() => alert(JSON.stringify(answers, null, 2))}
+         startAtEnd={landingAtEnd}
+        onComplete={() => setStep('design')}
         asideWidth={previewMode === 'desktop' ? 'wide' : 'narrow'}
         
                 renderProgress={({ question, visible, furthest, goTo }) => (

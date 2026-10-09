@@ -160,7 +160,7 @@ export const webinarQuestions = [
       {
         id: 'format',
         card: 'Format',
-        target: 'finalCta.details',
+        target: 'hero.details',
         type: 'choice',
         label: 'Session',
         options: ['Live', 'Pre-recorded'],

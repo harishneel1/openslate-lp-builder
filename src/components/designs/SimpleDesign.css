@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+/* ------------------------------------------------------------
+   SimpleDesign: peacock green + marigold.
+   Sizes itself to its own width (container query), so the same
+   markup works in the phone frame and the browser frame.
+   ------------------------------------------------------------ */
+.sd {
+  --sd-peacock: #0f4c47;
+  --sd-ink: #13302d;
+  --sd-marigold: #f4b223;
+  --sd-mist: #eef4f2;
+  --sd-text: #1b2826;
+  --sd-muted: #5b6b68;
+  --sd-line: #d5e0dd;
+  --sd-display: 'Bricolage Grotesque', 'Poppins', system-ui, sans-serif;
+  --sd-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  container-type: inline-size;
+  min-height: 100%;
+  font-family: var(--sd-body);
+  line-height: 1.55;
+  color: var(--sd-text);
+  background: #fff;
+}
+
+/* ---------- Hero band ---------- */
+.sd__hero {
+  display: grid;
+  gap: 28px;
+  padding: 44px 22px 32px;
+  color: #fff;
+  background: var(--sd-peacock);
+}
+
+.sd__headline {
+  font-family: var(--sd-display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.sd__sub {
+  max-width: 46ch;
+  margin-top: 14px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ---------- Ticket ---------- */
+.sd__ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  color: var(--sd-text);
+  background: #fff;
+  border-radius: 14px;
+}
+
+.sd__when {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sd__when svg {
+  flex-shrink: 0;
+  color: var(--sd-peacock);
+}
+
+.sd__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+}
+
+.sd__details li {
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sd-ink);
+  background: var(--sd-mist);
+  border-radius: 999px;
+}
+
+/* Stub: dashed tear line with a notch cut on each side */
+.sd__stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 6px -20px -20px;
+  padding: 18px 20px 20px;
+  border-top: 2px dashed var(--sd-line);
+}
+
+.sd__stub::before,
+.sd__stub::after {
+  content: '';
+  position: absolute;
+  top: -11px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sd-peacock);
+}
+
+.sd__stub::before {
+  left: -10px;
+}
+
+.sd__stub::after {
+  right: -10px;
+}
+
+.sd__price {
+  font-family: var(--sd-display);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sd__price s {
+  margin-left: 10px;
+  font-family: var(--sd-body);
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--sd-muted);
+}
+
+.sd__button {
+  display: block;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--sd-ink);
+  background: var(--sd-marigold);
+  border-radius: 10px;
+}
+
+/* TEMPORARY placeholder for the sections still to come */
+.sd__todo {
+  padding: 40px 22px;
+  font-size: 14px;
+  text-align: center;
+  color: var(--sd-muted);
+}
+
+/* ---------- Wide (desktop frame) ---------- */
+@container (min-width: 700px) {
+  .sd__hero {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 48px;
+    padding: 64px 48px;
+  }
+
+  .sd__headline {
+    font-size: 42px;
+  }
+
+  .sd__sub {
+    font-size: 18px;
+  }
+}
