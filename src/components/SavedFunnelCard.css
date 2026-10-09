@@ -175,7 +175,9 @@
   padding: 10px 12px;
   font-size: 14px;
   font-weight: 500;
-  text-align: left;
+   text-align: left;
+  color: var(--color-text);
+  text-decoration: none;
   background: none;
   border: none;
   border-radius: var(--radius-sm);

@@ -1,0 +1,164 @@
+/* Same split as the design step: list left, page right */
+.editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 48px;
+  align-items: start;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-top: 24px;
+  padding-bottom: 48px;
+  animation: flow-in 0.25s ease;
+}
+
+/* Desktop frame needs the room */
+.editor--desktop {
+  max-width: 1240px;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+}
+
+/* The page stays in view while the list scrolls */
+.editor__preview {
+  position: sticky;
+  top: 24px;
+}
+
+.editor__title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.editor__subtitle {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Groups and rows ---------- */
+.editor__group {
+  margin-top: 28px;
+}
+
+.editor__group-title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.editor__rows {
+  list-style: none;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.editor__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.editor__row + .editor__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.editor__row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editor__label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* One line; long answers end in "…" */
+.editor__summary {
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+}
+
+.editor__summary--empty {
+  font-style: italic;
+}
+
+.editor__summary--missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  color: #c62828;
+}
+
+.editor__edit {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.editor__edit:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+}
+
+.editor__edit:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Theme sample: band colour with a strip of button colour */
+.editor__swatch {
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  background: var(--swatch-bg);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); /* edge for white themes */
+}
+
+.editor__swatch::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7px;
+  background: var(--swatch-accent);
+}
+
+.editor__actions {
+  margin-top: 28px;
+}
+
+/* Narrow screens: stack, page underneath */
+@media (max-width: 1000px) {
+  .editor,
+  .editor--desktop {
+    max-width: 640px;
+    grid-template-columns: 1fr;
+  }
+  .editor__preview {
+    position: static;
+  }
+}

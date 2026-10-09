@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ArrowRight, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react';
 import PageThumbnail from './PageThumbnail';
 import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
@@ -17,14 +17,15 @@ function editedAgo(timestamp) {
   return `Edited ${new Date(timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
 }
 
-// The ⋯ button and its small menu. Delete asks first.
-// Closes on a click outside or Escape. Preview and Duplicate can join later.
-function CardMenu({ name, onDelete }) {
+// The ⋯ button and its small menu: Preview (once the landing page is done) and Delete.
+// Delete asks first. Closes on a click outside or Escape. Duplicate can join later.
+// previewHref: address of the full-screen preview, or null when there's nothing to preview.
+function CardMenu({ name, previewHref, onDelete }) {
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const wrapRef = useRef(null);
   const triggerRef = useRef(null);
-  const firstRef = useRef(null); // first button in the menu (focused when it opens)
+  const firstRef = useRef(null); // first item in the menu (focused when it opens)
 
   const close = (returnFocus = false) => {
     setOpen(false);
@@ -89,14 +90,31 @@ function CardMenu({ name, onDelete }) {
               </div>
             </div>
           ) : (
-            <button
-              ref={firstRef}
-              type="button"
-              className="saved-card__item saved-card__item--danger"
-              onClick={() => setConfirming(true)}
-            >
-              <Trash2 size={16} /> Delete
-            </button>
+            <>
+              {previewHref && (
+                <a
+                  ref={firstRef}
+                  className="saved-card__item"
+                  href={previewHref}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label="Preview landing page (opens in a new tab)"
+                  // Close after the click has opened the tab (closing straight away
+                  // would remove the link before the browser follows it)
+                  onClick={() => setTimeout(() => close(), 0)}
+                >
+                  <ExternalLink size={16} /> Preview
+                </a>
+              )}
+              <button
+                ref={previewHref ? undefined : firstRef}
+                type="button"
+                className="saved-card__item saved-card__item--danger"
+                onClick={() => setConfirming(true)}
+              >
+                <Trash2 size={16} /> Delete
+              </button>
+            </>
           )}
         </div>
       )}
@@ -104,7 +122,7 @@ function CardMenu({ name, onDelete }) {
   );
 }
 
-// One funnel they've started: the card opens it, ⋯ has Delete.
+// One funnel they've started: the card opens it, ⋯ has Preview and Delete.
 export default function SavedFunnelCard({ funnel, onOpen, onDelete }) {
   const type = funnelTypes.find((t) => t.id === funnel.type);
   if (!type) return null;
@@ -154,7 +172,11 @@ export default function SavedFunnelCard({ funnel, onOpen, onDelete }) {
         </div>
       </button>
 
-      <CardMenu name={name} onDelete={() => onDelete(funnel.id)} />
+      <CardMenu
+        name={name}
+        previewHref={landingDone ? `?preview=${encodeURIComponent(funnel.id)}` : null}
+        onDelete={() => onDelete(funnel.id)}
+      />
     </div>
   );
 }

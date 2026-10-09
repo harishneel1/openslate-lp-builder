@@ -11,10 +11,12 @@ import { funnelTypes } from './data/funnelTypes';
 import { aboutQuestions, landingQuestions } from './data/webinarQuestions';
 import Transition from './screens/Transition';
 import DesignStep from './screens/DesignStep';
+import LandingEditor from './screens/LandingEditor';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
+import { editGroup } from './utils/answerSummary';
 import './App.css';
 
-const STEPS = ['overview', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'registration'];
+const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'registration'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -33,6 +35,7 @@ function restoreFunnel(f) {
 
   let step = STEPS.includes(f.step) ? f.step : 'overview';
   if (step === 'edit') step = 'checkpoint'; // editing one answer → back to the checkpoint
+  if (step === 'review-edit') step = 'review'; // editing one screen → back to "Edit your landing page"
 
   return {
     id: f.id,
@@ -74,14 +77,14 @@ function App() {
   const [previewMode, setPreviewMode] = useState(initial.previewMode); // live preview: 'desktop' | 'mobile' (same for every funnel)
   const [funnels, setFunnels] = useState(initial.funnels); // every funnel they've started, newest first
   const [openId, setOpenId] = useState(initial.openId);    // the funnel being worked on; null = on the picker
-  const [editingId, setEditingId] = useState(null);         // which about screen is being edited (not saved)
+  const [editingId, setEditingId] = useState(null);         // which screen is being edited, about or landing (not saved)
   const [saveFailed, setSaveFailed] = useState(false);      // shows the "couldn't save" notice
 
   // ---------- The open funnel ----------
   const current = funnels.find((f) => f.id === openId) ?? null;
   const funnel = current ? funnelTypes.find((t) => t.id === current.type) : null;
 
-  const step = current?.step ?? 'overview'; // 'overview' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'registration'
+  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'registration'
   const answers = current?.answers ?? NO_ANSWERS;
   const themeId = current?.themeId ?? null;       // design they picked; null = the one recommended for their topic
   const donePages = current?.donePages ?? NO_PAGES; // pages they've finished, e.g. ['landing']
@@ -165,7 +168,6 @@ function App() {
     return () => window.removeEventListener('pagehide', flush);
   }, []);
 
-
   // Save right now, without waiting for the moment above
   // (before a preview opens in a new tab, so it shows the latest changes)
   const saveNow = () => {
@@ -194,8 +196,9 @@ function App() {
           answers={answers}
           themeId={themeId}
           onBack={closeFunnel}
-                    previewHref={`?preview=${encodeURIComponent(openId)}`}
+          previewHref={`?preview=${encodeURIComponent(openId)}`}
           onPreview={saveNow}
+          onEdit={() => updateOpen({ step: 'review' }, { touch: false })}
           onStart={() => {
             // Landing page done → go on to the next page
             if (donePages.includes('landing')) {
@@ -204,6 +207,56 @@ function App() {
             }
             updateOpen({ resumeAtEnd: false, step: 'about' });
           }}
+        />
+      );
+    }
+
+    // One row of "Edit your landing page": that screen only (Free or paid also
+    // brings Price and Crossed-out price when Paid), then back to the list.
+    // Answers save as they type, so Save and Back both just return.
+    if (step === 'review-edit') {
+      const backToReview = () => updateOpen({ step: 'review' }, { touch: false });
+      const screens = editGroup(editingId);
+      if (screens.length > 0) {
+        return (
+          <QuestionFlow
+            key={`review-edit-${editingId}`}
+            questions={screens}
+            answers={answers}
+            onAnswer={handleAnswer}
+            hideProgress
+            finishLabel="Save"
+            onExit={backToReview}
+            onComplete={backToReview}
+            asideWidth={previewMode === 'desktop' ? 'wide' : 'narrow'}
+            renderAside={({ question }) => (
+              <PagePreview
+                answers={answers}
+                currentSection={question.section}
+                mode={previewMode}
+                onModeChange={setPreviewMode}
+              />
+            )}
+          />
+        );
+      }
+    }
+
+    // "Edit your landing page" (after it's done): one row per screen.
+    // Opening and leaving it isn't an edit, so "Edited … ago" stays the same.
+    // (Also shown if the screen being edited can't be found.)
+    if (step === 'review' || step === 'review-edit') {
+      return (
+        <LandingEditor
+          answers={answers}
+          themeId={themeId}
+          mode={previewMode}
+          onModeChange={setPreviewMode}
+          onEdit={(id) => {
+            setEditingId(id);
+            updateOpen({ step: 'review-edit' }, { touch: false });
+          }}
+          onDone={() => updateOpen({ step: 'overview' }, { touch: false })}
         />
       );
     }
@@ -336,7 +389,7 @@ function App() {
 
   return (
     <AppLayout activeNav={activeNav} onNavigate={handleNavigate}>
-      {activeNav === 'page-builder' ? (
+        {activeNav === 'page-builder' ? (
         renderPageBuilder()
       ) : (
         <p style={{ color: 'var(--color-text-muted)' }}>

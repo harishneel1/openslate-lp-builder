@@ -140,19 +140,24 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* ---------- Preview link on a finished page ---------- */
-.overview__preview {
+/* ---------- Edit and Preview on a finished page ---------- */
+.overview__page-actions {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.overview__page-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-primary);
   text-decoration: none;
 }
 
-.overview__preview:hover {
+.overview__page-action:hover {
   color: var(--color-primary-hover);
   text-decoration: underline;
 }

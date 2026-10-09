@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink, Pencil } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
 import './FunnelOverview.css';
@@ -48,7 +48,8 @@ export default function FunnelOverview({
   answers = {},
   themeId = null,
   previewHref = null, // address of the full-screen preview (opens in a new tab)
-  onPreview,    
+  onPreview,          // called just before it opens
+  onEdit,   
 }) {
   const { pages } = funnel;
 
@@ -122,17 +123,24 @@ export default function FunnelOverview({
                   </span>
                   <h3 className="overview__page-name">{page.name}</h3>
                   <p className="overview__page-job">{page.job}</p>
-                                    {isDone && page.id === 'landing' && previewHref && (
-                    <a
-                      className="overview__preview"
-                      href={previewHref}
-                      target="_blank"
-                      rel="noopener"
-                      onClick={onPreview}
-                      aria-label="Preview your landing page (opens in a new tab)"
-                    >
-                      <ExternalLink size={16} /> Preview
-                    </a>
+                                     {isDone && page.id === 'landing' && (
+                    <div className="overview__page-actions">
+                      <button type="button" className="overview__page-action" onClick={onEdit}>
+                        <Pencil size={16} /> Edit
+                      </button>
+                      {previewHref && (
+                        <a
+                          className="overview__page-action"
+                          href={previewHref}
+                          target="_blank"
+                          rel="noopener"
+                          onClick={onPreview}
+                          aria-label="Preview your landing page (opens in a new tab)"
+                        >
+                          <ExternalLink size={16} /> Preview
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

@@ -23,6 +23,8 @@ export const defaultCtaLabel = (pricing) =>
 // ------------------------------------------------------------
 // Questions. Each answer is stored flat under its `id`.
 // section:  'about' (context) or a landingSections id
+// reviewLabel: its short name on review screens (the checkpoint,
+//           and the rows of "Edit your landing page")
 // target:   where it ends up in the theme JSON (for buildPageJson)
 // suggest:  show the "Suggest for me" button (3 AI options)
 // prefill:  value we already know from the creator's account
@@ -87,6 +89,7 @@ export const webinarQuestions = [
   // ---------- 1. Headline ----------
     {
     id: 'headline',
+    reviewLabel: 'Headline',
     section: 'hero',
     target: 'hero.title',
     type: 'textarea',
@@ -101,6 +104,7 @@ export const webinarQuestions = [
   },
   {
     id: 'subheadline',
+    reviewLabel: 'Subheadline',
     section: 'hero',
     target: 'hero.subtitle',
     type: 'textarea',
@@ -121,6 +125,7 @@ export const webinarQuestions = [
   // collapsible: shown as "Label: value · Change" until tapped
   {
     id: 'eventDetails',
+    reviewLabel: 'Event details',
     section: 'event',
     type: 'group',
     question: 'Now, your event details',
@@ -175,6 +180,7 @@ export const webinarQuestions = [
   // ---------- 3. Price & sign-up button ----------
   {
     id: 'pricing',
+    reviewLabel: 'Free or paid',
     section: 'cta',
     type: 'choice',
     question: 'Is it free or paid?',
@@ -184,6 +190,7 @@ export const webinarQuestions = [
   },
   {
     id: 'price',
+    reviewLabel: 'Price',
     section: 'cta',
     target: 'pricing.price',
     type: 'number',
@@ -195,6 +202,7 @@ export const webinarQuestions = [
   },
   {
     id: 'oldPrice',
+    reviewLabel: 'Crossed-out price',
     section: 'cta',
     target: 'pricing.oldPrice',
     type: 'number',
@@ -209,6 +217,7 @@ export const webinarQuestions = [
   // ---------- 4. What you'll learn ----------
   {
     id: 'learnings',
+    reviewLabel: "What they'll learn",
     section: 'learn',
     target: 'pillars.items',
     type: 'items',
@@ -229,6 +238,7 @@ export const webinarQuestions = [
   // ---------- 5. Who it's for ----------
     {
     id: 'personas',
+    reviewLabel: "Who it's for",
     section: 'audience',
     target: 'personas.items',
     mainField: 'title',
@@ -250,6 +260,7 @@ export const webinarQuestions = [
     // ---------- 6. Host (one screen) ----------
   {
     id: 'hostDetails',
+    reviewLabel: 'About the speaker',
     section: 'host',
     type: 'group',
     question: 'About the speaker',
@@ -288,6 +299,7 @@ export const webinarQuestions = [
   // ---------- 7. Reviews ----------
     {
     id: 'testimonials',
+    reviewLabel: 'Reviews',
     section: 'proof',
     target: 'testimonials.items',
     mainField: 'quote',
@@ -311,6 +323,7 @@ export const webinarQuestions = [
   // ---------- 8. Common questions ----------
   {
     id: 'faqs',
+    reviewLabel: 'FAQs',
     section: 'faq',
     target: 'faq.items',
     mainField: 'question',
