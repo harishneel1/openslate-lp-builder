@@ -1,8 +1,19 @@
+/* Label row and track share the same columns, so the name can sit
+   right above the current segment */
+.sprogress__labels,
+.sprogress__track {
+  display: grid;
+  grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
+  column-gap: 4px;
+}
+
 .sprogress__label {
-  display: flex;
-  justify-content: space-between;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
   font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
   color: var(--color-text-muted);
 }
 
@@ -11,24 +22,98 @@
   color: var(--color-text);
 }
 
-.sprogress__track {
+/* ---------- Segments ---------- */
+/* The button is taller than the bar so it's easy to hover and click */
+.sprogress__seg {
+  position: relative;
   display: flex;
-  gap: 4px;
-  margin-top: 8px;
+  align-items: center;
+  height: 16px;
+  padding: 0;
+  cursor: default;
 }
 
-.sprogress__seg {
-  flex: 1;
+.sprogress__seg--link {
+  cursor: pointer;
+}
+
+.sprogress__bar {
+  width: 100%;
   height: 4px;
   border-radius: var(--radius-pill);
   background: #ececec;
-  transition: background 0.3s;
+  transition: background 0.3s, height 0.15s;
 }
 
-.sprogress__seg--done {
+.sprogress__seg--done .sprogress__bar {
   background: var(--color-primary);
 }
 
-.sprogress__seg--current {
+.sprogress__seg--current .sprogress__bar {
   background: #f6c49c; /* half-strength orange: in progress */
+}
+
+.sprogress__seg:hover .sprogress__bar {
+  height: 6px;
+}
+
+.sprogress__seg:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- Hover tooltip: section name, tick when done ---------- */
+.sprogress__tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--color-text);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transform: translate(-50%, -4px);
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.sprogress__seg:hover .sprogress__tip,
+.sprogress__seg:focus-visible .sprogress__tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* First and last tooltips hug the edge instead of centring past it */
+.sprogress__seg:first-child .sprogress__tip {
+  left: 0;
+  transform: translateY(-4px);
+}
+
+.sprogress__seg:last-child .sprogress__tip {
+  left: auto;
+  right: 0;
+  transform: translateY(-4px);
+}
+
+.sprogress__seg:first-child:hover .sprogress__tip,
+.sprogress__seg:first-child:focus-visible .sprogress__tip,
+.sprogress__seg:last-child:hover .sprogress__tip,
+.sprogress__seg:last-child:focus-visible .sprogress__tip {
+  transform: none;
+}
+
+.sprogress__tick {
+  color: #6fcf97; /* light green, readable on the dark tooltip */
+}
+
+.sprogress__tip-note {
+  color: rgba(255, 255, 255, 0.6);
 }

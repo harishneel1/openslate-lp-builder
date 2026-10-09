@@ -139,7 +139,33 @@
 .qinput__group {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+}
+
+/* One card per topic: "When", "Format" */
+.qinput__card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.qinput__card-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 560px) {
+  .qinput__card {
+    padding: 16px;
+  }
 }
 
 .qinput__row {
@@ -163,6 +189,12 @@
   padding: 14px 16px;
   font-size: 16px;
   cursor: pointer;
+  border-color: #d6d6d6;
+}
+
+/* dd/mm/yyyy and --:-- in grey until something is picked */
+.qinput__picker--empty {
+  color: var(--color-text-disabled);
 }
 
 /* Small single-select pills (duration, language...) */
@@ -177,8 +209,8 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: #f3f3f3;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   transition: border-color 0.15s, background 0.15s;
 }
@@ -230,4 +262,110 @@
   .qinput__row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Text fields inside a group (name, bio) ---------- */
+.qinput__field-input {
+  padding: 12px 16px;
+  font-size: 16px;
+  border-color: #d6d6d6;
+}
+
+.qinput__field-input--long {
+  min-height: 140px;
+  line-height: 1.5;
+}
+
+.qinput__under {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.qinput__under .qinput__count {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+/* ---------- Photo ---------- */
+.qinput__photo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.qinput__avatar {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  object-fit: cover;
+  border-radius: 50%;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.qinput__photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.qinput__photo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6d6;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+
+.qinput__photo-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.qinput__photo-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.qinput__error {
+  font-size: 13px;
+  color: #c0392b;
+}
+
+/* ---------- Money (price, regular price) ---------- */
+.qinput__money {
+  position: relative;
+  max-width: 280px;
+}
+
+.qinput__currency {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.qinput__money-input {
+  padding-left: 40px;
+  font-weight: 600;
+  border-color: #d6d6d6;
+}
+
+.qinput__money-note {
+  margin-top: 8px;
 }

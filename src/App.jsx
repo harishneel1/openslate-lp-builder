@@ -118,8 +118,15 @@ function App() {
         onExit={() => setStep('transition')}
         onComplete={() => alert(JSON.stringify(answers, null, 2))}
         asideWidth={previewMode === 'desktop' ? 'wide' : 'narrow'}
-        backAtTop
-        renderProgress={({ question }) => <SectionProgress currentSection={question.section} />}
+        
+                renderProgress={({ question, visible, furthest, goTo }) => (
+          <SectionProgress
+            currentSection={question.section}
+            questions={visible}
+            furthest={furthest}
+            onJump={goTo}
+          />
+        )}
         renderAside={({ question }) => (
           <PagePreview
             answers={answers}

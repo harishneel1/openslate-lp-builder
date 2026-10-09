@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Sparkles, X } from 'lucide-react';
+import { ImagePlus, Plus, Sparkles, X } from 'lucide-react';
 import { getSuggestions } from '../data/mockSuggestions';
 import './SuggestionPicker.css'; // reuses .spick__status, .spick__skeleton, .spick__bar, .spick__link
 import './ItemsInput.css';
@@ -11,6 +11,56 @@ const same = (a, b) =>
 let counter = 0;
 const newId = () => `item-${Date.now()}-${counter++}`;
 const withId = (item) => ({ ...item, id: newId() });
+
+// Optional photo for one item (a reviewer's face).
+// Saved as a data URL for now; the real app should upload it and save the link.
+const PHOTO_MAX_MB = 5;
+
+function ItemPhoto({ value, onChange }) {
+  const inputRef = useRef(null);
+  const [error, setError] = useState('');
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // lets them pick the same file again
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please choose an image file (JPG or PNG).');
+      return;
+    }
+    if (file.size > PHOTO_MAX_MB * 1024 * 1024) {
+      setError(`That photo is over ${PHOTO_MAX_MB} MB. Please choose a smaller one.`);
+      return;
+    }
+
+    setError('');
+    const reader = new FileReader();
+    reader.onload = () => onChange(reader.result);
+    reader.onerror = () => setError("We couldn't read that file. Please try another.");
+    reader.readAsDataURL(file);
+  };
+
+  const pick = () => inputRef.current?.click();
+
+  return (
+    <div className="items__photo">
+      {value ? (
+        <>
+          <img className="items__photo-img" src={value} alt="Reviewer" />
+          <button type="button" className="items__photo-link" onClick={pick}>Change</button>
+          <button type="button" className="items__photo-link" onClick={() => onChange('')}>Remove</button>
+        </>
+      ) : (
+        <button type="button" className="items__photo-add" onClick={pick}>
+          <ImagePlus size={15} /> Add their photo <span className="items__optional">(optional)</span>
+        </button>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" hidden onChange={handleFile} />
+      {error && <span className="items__photo-error" role="alert">{error}</span>}
+    </div>
+  );
+}
 
 // A list the creator edits: learnings, personas, reviews, FAQs.
 // With suggest: true, the first visit is prefilled with AI drafts and
@@ -27,7 +77,9 @@ export default function ItemsInput({ question, answers, onChange }) {
   } = question;
 
   const list = Array.isArray(answers[questionId]) ? answers[questionId] : [];
-  const fields = itemFields.filter((f) => f.type !== 'image'); // photos come later
+    const fields = itemFields.filter((f) => f.type !== 'image');
+  const photoField = itemFields.find((f) => f.type === 'image'); // optional photo per item
+
 
   // Only draft into the list the first time; coming back keeps their list
   const [firstVisit] = useState(answers[questionId] === undefined);
@@ -158,6 +210,12 @@ export default function ItemsInput({ question, answers, onChange }) {
                         onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                       />
                     ))}
+                                      {photoField && (
+                      <ItemPhoto
+                        value={item[photoField.id] ?? ''}
+                        onChange={(v) => updateItem(item.id, photoField.id, v)}
+                      />
+                    )}
                   </div>
                   <button
                     type="button"
@@ -172,8 +230,12 @@ export default function ItemsInput({ question, answers, onChange }) {
             </div>
           )}
 
+                    {list.length === 0 && question.emptyText && (
+            <p className="items__empty">{question.emptyText}</p>
+          )}
+
           <button type="button" className="items__add" onClick={addOwn} disabled={atMax}>
-            <Plus size={16} /> Add your own
+                        <Plus size={16} /> {question.addLabel ?? 'Add your own'}
           </button>
           {atMax && <p className="items__note">{maxItems} is the most for this section.</p>}
         </>

@@ -62,12 +62,17 @@ export default function SuggestionPicker({ question, value, answers, onChange, o
   return (
     <div className="spick">
       {/* ---------- The answer itself ---------- */}
+      <label className="spick__label" htmlFor={`answer-${question.id}`}>
+        {question.answerLabel ?? 'Your answer'}
+      </label>
       <textarea
+        id={`answer-${question.id}`}
+        autoFocus
         rows={1}
         className="qinput__text qinput__blank spick__textarea"
         value={value}
         maxLength={maxLength}
-        placeholder={status === 'error' ? 'Write it here' : 'Pick one below, or write your own'}
+        placeholder={status === 'error' ? 'Write it here' : 'Type your own, or pick one below'}
         onChange={handleType}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {

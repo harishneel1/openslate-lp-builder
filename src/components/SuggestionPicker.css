@@ -3,10 +3,26 @@
 }
 
 /* ---------- The answer box ---------- */
-.spick__textarea {
-  font-size: 18px;
+.spick__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
   font-weight: 600;
+}
+
+/* Two lines tall with a clearer border, so it reads as a box to type in */
+.spick__textarea {
+  min-height: 96px;
+  font-size: 18px;
+  font-weight: 500;
   line-height: 1.4;
+  border-color: #d6d6d6;
+}
+
+/* Hint text: regular weight, so it doesn't look like a heading */
+.spick__textarea::placeholder {
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .spick__under {

@@ -4,6 +4,10 @@
 // Rule for the real version: never invent facts, numbers or
 // credentials the creator didn't give us.
 // ------------------------------------------------------------
+
+// Drops trailing full stops so drafted sentences don't end in ".."
+const noStop = (text) => String(text ?? '').trim().replace(/[.\s]+$/, '');
+
 const MOCKS = {
   headline: [
     {
@@ -84,13 +88,53 @@ const MOCKS = {
     { title: 'The one who can’t break walls', text: 'You rent or live in a flat, so big changes aren’t an option.' },
     { title: 'The curious learner', text: 'You want to understand Vasthu yourself, not depend on someone else.' },
   ],
+  // Built from their answers, so answers are never made up.
+  // Questions we have no answer for yet are left out.
+  faqs: (a) =>
+    [
+      a.audience && {
+        question: 'Who is this webinar for?',
+        answer: `It's for ${noStop(a.audience)}.`,
+      },
+      {
+        question: 'Will I need to break any walls?',
+        answer: 'No. Every fix in this session uses placement, colour and objects, not construction.',
+      },
+      a.duration && {
+        question: 'How long is the session?',
+        answer: `About ${a.duration}.`,
+      },
+      a.result && {
+        question: 'What will I be able to do afterwards?',
+        answer: `You'll be able to ${noStop(a.result)}.`,
+      },
+      a.format && {
+        question: 'Is it live?',
+        answer: a.format === 'Live' ? "Yes, it's a live session." : "No, it's a pre-recorded session.",
+      },
+      a.language && {
+        question: 'What language is it in?',
+        answer: `It's in ${a.language}.`,
+      },
+      a.pricing && {
+        question: 'Does it cost anything?',
+        answer:
+          a.pricing === 'Free'
+            ? "No, it's free. Just register to save your seat."
+            : a.price
+              ? `It costs ₹${a.price}.`
+              : "Yes, it's a paid session.",
+      },
+    ].filter(Boolean),
 };
 
 const BATCH_SIZE = 3;
 
 // Returns { items, hasMore } after a short fake delay
 export function getSuggestions(questionId, answers, batch = 0) {
-  const all = MOCKS[questionId] ?? [];
+    // A mock can be a fixed list, or a function that builds the list from their answers
+  const source = MOCKS[questionId];
+  const all = typeof source === 'function' ? source(answers) : source ?? [];
   const start = batch * BATCH_SIZE;
   const items = all.slice(start, start + BATCH_SIZE);
 

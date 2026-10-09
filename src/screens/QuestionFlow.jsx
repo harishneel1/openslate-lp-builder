@@ -4,7 +4,7 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number'];
 
 const isFilled = (v) => String(v ?? '').trim() !== '';
 
@@ -32,7 +32,9 @@ export default function QuestionFlow({
     (q) => !q.showIf || answers[q.showIf.field] === q.showIf.equals
   );
 
-  const [index, setIndex] = useState(startAtEnd ? visible.length - 1 : 0);
+    const startIndex = startAtEnd ? visible.length - 1 : 0;
+  const [index, setIndex] = useState(startIndex);
+  const [furthest, setFurthest] = useState(startIndex); // lets them jump back and forward again
 
   const question = visible[index];
   // Defaults (e.g. IST, Live) show as already selected
@@ -52,13 +54,19 @@ export default function QuestionFlow({
           ? question.parts.every((p) => isFilled(answers[p.id]))
           : isFilled(value));
 
+    // Moves to any screen and remembers the furthest one reached
+  const goTo = (i) => {
+    setIndex(i);
+    setFurthest((f) => Math.max(f, i));
+  };
+
   const goNext = () => {
     if (!canContinue) return;
     // Save a preselected default the user accepted without tapping
     if (answers[question.id] === undefined && question.default !== undefined) {
       onAnswer(question.id, question.default);
     }
-    isLast ? onComplete() : setIndex(index + 1);
+    isLast ? onComplete() : goTo(index + 1);
   };
 
   const goBack = () => {
@@ -96,6 +104,17 @@ export default function QuestionFlow({
         ? 'Fill in everything to continue'
         : 'Answer this to continue');
 
+        // Optional screens left empty say "Skip" instead of "Next"
+  const isEmptyAnswer =
+    question.type === 'items'
+      ? filledCount(answers[question.id], question.mainField) === 0
+      : !isFilled(value);
+  const nextLabel = isLast
+    ? finishLabel
+    : !question.required && isEmptyAnswer
+      ? 'Skip'
+      : 'Next';
+
   const nextButton = (
     <span className="flow__next-wrap" data-tip={canContinue ? undefined : nextHint}>
       <button
@@ -104,7 +123,7 @@ export default function QuestionFlow({
         onClick={goNext}
         aria-disabled={!canContinue}
       >
-        {isLast ? finishLabel : 'Next'} <ArrowRight size={18} />
+         {nextLabel} <ArrowRight size={18} />
       </button>
     </span>
   );
@@ -115,7 +134,9 @@ export default function QuestionFlow({
         {backAtTop && backButton}
 
         {!hideProgress &&
-          (renderProgress ? renderProgress({ question, index, visible }) : defaultProgress)}
+                    (renderProgress
+            ? renderProgress({ question, index, visible, furthest, goTo })
+            : defaultProgress)}
 
         <div className="flow__question" key={question.id}>
           <h1 className="flow__title">{question.question}</h1>

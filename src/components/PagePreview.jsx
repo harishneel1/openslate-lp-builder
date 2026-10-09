@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { CalendarDays, Clock, Globe, Video, Check, Monitor, Smartphone } from 'lucide-react';
+import { CalendarDays, Clock, Globe, Video, Check, Monitor, Smartphone, Info } from 'lucide-react';
 import { landingSections, defaultCtaLabel } from '../data/webinarQuestions';
 import './PagePreview.css';
 
@@ -69,7 +69,7 @@ function renderCta(a) {
       {showPrice && (
         <p className="pv__price">
           ₹{a.price}
-          {isFilled(a.oldPrice) && <s>₹{a.oldPrice}</s>}
+                              {Number(a.oldPrice) > Number(a.price) && <s>₹{a.oldPrice}</s>}
         </p>
       )}
       <span className="pv__button">{buttonLabel(a)}</span>
@@ -151,10 +151,10 @@ function renderProof(a) {
         {items.map((t, i) => (
           <div key={i} className="pv__card">
             <p>“{t.quote}”</p>
-            <p className="pv__muted">
-              {t.name}
-              {isFilled(t.from) && `, ${t.from}`}
-            </p>
+            <div className="pv__reviewer">
+              {isFilled(t.photo) && <img className="pv__reviewer-photo" src={t.photo} alt="" />}
+              <p className="pv__muted">{[t.name, t.from].filter(isFilled).join(', ')}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -294,7 +294,7 @@ export default function PagePreview({ answers, currentSection, mode = 'mobile', 
   return (
     <div className={`pv pv--${mode}`}>
       <div className="pv__header">
-        <p className="pv__caption">Live preview</p>
+        <p className="pv__caption">Page outline</p>
         <div className="pv__toggle" role="group" aria-label="Preview size">
           {MODES.map(({ id, label, icon: Icon }) => (
             <button
@@ -309,6 +309,10 @@ export default function PagePreview({ answers, currentSection, mode = 'mobile', 
           ))}
         </div>
       </div>
+
+       <p className="pv__note">
+        <Info size={14} /> Shows where your content goes. You'll choose a design after this.
+      </p>
 
       <div className="pv__frame">
         {mode === 'desktop' && (
