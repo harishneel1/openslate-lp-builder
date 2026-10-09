@@ -1,0 +1,34 @@
+.sprogress__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.sprogress__name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sprogress__track {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.sprogress__seg {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: #ececec;
+  transition: background 0.3s;
+}
+
+.sprogress__seg--done {
+  background: var(--color-primary);
+}
+
+.sprogress__seg--current {
+  background: #f6c49c; /* half-strength orange: in progress */
+}

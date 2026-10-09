@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import './QuestionInput.css';
+import SuggestionPicker from './SuggestionPicker';
 
 
 function TextInput({ question, value, onChange, onSubmit }) {
@@ -77,6 +78,14 @@ function SentenceInput({ question, answers, onChange, onSubmit }) {
 }
 
 export default function QuestionInput(props) {
+
+    // AI-suggested text answers: pick one of a few drafts
+  const { suggest, type } = props.question;
+  if (suggest && (type === 'text' || type === 'textarea')) {
+    return <SuggestionPicker {...props} />;
+  }
+
+  
   switch (props.question.type) {
     case 'text':
       return <TextInput {...props} />;

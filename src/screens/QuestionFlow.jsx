@@ -4,7 +4,7 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'choice', 'sentence'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence'];
 
 const isFilled = (v) => String(v ?? '').trim() !== '';
 
@@ -18,6 +18,10 @@ export default function QuestionFlow({
   startAtEnd = false,     // Back from the checkpoint lands on the last screen
   finishLabel = 'Finish', // Label of the button on the last screen
   hideProgress = false,   // Edit mode shows a single screen, no progress bar
+  renderProgress,         // Optional: replaces the default progress bar
+  renderAside,            // Optional: right-hand column (the page preview)
+  asideWidth = 'narrow',  // 'narrow' (phone preview) or 'wide' (desktop preview)
+  backAtTop = false,      // Back sits above the progress; Next appears once answered
 }) {
   // Hide questions whose showIf condition isn't met (e.g. price when Free)
   const visible = questions.filter(
@@ -53,40 +57,65 @@ export default function QuestionFlow({
     index === 0 ? onExit() : setIndex(index - 1);
   };
 
+  const defaultProgress = (
+    <div className="flow__progress">
+      <div className="flow__progress-label">
+        <span>{pageName}</span>
+        <span>{index + 1} of {visible.length}</span>
+      </div>
+      <div className="flow__progress-track">
+        <div className="flow__progress-fill" style={{ width: `${progress}%` }} />
+      </div>
+    </div>
+  );
+
+  const backButton = (
+    <button
+      type="button"
+      className={`flow__back ${backAtTop ? 'flow__back--top' : ''}`}
+      onClick={goBack}
+    >
+      <ArrowLeft size={16} /> Back
+    </button>
+  );
+
+  const nextButton = (
+    <button type="button" className="flow__next" onClick={goNext} disabled={!canContinue}>
+      {isLast ? finishLabel : 'Next'} <ArrowRight size={18} />
+    </button>
+  );
+
   return (
-    <div className="flow">
-      {!hideProgress && (
-        <div className="flow__progress">
-          <div className="flow__progress-label">
-            <span>{pageName}</span>
-            <span>{index + 1} of {visible.length}</span>
-          </div>
-          <div className="flow__progress-track">
-            <div className="flow__progress-fill" style={{ width: `${progress}%` }} />
-          </div>
+    <div className={`flow ${renderAside ? `flow--split flow--aside-${asideWidth}` : ''}`}>
+      <div className="flow__main">
+        {backAtTop && backButton}
+
+        {!hideProgress &&
+          (renderProgress ? renderProgress({ question, index, visible }) : defaultProgress)}
+
+        <div className="flow__question" key={question.id}>
+          <h1 className="flow__title">{question.question}</h1>
+          {question.helper && <p className="flow__helper">{question.helper}</p>}
+          <QuestionInput
+            question={question}
+            value={value}
+            answers={answers}
+            onChange={(v, id = question.id) => onAnswer(id, v)}
+            onSubmit={goNext}
+          />
         </div>
-      )}
 
-      <div className="flow__question" key={question.id}>
-        <h1 className="flow__title">{question.question}</h1>
-        {question.helper && <p className="flow__helper">{question.helper}</p>}
-        <QuestionInput
-          question={question}
-          value={value}
-          answers={answers}
-          onChange={(v, id = question.id) => onAnswer(id, v)}
-          onSubmit={goNext}
-        />
+        {backAtTop ? (
+          canContinue && <div className="flow__nav flow__nav--after">{nextButton}</div>
+        ) : (
+          <div className="flow__nav">
+            {backButton}
+            {nextButton}
+          </div>
+        )}
       </div>
 
-      <div className="flow__nav">
-        <button type="button" className="flow__back" onClick={goBack}>
-          <ArrowLeft size={16} /> Back
-        </button>
-        <button type="button" className="flow__next" onClick={goNext} disabled={!canContinue}>
-          {isLast ? finishLabel : 'Next'} <ArrowRight size={18} />
-        </button>
-      </div>
+      {renderAside && <aside className="flow__aside">{renderAside({ question })}</aside>}
     </div>
   );
 }

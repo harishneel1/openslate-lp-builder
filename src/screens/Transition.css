@@ -1,0 +1,42 @@
+/* A pause between two steps: centred, very little to read */
+.transition {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-top: 12vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: flow-in 0.25s ease;
+}
+
+.transition__tick {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-success);
+  background: var(--color-success-tint);
+}
+
+.transition__title {
+  margin-top: 20px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.transition__text {
+  margin-top: 8px;
+  font-size: 17px;
+  color: var(--color-text-muted);
+}
+
+.transition__nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 36px;
+}

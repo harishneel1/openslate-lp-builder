@@ -6,7 +6,7 @@
 export const landingSections = [
   { id: 'hero', name: 'Headline', themeSection: 'hero' },
   { id: 'event', name: 'Event details', themeSection: 'hero' },
-  { id: 'cta', name: 'Price & sign-up button', themeSection: 'hero' },
+  { id: 'cta', name: 'Sign-up button', themeSection: 'hero' },
   { id: 'learn', name: "What you'll learn", themeSection: 'pillars' },
   { id: 'audience', name: "Who it's for", themeSection: 'personas' },
   { id: 'host', name: 'About you, the host', themeSection: 'instructor' },
@@ -80,16 +80,17 @@ export const webinarQuestions = [
 
 
   // ---------- 1. Headline ----------
-  {
+    {
     id: 'headline',
     section: 'hero',
     target: 'hero.title',
     type: 'textarea',
-    question: "What's the one big promise of your webinar?",
-    helper: 'This is the first thing visitors read.',
+    question: "Let's start with your headline",
+    helper: "It's the first thing people read, and it decides whether they stay.",
     example: 'Fix the 5 hidden Vasthu mistakes that block money in your home, without breaking a single wall',
     maxLength: 120,
     suggest: true,
+    suggestLabel: 'headlines', // "Writing headlines from your answers…"
     required: true,
   },
   {
@@ -97,11 +98,12 @@ export const webinarQuestions = [
     section: 'hero',
     target: 'hero.subtitle',
     type: 'textarea',
-    question: 'Add one line that makes the promise easier to believe',
-    helper: 'This sits right under your headline.',
+    question: 'Now, your subheadline',
+    helper: 'It sits under your headline and gives people a reason to believe it.',
     example: 'Simple remedies you can do this weekend, based on 15 years and 3,000+ homes',
     maxLength: 140,
     suggest: true,
+    suggestLabel: 'lines',
     required: true,
   },
 

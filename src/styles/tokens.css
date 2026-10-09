@@ -26,4 +26,8 @@
 
   /* Type */
   --font-sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    /* Success */
+  --color-success: #1f9d55;
+  --color-success-tint: #e7f6ed;
 }

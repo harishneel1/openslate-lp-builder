@@ -4,16 +4,20 @@ import FunnelTypePicker from './screens/FunnelTypePicker';
 import FunnelOverview from './screens/FunnelOverview';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
+import SectionProgress from './components/SectionProgress';
+import PagePreview from './components/PagePreview';
 import { funnelTypes } from './data/funnelTypes';
 import { aboutQuestions, landingQuestions } from './data/webinarQuestions';
+import Transition from './screens/Transition';
 
 function App() {
   const [activeNav, setActiveNav] = useState('get-started');
   const [funnelId, setFunnelId] = useState(null);
-  const [step, setStep] = useState('overview'); // 'overview' | 'about' | 'checkpoint' | 'edit' | 'landing'
+  const [step, setStep] = useState('overview'); // 'overview' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing'
   const [answers, setAnswers] = useState({});
-  const [editingId, setEditingId] = useState(null);    // which about screen is being edited
+  const [editingId, setEditingId] = useState(null);      // which about screen is being edited
   const [resumeAtEnd, setResumeAtEnd] = useState(false); // Back from checkpoint → last about screen
+  const [previewMode, setPreviewMode] = useState('mobile'); // live preview: 'desktop' | 'mobile'
 
   const funnel = funnelTypes.find((f) => f.id === funnelId);
 
@@ -76,7 +80,7 @@ function App() {
             setResumeAtEnd(true);
             setStep('about');
           }}
-          onContinue={() => setStep('landing')}
+          onContinue={() => setStep('transition')}
         />
       );
     }
@@ -96,15 +100,34 @@ function App() {
       );
     }
 
+    if (step === 'transition') {
+      return (
+        <Transition
+          onBack={() => setStep('checkpoint')}
+          onContinue={() => setStep('landing')}
+        />
+      );
+    }
+
     return (
       <QuestionFlow
         key="landing"
-        pageName="Landing page"
         questions={landingQuestions}
         answers={answers}
         onAnswer={handleAnswer}
-        onExit={() => setStep('checkpoint')}
+        onExit={() => setStep('transition')}
         onComplete={() => alert(JSON.stringify(answers, null, 2))}
+        asideWidth={previewMode === 'desktop' ? 'wide' : 'narrow'}
+        backAtTop
+        renderProgress={({ question }) => <SectionProgress currentSection={question.section} />}
+        renderAside={({ question }) => (
+          <PagePreview
+            answers={answers}
+            currentSection={question.section}
+            mode={previewMode}
+            onModeChange={setPreviewMode}
+          />
+        )}
       />
     );
   };

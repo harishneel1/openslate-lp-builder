@@ -94,3 +94,53 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Builder: Back sits quietly above the progress bar */
+.flow__back--top {
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+/* Builder: Next appears under the answer once there is one */
+.flow__nav--after {
+  justify-content: flex-start;
+  margin-top: 32px;
+  animation: flow-in 0.2s ease;
+}
+
+
+
+/* ---------- Split layout: questions left, preview right ---------- */
+.flow--split {
+  display: grid;
+  gap: 48px;
+  align-items: start;
+}
+
+/* Phone preview: questions get most of the room */
+.flow--aside-narrow {
+  max-width: 1040px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+/* Desktop preview: questions narrow down, preview gets the rest */
+.flow--aside-wide {
+  max-width: 1240px;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+}
+
+.flow__aside {
+  position: sticky;
+  top: 0;
+}
+
+/* Not enough room for the preview: fall back to the single column */
+@media (max-width: 1000px) {
+  .flow--split {
+    max-width: 640px;
+    grid-template-columns: 1fr;
+  }
+  .flow__aside {
+    display: none;
+  }
+}

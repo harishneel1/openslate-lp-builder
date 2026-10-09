@@ -1,0 +1,478 @@
+.pv {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- Header: caption + Desktop/Mobile toggle ---------- */
+.pv__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pv__caption {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.pv__toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: #ececec;
+  border-radius: var(--radius-pill);
+}
+
+.pv__toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  transition: background 0.15s, color 0.15s;
+}
+
+.pv__toggle-btn:hover {
+  color: var(--color-text);
+}
+
+.pv__toggle-btn--active {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.pv__toggle-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Frame (shared) ---------- */
+.pv__frame {
+  height: min(760px, calc(100vh - 200px));
+  min-height: 480px;
+}
+
+.pv__screen {
+  position: relative; /* sections measure their offsetTop from here */
+  overflow-y: auto;
+  background: var(--color-surface);
+  scrollbar-width: none;
+}
+
+.pv__screen::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- Mobile: phone frame ---------- */
+.pv--mobile .pv__frame {
+  width: 100%;
+  max-width: 360px;
+  margin-inline: auto;
+  padding: 10px;
+  background: #1a1a1a;
+  border-radius: 44px;
+  box-shadow: var(--shadow-hover);
+}
+
+.pv--mobile .pv__screen {
+  height: 100%;
+  border-radius: 34px;
+}
+
+/* ---------- Desktop: browser window ---------- */
+.pv--desktop .pv__frame {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-hover);
+}
+
+.pv__browserbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f3f3f3;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pv__dots {
+  display: flex;
+  gap: 6px;
+}
+
+.pv__dots span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #d9d9d9;
+}
+
+.pv__url {
+  flex: 1;
+  max-width: 320px;
+  margin-inline: auto;
+  padding: 4px 12px;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-radius: var(--radius-pill);
+}
+
+.pv--desktop .pv__screen {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- Sections ---------- */
+.pv__section {
+  padding: 28px 20px;
+  border-bottom: 1px solid var(--color-border);
+  transition: box-shadow 0.2s;
+}
+
+/* Headline, event details and price sit together in one top band */
+.pv__heroband {
+  padding-block: 26px 14px;
+  background: #fff8f2;
+}
+
+.pv__section--hero {
+  padding-block: 14px;
+  border-bottom: none;
+}
+
+.pv__section--finalCta {
+  background: #fff8f2;
+  border-bottom: none;
+}
+
+.pv__section--current {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+/* ---------- Content ---------- */
+.pv__headline {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.pv__sub {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.pv__h2 {
+  margin-bottom: 12px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.pv__muted {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.pv__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pv__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.pv__cta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv__price {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.pv__price s {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.pv__button {
+  display: block;
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.pv__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.pv__item {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.pv__check {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--color-primary);
+}
+
+.pv__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv__card {
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.pv__host {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.pv__avatar {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  object-fit: cover;
+  border-radius: 50%;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.pv__bio {
+  margin-top: 12px;
+  font-size: 13px;
+  white-space: pre-line;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Placeholders (sections not filled yet) ---------- */
+.pv__placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv__placeholder-name {
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-disabled);
+}
+
+.pv__bar {
+  width: 85%;
+  height: 8px;
+  border-radius: 4px;
+  background: #ececec;
+}
+
+.pv__bar--short {
+  width: 50%;
+}
+
+.pv__bar--xl {
+  width: 100%;
+  height: 16px;
+  border-radius: 6px;
+}
+
+.pv__bar--xl.pv__bar--short {
+  width: 70%;
+}
+
+.pv__bar--button {
+  width: 100%;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+}
+
+.pv__bar-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv__bar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: var(--radius-md);
+}
+
+/* ============================================================
+   Desktop layout: same content, arranged like a desktop page
+   ============================================================ */
+.pv--desktop .pv__section {
+  padding: 32px;
+}
+
+.pv--desktop .pv__h2 {
+  margin-bottom: 16px;
+  font-size: 19px;
+}
+
+/* Top band: headline left, event details + price card right */
+.pv--desktop .pv__heroband {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-areas:
+    'hero event'
+    'hero cta';
+  column-gap: 20px;
+  padding: 32px 16px;
+}
+
+.pv--desktop .pv__section--hero {
+  padding: 16px;
+  border-radius: var(--radius-md);
+}
+
+.pv--desktop [data-section='hero'] {
+  grid-area: hero;
+  align-self: center;
+}
+
+.pv--desktop [data-section='event'] {
+  grid-area: event;
+  align-self: end;
+  padding-bottom: 8px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.pv--desktop [data-section='cta'] {
+  grid-area: cta;
+  align-self: start;
+  padding-top: 8px;
+  background: var(--color-surface);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.pv--desktop .pv__headline {
+  font-size: 26px;
+}
+
+.pv--desktop .pv__sub {
+  font-size: 15px;
+}
+
+/* What you'll learn: 3 cards in a row */
+.pv--desktop [data-section='learn'] .pv__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pv--desktop [data-section='learn'] .pv__item {
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* Who it's for, reviews, questions: 2 columns */
+.pv--desktop .pv__stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Host: photo + name on the left, bio on the right */
+.pv--desktop .pv__host-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.pv--desktop .pv__host {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.pv--desktop .pv__host .pv__avatar {
+  width: 88px;
+  height: 88px;
+  font-size: 28px;
+}
+
+.pv--desktop .pv__bio {
+  margin-top: 0;
+}
+
+/* Final sign-up: centred band */
+.pv--desktop [data-section='finalCta'] {
+  padding-block: 40px;
+  text-align: center;
+}
+
+.pv--desktop [data-section='finalCta'] .pv__cta {
+  align-items: center;
+}
+
+.pv--desktop [data-section='finalCta'] .pv__button {
+  width: 100%;
+  max-width: 280px;
+}
+
+/* Empty list sections show 3 skeleton cards in a row */
+.pv--desktop .pv__bar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
