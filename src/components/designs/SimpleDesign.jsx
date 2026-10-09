@@ -1,10 +1,25 @@
+import { useEffect } from 'react';
 import { CalendarDays } from 'lucide-react';
 import './SimpleDesign.css';
+import { loadThemeFont } from '../../data/themes';
 
-// One finished design. Renders ONLY from the page JSON (buildPageJson),
-// never from raw answers. The real renderer will replace this.
+// One renderer for every theme. Renders ONLY from the page JSON
+// (buildPageJson); the look comes from the theme (themes.js).
+// The real renderer will replace this.
 
 const formatPrice = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
+
+// Theme tokens → CSS variables: { accent: '#f4b223' } → { '--sd-accent': '#f4b223' }
+const themeStyle = (theme) =>
+  Object.fromEntries(Object.entries(theme.tokens).map(([key, value]) => [`--sd-${key}`, value]));
+
+// Loads a theme's Google Fonts once; switching back doesn't reload them
+// Loads a theme's Google Fonts once; switching back doesn't reload them
+function useThemeFont(theme) {
+  useEffect(() => {
+    loadThemeFont(theme);
+  }, [theme]);
+}
 
 function Hero({ hero, event, pricing }) {
   const isPaid = pricing.type === 'paid' && pricing.price !== null;
@@ -16,8 +31,8 @@ function Hero({ hero, event, pricing }) {
         {hero.subtitle && <p className="sd__sub">{hero.subtitle}</p>}
       </div>
 
-      {/* The "ticket": when + details on top, price + button on the stub */}
-      <div className="sd__ticket">
+      {/* Sign-up card: when + details on top, price + button below */}
+      <div className="sd__card">
         {event.label && (
           <p className="sd__when">
             <CalendarDays size={18} /> {event.label}
@@ -43,12 +58,17 @@ function Hero({ hero, event, pricing }) {
   );
 }
 
-export default function SimpleDesign({ page }) {
+export default function SimpleDesign({ page, theme }) {
+  useThemeFont(theme);
+
   return (
-    <div className="sd">
+    <div
+      className={`sd sd--hero-${theme.layout.hero} sd--card-${theme.layout.card}`}
+      style={themeStyle(theme)}
+    >
       <Hero {...page} />
 
-      {/* TEMPORARY: replaced by the other sections in the next chunk */}
+      {/* TEMPORARY: replaced by the other sections in chunk 3 */}
       <p className="sd__todo">The rest of your page appears here in the next step.</p>
     </div>
   );

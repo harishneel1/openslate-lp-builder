@@ -40,6 +40,35 @@
   color: var(--color-text-muted);
 }
 
+/* ---------- Progress (after a page is done) ---------- */
+.overview__progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.overview__progress-bar {
+  width: 240px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.overview__progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-success);
+}
+
+.overview__progress-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 /* ---------- Page flow ---------- */
 .overview__flow {
   display: flex;
@@ -49,12 +78,17 @@
 }
 
 .overview__page {
+  position: relative; /* anchors the green tick */
   flex: 1;
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+}
+
+.overview__page--done {
+  border-color: var(--color-success);
 }
 
 .overview__page-body {
@@ -67,6 +101,10 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+}
+
+.overview__step-done {
+  color: var(--color-success);
 }
 
 .overview__page-name {
@@ -84,6 +122,40 @@
 .overview__arrow {
   flex-shrink: 0;
   color: var(--color-text-disabled);
+}
+
+/* ---------- Green tick on a finished page ---------- */
+.overview__tick {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: #fff;
+  background: var(--color-success);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- Thumbnail of the finished page ---------- */
+/* Same height as the sketches so the cards line up */
+.overview__thumb {
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+  pointer-events: none;
+  user-select: none;
+}
+
+.overview__thumb-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
 }
 
 /* ---------- Mini page sketches ---------- */

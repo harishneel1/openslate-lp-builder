@@ -20,6 +20,8 @@ function App() {
   const [resumeAtEnd, setResumeAtEnd] = useState(false); // Back from checkpoint → last about screen
   const [previewMode, setPreviewMode] = useState('mobile'); // live preview: 'desktop' | 'mobile'
   const [landingAtEnd, setLandingAtEnd] = useState(false); // Back from the design step → last landing screen
+  const [themeId, setThemeId] = useState(null); // design they picked; null = the one recommended for their topic
+  const [donePages, setDonePages] = useState([]); // pages they've finished, e.g. ['landing']
 
   const funnel = funnelTypes.find((f) => f.id === funnelId);
 
@@ -40,12 +42,20 @@ function App() {
       return <FunnelTypePicker onSelect={setFunnelId} />;
     }
 
-    if (step === 'overview') {
+        if (step === 'overview') {
       return (
         <FunnelOverview
           funnel={funnel}
+          done={donePages}
+          answers={answers}
+          themeId={themeId}
           onBack={() => setFunnelId(null)}
           onStart={() => {
+            // Landing page done → go on to the next page
+            if (donePages.includes('landing')) {
+              setStep('registration');
+              return;
+            }
             setResumeAtEnd(false);
             setStep('about');
           }}
@@ -91,13 +101,19 @@ function App() {
       return (
         <DesignStep
           answers={answers}
+          themeId={themeId}
+          onThemeChange={setThemeId}
           mode={previewMode}
           onModeChange={setPreviewMode}
           onBack={() => {
             setLandingAtEnd(true);
             setStep('landing');
           }}
-          onUse={() => setStep('registration')}
+          onUse={(id) => {
+            setThemeId(id);
+            setDonePages((prev) => (prev.includes('landing') ? prev : [...prev, 'landing']));
+            setStep('overview');
+          }}
         />
       );
     }

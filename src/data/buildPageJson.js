@@ -67,7 +67,7 @@ function buildPricing(a) {
   };
 }
 
-export function buildPageJson(a) {
+export function buildPageJson(a, themeId = null) {
   const event = buildEvent(a);
   const pricing = buildPricing(a);
 
@@ -75,7 +75,7 @@ export function buildPageJson(a) {
     meta: {
       funnel: 'webinar',
       page: 'landing',
-      category: text(a.category) || null, // used later to recommend designs
+      theme: themeId, // the design they picked (an id from themes.js)
     },
 
     hero: {

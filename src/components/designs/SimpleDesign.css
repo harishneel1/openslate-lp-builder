@@ -1,27 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&display=swap');
-
 /* ------------------------------------------------------------
-   SimpleDesign: peacock green + marigold.
-   Sizes itself to its own width (container query), so the same
-   markup works in the phone frame and the browser frame.
+   SimpleDesign: one renderer, the look comes from the theme.
+   Every colour, font and size is a --sd-* variable set on .sd
+   (see themes.js). Sizes itself to its own width (container
+   query), so it works in the phone and the browser frame.
    ------------------------------------------------------------ */
 .sd {
-  --sd-peacock: #0f4c47;
-  --sd-ink: #13302d;
-  --sd-marigold: #f4b223;
-  --sd-mist: #eef4f2;
-  --sd-text: #1b2826;
-  --sd-muted: #5b6b68;
-  --sd-line: #d5e0dd;
-  --sd-display: 'Bricolage Grotesque', 'Poppins', system-ui, sans-serif;
-  --sd-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
-
   container-type: inline-size;
   min-height: 100%;
   font-family: var(--sd-body);
   line-height: 1.55;
   color: var(--sd-text);
-  background: #fff;
+  background: var(--sd-page);
 }
 
 /* ---------- Hero band ---------- */
@@ -29,34 +18,35 @@
   display: grid;
   gap: 28px;
   padding: 44px 22px 32px;
-  color: #fff;
-  background: var(--sd-peacock);
+  color: var(--sd-hero-text);
+  background: var(--sd-hero-bg);
 }
 
 .sd__headline {
   font-family: var(--sd-display);
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-size: var(--sd-h1);
+  font-weight: var(--sd-display-weight);
+  line-height: var(--sd-h1-leading);
+  letter-spacing: var(--sd-tracking);
 }
 
 .sd__sub {
   max-width: 46ch;
   margin-top: 14px;
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--sd-hero-muted);
 }
 
-/* ---------- Ticket ---------- */
-.sd__ticket {
+/* ---------- Sign-up card ---------- */
+.sd__card {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 20px;
   color: var(--sd-text);
-  background: #fff;
-  border-radius: 14px;
+  background: var(--sd-card-bg);
+  border: var(--sd-card-border);
+  border-radius: var(--sd-radius);
 }
 
 .sd__when {
@@ -69,7 +59,7 @@
 
 .sd__when svg {
   flex-shrink: 0;
-  color: var(--sd-peacock);
+  color: var(--sd-icon);
 }
 
 .sd__details {
@@ -83,12 +73,12 @@
   padding: 3px 10px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--sd-ink);
-  background: var(--sd-mist);
-  border-radius: 999px;
+  color: var(--sd-soft-text);
+  background: var(--sd-soft);
+  border-radius: var(--sd-chip-radius);
 }
 
-/* Stub: dashed tear line with a notch cut on each side */
+/* Price + button, divided from the details by a line */
 .sd__stub {
   position: relative;
   display: flex;
@@ -96,32 +86,37 @@
   gap: 14px;
   margin: 6px -20px -20px;
   padding: 18px 20px 20px;
+  border-top: 1px solid var(--sd-line);
+}
+
+/* Ticket card: dashed tear line with a notch cut on each side */
+.sd--card-ticket .sd__stub {
   border-top: 2px dashed var(--sd-line);
 }
 
-.sd__stub::before,
-.sd__stub::after {
+.sd--card-ticket .sd__stub::before,
+.sd--card-ticket .sd__stub::after {
   content: '';
   position: absolute;
   top: -11px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--sd-peacock);
+  background: var(--sd-hero-bg);
 }
 
-.sd__stub::before {
+.sd--card-ticket .sd__stub::before {
   left: -10px;
 }
 
-.sd__stub::after {
+.sd--card-ticket .sd__stub::after {
   right: -10px;
 }
 
 .sd__price {
   font-family: var(--sd-display);
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--sd-display-weight);
   line-height: 1;
 }
 
@@ -139,9 +134,25 @@
   font-size: 16px;
   font-weight: 700;
   text-align: center;
-  color: var(--sd-ink);
-  background: var(--sd-marigold);
-  border-radius: 10px;
+  color: var(--sd-accent-text);
+  background: var(--sd-accent);
+  border-radius: var(--sd-button-radius);
+}
+
+/* ---------- Centred hero (Sunrise) ---------- */
+.sd--hero-centered .sd__hero {
+  justify-items: center;
+  text-align: center;
+}
+
+.sd--hero-centered .sd__sub {
+  margin-inline: auto;
+}
+
+.sd--hero-centered .sd__card {
+  width: 100%;
+  max-width: 440px;
+  text-align: left;
 }
 
 /* TEMPORARY placeholder for the sections still to come */
@@ -155,17 +166,31 @@
 /* ---------- Wide (desktop frame) ---------- */
 @container (min-width: 700px) {
   .sd__hero {
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-    align-items: center;
-    gap: 48px;
+    gap: 40px;
     padding: 64px 48px;
   }
 
   .sd__headline {
-    font-size: 42px;
+    font-size: var(--sd-h1-wide);
   }
 
   .sd__sub {
     font-size: 18px;
+  }
+
+  /* Split: headline left, card right */
+  .sd--hero-split .sd__hero {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 48px;
+  }
+
+  /* Stacked: oversized headline across, card underneath */
+  .sd--hero-stacked .sd__headline {
+    max-width: 16ch;
+  }
+
+  .sd--hero-stacked .sd__card {
+    max-width: 460px;
   }
 }
