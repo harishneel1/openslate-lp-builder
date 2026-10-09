@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { CalendarDays, Clock, Globe, Video, Check, Monitor, Smartphone } from 'lucide-react';
-import { landingSections } from '../data/webinarQuestions';
+import { landingSections, defaultCtaLabel } from '../data/webinarQuestions';
 import './PagePreview.css';
 
 const isFilled = (v) =>
@@ -23,7 +23,8 @@ function whenText(a) {
   return [date, time].filter(Boolean).join(' at ');
 }
 
-const buttonLabel = (a) => (a.pricing === 'Paid' ? 'Reserve my seat' : 'Register for free');
+// Their own text if they changed it, otherwise the Free/Paid default
+const buttonLabel = (a) => String(a.ctaLabel ?? '').trim() || defaultCtaLabel(a.pricing);
 
 // ------------------------------------------------------------
 // One renderer per landing section. Returns null when there is

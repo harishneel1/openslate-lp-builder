@@ -60,6 +60,30 @@ const MOCKS = {
       reason: 'Speaks to their problem',
     },
   ],
+  // Items: one object per point, using the question's itemFields ids.
+  // The first 3 prefill the list, the rest show under "More ideas".
+  learnings: [
+    { title: 'The 5 most common Vasthu mistakes', description: 'How to spot each one in your own home' },
+    { title: 'Why money keeps leaving', description: 'The Vasthu patterns that are often behind it' },
+    { title: 'Fixes that need no broken walls', description: 'Simple remedies using placement, colour and objects' },
+    { title: 'The money corner of your home', description: 'Where it is, and what should never be kept there' },
+    { title: 'Bringing calm back home', description: 'Changes that ease constant tension in the family' },
+    { title: 'Checking a home before you move in', description: 'What to look at before you buy or build' },
+    { title: 'Your main entrance', description: 'Which way it should face, and how to correct it if it can’t' },
+    { title: 'The kitchen and the bedroom', description: 'Where they should sit, and what to do if they don’t' },
+    { title: 'Reading your own floor plan', description: 'A simple way to check any home yourself' },
+  ],
+
+  // Written to the visitor ("you"), so they recognise themselves.
+  // The first 2 prefill the list, the rest show under "More ideas".
+  personas: [
+    { title: 'The new homebuyer', text: "You're about to buy a home and want to know it's right before you sign." },
+    { title: 'The family building a house', text: 'You want the layout right from day one, not fixed later.' },
+    { title: 'The home where money won’t stay', text: 'You earn well, but money keeps leaving faster than it comes in.' },
+    { title: 'The home that feels tense', text: "There's constant friction at home and you can't say why." },
+    { title: 'The one who can’t break walls', text: 'You rent or live in a flat, so big changes aren’t an option.' },
+    { title: 'The curious learner', text: 'You want to understand Vasthu yourself, not depend on someone else.' },
+  ],
 };
 
 const BATCH_SIZE = 3;

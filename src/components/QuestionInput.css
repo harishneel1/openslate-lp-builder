@@ -112,3 +112,122 @@
   }
 }
 
+/* ---------- Button text line (under Free / Paid) ---------- */
+.qinput__cta-text {
+  margin-top: 20px;
+}
+
+.qinput__cta-input {
+  max-width: 360px;
+  padding: 12px 16px;
+  font-size: 16px;
+}
+
+.qinput__cta-under {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 360px;
+}
+
+.qinput__cta-under .qinput__count {
+  margin-top: 0;
+}
+
+
+/* ---------- Group: several small fields on one screen ---------- */
+.qinput__group {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.qinput__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.qinput__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qinput__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.qinput__picker {
+  padding: 14px 16px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Small single-select pills (duration, language...) */
+.qinput__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qinput__pill {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.qinput__pill:hover {
+  border-color: #d6d6d6;
+}
+
+.qinput__pill--selected,
+.qinput__pill--selected:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.qinput__pill:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Quiet defaults: "Time zone: IST · Change" */
+.qinput__row + .qinput__field--inline {
+  margin-top: -12px; /* sits right under date + time */
+}
+
+.qinput__inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.qinput__inline strong {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.qinput__change {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.qinput__change:hover {
+  color: var(--color-primary-hover);
+}
+
+@media (max-width: 560px) {
+  .qinput__row {
+    grid-template-columns: 1fr;
+  }
+}

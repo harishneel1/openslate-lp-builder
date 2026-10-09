@@ -13,7 +13,7 @@ export default function Transition({ onBack, onContinue }) {
         <Check size={28} strokeWidth={3} />
       </div>
 
-      <h1 className="transition__title">OpenSlate AI has understood your webinar</h1>
+      <h1 className="transition__title">OpenSlate AI bot has understood your webinar requirements</h1>
       <p className="transition__text">
         Next, let's build your page in {sectionCount} short sections.
       </p>

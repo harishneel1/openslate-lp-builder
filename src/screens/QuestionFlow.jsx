@@ -4,9 +4,13 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items'];
 
 const isFilled = (v) => String(v ?? '').trim() !== '';
+
+// Items only count once their main field (title, quote...) is filled
+const filledCount = (list, key) =>
+  Array.isArray(list) ? list.filter((item) => isFilled(item?.[key])).length : 0;
 
 export default function QuestionFlow({
   pageName,
@@ -36,13 +40,17 @@ export default function QuestionFlow({
   const isLast = index === visible.length - 1;
   const progress = ((index + 1) / visible.length) * 100;
 
-  // Sentence questions need every blank filled
-  const canContinue =
+  // Sentence questions need every blank filled; groups need every required field
+    const canContinue =
     !question.required ||
     !SUPPORTED_TYPES.includes(question.type) ||
-    (question.parts
-      ? question.parts.every((p) => isFilled(answers[p.id]))
-      : isFilled(value));
+    (question.type === 'items'
+      ? filledCount(answers[question.id], question.mainField) >= (question.minItems ?? 0)
+      : question.fields
+        ? question.fields.every((f) => !f.required || isFilled(answers[f.id] ?? f.default))
+        : question.parts
+          ? question.parts.every((p) => isFilled(answers[p.id]))
+          : isFilled(value));
 
   const goNext = () => {
     if (!canContinue) return;
@@ -79,10 +87,26 @@ export default function QuestionFlow({
     </button>
   );
 
+    // Shown on hover while Next is disabled. A question can set its own with `nextHint`.
+    const nextHint =
+    question.nextHint ??
+    (question.type === 'items'
+      ? `Add at least ${question.minItems} to continue`
+      : question.fields || question.parts
+        ? 'Fill in everything to continue'
+        : 'Answer this to continue');
+
   const nextButton = (
-    <button type="button" className="flow__next" onClick={goNext} disabled={!canContinue}>
-      {isLast ? finishLabel : 'Next'} <ArrowRight size={18} />
-    </button>
+    <span className="flow__next-wrap" data-tip={canContinue ? undefined : nextHint}>
+      <button
+        type="button"
+        className="flow__next"
+        onClick={goNext}
+        aria-disabled={!canContinue}
+      >
+        {isLast ? finishLabel : 'Next'} <ArrowRight size={18} />
+      </button>
+    </span>
   );
 
   return (
@@ -106,7 +130,7 @@ export default function QuestionFlow({
         </div>
 
         {backAtTop ? (
-          canContinue && <div className="flow__nav flow__nav--after">{nextButton}</div>
+                    <div className="flow__nav flow__nav--after">{nextButton}</div>
         ) : (
           <div className="flow__nav">
             {backButton}

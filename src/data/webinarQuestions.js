@@ -15,6 +15,11 @@ export const landingSections = [
   { id: 'finalCta', name: 'Final sign-up button', themeSection: 'finalCta', auto: true },
 ];
 
+
+// Button text until the creator writes their own (saved as ctaLabel)
+export const defaultCtaLabel = (pricing) =>
+  pricing === 'Paid' ? 'Reserve my seat' : 'Register for free';
+
 // ------------------------------------------------------------
 // Questions. Each answer is stored flat under its `id`.
 // section:  'about' (context) or a landingSections id
@@ -108,58 +113,56 @@ export const webinarQuestions = [
   },
 
   // ---------- 2. Event details ----------
+    // ---------- 2. Event details (one screen) ----------
+  // Each field is saved flat under its own id, like sentence parts.
+  // half:        sits side by side with the next half field
+  // collapsible: shown as "Label: value · Change" until tapped
   {
-    id: 'date',
+    id: 'eventDetails',
     section: 'event',
-    target: 'event.start', // combined with time by buildPageJson
-    type: 'date',
-    question: 'When is it happening?',
-    required: true,
-  },
-  {
-    id: 'time',
-    section: 'event',
-    target: 'event.start',
-    type: 'time',
-    question: 'What time does it start?',
-    required: true,
-  },
-  {
-    id: 'timeZone',
-    section: 'event',
-    target: 'event.timeZone',
-    type: 'choice',
-    question: 'Which time zone?',
-    options: ['IST', 'GST (Dubai)', 'GMT (London)', 'EST (New York)'],
-    default: 'IST',
-    required: true,
-  },
-  {
-    id: 'duration',
-    section: 'event',
-    target: 'hero.details',
-    type: 'choice',
-    question: 'How long will it run?',
-    options: ['30 min', '60 min', '90 min', '2 hours'],
-    required: true,
-  },
-  {
-    id: 'language',
-    section: 'event',
-    target: 'hero.details',
-    type: 'choice',
-    question: 'Which language will you speak in?',
-    options: ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam'],
-    required: true,
-  },
-  {
-    id: 'format',
-    section: 'event',
-    target: 'finalCta.details',
-    type: 'choice',
-    question: 'Is it live or pre-recorded?',
-    options: ['Live', 'Pre-recorded'],
-    default: 'Live',
+    type: 'group',
+    question: 'Now, your event details',
+    helper: 'These show at the top of your page, next to the sign-up button.',
+    fields: [
+      { id: 'date', target: 'event.start', type: 'date', label: 'Date', half: true, required: true },
+      { id: 'time', target: 'event.start', type: 'time', label: 'Start time', half: true, required: true },
+      {
+        id: 'timeZone',
+        target: 'event.timeZone',
+        type: 'choice',
+        label: 'Time zone',
+        options: ['IST', 'GST (Dubai)', 'GMT (London)', 'EST (New York)'],
+        default: 'IST',
+        collapsible: true,
+        required: true,
+      },
+      {
+        id: 'duration',
+        target: 'hero.details',
+        type: 'choice',
+        label: 'How long',
+        options: ['30 min', '60 min', '90 min', '2 hours'],
+        required: true,
+      },
+      {
+        id: 'language',
+        target: 'hero.details',
+        type: 'choice',
+        label: 'Language',
+        options: ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam'],
+        required: true,
+      },
+      {
+        id: 'format',
+        target: 'finalCta.details',
+        type: 'choice',
+        label: 'Session',
+        options: ['Live', 'Pre-recorded'],
+        default: 'Live',
+        collapsible: true,
+        required: true,
+      },
+    ],
     required: true,
   },
 
@@ -170,6 +173,7 @@ export const webinarQuestions = [
     type: 'choice',
     question: 'Is it free or paid?',
     options: ['Free', 'Paid'],
+    buttonText: true,
     required: true,
   },
   {
@@ -203,31 +207,35 @@ export const webinarQuestions = [
     type: 'items',
     question: 'What will people learn?',
     helper: "We'll draft these for you. Edit, remove or add your own.",
+    mainField: 'title', // an item counts once this is filled
     itemFields: [
-      { id: 'title', label: 'Point', example: 'The money corner of your home' },
-      { id: 'description', label: 'One line about it', example: 'Where it is, and the 2 objects that should never be there' },
+      { id: 'title', label: 'Point', example: 'The money corner of your home', maxLength: 60 },
+      { id: 'description', label: 'One line about it', example: 'Where it is, and what should never be kept there', maxLength: 100 },
     ],
     minItems: 3,
     maxItems: 7,
     suggest: true,
+    suggestLabel: 'learning points',
     required: true,
   },
 
   // ---------- 5. Who it's for ----------
-  {
+    {
     id: 'personas',
     section: 'audience',
     target: 'personas.items',
+    mainField: 'title',
     type: 'items',
     question: 'Who is this webinar perfect for?',
     helper: "We'll draft these for you. Edit, remove or add your own.",
     itemFields: [
-      { id: 'title', label: 'Who', example: 'The new homeowner' },
-      { id: 'text', label: 'Their situation', example: "You've just moved in and want to start right." },
+      { id: 'title', label: 'Who', example: 'The new homeowner', maxLength: 40 },
+      { id: 'text', label: 'Their situation', example: "You've just moved in and want to start right.", maxLength: 90 },
     ],
     minItems: 2,
     maxItems: 4,
     suggest: true,
+    suggestLabel: 'profiles', // "Writing profiles from your answers…"
     required: true,
   },
 
@@ -279,6 +287,7 @@ export const webinarQuestions = [
     id: 'testimonials',
     section: 'proof',
     target: 'testimonials.items',
+    mainField: 'quote',
     type: 'items',
     question: 'What have people said about working with you?',
     helper: 'Paste real reviews from WhatsApp, Google or Instagram. Skip if you have none yet.',
@@ -299,6 +308,7 @@ export const webinarQuestions = [
     id: 'faqs',
     section: 'faq',
     target: 'faq.items',
+    mainField: 'question',
     type: 'items',
     question: 'What will people want to ask before signing up?',
     helper: "We've drafted the usual questions. Check the answers are right for you.",

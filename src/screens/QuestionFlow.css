@@ -86,13 +86,43 @@
   transition: background 0.15s, opacity 0.15s;
 }
 
-.flow__next:hover:not(:disabled) {
+.flow__next:hover:not([aria-disabled='true']) {
   background: var(--color-primary-hover);
 }
 
-.flow__next:disabled {
+.flow__next[aria-disabled='true'] {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ---------- "Fill in everything" hint on a disabled Next ---------- */
+.flow__next-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.flow__next-wrap[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--color-text);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.flow__next-wrap[data-tip]:hover::after,
+.flow__next-wrap[data-tip]:focus-within::after {
+  opacity: 1;
+  transform: none;
 }
 
 /* Builder: Back sits quietly above the progress bar */
