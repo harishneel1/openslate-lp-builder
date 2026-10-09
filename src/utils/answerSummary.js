@@ -69,11 +69,14 @@ export function answerSummary(question, answers, page) {
         ? `${answers.pricing} · Button: ${page.pricing.ctaLabel}`
         : null;
 
-    case 'price':
-      return page.pricing.price !== null ? formatPrice(page.pricing.price) : null;
-
-    case 'oldPrice':
-      return page.pricing.oldPrice !== null ? formatPrice(page.pricing.oldPrice) : null;
+        // "₹499 (was ₹999)"
+    case 'priceDetails': {
+      const { price, oldPrice } = page.pricing;
+      if (price === null) return null;
+      return oldPrice !== null
+        ? `${formatPrice(price)} (was ${formatPrice(oldPrice)})`
+        : formatPrice(price);
+    }
 
     // "Priya Raman · with photo"
     case 'hostDetails': {

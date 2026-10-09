@@ -367,9 +367,9 @@ function App() {
         onPositionChange={savePosition('landing')}
         onComplete={() => setStep('design')}
         asideWidth={previewMode === 'desktop' ? 'wide' : 'narrow'}
-        renderProgress={({ question, visible, furthest, goTo }) => (
+        renderProgress={({ index, visible, furthest, goTo }) => (
           <SectionProgress
-            currentSection={question.section}
+            current={index}
             questions={visible}
             furthest={furthest}
             onJump={goTo}

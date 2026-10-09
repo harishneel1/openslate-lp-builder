@@ -188,30 +188,37 @@ export const webinarQuestions = [
     buttonText: true,
     required: true,
   },
+    // Price and regular price on one screen. Each still saves under its
+  // own id (price, oldPrice), like the other group fields.
   {
-    id: 'price',
+    id: 'priceDetails',
     reviewLabel: 'Price',
     section: 'cta',
-    target: 'pricing.price',
-    type: 'number',
-    question: 'How much will it cost?',
-    helper: 'What people pay to join.',
-    example: '99',
+    type: 'group',
+    question: 'Set your price',
+    helper: 'You can change it any time.',
+    nextHint: 'Add your price to continue',
     showIf: { field: 'pricing', equals: 'Paid' },
+    fields: [
+      {
+        id: 'price',
+        target: 'pricing.price',
+        type: 'number',
+        label: 'Price',
+        example: '499',
+        required: true,
+      },
+      {
+        id: 'oldPrice',
+        target: 'pricing.oldPrice',
+        type: 'number',
+        label: 'Regular price',
+        helper: 'Shown crossed out next to your price.',
+        mustExceed: 'price', // must be more than the price to make sense
+        required: false,
+      },
+    ],
     required: true,
-  },
-  {
-    id: 'oldPrice',
-    reviewLabel: 'Crossed-out price',
-    section: 'cta',
-    target: 'pricing.oldPrice',
-    type: 'number',
-    question: 'Is there a regular price you want to show crossed out?',
-        helper: 'Optional. It shows crossed out next to your price, so people see the saving.',
-    mustExceed: 'price', // must be more than the price to make sense
-    example: '499',
-    showIf: { field: 'pricing', equals: 'Paid' },
-    required: false,
   },
 
   // ---------- 4. What you'll learn ----------

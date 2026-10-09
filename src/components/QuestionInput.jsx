@@ -327,6 +327,38 @@ function GroupInput({ question, answers, onChange }) {
       );
     }
 
+        // Rupee amount: digits only, ₹ inside the box (price, regular price)
+    if (f.type === 'number') {
+      const floor = f.mustExceed ? Number(answers[f.mustExceed]) || 0 : 0;
+      const tooLow = floor > 0 && String(value).trim() !== '' && Number(value) <= floor;
+      const note = tooLow ? null : f.helper ?? (f.example ? `e.g. ₹${f.example}` : null);
+
+      return (
+        <label key={f.id} className="qinput__field">
+          <span className="qinput__label">
+            {f.label}
+            {!f.required && <span className="qinput__optional"> · Optional</span>}
+          </span>
+          <span className="qinput__money">
+            <span className="qinput__currency" aria-hidden="true">₹</span>
+            <input
+              inputMode="numeric"
+              className="qinput__text qinput__money-input"
+              value={value}
+              maxLength={6}
+              onChange={(e) => onChange(e.target.value.replace(/\D/g, '').replace(/^0+/, ''), f.id)}
+            />
+          </span>
+          {tooLow && (
+            <span className="qinput__error" role="alert">
+              This needs to be more than your price (₹{floor}) to show crossed out.
+            </span>
+          )}
+          {note && <span className="qinput__example">{note}</span>}
+        </label>
+      );
+    }
+
     if (f.type === 'date' || f.type === 'time') {
       return (
         <label key={f.id} className="qinput__field">

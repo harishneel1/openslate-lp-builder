@@ -72,7 +72,7 @@ export default function FunnelOverview({
       <h1 className="overview__title">
         {started
           ? `Your ${lastDone.name.toLowerCase()} is done`
-          : `Your funnel has ${pages.length} pages`}
+          : `Your webinar funnel has ${pages.length} pages`}
       </h1>
       <p className="overview__subtitle">
         {!started &&

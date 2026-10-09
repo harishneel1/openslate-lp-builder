@@ -1,15 +1,16 @@
 import { Check } from 'lucide-react';
-import { landingSections } from '../data/webinarQuestions';
 import './SectionProgress.css';
 
-// The final sign-up button is built for them, so it isn't a step
-const steps = landingSections.filter((s) => !s.auto);
-
-// questions: the visible questions, in order
-// furthest:  index of the furthest question they've reached
-// onJump:    go to a question index (used to jump back to a section)
-export default function SectionProgress({ currentSection, questions = [], furthest = 0, onJump }) {
-  const current = steps.findIndex((s) => s.id === currentSection);
+// Progress through the landing page questions: one segment per screen,
+// named like the rows of "Edit your landing page" (reviewLabel).
+// questions: the visible screens, in order (Price only shows when Paid)
+// current:   index of the screen they're on
+// furthest:  index of the furthest screen they've reached
+// onJump:    go to a screen index (any screen they've already reached)
+export default function SectionProgress({ questions = [], current = 0, furthest = 0, onJump }) {
+  const steps = questions;
+  const name = (q) => q.reviewLabel ?? q.question;
+  const here = steps[current];
 
   // Name sits above the current segment: left-aligned to it in the first half,
   // right-aligned to it in the second half, so it never runs off the edge
@@ -21,40 +22,37 @@ export default function SectionProgress({ currentSection, questions = [], furthe
   return (
     <div className="sprogress" style={{ '--steps': steps.length }}>
       <div className="sprogress__labels">
-        {current !== -1 && (
+        {here && (
           <p className="sprogress__label" style={labelPlacement}>
-            <span className="sprogress__name">{steps[current].name}</span>
+            <span className="sprogress__name">{name(here)}</span>
             <span>{current + 1} of {steps.length}</span>
           </p>
         )}
       </div>
 
       <div className="sprogress__track">
-        {steps.map((s, i) => {
-          const first = questions.findIndex((q) => q.section === s.id);
-          const last = questions.findLastIndex((q) => q.section === s.id);
-
+        {steps.map((q, i) => {
           const isCurrent = i === current;
-          const isDone = !isCurrent && last !== -1 && last < furthest;
-          // Any section they've already reached can be opened again
-          const canJump = !isCurrent && !!onJump && first !== -1 && first <= furthest;
+          const isDone = !isCurrent && i < furthest;
+          // Any screen they've already reached can be opened again
+          const canJump = !isCurrent && !!onJump && i <= furthest;
 
           const state = isCurrent ? 'current' : isDone ? 'done' : 'todo';
 
           return (
             <button
-              key={s.id}
+              key={q.id}
               type="button"
               className={`sprogress__seg sprogress__seg--${state} ${canJump ? 'sprogress__seg--link' : ''}`}
               aria-current={isCurrent ? 'step' : undefined}
               aria-disabled={!canJump}
-              aria-label={`${s.name}${isDone ? ', done' : ''}${isCurrent ? ', you are here' : ''}`}
-              onClick={() => canJump && onJump(first)}
+              aria-label={`${name(q)}${isDone ? ', done' : ''}${isCurrent ? ', you are here' : ''}`}
+              onClick={() => canJump && onJump(i)}
             >
               <span className="sprogress__bar" />
               <span className="sprogress__tip" aria-hidden="true">
                 {isDone && <Check size={13} strokeWidth={3} className="sprogress__tick" />}
-                {s.name}
+                {name(q)}
                 {isCurrent && <span className="sprogress__tip-note">You're here</span>}
               </span>
             </button>

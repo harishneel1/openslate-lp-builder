@@ -25,13 +25,11 @@ function Sentence({ parts, answers }) {
 export default function Checkpoint({ questions, answers, onEdit, onBack, onContinue }) {
   return (
     <div className="checkpoint">
-      <p className="checkpoint__done">
-        <CheckCircle2 size={18} /> About your webinar: done
+            <p className="checkpoint__done">
+        <CheckCircle2 size={18} /> First part done
       </p>
-           <h1 className="checkpoint__title">Does this look right?</h1>
-      <p className="checkpoint__subtitle">
-        We'll use these answers to draft your page.
-      </p>
+      <h1 className="checkpoint__title">Check your answers</h1>
+      <p className="checkpoint__subtitle">Our AI uses them to draft your page.</p>
 
       <div className="checkpoint__cards">
         {questions.map((q) => (
@@ -56,7 +54,7 @@ export default function Checkpoint({ questions, answers, onEdit, onBack, onConti
           <ArrowLeft size={16} /> Back
         </button>
         <button type="button" className="flow__next" onClick={onContinue}>
-          Looks right, continue <ArrowRight size={18} />
+          Looks right <ArrowRight size={18} />
         </button>
       </div>
     </div>

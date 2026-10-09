@@ -185,6 +185,12 @@
   font-weight: 600;
 }
 
+/* "· Optional" after a field's label */
+.qinput__optional {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
 .qinput__picker {
   padding: 14px 16px;
   font-size: 16px;
