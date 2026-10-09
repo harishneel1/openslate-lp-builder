@@ -4,6 +4,7 @@ import './QuestionInput.css';
 import SuggestionPicker from './SuggestionPicker';
 import ItemsInput from './ItemsInput';
 import { defaultCtaLabel } from '../data/webinarQuestions';
+import { readPhoto } from '../utils/readPhoto';
 
 const CTA_MAX = 25;
 
@@ -215,33 +216,23 @@ function Pills({ field, value, onPick }) {
   );
 }
 
-// Round avatar + Upload button. Saves the photo as a data URL for now;
-// the real app should upload it to storage and save the link instead.
-const PHOTO_MAX_MB = 5;
+// Round avatar + Upload button. readPhoto checks and shrinks the photo.
 
 function PhotoField({ field, value, initial, onChange }) {
   const inputRef = useRef(null);
   const [error, setError] = useState('');
 
-  const handleFile = (e) => {
+   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // lets them pick the same file again
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please choose an image file (JPG or PNG).');
-      return;
+    try {
+      setError('');
+      onChange(await readPhoto(file));
+    } catch (err) {
+      setError(err.message);
     }
-    if (file.size > PHOTO_MAX_MB * 1024 * 1024) {
-      setError(`That photo is over ${PHOTO_MAX_MB} MB. Please choose a smaller one.`);
-      return;
-    }
-
-    setError('');
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result);
-    reader.onerror = () => setError("We couldn't read that file. Please try another.");
-    reader.readAsDataURL(file);
   };
 
   return (

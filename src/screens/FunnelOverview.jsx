@@ -1,13 +1,11 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Clock } from 'lucide-react';
-import SimpleDesign from '../components/designs/SimpleDesign';
-import { buildPageJson } from '../data/buildPageJson';
-import { getTheme, recommendedThemeId } from '../data/themes';
+import { Fragment } from 'react';
+import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink } from 'lucide-react';
+import PageThumbnail from '../components/PageThumbnail';
+import { recommendedThemeId } from '../data/themes';
 import './FunnelOverview.css';
 
 // The thumbnail renders the page at this width (desktop layout),
 // then scales it down to fit the card.
-const THUMB_WIDTH = 1100;
 
 function PageSketch({ type }) {
   return (
@@ -39,36 +37,6 @@ function PageSketch({ type }) {
   );
 }
 
-// A small picture of their finished page in the design they chose.
-// Only a picture: hidden from screen readers, can't be clicked.
-function PageThumbnail({ answers, themeId }) {
-  const boxRef = useRef(null);
-  const [scale, setScale] = useState(0.3);
-
-  // Fit the full-width page into the card, whatever the card's width
-  useEffect(() => {
-    const box = boxRef.current;
-    if (!box) return undefined;
-    const observer = new ResizeObserver(([entry]) => {
-      setScale(entry.contentRect.width / THUMB_WIDTH);
-    });
-    observer.observe(box);
-    return () => observer.disconnect();
-  }, []);
-
-  const page = useMemo(() => buildPageJson(answers, themeId), [answers, themeId]);
-
-  return (
-    <div className="overview__thumb" ref={boxRef} aria-hidden="true">
-      <div
-        className="overview__thumb-page"
-        style={{ width: THUMB_WIDTH, transform: `scale(${scale})` }}
-      >
-        <SimpleDesign page={page} theme={getTheme(themeId)} />
-      </div>
-    </div>
-  );
-}
 
 // done: ids of the pages they've finished, e.g. ['landing'].
 // Empty on the first visit, so the screen looks as it always did.
@@ -79,6 +47,8 @@ export default function FunnelOverview({
   done = [],
   answers = {},
   themeId = null,
+  previewHref = null, // address of the full-screen preview (opens in a new tab)
+  onPreview,    
 }) {
   const { pages } = funnel;
 
@@ -152,6 +122,18 @@ export default function FunnelOverview({
                   </span>
                   <h3 className="overview__page-name">{page.name}</h3>
                   <p className="overview__page-job">{page.job}</p>
+                                    {isDone && page.id === 'landing' && previewHref && (
+                    <a
+                      className="overview__preview"
+                      href={previewHref}
+                      target="_blank"
+                      rel="noopener"
+                      onClick={onPreview}
+                      aria-label="Preview your landing page (opens in a new tab)"
+                    >
+                      <ExternalLink size={16} /> Preview
+                    </a>
+                  )}
                 </div>
               </div>
             </Fragment>

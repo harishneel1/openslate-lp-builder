@@ -1,0 +1,16 @@
+/* Same height as the overview's grey sketches so cards line up */
+.thumb {
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+  pointer-events: none;
+  user-select: none;
+}
+
+.thumb__page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}

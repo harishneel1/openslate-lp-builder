@@ -57,3 +57,14 @@
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
 }
+
+/* "Your funnels" and "Start a new funnel" */
+.picker__section + .picker__section {
+  margin-top: 48px;
+}
+
+.picker__section-title {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 600;
+}

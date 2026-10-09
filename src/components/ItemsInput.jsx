@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ImagePlus, Plus, Sparkles, X } from 'lucide-react';
 import { getSuggestions } from '../data/mockSuggestions';
+import { readPhoto } from '../utils/readPhoto';
 import './SuggestionPicker.css'; // reuses .spick__status, .spick__skeleton, .spick__bar, .spick__link
 import './ItemsInput.css';
 
@@ -14,31 +15,22 @@ const withId = (item) => ({ ...item, id: newId() });
 
 // Optional photo for one item (a reviewer's face).
 // Saved as a data URL for now; the real app should upload it and save the link.
-const PHOTO_MAX_MB = 5;
 
 function ItemPhoto({ value, onChange }) {
   const inputRef = useRef(null);
   const [error, setError] = useState('');
 
-  const handleFile = (e) => {
+    const handleFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // lets them pick the same file again
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please choose an image file (JPG or PNG).');
-      return;
+    try {
+      setError('');
+      onChange(await readPhoto(file));
+    } catch (err) {
+      setError(err.message);
     }
-    if (file.size > PHOTO_MAX_MB * 1024 * 1024) {
-      setError(`That photo is over ${PHOTO_MAX_MB} MB. Please choose a smaller one.`);
-      return;
-    }
-
-    setError('');
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result);
-    reader.onerror = () => setError("We couldn't read that file. Please try another.");
-    reader.readAsDataURL(file);
   };
 
   const pick = () => inputRef.current?.click();

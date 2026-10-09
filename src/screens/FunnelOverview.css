@@ -140,22 +140,21 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* ---------- Thumbnail of the finished page ---------- */
-/* Same height as the sketches so the cards line up */
-.overview__thumb {
-  position: relative;
-  height: 140px;
-  overflow: hidden;
-  border-bottom: 1px solid var(--color-border);
-  pointer-events: none;
-  user-select: none;
+/* ---------- Preview link on a finished page ---------- */
+.overview__preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
 }
 
-.overview__thumb-page {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: top left;
+.overview__preview:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
 }
 
 /* ---------- Mini page sketches ---------- */
@@ -210,6 +209,8 @@
   border-radius: 50%;
   background: var(--color-primary-tint);
 }
+
+
 
 /* ---------- Start button ---------- */
 .overview__start {

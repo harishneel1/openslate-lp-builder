@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
@@ -20,6 +20,9 @@ export default function QuestionFlow({
   onExit,
   onComplete,
   startAtEnd = false,     // Back from the checkpoint lands on the last screen
+  startAt = null,         // Optional: question id to open on (their saved screen)
+  startFurthest = null,   // Optional: question id of the furthest screen they'd reached
+  onPositionChange,       // Optional: ({ at, furthest }) as question ids, whenever either changes
   finishLabel = 'Finish', // Label of the button on the last screen
   hideProgress = false,   // Edit mode shows a single screen, no progress bar
   renderProgress,         // Optional: replaces the default progress bar
@@ -32,9 +35,24 @@ export default function QuestionFlow({
     (q) => !q.showIf || answers[q.showIf.field] === q.showIf.equals
   );
 
-    const startIndex = startAtEnd ? visible.length - 1 : 0;
+  // -1 if there's no id, or that question isn't on screen any more
+  const indexOf = (id) => (id ? visible.findIndex((q) => q.id === id) : -1);
+
+  // Where to open: their saved screen → the last screen (Back from checkpoint) → the first
+  const savedIndex = indexOf(startAt);
+  const startIndex = savedIndex !== -1 ? savedIndex : startAtEnd ? visible.length - 1 : 0;
+
   const [index, setIndex] = useState(startIndex);
-  const [furthest, setFurthest] = useState(startIndex); // lets them jump back and forward again
+  // Lets them jump back and forward again (kept across refreshes)
+  const [furthest, setFurthest] = useState(() => Math.max(startIndex, indexOf(startFurthest)));
+
+  // Tell the app where they are, so it can be saved
+  useEffect(() => {
+    if (!onPositionChange) return;
+    const current = visible[index];
+    const far = visible[Math.min(furthest, visible.length - 1)];
+    onPositionChange({ at: current?.id ?? null, furthest: far?.id ?? null });
+  }, [index, furthest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const question = visible[index];
   // Defaults (e.g. IST, Live) show as already selected
@@ -43,7 +61,7 @@ export default function QuestionFlow({
   const progress = ((index + 1) / visible.length) * 100;
 
   // Sentence questions need every blank filled; groups need every required field
-    const canContinue =
+  const canContinue =
     !question.required ||
     !SUPPORTED_TYPES.includes(question.type) ||
     (question.type === 'items'
@@ -54,7 +72,7 @@ export default function QuestionFlow({
           ? question.parts.every((p) => isFilled(answers[p.id]))
           : isFilled(value));
 
-    // Moves to any screen and remembers the furthest one reached
+  // Moves to any screen and remembers the furthest one reached
   const goTo = (i) => {
     setIndex(i);
     setFurthest((f) => Math.max(f, i));
@@ -95,8 +113,8 @@ export default function QuestionFlow({
     </button>
   );
 
-    // Shown on hover while Next is disabled. A question can set its own with `nextHint`.
-    const nextHint =
+  // Shown on hover while Next is disabled. A question can set its own with `nextHint`.
+  const nextHint =
     question.nextHint ??
     (question.type === 'items'
       ? `Add at least ${question.minItems} to continue`
@@ -104,7 +122,7 @@ export default function QuestionFlow({
         ? 'Fill in everything to continue'
         : 'Answer this to continue');
 
-        // Optional screens left empty say "Skip" instead of "Next"
+  // Optional screens left empty say "Skip" instead of "Next"
   const isEmptyAnswer =
     question.type === 'items'
       ? filledCount(answers[question.id], question.mainField) === 0
@@ -123,7 +141,7 @@ export default function QuestionFlow({
         onClick={goNext}
         aria-disabled={!canContinue}
       >
-         {nextLabel} <ArrowRight size={18} />
+        {nextLabel} <ArrowRight size={18} />
       </button>
     </span>
   );
@@ -134,7 +152,7 @@ export default function QuestionFlow({
         {backAtTop && backButton}
 
         {!hideProgress &&
-                    (renderProgress
+          (renderProgress
             ? renderProgress({ question, index, visible, furthest, goTo })
             : defaultProgress)}
 
@@ -151,7 +169,7 @@ export default function QuestionFlow({
         </div>
 
         {backAtTop ? (
-                    <div className="flow__nav flow__nav--after">{nextButton}</div>
+          <div className="flow__nav flow__nav--after">{nextButton}</div>
         ) : (
           <div className="flow__nav">
             {backButton}

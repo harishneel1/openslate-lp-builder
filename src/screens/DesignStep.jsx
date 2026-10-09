@@ -45,7 +45,7 @@ export default function DesignStep({
         </button>
 
         <p className="design__done">
-          <CheckCircle2 size={18} /> Your landing page content is ready
+            <CheckCircle2 size={18} /> Your landing page content is saved
         </p>
         <h1 className="design__title">One last step: choose a design</h1>
         <p className="design__subtitle">
