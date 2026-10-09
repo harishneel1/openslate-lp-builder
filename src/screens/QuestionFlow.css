@@ -1,0 +1,96 @@
+.flow {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: 24px;
+}
+
+/* ---------- Progress ---------- */
+.flow__progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.flow__progress-track {
+  height: 4px;
+  margin-top: 8px;
+  border-radius: var(--radius-pill);
+  background: #ececec;
+  overflow: hidden;
+}
+
+.flow__progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+
+/* ---------- Question ---------- */
+.flow__question {
+  margin-top: 64px;
+  animation: flow-in 0.25s ease;
+}
+
+@keyframes flow-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+
+.flow__title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.flow__helper {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Nav ---------- */
+.flow__nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 40px;
+}
+
+.flow__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.flow__back:hover {
+  color: var(--color-text);
+}
+
+.flow__next {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.flow__next:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.flow__next:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

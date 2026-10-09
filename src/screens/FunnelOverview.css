@@ -1,0 +1,171 @@
+.overview {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-top: 16px;
+}
+
+.overview__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.overview__back:hover {
+  color: var(--color-text);
+}
+
+.overview__title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.overview__subtitle {
+  max-width: 560px;
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+.overview__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Page flow ---------- */
+.overview__flow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.overview__page {
+  flex: 1;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.overview__page-body {
+  padding: 20px;
+}
+
+.overview__step {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.overview__page-name {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.overview__page-job {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.overview__arrow {
+  flex-shrink: 0;
+  color: var(--color-text-disabled);
+}
+
+/* ---------- Mini page sketches ---------- */
+.sketch {
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sketch__hero {
+  width: 100%;
+  height: 40px;
+  border-radius: 6px;
+  background: #ececec;
+}
+
+.sketch__line {
+  width: 80%;
+  height: 8px;
+  border-radius: 4px;
+  background: #e6e6e6;
+}
+
+.sketch__line--short {
+  width: 50%;
+}
+
+.sketch__field {
+  width: 100%;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+}
+
+.sketch__button {
+  width: 40%;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--color-primary-tint);
+}
+
+.sketch__check {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+}
+
+/* ---------- Start button ---------- */
+.overview__start {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 40px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.overview__start:hover {
+  background: var(--color-primary-hover);
+}
+
+/* Stack vertically on narrow screens */
+@media (max-width: 800px) {
+  .overview__flow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .overview__arrow {
+    align-self: center;
+    transform: rotate(90deg);
+  }
+}

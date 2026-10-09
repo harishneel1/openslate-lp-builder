@@ -1,0 +1,235 @@
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Top nav ---------- */
+.topnav {
+  height: 72px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.topnav__logo {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+}
+
+.topnav__links {
+  display: flex;
+  height: 100%;
+}
+
+.topnav__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 24px;
+  height: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s;
+}
+
+.topnav__link:hover {
+  color: var(--color-text);
+}
+
+.topnav__link--active {
+  color: var(--color-text);
+  font-weight: 600;
+  border-bottom-color: var(--color-text);
+}
+
+.topnav__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topnav__icon-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3f3f3;
+  color: var(--color-text);
+}
+
+.topnav__avatar {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------- Body ---------- */
+.app__body {
+  flex: 1;
+  display: flex;
+  min-height: 0; /* lets the main area scroll on its own */
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar-rail {
+  position: relative;
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.sidebar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  transition: width 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sidebar:hover {
+  width: 260px;
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.08);
+  transition-delay: 0.1s; /* ignore accidental mouse brushes */
+}
+
+.sidebar__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px;
+  padding: 10px 11px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.sidebar__search svg {
+  flex-shrink: 0;
+}
+
+.sidebar__search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar__item:hover {
+  background: #f5f5f5;
+  color: var(--color-text);
+}
+
+.sidebar__item--active,
+.sidebar__item--active:hover {
+  background: var(--color-primary-tint);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.sidebar__icon {
+  flex-shrink: 0;
+}
+
+.sidebar__item--active .sidebar__icon {
+  color: var(--color-primary);
+}
+
+/* Text bits fade in only when expanded */
+.sidebar__label,
+.sidebar__badge,
+.sidebar__chevron,
+.sidebar__search input {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar:hover .sidebar__label,
+.sidebar:hover .sidebar__badge,
+.sidebar:hover .sidebar__chevron,
+.sidebar:hover .sidebar__search input {
+  opacity: 1;
+}
+
+.sidebar__label {
+  flex: 1;
+}
+
+.sidebar__badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-pill);
+  background: #111;
+  color: #fff;
+}
+
+.sidebar__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Main content ---------- */
+.app__main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+}

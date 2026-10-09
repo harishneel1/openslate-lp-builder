@@ -1,0 +1,114 @@
+.qinput {
+  margin-top: 28px;
+}
+
+.qinput__text {
+  width: 100%;
+  padding: 16px 18px;
+  font: inherit;
+  font-size: 18px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.qinput__text::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.qinput__text:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.qinput__count {
+  display: block;
+  margin-top: 8px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Sentence with blanks ---------- */
+.qinput__sentence {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.qinput__part {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qinput__lead {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.qinput__blank {
+  display: block;
+  resize: none;
+  line-height: 1.5;
+  field-sizing: content; /* grows to fit the text, so nothing gets cut off */
+}
+
+.qinput__example {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.qinput__todo {
+  margin-top: 28px;
+  padding: 16px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Choice tiles ---------- */
+.qinput__choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.qinput__choice {
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.qinput__choice:hover {
+  border-color: #d6d6d6;
+}
+
+.qinput__choice--selected,
+.qinput__choice--selected:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.qinput__choice:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .qinput__choices {
+    grid-template-columns: 1fr;
+  }
+}
+

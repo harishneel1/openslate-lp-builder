@@ -1,0 +1,95 @@
+.funnel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 24px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.funnel-card:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.funnel-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.funnel-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.funnel-card__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.funnel-card__badge {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.funnel-card__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.funnel-card__description {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.funnel-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+
+.funnel-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* Coming soon state */
+.funnel-card--disabled {
+  cursor: not-allowed;
+  background: #fbfbfb;
+}
+
+.funnel-card--disabled .funnel-card__icon {
+  background: #f1f1f1;
+  color: var(--color-text-disabled);
+}
+
+.funnel-card--disabled .funnel-card__title,
+.funnel-card--disabled .funnel-card__description {
+  color: var(--color-text-disabled);
+}
