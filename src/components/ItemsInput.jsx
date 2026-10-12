@@ -156,9 +156,11 @@ function ItemPicture({ name, photo, source, onChange }) {
 }
 
 // A list the creator edits: learnings, personas, reviews, FAQs.
-// With suggest: true, more ideas sit below to add. On a first visit the list
-// is prefilled with AI drafts, unless startEmpty: true, which opens with
-// empty cards instead. With suggest: false (reviews) it's a plain list.
+// With suggest: true, AI ideas sit below to add, and a first visit opens
+// with empty cards to fill in. Nothing is ever put in the list for them.
+// With suggest: false (reviews) it's a plain list.
+// Each card is numbered by its place in the list ("Point 1", "Point 2"),
+// using itemLabel; removing one renumbers the rest.
 // A list with a picture field (reviews) shows the picture beside the fields
 // marked besidePicture (name, who they are); the rest go full width below.
 export default function ItemsInput({ question, answers, onChange }) {
@@ -170,7 +172,7 @@ export default function ItemsInput({ question, answers, onChange }) {
     maxItems = Infinity,
     suggest,
     suggestLabel = 'ideas',
-    startEmpty = false, // true: first visit opens with empty cards, not drafts
+    itemLabel = 'Item', // what one card is called: "Point", "Review"
   } = question;
 
   const list = Array.isArray(answers[questionId]) ? answers[questionId] : [];
@@ -179,9 +181,9 @@ export default function ItemsInput({ question, answers, onChange }) {
   const besideFields = photoField ? fields.filter((f) => f.besidePicture) : [];
   const belowFields = fields.filter((f) => !besideFields.includes(f));
 
-  // Only draft into the list the first time; coming back keeps their list
+  // Empty cards only on the first visit; coming back keeps their list
   const [firstVisit] = useState(answers[questionId] === undefined);
-  const prefillCount = Math.max(minItems, 1);
+  const blankCount = Math.max(minItems, 1);
 
   const [pool, setPool] = useState([]);
   const [status, setStatus] = useState(suggest ? 'loading' : 'off'); // 'loading' | 'ready' | 'error' | 'off'
@@ -190,12 +192,12 @@ export default function ItemsInput({ question, answers, onChange }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const focusId = useRef(null); // the item to focus after "Add your own"
 
-  // First load: 2 batches (6 ideas). On a first visit the first few go
-  // straight into the list (unless startEmpty); the rest become "More ideas".
+  // First load: 2 batches (6 ideas), all shown under "More ideas".
+  // None go into the list on their own.
   useEffect(() => {
-    // Steps with startEmpty open with empty cards to fill in
-    if (firstVisit && startEmpty) {
-      onChange(Array.from({ length: prefillCount }, () => blankItem(fields)));
+    // A first visit opens with empty cards to fill in
+    if (firstVisit && suggest) {
+      onChange(Array.from({ length: blankCount }, () => blankItem(fields)));
     }
     if (!suggest) return;
     let cancelled = false;
@@ -215,12 +217,7 @@ export default function ItemsInput({ question, answers, onChange }) {
         return;
       }
 
-      if (firstVisit && !startEmpty) {
-        onChange(ideas.slice(0, prefillCount));
-        setPool(ideas.slice(prefillCount));
-      } else {
-        setPool(ideas);
-      }
+      setPool(ideas);
       setHasMore(b.status === 'fulfilled' && b.value.hasMore);
       setStatus('ready');
     });
@@ -275,10 +272,8 @@ export default function ItemsInput({ question, answers, onChange }) {
   // Ideas already in the list are hidden; removing one brings it back
   const ideas = pool.filter((idea) => !list.some((item) => same(item[mainField], idea[mainField])));
 
-  const firstLoad = firstVisit && !startEmpty && status === 'loading';
-
-  // One labelled box. The first field in the list is bold, gets the cursor
-  // after "Add your own", and holds × on its label's line.
+  // One labelled box. The first field in the list is bold and gets the
+  // cursor after "Add your own".
   const renderField = (item, f) => {
     const isFirst = f.id === fields[0].id;
     const boxId = `${item.id}-${f.id}`;
@@ -286,16 +281,6 @@ export default function ItemsInput({ question, answers, onChange }) {
       <div key={f.id} className="items__field">
         <div className="items__field-head">
           <label htmlFor={boxId} className="items__label">{f.label}</label>
-          {isFirst && (
-            <button
-              type="button"
-              className="items__remove"
-              aria-label="Remove"
-              onClick={() => removeItem(item.id)}
-            >
-              <X size={16} />
-            </button>
-          )}
         </div>
 
         {/* Full-width box with its own pencil inside */}
@@ -333,64 +318,62 @@ export default function ItemsInput({ question, answers, onChange }) {
   return (
     <div className="items">
       {/* ---------- Their list ---------- */}
-      {firstLoad ? (
-        <>
-          <p className="spick__status items__status">
-            <Sparkles size={15} /> Writing {suggestLabel} from your answers…
-          </p>
-          <div className="items__list">
-            {Array.from({ length: prefillCount }, (_, i) => (
-              <div key={i} className="spick__skeleton items__skeleton">
-                <div className="spick__bar" />
-                <div className="spick__bar spick__bar--short" />
+      {list.length > 0 && (
+        <div className="items__list">
+          {list.map((item, index) => (
+            <div key={item.id} className="items__card">
+              {/* Card number on the left, × on the right */}
+              <div className="items__card-head">
+                <span className="items__card-title">
+                <span className="items__card-number">{index + 1}</span>
+                {itemLabel}
+              </span>
+                <button
+                  type="button"
+                  className="items__remove"
+                  aria-label={`Remove ${itemLabel.toLowerCase()} ${index + 1}`}
+                  onClick={() => removeItem(item.id)}
+                >
+                  <X size={16} />
+                </button>
               </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          {list.length > 0 && (
-            <div className="items__list">
-              {list.map((item) => (
-                <div key={item.id} className="items__card">
-                  {/* Reviews: picture on the left, name and who they are beside it */}
-                  {photoField && (
-                    <div className="items__person">
-                      <ItemPicture
-                        name={item[(besideFields[0] ?? fields[0]).id]}
-                        photo={item[photoField.id] ?? ''}
-                        source={item.source ?? ''}
-                        onChange={(patch) =>
-                          updateItem(item.id, {
-                            [photoField.id]: patch.photo,
-                            source: patch.source,
-                          })
-                        }
-                      />
-                      {besideFields.length > 0 && (
-                        <div className="items__person-fields">
-                          {besideFields.map((f) => renderField(item, f))}
-                        </div>
-                      )}
+
+              {/* Reviews: picture on the left, name and who they are beside it */}
+              {photoField && (
+                <div className="items__person">
+                  <ItemPicture
+                    name={item[(besideFields[0] ?? fields[0]).id]}
+                    photo={item[photoField.id] ?? ''}
+                    source={item.source ?? ''}
+                    onChange={(patch) =>
+                      updateItem(item.id, {
+                        [photoField.id]: patch.photo,
+                        source: patch.source,
+                      })
+                    }
+                  />
+                  {besideFields.length > 0 && (
+                    <div className="items__person-fields">
+                      {besideFields.map((f) => renderField(item, f))}
                     </div>
                   )}
-
-                  {belowFields.map((f) => renderField(item, f))}
                 </div>
-              ))}
+              )}
+
+              {belowFields.map((f) => renderField(item, f))}
             </div>
-          )}
-
-          {list.length === 0 && question.emptyText && (
-            <p className="items__empty">{question.emptyText}</p>
-          )}
-
-          <button type="button" className="items__add" onClick={addOwn} disabled={atMax}>
-            <Plus size={16} /> {question.addLabel ?? 'Add your own'}
-          </button>
-          {atMax && <p className="items__note">{maxItems} is the most for this section.</p>}
-        </>
+          ))}
+        </div>
       )}
+
+      {list.length === 0 && question.emptyText && (
+        <p className="items__empty">{question.emptyText}</p>
+      )}
+
+      <button type="button" className="items__add" onClick={addOwn} disabled={atMax}>
+        <Plus size={16} /> {question.addLabel ?? 'Add your own'}
+      </button>
+      {atMax && <p className="items__note">{maxItems} is the most for this section.</p>}
 
       {/* ---------- More ideas ---------- */}
       {status === 'error' && (
@@ -452,8 +435,8 @@ export default function ItemsInput({ question, answers, onChange }) {
         </div>
       )}
 
-      {/* Ideas still loading under their list (revisits, and startEmpty steps) */}
-      {(!firstVisit || startEmpty) && status === 'loading' && (
+      {/* Ideas still loading under their list */}
+      {status === 'loading' && (
         <p className="spick__status">
           <Sparkles size={15} /> Writing more {suggestLabel}…
         </p>

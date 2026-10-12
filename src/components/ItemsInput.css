@@ -30,6 +30,40 @@
   border-radius: var(--radius-md);
 }
 
+/* "Point 1" on the left, × on the right */
+/* Number badge and "Point" on the left, × on the right */
+.items__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: -4px; /* sits a little closer to the first field */
+}
+
+.items__card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Small round badge with the card's number */
+.items__card-number {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums; /* 1 and 7 take the same width */
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
 .items__field {
   display: flex;
   flex-direction: column;

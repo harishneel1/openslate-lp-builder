@@ -278,10 +278,11 @@ export const webinarQuestions = [
     target: 'pillars.items',
     type: 'items',
     question: 'What will people learn?',
-    helper: "We'll draft these for you. Edit, remove or add your own.",
+    helper: 'Add 3 to 7 things people will learn. Stuck? Pick from the ideas below.',
     mainField: 'title', // an item counts once this is filled
+    itemLabel: 'Point', // cards read "Point 1", "Point 2"
     itemFields: [
-      { id: 'title', label: 'Point', example: 'The money corner of your home', maxLength: 60 },
+      { id: 'title', label: 'Title', example: 'The money corner of your home', maxLength: 60 },
       { id: 'description', label: 'One line about it', example: 'Where it is, and what should never be kept there', maxLength: 100 },
     ],
     minItems: 3,
@@ -298,10 +299,10 @@ export const webinarQuestions = [
     section: 'audience',
     target: 'personas.items',
     mainField: 'title',
+    itemLabel: 'Person', // cards read "Person 1", "Person 2"
     type: 'items',
     question: 'Who is this webinar for?',
         helper: 'Describe 2 to 4 kinds of people this is for. Stuck? Pick from the ideas below.',
-    startEmpty: true, // opens with empty cards instead of drafts
     itemFields: [
       { id: 'title', label: 'Who they are', example: 'The new homeowner', maxLength: 40 },
       { id: 'text', label: 'Their situation', example: "You've just moved in and want to start right.", maxLength: 90 },
@@ -365,6 +366,7 @@ export const webinarQuestions = [
         helper: 'Copy real reviews from Google, WhatsApp or Instagram. Add their photo if you have it.',
     emptyText: "No reviews yet? That's fine. Skip this for now and add them later.",
     addLabel: 'Add a review',
+    itemLabel: 'Review', // cards read "Review 1", "Review 2"
        itemFields: [
       { id: 'name', label: 'Name', example: 'Priya R.', besidePicture: true },
       { id: 'from', label: 'Who they are', example: 'Homeowner, Chennai', besidePicture: true },
@@ -386,11 +388,12 @@ export const webinarQuestions = [
     mainField: 'question',
     type: 'items',
     question: 'FAQs',
-    helper: "We've drafted the usual questions. Check the answers are right for you.",
+    helper: 'Add the questions people usually ask you. Stuck? Pick from the ideas below.',
     suggestLabel: 'questions', // "Writing questions from your answers…"
+    itemLabel: 'Question', // cards read "Question 1", "Question 2"
     itemFields: [
-      { id: 'question', label: 'Question', example: 'Will I need to break any walls?' },
-      { id: 'answer', label: 'Answer', example: 'No. Every remedy in this session is non-structural.' },
+      { id: 'question', label: 'What people ask', example: 'Will I need to break any walls?' },
+      { id: 'answer', label: 'Your answer', example: 'No. Every remedy in this session is non-structural.' },
     ],
     minItems: 3,
     maxItems: 14,
