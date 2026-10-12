@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, Plus, Sparkles, X } from 'lucide-react';
+import { ImagePlus, Pencil, Plus, Sparkles, X } from 'lucide-react';
 import { getSuggestions } from '../data/mockSuggestions';
 import { readPhoto } from '../utils/readPhoto';
 import './SuggestionPicker.css'; // reuses .spick__status, .spick__skeleton, .spick__bar, .spick__link
@@ -209,14 +209,30 @@ export default function ItemsInput({ question, answers, onChange }) {
                       />
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="items__remove"
-                    aria-label="Remove"
-                    onClick={() => removeItem(item.id)}
-                  >
-                    <X size={16} />
-                  </button>
+                                    <div className="items__actions">
+                    {/* Puts the cursor at the end of the title */}
+                    <button
+                      type="button"
+                      className="items__edit"
+                      aria-label="Edit"
+                      onClick={(e) => {
+                        const box = e.currentTarget.closest('.items__card')?.querySelector('textarea');
+                        if (!box) return;
+                        box.focus();
+                        box.setSelectionRange(box.value.length, box.value.length);
+                      }}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="items__remove"
+                      aria-label="Remove"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -241,12 +257,12 @@ export default function ItemsInput({ question, answers, onChange }) {
       )}
 
       {status === 'ready' && (ideas.length > 0 || hasMore) && (
-        <div className="items__pool">
-          <p className="spick__status">
-            <Sparkles size={15} /> More ideas
+        <div className="spick__panel items__pool" role="group" aria-label="More ideas">
+          <p className="spick__heading">
+            <Sparkles size={18} /> More ideas from your answers. Tap one to add it.
           </p>
 
-          <div className="items__list">
+          <div className="spick__cards">
             {ideas.map((idea) => (
               <button
                 key={idea.id}

@@ -65,13 +65,54 @@
   color: var(--color-text-disabled);
 }
 
+/* Hovering shows it's a text box you can type in */
 .items__input:hover {
-  border-color: var(--color-border);
+  border-color: #d6d6d6;
+  background: #fafafa;
+  cursor: text;
+}
+
+/* While typing: white again, with the orange outline below */
+.items__input:focus {
+  background: var(--color-surface);
 }
 
 .items__input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* Pencil and × side by side, top right of the card */
+.items__actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 2px;
+}
+
+.items__edit {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+/* Turns orange when they hover the card, so it's clear the card is editable */
+.items__card:hover .items__edit,
+.items__card:focus-within .items__edit {
+  color: var(--color-primary);
+}
+
+.items__edit:hover {
+  background: var(--color-primary-tint);
+}
+
+.items__edit:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .items__remove {
@@ -132,27 +173,46 @@
   color: var(--color-text-muted);
 }
 
-/* ---------- More ideas ---------- */
-.items__pool {
-  margin-top: 8px;
+
+
+/* ---------- Empty state (reviews) ---------- */
+.items__empty {
+  padding: 20px;
+  font-size: 14px;
+  text-align: center;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
+/* ---------- More ideas ---------- */
+/* Same warm box and cards as the headline suggestions (SuggestionPicker) */
+.items__pool {
+  margin-top: 24px;
+}
+
+/* White and lifted, so they read as things to press */
 .items__idea {
   display: flex;
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 16px 18px;
   text-align: left;
   color: var(--color-text);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1.5px solid transparent;
   border-radius: var(--radius-md);
-  transition: border-color 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
 .items__idea:hover:not(:disabled) {
   border-color: var(--color-primary);
+  box-shadow: 0 6px 18px rgba(239, 138, 60, 0.18);
+  transform: translateY(-1px);
 }
 
 .items__idea:disabled {
@@ -170,38 +230,38 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .items__idea-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
+  line-height: 1.4;
 }
 
 .items__idea-text {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 
+/* Outlined pill, like "Use this"; fills orange on hover */
 .items__idea-add {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 6px 12px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: background 0.15s, color 0.15s;
 }
 
-/* ---------- Empty state (reviews) ---------- */
-.items__empty {
-  padding: 20px;
-  font-size: 14px;
-  text-align: center;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+.items__idea:hover:not(:disabled) .items__idea-add {
+  color: #fff;
+  background: var(--color-primary);
 }
 
 /* ---------- Optional photo inside an item ---------- */

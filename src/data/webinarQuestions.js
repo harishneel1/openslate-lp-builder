@@ -247,6 +247,7 @@ export const webinarQuestions = [
     helper: 'You can change it any time.',
     nextHint: 'Add your price to continue',
     showIf: { field: 'pricing', equals: 'Paid' },
+    pricePreview: true,
     fields: [
       {
         id: 'price',

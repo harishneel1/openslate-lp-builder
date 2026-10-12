@@ -371,3 +371,44 @@
 .qinput__money-note {
   margin-top: 8px;
 }
+
+/* ---------- "On your page" price example ---------- */
+.qinput__price-example {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--color-surface-muted, #f6f6f6);
+}
+
+.qinput__price-example-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.qinput__price-example-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+}
+
+.qinput__price-example-old {
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.qinput__price-example-new {
+  font-size: 26px;
+}
+
+.qinput__price-example-off {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e8e3e;
+}

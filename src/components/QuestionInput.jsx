@@ -253,6 +253,30 @@ function PhotoField({ field, value, initial, onChange }) {
   );
 }
 
+// How their price will look on the page, using their own numbers.
+// The regular price only shows crossed out when it's higher.
+function PriceExample({ price, oldPrice }) {
+  const p = Number(price) || 0;
+  const o = Number(oldPrice) || 0;
+  if (p <= 0) return null;
+
+  const money = (n) => `₹${n.toLocaleString('en-IN')}`;
+  const showOld = o > p;
+  const percentOff = showOld ? Math.round((1 - p / o) * 100) : 0;
+
+  return (
+    <div className="qinput__price-example">
+      <span className="qinput__price-example-label">On your page</span>
+      <p className="qinput__price-example-line">
+        {showOld && <s className="qinput__price-example-old">{money(o)}</s>}
+        <strong className="qinput__price-example-new">{money(p)}</strong>
+        {showOld && <span className="qinput__price-example-off">{percentOff}% off</span>}
+      </p>
+    </div>
+  );
+}
+
+
 // Several small fields on one screen; each saves under its own id
 function GroupInput({ question, answers, onChange }) {
   const [open, setOpen] = useState({}); // which collapsible fields are expanded
@@ -427,6 +451,9 @@ function GroupInput({ question, answers, onChange }) {
         <section key={c.name || 'fields'} className="qinput__card">
           {c.name && <h2 className="qinput__card-title">{c.name}</h2>}
           {renderBlocks(c.fields)}
+          {question.pricePreview && (
+            <PriceExample price={answers.price} oldPrice={answers.oldPrice} />
+          )}
         </section>
       ))}
     </div>
