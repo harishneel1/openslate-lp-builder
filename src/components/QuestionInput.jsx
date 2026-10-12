@@ -338,7 +338,7 @@ function GroupInput({ question, answers, onChange }) {
           </span>
           {tooLow && (
             <span className="qinput__error" role="alert">
-              This needs to be more than your price (₹{floor}) to show crossed out.
+                This needs to be more than your discounted price (₹{floor}) to show crossed out.
             </span>
           )}
           {note && <span className="qinput__example">{note}</span>}
@@ -389,7 +389,7 @@ function GroupInput({ question, answers, onChange }) {
     );
   };
 
-    // Consecutive `half` fields share a row (date + time)
+  // A helper on any field in the row shows under the whole row.
   const renderBlocks = (fields) => {
     const blocks = [];
     fields.forEach((f) => {
@@ -398,13 +398,18 @@ function GroupInput({ question, answers, onChange }) {
       else blocks.push(f.half ? [f] : f);
     });
 
-    return blocks.map((b) =>
-      Array.isArray(b) ? (
-        <div key={b[0].id} className="qinput__row">{b.map(renderField)}</div>
-      ) : (
-        renderField(b)
-      )
-    );
+    return blocks.map((b) => {
+      if (!Array.isArray(b)) return renderField(b);
+      const helpers = b.map((f) => f.helper).filter(Boolean);
+      return (
+        <div key={b[0].id} className="qinput__field">
+          <div className="qinput__row">{b.map(renderField)}</div>
+          {helpers.map((h) => (
+            <span key={h} className="qinput__example">{h}</span>
+          ))}
+        </div>
+      );
+    });
   };
 
   // Fields with the same `card` sit together in one card, in the order they appear

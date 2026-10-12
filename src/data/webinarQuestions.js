@@ -30,6 +30,16 @@ export const defaultCtaLabel = (pricing) =>
 // prefill:  value we already know from the creator's account
 // showIf:   only ask when another answer matches
 // ------------------------------------------------------------
+
+// Two weeks from today, as YYYY-MM-DD in their own time zone.
+// Prefilled so they can move on without deciding a date yet.
+function twoWeeksFromToday() {
+  const d = new Date();
+  d.setDate(d.getDate() + 14);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export const webinarQuestions = [
   // ---------- About you (context for AI + theme picks) ----------
   {
@@ -152,8 +162,27 @@ export const webinarQuestions = [
     question: 'Now, your event details',
     helper: 'These show at the top of your page, next to the sign-up button.',
     fields: [
-            { id: 'date', card: 'When', target: 'event.start', type: 'date', label: 'Date', half: true, required: true },
-            { id: 'time', card: 'When', target: 'event.start', type: 'time', label: 'Start time', half: true, required: true },
+                  {
+        id: 'date',
+        card: 'When',
+        target: 'event.start',
+        type: 'date',
+        label: 'Date',
+        half: true,
+        default: twoWeeksFromToday(),
+        helper: "Not sure about date & time yet? Keep the date we've filled in. You can change it anytime before you publish.",
+        required: true,
+      },
+      {
+        id: 'time',
+        card: 'When',
+        target: 'event.start',
+        type: 'time',
+        label: 'Start time',
+        half: true,
+        default: '19:00', // 7:00 pm
+        required: true,
+      },
       {
         id: 'timeZone',
                 card: 'When',
@@ -223,7 +252,7 @@ export const webinarQuestions = [
         id: 'price',
         target: 'pricing.price',
         type: 'number',
-        label: 'Price',
+        label: 'Discounted price',
         example: '499',
         required: true,
       },
@@ -232,7 +261,7 @@ export const webinarQuestions = [
         target: 'pricing.oldPrice',
         type: 'number',
         label: 'Regular price',
-        helper: 'Shown crossed out next to your price.',
+        helper: 'Shown crossed out next to your discounted price.',
         mustExceed: 'price', // must be more than the price to make sense
         required: false,
       },
