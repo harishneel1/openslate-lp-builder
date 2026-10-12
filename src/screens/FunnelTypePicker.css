@@ -5,7 +5,7 @@
 }
 
 .picker__header {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 .picker__eyebrow {
@@ -26,7 +26,6 @@
 }
 
 .picker__subtitle {
-  max-width: 560px;
   font-size: 16px;
   color: var(--color-text-muted);
 }

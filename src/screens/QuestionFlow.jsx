@@ -4,7 +4,13 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble'];
+
+// Screens that move on with their own button (Use this and continue), so Next is hidden
+const OWN_NEXT_TYPES = ['ramble'];
+
+// Screens that need a wider column (the ramble's side-by-side summary)
+const WIDE_TYPES = ['ramble'];
 
 const isFilled = (v) => String(v ?? '').trim() !== '';
 
@@ -133,7 +139,9 @@ export default function QuestionFlow({
       ? 'Skip'
       : 'Next';
 
-  const nextButton = (
+  const showNext = !OWN_NEXT_TYPES.includes(question.type);
+
+  const nextButton = showNext && (
     <span className="flow__next-wrap" data-tip={canContinue ? undefined : nextHint}>
       <button
         type="button"
@@ -147,7 +155,11 @@ export default function QuestionFlow({
   );
 
   return (
-    <div className={`flow ${renderAside ? `flow--split flow--aside-${asideWidth}` : ''}`}>
+    <div
+      className={`flow ${renderAside ? `flow--split flow--aside-${asideWidth}` : ''} ${
+        WIDE_TYPES.includes(question.type) ? 'flow--wide' : ''
+      }`}
+    >
       <div className="flow__main">
         {backAtTop && backButton}
 

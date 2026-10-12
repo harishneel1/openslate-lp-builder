@@ -3,7 +3,7 @@ import { Video, MessagesSquare, GraduationCap, Magnet } from 'lucide-react';
 export const funnelTypes = [
   {
     id: 'webinar',
-    title: 'Webinar / Workshop',
+    title: 'Run a Webinar / Workshop',
     description: 'Get people to sign up for a live session, free or paid.',
     icon: Video,
     available: true,

@@ -1,0 +1,339 @@
+/* ---------- "Ramble" questions: write on the left, summary on the right ---------- */
+
+/*
+  Three columns: their words | arrow | summary.
+  Closed: the arrow and summary columns are 0 wide, so the box fills the width.
+  Open:   the columns animate out to an even split.
+*/
+.ramble {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0px minmax(0, 0fr);
+  align-items: start;
+  margin-top: 28px;
+  transition: grid-template-columns 0.35s ease;
+}
+
+.ramble--open {
+  grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr);
+}
+
+.ramble__write {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* ---------- The box (Speak sits inside its border) ---------- */
+.ramble__field {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ramble__field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.ramble__field--listening {
+  border-color: var(--color-primary);
+}
+
+/* Starts moderately big, grows as they type, then scrolls */
+.ramble__box {
+  width: 100%;
+  min-height: 220px;
+  max-height: 55vh;
+  padding: 18px 20px 8px;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+}
+
+.ramble__box::placeholder {
+  color: var(--color-text-disabled);
+}
+
+/* ---------- Speak ---------- */
+.ramble__tools {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 12px;
+}
+
+.ramble__speak {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ramble__speak:hover {
+  border-color: var(--color-text-disabled);
+}
+
+.ramble__speak svg {
+  color: var(--color-primary);
+}
+
+.ramble__speak--on {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ramble__speak--on:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.ramble__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: ramble-pulse 1s ease-in-out infinite;
+}
+
+.ramble__mic-note {
+  margin-top: -6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Buttons ---------- */
+.ramble__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ramble__actions--panel {
+  gap: 20px;
+}
+
+.ramble__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.ramble__btn:hover:not(:disabled) {
+  border-color: var(--color-text-disabled);
+}
+
+.ramble__btn--primary {
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.ramble__btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.ramble__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ramble__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.ramble__link:hover {
+  color: var(--color-text);
+}
+
+/* ---------- The arrow ---------- */
+.ramble__arrow {
+  display: flex;
+  justify-content: center;
+  align-self: stretch;
+  min-width: 0;
+  overflow: hidden;
+  /* sits level with the middle of the box (min-height 220px) */
+  padding-top: 92px;
+}
+
+.ramble__arrow-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  animation: ramble-fade 0.3s ease 0.15s both;
+}
+
+/* ---------- The summary panel ---------- */
+.ramble__panel-slot {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ramble__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 220px;
+  padding: 22px 24px;
+  background: var(--color-primary-tint);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  animation: ramble-slide-in 0.35s ease both;
+}
+
+.ramble__panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.ramble__panel-title svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.ramble__summary {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-text);
+  transition: opacity 0.2s;
+}
+
+.ramble__summary--stale {
+  opacity: 0.45;
+}
+
+.ramble__stale-note {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-primary-hover);
+}
+
+/* Shimmer while reading */
+.ramble__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.ramble__bar {
+  width: 92%;
+  height: 11px;
+  border-radius: 6px;
+  background: rgba(239, 138, 60, 0.18);
+  animation: ramble-pulse 1.2s ease-in-out infinite;
+}
+
+.ramble__bar--short {
+  width: 45%;
+}
+
+/* ---------- Change something ---------- */
+.ramble__change {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ramble__change-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.ramble__change-box {
+  width: 100%;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+}
+
+.ramble__change-box:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+/* ---------- Motion ---------- */
+@keyframes ramble-pulse {
+  50% { opacity: 0.5; }
+}
+
+@keyframes ramble-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes ramble-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ramble { transition: none; }
+  .ramble__bar,
+  .ramble__dot,
+  .ramble__arrow-icon,
+  .ramble__panel { animation: none; }
+}

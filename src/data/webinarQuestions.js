@@ -58,8 +58,22 @@ export const webinarQuestions = [
     required: true,
   },
    
-    // Sentence questions: one screen, a sentence with blanks.
-  // Each part is saved flat under its own id (audience, problem, ...).
+  // Ramble question: they write freely, we summarise, they approve.
+  // The approved summary saves under its id (audience);
+  // everything they wrote saves under audienceRaw.
+  {
+    id: 'audience',
+    reviewLabel: "Who it's for",
+    section: 'about',
+    type: 'ramble',
+    question: 'Who is your webinar for?',
+    intro: "Describe them like you're telling a friend. Who are they, what's their life like, why would they show up? Write as much as you like, and we'll tidy it up.",    placeholder: "e.g. Mostly families in their 30s and 40s who are building or buying their first home. Many have already spent a lot on the house and are worried something's off…",
+    nextHint: 'Press Done, then approve your answer',
+    required: true,
+  },
+
+  // TEMPORARY: the other two blanks stay as a sentence until
+  // we turn them into ramble questions in the next steps.
   {
     id: 'positioning',
     reviewLabel: 'Your webinar',
@@ -67,20 +81,8 @@ export const webinarQuestions = [
     type: 'sentence',
     question: 'Finish this sentence about your webinar',
     parts: [
-      { id: 'audience', lead: 'This webinar is for', example: 'families building or buying a new home' },
-      { id: 'problem', lead: 'who struggle with', example: 'money that keeps leaving, or constant tension at home' },
+      { id: 'problem', lead: 'They struggle with', example: 'money that keeps leaving, or constant tension at home' },
       { id: 'result', lead: "By the end, they'll be able to", example: 'spot and fix the 5 most common Vasthu mistakes without breaking walls' },
-    ],
-    required: true,
-  },
-  {
-    id: 'trust',
-    reviewLabel: 'You',
-    section: 'about',
-    type: 'sentence',
-    question: 'Finish this sentence about you',
-    parts: [
-      { id: 'credibility', lead: 'People can trust me because I', example: 'have practised Vasthu for 15 years and consulted on 3,000+ homes' },
     ],
     required: true,
   },

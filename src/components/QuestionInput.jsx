@@ -5,6 +5,7 @@ import SuggestionPicker from './SuggestionPicker';
 import ItemsInput from './ItemsInput';
 import { defaultCtaLabel } from '../data/webinarQuestions';
 import { readPhoto } from '../utils/readPhoto';
+import RambleInput from './RambleInput';
 
 const CTA_MAX = 25;
 
@@ -463,6 +464,8 @@ export default function QuestionInput(props) {
       return <GroupInput {...props} />;
     case 'items':
       return <ItemsInput {...props} />;
+    case 'ramble':
+      return <RambleInput {...props} />;  
     default:
       return (
         <p className="qinput__todo">

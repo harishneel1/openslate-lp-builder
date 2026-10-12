@@ -9,37 +9,38 @@ export default function FunnelTypePicker({ onSelect, savedFunnels = [], onOpen, 
   const hasSaved = sorted.length > 0;
 
   return (
-    <div className="picker">
-      <header className="picker__header">
-        <h1 className="picker__title">What are you building today?</h1>
-        <p className="picker__subtitle">
-          Pick a funnel and we'll walk you through it, one question at a time.
-          You bring the content. We handle the design.
-        </p>
-      </header>
+  <div className="picker">
+    <header className="picker__header">
+      <h1 className="picker__title">How do you want to get customers?</h1>
+      <p className="picker__subtitle">
+        Pick one and we'll build the web pages for it. We'll ask you simple
+        questions about your business, one at a time, and turn your answers
+        into pages you can share. No design or tech skills needed.
+      </p>
+    </header>
 
+    <section className="picker__section" aria-labelledby={hasSaved ? 'picker-new' : undefined}>
+      {/* First visit: no heading, so the screen looks as it always did */}
       {hasSaved && (
-        <section className="picker__section" aria-labelledby="picker-saved">
-          <h2 id="picker-saved" className="picker__section-title">Your funnels</h2>
-          <div className="picker__grid">
-            {sorted.map((f) => (
-              <SavedFunnelCard key={f.id} funnel={f} onOpen={onOpen} onDelete={onDelete} />
-            ))}
-          </div>
-        </section>
+        <h2 id="picker-new" className="picker__section-title">Start something new</h2>
       )}
+      <div className="picker__grid">
+        {funnelTypes.map((funnel) => (
+          <FunnelTypeCard key={funnel.id} funnel={funnel} onSelect={onSelect} />
+        ))}
+      </div>
+    </section>
 
-      <section className="picker__section" aria-labelledby={hasSaved ? 'picker-new' : undefined}>
-        {/* First visit: no heading, so the screen looks as it always did */}
-        {hasSaved && (
-          <h2 id="picker-new" className="picker__section-title">Start a new funnel</h2>
-        )}
+    {hasSaved && (
+      <section className="picker__section" aria-labelledby="picker-saved">
+        <h2 id="picker-saved" className="picker__section-title">Pick up where you left off</h2>
         <div className="picker__grid">
-          {funnelTypes.map((funnel) => (
-            <FunnelTypeCard key={funnel.id} funnel={funnel} onSelect={onSelect} />
+          {sorted.map((f) => (
+            <SavedFunnelCard key={f.id} funnel={f} onOpen={onOpen} onDelete={onDelete} />
           ))}
         </div>
       </section>
-    </div>
-  );
+    )}
+  </div>
+);
 }

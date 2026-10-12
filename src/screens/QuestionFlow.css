@@ -30,7 +30,7 @@
 
 /* ---------- Question ---------- */
 .flow__question {
-  margin-top: 64px;
+  margin-top: 40px;
   animation: flow-in 0.25s ease;
 }
 
@@ -173,4 +173,9 @@
   .flow__aside {
     display: none;
   }
+}
+
+/* Ramble screens: room for the box and the summary side by side */
+.flow--wide {
+  max-width: 960px;
 }

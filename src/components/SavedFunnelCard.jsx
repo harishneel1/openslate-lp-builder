@@ -166,7 +166,7 @@ export default function SavedFunnelCard({ funnel, onOpen, onDelete }) {
           <div className="saved-card__footer">
             <span className="saved-card__edited">{editedAgo(funnel.updatedAt)}</span>
             <span className="saved-card__cta">
-              {ready ? 'Review and publish' : 'Continue'} <ArrowRight size={16} />
+              Edit <ArrowRight size={16} />
             </span>
           </div>
         </div>
