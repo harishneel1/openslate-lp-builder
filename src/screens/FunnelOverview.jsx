@@ -123,14 +123,14 @@ export default function FunnelOverview({
                   </span>
                   <h3 className="overview__page-name">{page.name}</h3>
                   <p className="overview__page-job">{page.job}</p>
-                                     {isDone && page.id === 'landing' && (
+                  {isDone && page.id === 'landing' && (
                     <div className="overview__page-actions">
                       <button type="button" className="overview__page-action" onClick={onEdit}>
                         <Pencil size={16} /> Edit
                       </button>
                       {previewHref && (
                         <a
-                          className="overview__page-action"
+                          className="overview__page-action overview__page-action--preview"
                           href={previewHref}
                           target="_blank"
                           rel="noopener"

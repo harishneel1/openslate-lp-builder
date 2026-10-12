@@ -11,6 +11,7 @@ import { funnelTypes } from './data/funnelTypes';
 import { aboutQuestions, landingQuestions } from './data/webinarQuestions';
 import Transition from './screens/Transition';
 import DesignStep from './screens/DesignStep';
+import BuildingStep from './screens/BuildingStep';
 import LandingEditor from './screens/LandingEditor';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
@@ -18,7 +19,7 @@ import ExamplePreview from './components/ExamplePreview';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 
-const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'registration'];
+const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'registration'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -86,7 +87,7 @@ function App() {
   const current = funnels.find((f) => f.id === openId) ?? null;
   const funnel = current ? funnelTypes.find((t) => t.id === current.type) : null;
 
-  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'registration'
+  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'building' | 'registration'
   const answers = current?.answers ?? NO_ANSWERS;
   const themeId = current?.themeId ?? null;       // design they picked; null = the one recommended for their topic
   const donePages = current?.donePages ?? NO_PAGES; // pages they've finished, e.g. ['landing']
@@ -319,9 +320,23 @@ function App() {
             updateOpen((f) => ({
               themeId: id,
               donePages: f.donePages.includes('landing') ? f.donePages : [...f.donePages, 'landing'],
-              step: 'overview',
+              step: 'building', // the "page is ready" moment, then the overview
             }))
           }
+        />
+      );
+    }
+
+    // Right after picking a style: the page "builds", then Preview / Continue.
+    // The landing page is already marked done, so the preview tab shows it.
+    if (step === 'building') {
+      return (
+        <BuildingStep
+          answers={answers}
+          themeId={themeId}
+          previewHref={`?preview=${encodeURIComponent(openId)}`}
+          onPreview={saveNow}
+          onContinue={() => setStep('overview')}
         />
       );
     }

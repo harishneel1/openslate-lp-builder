@@ -1,0 +1,183 @@
+/* Centred like the Transition screen, with their page as the hero */
+.building {
+  --building-progress: 0; /* 0 → 1 as the steps tick, set from BuildingStep.jsx */
+  max-width: 560px;
+  margin: 0 auto;
+  padding-top: 8vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: flow-in 0.25s ease;
+}
+
+.building__title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.building__text {
+  margin-top: 8px;
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Their page ---------- */
+.building__shot {
+  width: 100%;
+  margin-top: 28px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.5s ease, transform 0.5s ease;
+}
+
+/* Bigger than the overview thumbnail, and it clears up as the steps tick */
+.building__shot .thumb {
+  height: 300px;
+  border-bottom: none;
+  filter: blur(calc((1 - var(--building-progress)) * 10px))
+    grayscale(calc(1 - var(--building-progress)));
+  opacity: calc(0.35 + 0.65 * var(--building-progress));
+  transition: filter 0.6s ease, opacity 0.6s ease;
+}
+
+/* The reveal: the finished page lifts slightly */
+.building--ready .building__shot {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.building--ready .building__shot .thumb {
+  filter: none;
+  opacity: 1;
+}
+
+/* ---------- Checklist ---------- */
+.building__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+  list-style: none;
+  text-align: left;
+}
+
+.building__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--color-text-disabled);
+  transition: color 0.2s;
+}
+
+.building__step--current {
+  color: var(--color-text);
+}
+
+.building__step--done {
+  color: var(--color-text-muted);
+}
+
+.building__mark {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  color: #fff;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* Working on it: a ring that spins */
+.building__step--current .building__mark {
+  border-color: var(--color-primary-tint);
+  border-top-color: var(--color-primary);
+  animation: building-spin 0.8s linear infinite;
+}
+
+.building__step--done .building__mark {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  animation: building-pop 0.25s ease;
+}
+
+@keyframes building-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes building-pop {
+  0% { transform: scale(0.6); }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Preview + Continue ---------- */
+.building__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+  animation: flow-in 0.3s ease;
+}
+
+.building__preview {
+  text-decoration: none;
+}
+
+.building__continue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.building__continue:hover {
+  color: var(--color-text);
+}
+
+.building__preview:focus-visible,
+.building__continue:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* For screen readers only */
+.building__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .building__shot .thumb {
+    height: 220px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .building,
+  .building__actions,
+  .building__step--done .building__mark {
+    animation: none;
+  }
+  .building__shot,
+  .building__shot .thumb {
+    transition: none;
+  }
+  .building--ready .building__shot {
+    transform: none;
+  }
+}
