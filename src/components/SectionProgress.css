@@ -1,17 +1,13 @@
-/* Label row and track share the same columns, so the name can sit
-   right above the current segment */
-.sprogress__labels,
-.sprogress__track {
-  display: grid;
-  grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
-  column-gap: 4px;
+/* ---------- Label: "Headline · Step 1 of 9", always at the left ---------- */
+.sprogress__labels {
+  margin-bottom: 4px;
 }
 
 .sprogress__label {
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
   color: var(--color-text-muted);
@@ -23,6 +19,12 @@
 }
 
 /* ---------- Segments ---------- */
+.sprogress__track {
+  display: grid;
+  grid-template-columns: repeat(var(--steps), minmax(0, 1fr));
+  column-gap: 4px;
+}
+
 /* The button is taller than the bar so it's easy to hover and click */
 .sprogress__seg {
   position: relative;
@@ -39,7 +41,7 @@
 
 .sprogress__bar {
   width: 100%;
-  height: 4px;
+  height: 6px;
   border-radius: var(--radius-pill);
   background: #ececec;
   transition: background 0.3s, height 0.15s;
@@ -54,7 +56,7 @@
 }
 
 .sprogress__seg:hover .sprogress__bar {
-  height: 6px;
+  height: 8px;
 }
 
 .sprogress__seg:focus-visible {

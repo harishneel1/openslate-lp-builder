@@ -3,28 +3,34 @@
 }
 
 /* ---------- The answer box ---------- */
-.spick__label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Two lines tall with a clearer border, so it reads as a box to type in */
+/* Reads as a field: thicker darker border, inset shadow,
+   and a text cursor anywhere on it */
 .spick__textarea {
-  min-height: 96px;
+  min-height: 104px;
   font-size: 18px;
   font-weight: 500;
   line-height: 1.4;
-  border-color: #d6d6d6;
+  cursor: text;
+  border: 1.5px solid #c9c9c9;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-/* Hint text: regular weight, so it doesn't look like a heading */
+.spick__textarea:hover {
+  border-color: #a8a8a8;
+}
+
+.spick__textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 4px var(--color-primary-tint);
+}
+
+/* Hint text: regular weight, so it doesn't look like a filled-in answer */
 .spick__textarea::placeholder {
   font-size: 16px;
   font-weight: 400;
 }
 
+/* Keeps its height when empty, so nothing jumps when the count appears */
 .spick__under {
   display: flex;
   justify-content: space-between;
@@ -38,88 +44,78 @@
   color: var(--color-text-muted);
 }
 
-/* ---------- Suggestions heading ---------- */
-.spick__status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 24px 0 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-
-.spick__status svg {
-  color: var(--color-primary);
-}
-
 .spick__note {
   margin-top: 16px;
   font-size: 14px;
   color: var(--color-text-muted);
 }
 
-/* ---------- Cards ---------- */
+/* ---------- Suggestions panel ---------- */
+/* One soft warm block, so the suggestions read as a single "here's help" area */
+.spick__panel {
+  margin-top: 20px;
+  padding: 20px;
+  background: #fff8f2;
+  border: 1px solid #f5e1d0;
+  border-radius: var(--radius-lg);
+}
+
+.spick__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.spick__heading svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
 .spick__cards {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+/* White and lifted, so they read as things to press */
 .spick__card {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  flex-direction: column;
+  gap: 12px;
   width: 100%;
   padding: 16px 18px;
   text-align: left;
   color: var(--color-text);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1.5px solid transparent;
   border-radius: var(--radius-md);
-  transition: border-color 0.15s, background 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
   animation: flow-in 0.25s ease;
 }
 
 .spick__card:hover {
-  border-color: #d6d6d6;
+  border-color: var(--color-primary);
+  box-shadow: 0 6px 18px rgba(239, 138, 60, 0.18);
+  transform: translateY(-1px);
 }
 
+/* Selected: orange border stays; no lift, since it's already chosen */
 .spick__card--selected,
 .spick__card--selected:hover {
   border-color: var(--color-primary);
-  background: var(--color-primary-tint);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transform: none;
 }
 
 .spick__card:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.spick__radio {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  background: var(--color-surface);
-  border: 1.5px solid #cfcfcf;
-  border-radius: 50%;
-}
-
-.spick__card--selected .spick__radio {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.spick__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .spick__text {
@@ -128,32 +124,69 @@
   line-height: 1.4;
 }
 
-.spick__reason {
-  font-size: 13px;
-  color: var(--color-text-muted);
+/* Tags on the left, "Use this" on the right */
+.spick__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.spick__badge {
-  flex-shrink: 0;
+.spick__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spick__badge,
+.spick__tag {
   padding: 3px 10px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-primary-tint);
   border-radius: var(--radius-pill);
 }
 
-.spick__card--selected .spick__badge {
-  background: var(--color-surface);
+.spick__badge {
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+/* The angle: a grey label, so it never reads as copy */
+.spick__tag {
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: #f1f1f1;
+}
+
+/* Quiet button that fills orange when the card is hovered */
+.spick__use {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: background 0.15s, color 0.15s;
+}
+
+.spick__card:hover .spick__use {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+/* Selected: a calm "Using this" instead of a call to action */
+.spick__card--selected .spick__use,
+.spick__card--selected:hover .spick__use {
+  color: var(--color-success);
+  background: var(--color-success-tint);
+  border-color: transparent;
 }
 
 /* ---------- Secondary links ---------- */
-.spick__links {
-  display: flex;
-  gap: 20px;
-  margin-top: 16px;
-}
-
 .spick__link {
   display: inline-flex;
   align-items: center;
@@ -172,15 +205,19 @@
   cursor: not-allowed;
 }
 
+.spick__more {
+  margin-top: 14px;
+}
+
 /* ---------- Loading skeletons ---------- */
 .spick__skeleton {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 18px 18px 18px 52px;
+  padding: 18px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .spick__bar {
@@ -197,4 +234,11 @@
 
 @keyframes spick-pulse {
   50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spick__card,
+  .spick__card:hover {
+    transform: none;
+  }
 }

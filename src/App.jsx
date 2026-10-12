@@ -16,6 +16,7 @@ import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
 import './App.css';
+import { funnelName } from './utils/funnelName';
 
 const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'registration'];
 
@@ -393,7 +394,15 @@ function App() {
   };
 
   return (
-    <AppLayout activeNav={activeNav} onNavigate={handleNavigate}>
+    <AppLayout
+      activeNav={activeNav}
+      onNavigate={handleNavigate}
+      focus={
+        activeNav === 'page-builder' && funnel
+          ? { title: funnelName(current, funnel), onExit: closeFunnel, saveFailed }
+          : null
+      }
+    >
         {activeNav === 'page-builder' ? (
         renderPageBuilder()
       ) : (

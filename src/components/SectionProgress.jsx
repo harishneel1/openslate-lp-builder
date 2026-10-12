@@ -12,20 +12,15 @@ export default function SectionProgress({ questions = [], current = 0, furthest 
   const name = (q) => q.reviewLabel ?? q.question;
   const here = steps[current];
 
-  // Name sits above the current segment: left-aligned to it in the first half,
-  // right-aligned to it in the second half, so it never runs off the edge
-  const inFirstHalf = current < steps.length / 2;
-  const labelPlacement = inFirstHalf
-    ? { gridColumn: `${current + 1} / -1`, justifySelf: 'start' }
-    : { gridColumn: `1 / ${current + 2}`, justifySelf: 'end' };
-
   return (
     <div className="sprogress" style={{ '--steps': steps.length }}>
+           {/* Always at the left edge, so it's in the same place on every screen */}
       <div className="sprogress__labels">
         {here && (
-          <p className="sprogress__label" style={labelPlacement}>
+          <p className="sprogress__label">
             <span className="sprogress__name">{name(here)}</span>
-            <span>{current + 1} of {steps.length}</span>
+            <span aria-hidden="true">·</span>
+            <span>Step {current + 1} of {steps.length}</span>
           </p>
         )}
       </div>

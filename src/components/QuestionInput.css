@@ -236,10 +236,6 @@
   outline-offset: 2px;
 }
 
-/* Quiet defaults: "Time zone: IST · Change" */
-.qinput__row + .qinput__field--inline {
-  margin-top: -12px; /* sits right under date + time */
-}
 
 .qinput__inline {
   display: flex;

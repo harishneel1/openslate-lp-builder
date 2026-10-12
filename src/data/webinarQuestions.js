@@ -144,8 +144,6 @@ export const webinarQuestions = [
   // ---------- 2. Event details ----------
     // ---------- 2. Event details (one screen) ----------
   // Each field is saved flat under its own id, like sentence parts.
-  // half:        sits side by side with the next half field
-  // collapsible: shown as "Label: value · Change" until tapped
   {
     id: 'eventDetails',
     reviewLabel: 'Event details',
@@ -164,7 +162,6 @@ export const webinarQuestions = [
         label: 'Time zone',
         options: ['IST', 'GST (Dubai)', 'GMT (London)', 'EST (New York)'],
         default: 'IST',
-        collapsible: true,
         required: true,
       },
       {
@@ -193,7 +190,6 @@ export const webinarQuestions = [
         label: 'Session',
         options: ['Live', 'Pre-recorded'],
         default: 'Live',
-        collapsible: true,
         required: true,
       },
     ],

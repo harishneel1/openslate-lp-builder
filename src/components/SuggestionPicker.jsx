@@ -1,22 +1,25 @@
-import { useEffect, useState } from 'react';
-import { Check, Plus, RotateCcw, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowUp, Check, Plus, RotateCcw, Sparkles } from 'lucide-react';
 import { getSuggestions } from '../data/mockSuggestions';
-import './QuestionInput.css'; // reuses .qinput__text, .qinput__blank, .qinput__count
+import './QuestionInput.css'; // reuses .qinput__text, .qinput__blank
 import './SuggestionPicker.css';
 
 const isFilled = (v) => String(v ?? '').trim() !== '';
+const COUNT_FROM_END = 20; // only show the character count this close to the limit
 
-// One text box at the top, AI suggestions below.
-// Clicking a suggestion fills the box; typing edits it.
+// One text box at the top, AI suggestions below in their own panel.
+// The box starts empty. Clicking a suggestion copies it into the box; typing edits it.
 // Reusable for any text/textarea question with `suggest: true`.
 export default function SuggestionPicker({ question, value, answers, onChange, onSubmit }) {
   const { maxLength, suggestLabel = 'suggestions' } = question;
+  const answerLabel = question.answerLabel ?? 'Your answer';
 
   const [options, setOptions] = useState([]);
   const [batch, setBatch] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
   const [ownDraft, setOwnDraft] = useState('');    // last thing they typed themselves
+  const boxRef = useRef(null);
 
   // Load the first 3, and 3 more each time "Show 3 more" is pressed
   useEffect(() => {
@@ -55,24 +58,37 @@ export default function SuggestionPicker({ question, value, answers, onChange, o
     setOwnDraft(text);
   };
 
+  // Copy a suggestion into the box, then put the cursor at the end
+  // so it's obvious the text now lives in the box and can be edited
+  const useSuggestion = (text) => {
+    onChange(text);
+    requestAnimationFrame(() => {
+      const box = boxRef.current;
+      if (!box) return;
+      box.focus();
+      box.setSelectionRange(text.length, text.length);
+    });
+  };
+
   const firstLoad = status === 'loading' && options.length === 0;
   const loadingMore = status === 'loading' && options.length > 0;
   const canRestore = isFilled(ownDraft) && ownDraft !== value;
+  const showCount = maxLength && value.length >= maxLength - COUNT_FROM_END;
 
   return (
     <div className="spick">
       {/* ---------- The answer itself ---------- */}
-      <label className="spick__label" htmlFor={`answer-${question.id}`}>
-        {question.answerLabel ?? 'Your answer'}
-      </label>
+      {/* No visible label: the question title above already names it */}
       <textarea
+        ref={boxRef}
         id={`answer-${question.id}`}
+        aria-label={answerLabel}
         autoFocus
-        rows={1}
+        rows={2}
         className="qinput__text qinput__blank spick__textarea"
         value={value}
         maxLength={maxLength}
-        placeholder={status === 'error' ? 'Write it here' : 'Type your own, or pick one below'}
+        placeholder={`Start typing ${answerLabel.toLowerCase()} here…`}
         onChange={handleType}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
@@ -81,6 +97,7 @@ export default function SuggestionPicker({ question, value, answers, onChange, o
           }
         }}
       />
+
       <div className="spick__under">
         {canRestore ? (
           <button type="button" className="spick__link" onClick={() => onChange(ownDraft)}>
@@ -89,17 +106,19 @@ export default function SuggestionPicker({ question, value, answers, onChange, o
         ) : (
           <span />
         )}
-        {maxLength && <span className="spick__count">{value.length}/{maxLength}</span>}
+        {showCount && <span className="spick__count">{value.length}/{maxLength}</span>}
       </div>
 
-      {/* ---------- Suggestions ---------- */}
+      {/* ---------- Suggestions: one panel ---------- */}
       {status === 'error' ? (
         <p className="spick__note">We couldn't write suggestions right now.</p>
       ) : (
-        <>
-          <p className="spick__status">
-            <Sparkles size={15} />
-            {firstLoad ? `Writing ${suggestLabel} from your answers…` : 'Suggestions for you'}
+        <section className="spick__panel" aria-label="Suggestions">
+          <p className="spick__heading">
+            <Sparkles size={16} />
+            {firstLoad
+              ? `Writing ${suggestLabel} from your answers…`
+              : 'We wrote these from your answers. You can pick one!'}
           </p>
 
           <div className="spick__cards">
@@ -111,16 +130,29 @@ export default function SuggestionPicker({ question, value, answers, onChange, o
                   type="button"
                   aria-pressed={isSelected}
                   className={`spick__card ${isSelected ? 'spick__card--selected' : ''}`}
-                  onClick={() => onChange(o.text)}
+                  onClick={() => useSuggestion(o.text)}
                 >
-                  <span className="spick__radio">
-                    {isSelected && <Check size={13} strokeWidth={3} />}
+                  <span className="spick__text">{o.text}</span>
+
+                  <span className="spick__footer">
+                    <span className="spick__tags">
+                      {o.pick && <span className="spick__badge">Our pick</span>}
+                      {o.tag && <span className="spick__tag">{o.tag}</span>}
+                    </span>
+
+                    {/* Looks like a button; the whole card is the real button */}
+                    <span className="spick__use" aria-hidden="true">
+                      {isSelected ? (
+                        <>
+                          <Check size={14} strokeWidth={3} /> Using this
+                        </>
+                      ) : (
+                        <>
+                          Use this <ArrowUp size={14} strokeWidth={2.5} />
+                        </>
+                      )}
+                    </span>
                   </span>
-                  <span className="spick__body">
-                    <span className="spick__text">{o.text}</span>
-                    <span className="spick__reason">{o.reason}</span>
-                  </span>
-                  {o.pick && <span className="spick__badge">Our pick</span>}
                 </button>
               );
             })}
@@ -135,18 +167,16 @@ export default function SuggestionPicker({ question, value, answers, onChange, o
           </div>
 
           {hasMore && !firstLoad && (
-            <div className="spick__links">
-              <button
-                type="button"
-                className="spick__link"
-                disabled={loadingMore}
-                onClick={() => setBatch((b) => b + 1)}
-              >
-                <Plus size={14} /> Show 3 more
-              </button>
-            </div>
+            <button
+              type="button"
+              className="spick__link spick__more"
+              disabled={loadingMore}
+              onClick={() => setBatch((b) => b + 1)}
+            >
+              <Plus size={14} /> Show 3 more
+            </button>
           )}
-        </>
+        </section>
       )}
     </div>
   );

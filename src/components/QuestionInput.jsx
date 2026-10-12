@@ -9,15 +9,14 @@ import RambleInput from './RambleInput';
 
 const CTA_MAX = 25;
 
-// "Button text: Reserve my seat · Change" under the free/paid choice.
-// Only saved as ctaLabel once they change it; until then it follows Free/Paid.
+// Button text field under the free/paid choice, always visible.
+// Shows the default for Free/Paid until they write their own.
+// Only saved as ctaLabel once they change it.
 function ButtonTextLine({ pricing, answers, onChange }) {
   const fallback = defaultCtaLabel(pricing);
   const custom = String(answers.ctaLabel ?? '').trim();
-  const shown = custom || fallback;
 
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(shown);
+  const [draft, setDraft] = useState(custom || fallback);
 
   // Switching Free/Paid updates the box too, unless they wrote their own
   useEffect(() => {
@@ -31,51 +30,38 @@ function ButtonTextLine({ pricing, answers, onChange }) {
     onChange(text.trim() === fallback ? '' : text, 'ctaLabel');
   };
 
+  // An empty box falls back to the default when they leave it
+  const handleBlur = () => {
+    if (!draft.trim()) setDraft(fallback);
+  };
+
   const useDefault = () => {
     setDraft(fallback);
     onChange('', 'ctaLabel');
   };
 
   return (
-    <div className="qinput__field qinput__cta-text">
-      <p className="qinput__inline">
-        Button text: <strong>{shown}</strong>
-        <button
-          type="button"
-          className="qinput__change"
-          onClick={() => {
-            if (!open) setDraft(shown);
-            setOpen(!open);
-          }}
-        >
-          {open ? 'Done' : 'Change'}
-        </button>
-      </p>
-
-      {open && (
-        <>
-          <input
-            autoFocus
-            className={`qinput__text qinput__picker ${value ? '' : 'qinput__picker--empty'}`}
-            value={draft}
-            maxLength={CTA_MAX}
-            placeholder={fallback}
-            onChange={handleType}
-            onKeyDown={(e) => e.key === 'Enter' && setOpen(false)}
-          />
-          <div className="qinput__cta-under">
-            {custom ? (
-              <button type="button" className="qinput__change" onClick={useDefault}>
-                Use the default
-              </button>
-            ) : (
-              <span />
-            )}
-            <span className="qinput__count">{draft.length}/{CTA_MAX}</span>
-          </div>
-        </>
-      )}
-    </div>
+    <label className="qinput__field qinput__cta-text">
+      <span className="qinput__label">Button text</span>
+      <input
+        className="qinput__text qinput__cta-input"
+        value={draft}
+        maxLength={CTA_MAX}
+        placeholder={fallback}
+        onChange={handleType}
+        onBlur={handleBlur}
+      />
+      <span className="qinput__cta-under">
+        {custom ? (
+          <button type="button" className="qinput__change" onClick={useDefault}>
+            Use the default
+          </button>
+        ) : (
+          <span />
+        )}
+        <span className="qinput__count">{draft.length}/{CTA_MAX}</span>
+      </span>
+    </label>
   );
 }
 
