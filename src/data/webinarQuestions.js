@@ -74,19 +74,40 @@ export const webinarQuestions = [
 
   // TEMPORARY: the other two blanks stay as a sentence until
   // we turn them into ramble questions in the next steps.
-  {
-    id: 'positioning',
-    reviewLabel: 'Your webinar',
+    {
+    id: 'problem',
+    reviewLabel: 'Their struggle',
     section: 'about',
-    type: 'sentence',
-    question: 'Finish this sentence about your webinar',
-    parts: [
-      { id: 'problem', lead: 'They struggle with', example: 'money that keeps leaving, or constant tension at home' },
-      { id: 'result', lead: "By the end, they'll be able to", example: 'spot and fix the 5 most common Vasthu mistakes without breaking walls' },
-    ],
+    type: 'ramble',
+    question: 'What are they struggling with?',
+    intro: "What's going wrong for them right now? What have they already tried, and what keeps them up at night? Write as much as you like, and we'll tidy it up.",
+    placeholder: "e.g. Money comes in but never seems to stay. There's constant tension at home and they can't work out why. Some have already spent on remedies that didn't help…",
     required: true,
   },
 
+  // TEMPORARY: the last blank stays as a sentence until it
+  // becomes a ramble question in the next step.
+  {
+    id: 'result',
+    reviewLabel: "What they'll get",
+    section: 'about',
+    type: 'ramble',
+    question: 'What will they walk away with?',
+    intro: 'Once the webinar ends, what will they be able to do, understand or change in their lives? Think about how their life looks afterwards. Write as much as you like, and we\'ll tidy it up.',
+    placeholder: "e.g. They'll be able to walk through their own home and spot the 5 most common Vasthu mistakes. They'll know simple fixes that don't need any walls broken…",
+    required: true,
+  },
+
+    {
+    id: 'teach',
+    reviewLabel: "What you'll teach",
+    section: 'about',
+    type: 'ramble',
+    question: 'What will you teach?',
+    intro: "Walk us through what you'll cover in the session. The main ideas, the steps, the examples you'll share, anything you'd normally explain. Write as much as you like, and we'll tidy it up.",
+    placeholder: "e.g. I'll start with why Vasthu matters for money. Then I'll go room by room: the entrance, the kitchen, the bedroom and the money corner. For each one I'll show the common mistake and a fix that doesn't need any construction…",
+    required: true,
+  },
 
   // ---------- 1. Headline ----------
     {
