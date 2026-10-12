@@ -276,6 +276,15 @@ function App() {
           finishLabel="Continue"
           onExit={() => setStep('overview')}
           onComplete={() => setStep('checkpoint')}
+          wide
+          renderProgress={({ index, visible, furthest, goTo }) => (
+            <SectionProgress
+              current={index}
+              questions={visible}
+              furthest={furthest}
+              onJump={goTo}
+            />
+          )}
         />
       );
     }

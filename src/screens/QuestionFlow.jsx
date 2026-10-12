@@ -35,6 +35,7 @@ export default function QuestionFlow({
   renderAside,            // Optional: right-hand column (the page preview)
   asideWidth = 'narrow',  // 'narrow' (phone preview) or 'wide' (desktop preview)
   backAtTop = false,      // Back sits above the progress; Next appears once answered
+  wide = false, 
 }) {
   // Hide questions whose showIf condition isn't met (e.g. price when Free)
   const visible = questions.filter(
@@ -157,7 +158,7 @@ export default function QuestionFlow({
   return (
     <div
       className={`flow ${renderAside ? `flow--split flow--aside-${asideWidth}` : ''} ${
-        WIDE_TYPES.includes(question.type) ? 'flow--wide' : ''
+          wide || WIDE_TYPES.includes(question.type) ? 'flow--wide' : ''
       }`}
     >
       <div className="flow__main">
