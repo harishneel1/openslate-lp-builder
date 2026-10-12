@@ -14,6 +14,7 @@ import DesignStep from './screens/DesignStep';
 import LandingEditor from './screens/LandingEditor';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
+import ExamplePreview from './components/ExamplePreview';
 import './App.css';
 
 const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'registration'];
@@ -375,7 +376,7 @@ function App() {
         startFurthest={positions.landing?.furthest}
         onPositionChange={savePosition('landing')}
         onComplete={() => setStep('design')}
-        asideWidth={previewMode === 'desktop' ? 'wide' : 'narrow'}
+        asideWidth="half"
         renderProgress={({ index, visible, furthest, goTo }) => (
           <SectionProgress
             current={index}
@@ -385,12 +386,7 @@ function App() {
           />
         )}
         renderAside={({ question }) => (
-          <PagePreview
-            answers={answers}
-            currentSection={question.section}
-            mode={previewMode}
-            onModeChange={setPreviewMode}
-          />
+          <ExamplePreview questionId={question.id} />
         )}
       />
     );

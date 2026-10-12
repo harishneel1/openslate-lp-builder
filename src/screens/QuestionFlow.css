@@ -159,6 +159,12 @@
   grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
 }
 
+/* Example page: questions and preview share the room equally */
+.flow--aside-half {
+  max-width: 1240px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .flow__aside {
   position: sticky;
   top: 0;

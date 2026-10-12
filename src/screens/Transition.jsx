@@ -15,7 +15,7 @@ export default function Transition({ onBack, onContinue }) {
 
       <h1 className="transition__title">OpenSlate AI has understood your webinar requirements</h1>
       <p className="transition__text">
-        Next, let's build your page in {sectionCount} short sections.
+        Next, let's build your webinar landing page in {sectionCount} short sections.
       </p>
 
       <div className="transition__nav">
