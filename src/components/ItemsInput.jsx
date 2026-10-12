@@ -424,7 +424,7 @@ export default function ItemsInput({ question, answers, onChange }) {
             <div className="spick__links">
               <button
                 type="button"
-                className="spick__link"
+                className="spick__link spick__more"
                 disabled={loadingMore}
                 onClick={showMore}
               >

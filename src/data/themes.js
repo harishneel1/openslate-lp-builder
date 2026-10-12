@@ -4,12 +4,15 @@
 // tokens: become CSS variables (--sd-<name>) on the page
 // layout.hero: 'split' | 'centered' | 'stacked'
 // layout.card: 'ticket' | 'plain'
+// name: plain colour name shown to the user (id stays the same for saved funnels)
+// why: reason shown when this theme is the recommended one
 // ------------------------------------------------------------
 export const themes = [
   {
     id: 'peacock',
-    name: 'Peacock',
-    description: 'Calm and grounded, with a ticket-style sign-up card.',
+    name: 'Green & gold',
+    description: 'Modern font, rounded buttons, ticket-style sign-up card.',
+    why: 'Calm green and warm gold feel soothing and trustworthy',
     fontUrl:
       'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&display=swap',
     layout: { hero: 'split', card: 'ticket' },
@@ -42,8 +45,9 @@ export const themes = [
   },
   {
     id: 'harbour',
-    name: 'Harbour',
-    description: 'Navy and crisp, for a professional, trustworthy feel.',
+    name: 'Navy & white',
+    description: 'Classic serif headings, sharp corners, a formal feel.',
+    why: 'Navy and a classic serif feel professional and credible',
     fontUrl:
       'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap',
     layout: { hero: 'split', card: 'plain' },
@@ -76,8 +80,9 @@ export const themes = [
   },
   {
     id: 'sunrise',
-    name: 'Sunrise',
-    description: 'Warm and friendly, with soft rounded shapes.',
+    name: 'Orange & pink',
+    description: 'Friendly rounded font, soft pill-shaped buttons.',
+    why: 'Warm colours and soft shapes feel friendly and welcoming',
     fontUrl:
       'https://fonts.googleapis.com/css2?family=Nunito:wght@800&family=Nunito+Sans:wght@400;600;700&display=swap',
     layout: { hero: 'centered', card: 'plain' },
@@ -110,8 +115,9 @@ export const themes = [
   },
   {
     id: 'studio',
-    name: 'Studio',
-    description: 'Bold, oversized type with an electric blue accent.',
+    name: 'Black & blue',
+    description: 'Big bold headings, square edges, a high-contrast look.',
+    why: 'Bold type and strong contrast grab attention and feel confident',
     fontUrl: 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap',
     layout: { hero: 'stacked', card: 'plain' },
     tokens: {
@@ -163,6 +169,12 @@ const CATEGORY_THEME = {
 
 // "Other" or anything unmapped gets the most neutral theme
 export const recommendedThemeId = (category) => CATEGORY_THEME[category] ?? 'harbour';
+
+// Why we recommend a theme, for the badge tooltip
+export function recommendationReason(theme, category) {
+  const fit = category ? `${category} webinars` : 'most webinars';
+  return `${theme.why}, which suits ${fit}.`;
+}
 
 export const getTheme = (id) => themes.find((t) => t.id === id) ?? themes[0];
 

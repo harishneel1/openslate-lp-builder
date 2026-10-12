@@ -3,12 +3,18 @@ import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import PreviewFrame from '../components/PreviewFrame';
 import SimpleDesign from '../components/designs/SimpleDesign';
 import { buildPageJson } from '../data/buildPageJson';
-import { themes, getTheme, recommendedThemeId, loadThemeFont } from '../data/themes';
+import {
+  themes,
+  getTheme,
+  recommendedThemeId,
+  recommendationReason,
+  loadThemeFont,
+} from '../data/themes';
 import './QuestionFlow.css'; // reuses .flow__back, .flow__next
 import './DesignStep.css';
 
-// After Finish: pick a design and see the page in it.
-// themeId: the design they picked, or null until they pick one
+// After Finish: pick a style (colours, fonts, shapes) for the page.
+// themeId: the style they picked, or null until they pick one
 // (then the one recommended for their topic is shown).
 export default function DesignStep({
   answers,
@@ -26,6 +32,7 @@ export default function DesignStep({
   const recommended = getTheme(recommendedId);
   const selectedId = themeId ?? recommendedId;
   const theme = getTheme(selectedId);
+  const reason = recommendationReason(recommended, hasCategory ? category : '');
 
   // Recommended first, the rest in their usual order
   const ordered = [recommended, ...themes.filter((t) => t.id !== recommendedId)];
@@ -45,26 +52,29 @@ export default function DesignStep({
         </button>
 
         <p className="design__done">
-            <CheckCircle2 size={18} /> Your landing page content is saved
+          <CheckCircle2 size={18} /> Your landing page content is saved
         </p>
-        <h1 className="design__title">One last step: choose a design</h1>
+        <h1 className="design__title">Pick a style for your page</h1>
         <p className="design__subtitle">
+          Each style sets your page's colours, fonts and button shapes. We've kept it to four
+          that look good and get sign-ups, and you can change it anytime.{' '}
           {hasCategory ? (
             <>We picked <strong>{recommended.name}</strong> for {category} webinars.</>
           ) : (
-            <>We picked <strong>{recommended.name}</strong>, a design that suits most webinars.</>
-          )}{' '}
-          Try the others to see your page in each.
+            <>We picked <strong>{recommended.name}</strong>, a style that suits most webinars.</>
+          )}
         </p>
 
-        <div className="design__themes" role="group" aria-label="Designs">
+        <div className="design__themes" role="group" aria-label="Styles">
           {ordered.map((t) => {
             const isSelected = t.id === selectedId;
+            const isRecommended = t.id === recommendedId;
             return (
               <button
                 key={t.id}
                 type="button"
                 aria-pressed={isSelected}
+                aria-describedby={isRecommended ? 'design-why' : undefined}
                 className={`design__theme ${isSelected ? 'design__theme--selected' : ''}`}
                 onClick={() => onThemeChange(t.id)}
               >
@@ -85,8 +95,19 @@ export default function DesignStep({
                 <span className="design__theme-body">
                   <span className="design__theme-name">{t.name}</span>
                   <span className="design__theme-desc">{t.description}</span>
+                  {/* Touch screens have no hover: show the reason inline once picked */}
+                  {isRecommended && isSelected && (
+                    <span className="design__why-inline" aria-hidden="true">{reason}</span>
+                  )}
                 </span>
-                {t.id === recommendedId && <span className="design__badge">Recommended</span>}
+                {isRecommended && (
+                  <span className="design__badge-wrap">
+                    <span className="design__badge">Recommended</span>
+                    <span id="design-why" role="tooltip" className="design__tip">
+                      {reason}
+                    </span>
+                  </span>
+                )}
               </button>
             );
           })}
@@ -94,7 +115,7 @@ export default function DesignStep({
 
         <div className="design__actions">
           <button type="button" className="flow__next" onClick={() => onUse(selectedId)}>
-            Use {theme.name} <ArrowRight size={18} />
+            Use this style <ArrowRight size={18} />
           </button>
         </div>
       </div>
