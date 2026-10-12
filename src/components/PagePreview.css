@@ -355,6 +355,29 @@ background: #3a3a3a;
   object-fit: cover;
 }
 
+/* No photo: their initials in a grey circle */
+.pv__reviewer-initials {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: #ececec;
+}
+
+/* Google review: white circle with the icon inside */
+.pv__reviewer-photo--icon {
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+}
+
+.pv__reviewer-photo--icon img {
+  width: 16px;
+  height: 16px;
+}
+
 .pv__reviewer .pv__muted {
   margin-top: 0;
 }

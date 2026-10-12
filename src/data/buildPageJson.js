@@ -105,7 +105,7 @@ export function buildPageJson(a, themeId = null) {
     },
 
     testimonials: {
-      items: cleanItems(a.testimonials, 'quote', ['quote', 'name', 'from', 'photo']),
+      items: cleanItems(a.testimonials, 'quote', ['quote', 'name', 'from', 'photo', 'source']),
     },
 
     faq: {

@@ -300,9 +300,10 @@ export const webinarQuestions = [
     mainField: 'title',
     type: 'items',
     question: 'Who is this webinar for?',
-    helper: "We'll draft these for you. Edit, remove or add your own.",
+        helper: 'Describe 2 to 4 kinds of people this is for. Stuck? Pick from the ideas below.',
+    startEmpty: true, // opens with empty cards instead of drafts
     itemFields: [
-      { id: 'title', label: 'Who', example: 'The new homeowner', maxLength: 40 },
+      { id: 'title', label: 'Who they are', example: 'The new homeowner', maxLength: 40 },
       { id: 'text', label: 'Their situation', example: "You've just moved in and want to start right.", maxLength: 90 },
     ],
     minItems: 2,
@@ -361,13 +362,13 @@ export const webinarQuestions = [
     mainField: 'quote',
     type: 'items',
     question: 'What have people said about working with you?',
-    helper: 'Paste real reviews from WhatsApp, Google or Instagram.',
+        helper: 'Copy real reviews from Google, WhatsApp or Instagram. Add their photo if you have it.',
     emptyText: "No reviews yet? That's fine. Skip this for now and add them later.",
     addLabel: 'Add a review',
-    itemFields: [
+       itemFields: [
+      { id: 'name', label: 'Name', example: 'Priya R.', besidePicture: true },
+      { id: 'from', label: 'Who they are', example: 'Homeowner, Chennai', besidePicture: true },
       { id: 'quote', label: 'What they said', example: 'Within a month of moving the tijori, things felt calmer at home' },
-      { id: 'name', label: 'Name', example: 'Priya R.' },
-      { id: 'from', label: 'Who they are', example: 'Homeowner, Chennai' },
       { id: 'photo', label: 'Photo', type: 'image' },
     ],
     minItems: 0,

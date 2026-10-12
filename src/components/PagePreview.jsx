@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { CalendarDays, Clock, Globe, Video, Check } from 'lucide-react';
 import PreviewFrame from './PreviewFrame';
 import { landingSections, defaultCtaLabel } from '../data/webinarQuestions';
+import { initials } from '../utils/initials';
+import googleIcon from '../assets/google-g.svg';
 import './PagePreview.css';
 
 const isFilled = (v) =>
@@ -142,6 +144,22 @@ function renderHost(a) {
   );
 }
 
+// Reviewer's picture: their photo → Google icon → initials → nothing
+function ReviewerPicture({ review }) {
+  if (isFilled(review.photo)) {
+    return <img className="pv__reviewer-photo" src={review.photo} alt="" />;
+  }
+  if (review.source === 'google') {
+    return (
+      <span className="pv__reviewer-photo pv__reviewer-photo--icon">
+        <img src={googleIcon} alt="Google review" />
+      </span>
+    );
+  }
+  const letters = initials(review.name);
+  return letters ? <span className="pv__reviewer-photo pv__reviewer-initials">{letters}</span> : null;
+}
+
 function renderProof(a) {
   const items = filledItems(a.testimonials, 'quote');
   if (!items.length) return null;
@@ -153,7 +171,7 @@ function renderProof(a) {
           <div key={i} className="pv__card">
             <p>“{t.quote}”</p>
             <div className="pv__reviewer">
-              {isFilled(t.photo) && <img className="pv__reviewer-photo" src={t.photo} alt="" />}
+              <ReviewerPicture review={t} />
               <p className="pv__muted">{[t.name, t.from].filter(isFilled).join(', ')}</p>
             </div>
           </div>

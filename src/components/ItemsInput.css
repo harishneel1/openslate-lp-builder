@@ -19,38 +19,61 @@
 }
 
 /* ---------- One item in their list ---------- */
+/* Fields stacked full width; × sits on the first label's line */
 .items__card {
   display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 8px;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
-.items__fields {
-  flex: 1;
-  min-width: 0;
+.items__field {
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 
-/* Reads like text until hovered or focused */
+/* Label on the left, × on the right (first field only) */
+.items__field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+
+/* "Who they are", "Their situation" */
+.items__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+/* The box and its pencil */
+.items__box {
+  position: relative;
+}
+
+/* Always looks like a field: light grey border, room on the right for the pencil */
 .items__input {
   display: block;
   width: 100%;
-  padding: 6px 10px;
+  padding: 10px 44px 10px 12px;
   font: inherit;
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-muted);
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--color-surface);
+  border: 1px solid #e0e0e0;
   border-radius: var(--radius-sm);
   outline: none;
   resize: none;
   field-sizing: content;
+  cursor: text;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -65,16 +88,8 @@
   color: var(--color-text-disabled);
 }
 
-/* Hovering shows it's a text box you can type in */
 .items__input:hover {
-  border-color: #d6d6d6;
-  background: #fafafa;
-  cursor: text;
-}
-
-/* While typing: white again, with the orange outline below */
-.items__input:focus {
-  background: var(--color-surface);
+  border-color: #c8c8c8;
 }
 
 .items__input:focus {
@@ -82,15 +97,11 @@
   box-shadow: 0 0 0 3px var(--color-primary-tint);
 }
 
-/* Pencil and × side by side, top right of the card */
-.items__actions {
-  flex-shrink: 0;
-  display: flex;
-  gap: 2px;
-}
-
+/* Pencil inside the box, top right; always visible */
 .items__edit {
-  flex-shrink: 0;
+  position: absolute;
+  top: 6px;
+  right: 6px;
   width: 32px;
   height: 32px;
   display: grid;
@@ -100,9 +111,9 @@
   transition: background 0.15s, color 0.15s;
 }
 
-/* Turns orange when they hover the card, so it's clear the card is editable */
-.items__card:hover .items__edit,
-.items__card:focus-within .items__edit {
+/* Turns orange when they hover or type in that box */
+.items__box:hover .items__edit,
+.items__box:focus-within .items__edit {
   color: var(--color-primary);
 }
 
@@ -110,15 +121,10 @@
   background: var(--color-primary-tint);
 }
 
-.items__edit:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 .items__remove {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -134,6 +140,140 @@
 .items__remove:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* ---------- Reviews: picture beside name and who they are ---------- */
+.items__person {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.items__person-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Lines the circle up with the first box, below its label */
+.items__picture {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 34px;
+}
+
+.items__avatar {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  background: #ececec;
+  transition: box-shadow 0.15s;
+}
+
+.items__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Google icon: white circle with a border, icon smaller inside */
+.items__avatar--icon {
+  background: var(--color-surface);
+  border: 1px solid #e0e0e0;
+}
+
+.items__avatar--icon img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.items__avatar-letters {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.items__avatar:hover {
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.items__avatar:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.items__picture-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.items__picture-link:hover {
+  color: var(--color-primary-hover);
+}
+
+.items__picture-error {
+  width: 120px;
+  font-size: 12px;
+  text-align: center;
+  color: #c0392b;
+}
+
+/* Small menu under the circle (same look as the funnel card's ⋯ menu) */
+.items__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  width: 230px;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.items__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+}
+
+.items__menu-item:hover {
+  background: #f5f5f5;
+}
+
+.items__menu-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.items__menu-item--danger {
+  color: #c62828;
+}
+
+.items__menu-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 /* ---------- Add your own ---------- */
@@ -171,19 +311,6 @@
   margin-top: 8px;
   font-size: 13px;
   color: var(--color-text-muted);
-}
-
-
-
-/* ---------- Empty state (reviews) ---------- */
-.items__empty {
-  padding: 20px;
-  font-size: 14px;
-  text-align: center;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 /* ---------- More ideas ---------- */
@@ -264,58 +391,13 @@
   background: var(--color-primary);
 }
 
-/* ---------- Optional photo inside an item ---------- */
-.items__photo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 10px 6px;
-}
-
-.items__photo-img {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.items__photo-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
+/* ---------- Empty state (reviews) ---------- */
+.items__empty {
+  padding: 20px;
+  font-size: 14px;
+  text-align: center;
   color: var(--color-text-muted);
-}
-
-.items__photo-add:hover {
-  color: var(--color-primary);
-}
-
-.items__optional {
-  color: var(--color-text-disabled);
-}
-
-.items__photo-link {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-primary);
-}
-
-.items__photo-link:hover {
-  color: var(--color-primary-hover);
-}
-
-.items__photo-add:focus-visible,
-.items__photo-link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.items__photo-error {
-  width: 100%;
-  font-size: 13px;
-  color: #c0392b;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
