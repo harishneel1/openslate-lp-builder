@@ -7,8 +7,12 @@
 //   openId,            // the funnel that's open, or null (on the picker)
 //   funnels: [         // newest first
 //     { id, type, createdAt, updatedAt, step, answers,
-//       themeId, serviceId, donePages, resumeAtEnd, landingAtEnd }
+//       themeId, serviceId, donePages, resumeAtEnd, landingAtEnd,
+//       publishedAt, slug }
 //     serviceId: the service picked as the registration page, or null
+//     publishedAt: when they published it, or null (not live yet)
+//     slug: its address name, e.g. 'fix-the-vasthu-mistakes'; set once on
+//           first publish and kept, so a shared link never changes
 //   ]
 // }
 // If we change this shape again, bump to v3 so old saves are ignored or converted.
@@ -34,6 +38,8 @@ export function createFunnel(type) {
     donePages: [],
     resumeAtEnd: false,
     landingAtEnd: false,
+    publishedAt: null,
+    slug: null,
   };
 }
 

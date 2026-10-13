@@ -32,8 +32,10 @@ export default function ThankYouDesign({ answers, theme }) {
   }, [theme]);
 
   const page = useMemo(() => buildPageJson(answers, theme.id), [answers, theme.id]);
-  const group = GROUPS[answers.groupApp] ?? null;
-  const linkMissing = groupLinkMissing(answers);
+  // No working group link yet ("I'll add it later"): the page can still go live,
+  // so visitors get the email version instead of a button that goes nowhere.
+  // Once they add the link, the group version shows up straight away.
+  const group = groupLinkMissing(answers) ? null : GROUPS[answers.groupApp] ?? null;
 
   const nextSteps = group
     ? [
@@ -73,17 +75,9 @@ export default function ThankYouDesign({ answers, theme }) {
             <p className="ty__card-text">
               Join our {group.app} group to get the webinar link and reminders.
             </p>
-            {linkMissing ? (
-              // Only they can see this: publishing is blocked until the link is added
-              <span className="ty__button ty__button--missing">
-                <group.icon size={18} aria-hidden="true" /> Join the {group.app} group
-                <span className="ty__missing-note">Add your group link before this goes live</span>
-              </span>
-            ) : (
-              <a className="ty__button" href={withHttps(answers.groupLink)} target="_blank" rel="noopener">
-                <group.icon size={18} aria-hidden="true" /> Join the {group.app} group
-              </a>
-            )}
+            <a className="ty__button" href={withHttps(answers.groupLink)} target="_blank" rel="noopener">
+              <group.icon size={18} aria-hidden="true" /> Join the {group.app} group
+            </a>
           </section>
         ) : (
           <section className="ty__card ty__card--main">

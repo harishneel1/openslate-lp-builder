@@ -27,7 +27,7 @@ export const themes = [
   {
     id: 'heritage',
     name: 'Warm & traditional',
-    description: 'Best for spirituality, astrology, yoga and holistic health',
+    description: 'Best for niches like spirituality, astrology, yoga and holistic health',
     fontUrl: INTER,
     layout: { hero: 'centered', card: 'plain' },
     tokens: {
@@ -55,7 +55,7 @@ export const themes = [
   {
     id: 'calm',
     name: 'Calm & soothing',
-    description: 'Best for mental health, coaching and personal growth',
+    description: 'Best for niches like mental health, coaching and personal growth',
     fontUrl: INTER,
     layout: { hero: 'centered', card: 'plain' },
     tokens: {
@@ -83,7 +83,7 @@ export const themes = [
   {
     id: 'rose',
     name: 'Soft & caring',
-    description: 'Best for relationships, parenting and emotional healing',
+    description: 'Best for niches like relationships, parenting and emotional healing',
     fontUrl: INTER,
     layout: { hero: 'centered', card: 'plain' },
     tokens: {
@@ -111,7 +111,7 @@ export const themes = [
   {
     id: 'professional',
     name: 'Clean & professional',
-    description: 'Best for corporate training, careers, finance and education',
+    description: 'Best for niches like corporate training, careers, finance and education',
     fontUrl: INTER,
     layout: { hero: 'centered', card: 'plain' },
     tokens: {
@@ -139,7 +139,7 @@ export const themes = [
   {
     id: 'creative',
     name: 'Bright & playful',
-    description: 'Best for arts, music and creative skills',
+    description: 'Best for niches like arts, music and creative skills',
     fontUrl: INTER,
     layout: { hero: 'centered', card: 'plain' },
     tokens: {
@@ -167,7 +167,7 @@ export const themes = [
   {
     id: 'bold',
     name: 'Bold & modern',
-    description: 'Best for tech, AI, business and marketing',
+    description: 'Best for niches like tech, AI, business and marketing',
     fontUrl: INTER,
     layout: { hero: 'centered', card: 'plain' },
     tokens: {

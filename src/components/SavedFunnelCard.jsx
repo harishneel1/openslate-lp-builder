@@ -3,6 +3,7 @@ import { ArrowRight, ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react';
 import PageThumbnail from './PageThumbnail';
 import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
+import { isPublished, liveSince } from '../utils/publish';
 import './SavedFunnelCard.css';
 
 // "Edited 5 min ago" (worked out when the picker opens; doesn't tick live)
@@ -131,10 +132,17 @@ export default function SavedFunnelCard({ funnel, onOpen, onDelete }) {
   const name = funnelName(funnel, type);
   const done = pages.filter((p) => funnel.donePages.includes(p.id));
   const ready = done.length === pages.length;
+  const live = isPublished(funnel);
   const landingDone = funnel.donePages.includes('landing');
 
+  let status = 'In progress';
+  if (live) status = 'Live';
+  else if (ready) status = 'Ready to publish';
+
   let detail;
-  if (ready) {
+  if (live) {
+    detail = liveSince(funnel.publishedAt);
+  } else if (ready) {
     detail = `All ${pages.length} pages done`;
   } else if (done.length > 0) {
     detail = `${done[done.length - 1].name} done · ${done.length} of ${pages.length} pages`;
@@ -157,8 +165,11 @@ export default function SavedFunnelCard({ funnel, onOpen, onDelete }) {
         )}
 
         <div className="saved-card__body">
-          <span className={`saved-card__status ${ready ? 'saved-card__status--ready' : ''}`}>
-            {ready ? 'Ready to publish' : 'In progress'}
+          <span
+            className={`saved-card__status ${live ? 'saved-card__status--live' : ready ? 'saved-card__status--ready' : ''}`}
+          >
+            {live && <span className="saved-card__live-dot" aria-hidden="true" />}
+            {status}
           </span>
           <h3 className="saved-card__name">{name}</h3>
           <p className="saved-card__detail">{detail}</p>

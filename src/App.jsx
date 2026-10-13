@@ -21,6 +21,7 @@ import ExamplePreview from './components/ExamplePreview';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
+import { makeSlug } from './utils/publish';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
 const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
@@ -63,6 +64,9 @@ function restoreFunnel(f) {
     landingAtEnd: fromOldPicker || f.landingAtEnd === true,
     // Screen they're on in each flow: { about: { at, furthest }, landing: { at, furthest } }
     positions: isObject(f.positions) ? f.positions : {},
+    // Saves from before publishing existed have neither: not live yet
+    publishedAt: Number.isFinite(f.publishedAt) ? f.publishedAt : null,
+    slug: typeof f.slug === 'string' && f.slug ? f.slug : null,
   };
 }
 
@@ -105,6 +109,7 @@ function App() {
   const landingAtEnd = current?.landingAtEnd ?? false; // reopen the landing flow on its last screen
   const positions = current?.positions ?? NO_POSITIONS; // saved screen in each flow
   const serviceId = current?.serviceId ?? null;         // service used as the registration page
+  const publishedAt = current?.publishedAt ?? null;     // when it went live; null = not yet
 
   // Change the open funnel. Pass an object, or a function of the funnel
   // (use the function form when the change depends on what's already there).
@@ -158,6 +163,16 @@ function App() {
 
 
 
+  // Publish the open funnel. The slug is made once, from the headline, and
+  // kept after that, so editing the headline never breaks a link they've shared.
+  const publishFunnel = () => {
+    const taken = funnels.filter((f) => f.id !== openId && f.slug).map((f) => f.slug);
+    updateOpen((f) => ({
+      publishedAt: Date.now(),
+      slug: f.slug ?? makeSlug(f.answers.headline, taken),
+    }));
+  };
+
   const handleNavigate = (id) => {
     setActiveNav(id);
     closeFunnel();
@@ -209,7 +224,8 @@ function App() {
           done={donePages}
           answers={answers}
           themeId={themeId}
-          onBack={closeFunnel}
+          publishedAt={publishedAt}
+          onPublish={publishFunnel}
           previewHref={`?preview=${encodeURIComponent(openId)}`}
           onPreview={saveNow}
           onEdit={() => updateOpen({ step: 'review' }, { touch: false })}

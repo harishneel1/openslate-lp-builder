@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, Check, ExternalLink } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
 import { getTheme, recommendedThemeId } from '../data/themes';
-import { groupLinkMissing } from '../data/thankYouQuestions';
 import './QuestionFlow.css'; // reuses .flow__next and the flow-in animation
 import './BuildingStep.css';
 
@@ -53,7 +52,6 @@ export default function BuildingStep({
   // Fixed once it starts, so the list doesn't change mid-animation
   const [STEPS] = useState(() => (PAGES[page] ?? PAGES.landing).steps(answers));
   const isLanding = page === 'landing';
-  const linkMissing = !isLanding && groupLinkMissing(answers);
 
   // Reduced motion: skip straight to the finished page
   const [skip] = useState(prefersReducedMotion);
@@ -81,8 +79,7 @@ export default function BuildingStep({
       </h1>
       <p className="building__text">
         {!ready && 'This only takes a few seconds.'}
-        {ready && !linkMissing && 'Take a look at it before you move on. It opens in a new tab.'}
-        {ready && linkMissing && 'Add your group link before it goes live. You can still take a look now.'}
+        {ready && 'Take a look at it before you move on. It opens in a new tab.'}
       </p>
 
       {/* Their real page, blurred at first and sharpening with each tick */}

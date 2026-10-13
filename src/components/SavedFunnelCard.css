@@ -85,6 +85,22 @@
   background: var(--color-success-tint);
 }
 
+/* Published: solid green, so it stands apart from "Ready to publish" */
+.saved-card__status--live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  background: var(--color-success);
+}
+
+.saved-card__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+
 /* Long headlines: two lines, then … */
 .saved-card__name {
   display: -webkit-box;
