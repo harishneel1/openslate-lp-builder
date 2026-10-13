@@ -385,9 +385,8 @@ export const webinarQuestions = [
     target: 'testimonials.items',
     mainField: 'quote',
     type: 'items',
-    question: 'What have people said about working with you?',
-        helper: 'Copy real reviews from Google, WhatsApp or Instagram. Add their photo if you have it.',
-    emptyText: "No reviews yet? That's fine. Skip this for now and add them later.",
+    question: 'Add your reviews',
+        helper: 'Copy real reviews from Google, WhatsApp or Instagram. Add their photo if you have it. No reviews yet? Skip and add them later.',
     addLabel: 'Add a review',
     itemLabel: 'Review', // cards read "Review 1", "Review 2"
        itemFields: [

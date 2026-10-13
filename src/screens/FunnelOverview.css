@@ -103,8 +103,8 @@
   color: var(--color-text-muted);
 }
 
-.overview__step-done {
-  color: var(--color-success);
+.overview__step-next {
+  color: var(--color-primary);
 }
 
 .overview__page-name {
@@ -124,20 +124,22 @@
   color: var(--color-text-disabled);
 }
 
-/* ---------- Green tick on a finished page ---------- */
+/* ---------- "Done" badge on a finished page ---------- */
 .overview__tick {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px 5px 9px;
+  font-size: 13px;
+  font-weight: 600;
   color: #fff;
   background: var(--color-success);
-  border: 2px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 /* ---------- Edit and Preview on a finished page ---------- */
@@ -163,21 +165,7 @@
   text-decoration: underline;
 }
 
-/* Preview is the one to notice: a filled button, not a text link */
-.overview__page-action--preview {
-  padding: 7px 14px;
-  color: #fff;
-  background: var(--color-primary);
-  border-radius: var(--radius-sm);
-  transition: background 0.15s;
-}
-
-.overview__page-action--preview:hover {
-  color: #fff;
-  text-decoration: none;
-  background: var(--color-primary-hover);
-}
-
+/* Preview stays a text link like Edit, so the next page's button is the only filled one */
 .overview__page-action--preview:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -239,13 +227,57 @@
 
 
 /* ---------- Start button ---------- */
-.overview__start {
+/* The page to fill in next: the whole card is clickable */
+.overview__page--next {
+  cursor: pointer;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), 0 6px 20px rgba(239, 138, 60, 0.18);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.overview__page--next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--color-primary), 0 10px 28px rgba(239, 138, 60, 0.26);
+}
+
+/* Attention: a small wiggle every few seconds, plus an orange ring pulsing outwards.
+   Both stop as soon as they hover or tab to the card. */
+.overview__page--next {
+  animation:
+    overview-wiggle 4s ease-in-out 1s infinite,
+    overview-pulse 2s ease-out 1s infinite;
+}
+
+.overview__page--next:hover,
+.overview__page--next:has(.overview__page-cta:focus-visible) {
+  animation: none;
+}
+
+@keyframes overview-wiggle {
+  0%, 78%, 100% { transform: rotate(0); }
+  82% { transform: rotate(-1.5deg); }
+  86% { transform: rotate(1.5deg); }
+  90% { transform: rotate(-1deg); }
+  94% { transform: rotate(0.6deg); }
+}
+
+@keyframes overview-pulse {
+  0% {
+    box-shadow: 0 0 0 1px var(--color-primary), 0 0 0 0 rgba(239, 138, 60, 0.45);
+  }
+  70%, 100% {
+    box-shadow: 0 0 0 1px var(--color-primary), 0 0 0 14px rgba(239, 138, 60, 0);
+  }
+}
+
+/* The one filled button on the screen */
+.overview__page-cta {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 40px;
-  padding: 14px 24px;
-  font-size: 15px;
+  margin-top: 16px;
+  padding: 10px 18px;
+  font-size: 14px;
   font-weight: 600;
   color: #fff;
   background: var(--color-primary);
@@ -253,8 +285,48 @@
   transition: background 0.15s;
 }
 
-.overview__start:hover {
+.overview__page--next:hover .overview__page-cta {
   background: var(--color-primary-hover);
+}
+
+/* A short nudge to the right, three times, a second after the page loads */
+.overview__page-cta-arrow {
+  animation: overview-nudge 0.6s ease-in-out 1s 3;
+}
+
+@keyframes overview-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+/* Stretches the button over the whole card so a click anywhere hits it */
+.overview__page-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+/* Keyboard focus outlines the whole card, not just the small button */
+.overview__page-cta:focus-visible {
+  outline: none;
+}
+
+.overview__page--next:has(.overview__page-cta:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview__page--next {
+    transition: none;
+  }
+  .overview__page-cta-arrow,
+  .overview__page--next {
+    animation: none;
+  }
+  .overview__page--next:hover {
+    transform: none;
+  }
 }
 
 /* Stack vertically on narrow screens */
