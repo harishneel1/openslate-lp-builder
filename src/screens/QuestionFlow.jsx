@@ -185,8 +185,10 @@ export default function QuestionFlow({
           />
         </div>
 
-        {backAtTop ? (
-          <div className="flow__nav flow__nav--after">{nextButton}</div>
+                {backAtTop ? (
+          // Back is already at the top, so Next sits alone at the right.
+          // Screens with their own button (Tidy it up) get no bottom row at all.
+          showNext && <div className="flow__nav flow__nav--end">{nextButton}</div>
         ) : (
           <div className="flow__nav">
             {backButton}

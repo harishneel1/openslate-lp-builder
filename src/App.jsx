@@ -267,6 +267,8 @@ function App() {
       return (
         <QuestionFlow
           key="about"
+          backAtTop
+          backLabel="Previous"
           pageName="About your webinar"
           questions={aboutQuestions}
           answers={answers}
