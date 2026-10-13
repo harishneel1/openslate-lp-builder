@@ -382,6 +382,8 @@ function App() {
     return (
       <QuestionFlow
         key="landing"
+        backAtTop
+        backLabel="Previous"
         questions={landingQuestions}
         answers={answers}
         onAnswer={handleAnswer}

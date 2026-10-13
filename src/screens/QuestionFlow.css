@@ -107,10 +107,9 @@
 }
 
 /* Builder: Next appears under the answer once there is one */
-.flow__nav--after {
-  justify-content: flex-start;
-  margin-top: 32px;
-  animation: flow-in 0.2s ease;
+/* Back is at the top, so Next sits alone at the right */
+.flow__nav--end {
+  justify-content: flex-end;
 }
 
 
