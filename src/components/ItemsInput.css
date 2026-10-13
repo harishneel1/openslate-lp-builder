@@ -19,119 +19,101 @@
 }
 
 /* ---------- One item in their list ---------- */
-/* Fields stacked full width; × sits on the first label's line */
+/* "Person 1" and × on top, then the boxes stacked full width */
 .items__card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   padding: 16px 18px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
-/* "Point 1" on the left, × on the right */
-/* Number badge and "Point" on the left, × on the right */
+/* "Person 1" on the left, × on the right */
 .items__card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: -4px; /* sits a little closer to the first field */
 }
 
 .items__card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-muted);
-}
-
-/* Small round badge with the card's number */
-.items__card-number {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums; /* 1 and 7 take the same width */
-  color: var(--color-primary);
-  background: var(--color-primary-tint);
 }
 
 .items__field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
-/* Label on the left, × on the right (first field only) */
-.items__field-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 28px;
-}
-
-/* "Who they are", "Their situation" */
-.items__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  cursor: pointer;
-}
-
-/* The box and its pencil */
+/* The box: label caption on top, their text underneath, pencil top right.
+   The border lives here (not on the textarea) so the label sits inside it. */
 .items__box {
   position: relative;
-}
-
-/* Always looks like a field: light grey border, room on the right for the pencil */
-.items__input {
-  display: block;
-  width: 100%;
-  padding: 10px 44px 10px 12px;
-  font: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
+  padding: 8px 44px 8px 12px;
   background: var(--color-surface);
   border: 1px solid #e0e0e0;
   border-radius: var(--radius-sm);
-  outline: none;
-  resize: none;
-  field-sizing: content;
   cursor: text;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.items__input--lead {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
+.items__box:hover {
+  border-color: #c8c8c8;
 }
 
+.items__box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* "Who they are", "Their situation": small, inside the box */
+.items__caption {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  cursor: text;
+}
+
+.items__box:focus-within .items__caption {
+  color: var(--color-primary);
+}
+
+/* Their text: always full black, so it never looks like a hint */
+.items__input {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  field-sizing: content;
+}
+
+/* First field ("Who they are", "Title", "Name"): a touch heavier, not a heading */
+.items__input--lead {
+  font-weight: 500;
+}
+
+/* The hint while empty: light grey and clearly an example */
 .items__input::placeholder {
   font-weight: 400;
   color: var(--color-text-disabled);
 }
 
-.items__input:hover {
-  border-color: #c8c8c8;
-}
-
-.items__input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
-}
-
-/* Pencil inside the box, top right; always visible */
+/* Pencil: hidden until they hover or type in the box */
 .items__edit {
   position: absolute;
   top: 6px;
@@ -141,14 +123,14 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: var(--color-text-muted);
-  transition: background 0.15s, color 0.15s;
+  color: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
 }
 
-/* Turns orange when they hover or type in that box */
 .items__box:hover .items__edit,
 .items__box:focus-within .items__edit {
-  color: var(--color-primary);
+  opacity: 1;
 }
 
 .items__edit:hover {
@@ -199,7 +181,7 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding-top: 34px;
+  padding-top: 4px; /* lines up with the top of the first box */
 }
 
 .items__avatar {

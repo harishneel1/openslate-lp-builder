@@ -6,7 +6,6 @@ import FunnelOverview from './screens/FunnelOverview';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
 import SectionProgress from './components/SectionProgress';
-import PagePreview from './components/PagePreview';
 import { funnelTypes } from './data/funnelTypes';
 import { aboutQuestions, landingQuestions } from './data/webinarQuestions';
 import Transition from './screens/Transition';
@@ -19,7 +18,7 @@ import ExamplePreview from './components/ExamplePreview';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 
-const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'registration'];
+const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -39,6 +38,7 @@ function restoreFunnel(f) {
   let step = STEPS.includes(f.step) ? f.step : 'overview';
   if (step === 'edit') step = 'checkpoint'; // editing one answer → back to the checkpoint
   if (step === 'review-edit') step = 'review'; // editing one screen → back to "Edit your landing page"
+  if (step === 'review-design') step = 'review'; // changing the style from there → back to it
 
   return {
     id: f.id,
@@ -87,7 +87,7 @@ function App() {
   const current = funnels.find((f) => f.id === openId) ?? null;
   const funnel = current ? funnelTypes.find((t) => t.id === current.type) : null;
 
-  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'building' | 'registration'
+  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'building' | 'review-design' | 'registration'
   const answers = current?.answers ?? NO_ANSWERS;
   const themeId = current?.themeId ?? null;       // design they picked; null = the one recommended for their topic
   const donePages = current?.donePages ?? NO_PAGES; // pages they've finished, e.g. ['landing']
@@ -231,15 +231,6 @@ function App() {
             finishLabel="Save"
             onExit={backToReview}
             onComplete={backToReview}
-            asideWidth={previewMode === 'desktop' ? 'wide' : 'narrow'}
-            renderAside={({ question }) => (
-              <PagePreview
-                answers={answers}
-                currentSection={question.section}
-                mode={previewMode}
-                onModeChange={setPreviewMode}
-              />
-            )}
           />
         );
       }
@@ -253,12 +244,14 @@ function App() {
         <LandingEditor
           answers={answers}
           themeId={themeId}
-          mode={previewMode}
-          onModeChange={setPreviewMode}
           onEdit={(id) => {
             setEditingId(id);
             updateOpen({ step: 'review-edit' }, { touch: false });
           }}
+          onChangeDesign={() =>
+            // Remember the current style, so Back can undo what they tried
+            updateOpen((f) => ({ themeBefore: f.themeId, step: 'review-design' }), { touch: false })
+          }
           onDone={() => updateOpen({ step: 'overview' }, { touch: false })}
         />
       );
@@ -323,6 +316,26 @@ function App() {
               step: 'building', // the "page is ready" moment, then the overview
             }))
           }
+        />
+      );
+    }
+
+    // "Change" on the style row of "Edit your landing page": the same picker,
+    // but Back undoes what they tried and both buttons return to the list
+    // (no "page is ready" moment; the page is already done).
+    if (step === 'review-design') {
+      return (
+        <DesignStep
+          editing
+          answers={answers}
+          themeId={themeId}
+          onThemeChange={(id) => updateOpen({ themeId: id })}
+          mode={previewMode}
+          onModeChange={setPreviewMode}
+          onBack={() =>
+            updateOpen((f) => ({ themeId: f.themeBefore ?? f.themeId, themeBefore: undefined, step: 'review' }))
+          }
+          onUse={(id) => updateOpen({ themeId: id, themeBefore: undefined, step: 'review' })}
         />
       );
     }

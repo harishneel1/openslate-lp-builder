@@ -33,7 +33,7 @@ export default function FunnelTypePicker({ onSelect, savedFunnels = [], onOpen, 
 
     {hasSaved && (
       <section className="picker__section" aria-labelledby="picker-saved">
-        <h2 id="picker-saved" className="picker__section-title">Pick up where you left off</h2>
+        <h2 id="picker-saved" className="picker__section-title">Resume your projects</h2>
         <div className="picker__grid">
           {sorted.map((f) => (
             <SavedFunnelCard key={f.id} funnel={f} onOpen={onOpen} onDelete={onDelete} />

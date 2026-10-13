@@ -14,9 +14,12 @@ import './QuestionFlow.css'; // reuses .flow__back, .flow__next
 import './DesignStep.css';
 
 // After Finish: pick a style (colours, fonts, shapes) for the page.
+// editing: opened from "Edit your landing page" (no "content is saved" line,
+// and the button saves the style instead of finishing the page).
 // themeId: the style they picked, or null until they pick one
 // (then the one recommended for their topic is shown).
 export default function DesignStep({
+  editing = false,
   answers,
   themeId,
   onThemeChange,
@@ -51,9 +54,11 @@ export default function DesignStep({
           <ArrowLeft size={16} /> Back
         </button>
 
-        <p className="design__done">
-          <CheckCircle2 size={18} /> Your landing page content is saved
-        </p>
+        {!editing && (
+          <p className="design__done">
+            <CheckCircle2 size={18} /> Your landing page content is saved
+          </p>
+        )}
         <h1 className="design__title">Pick a style for your page</h1>
         <p className="design__subtitle">
           Each style sets your page's colours, fonts and button shapes. We've kept it to four
@@ -115,7 +120,7 @@ export default function DesignStep({
 
         <div className="design__actions">
           <button type="button" className="flow__next" onClick={() => onUse(selectedId)}>
-            Use this style <ArrowRight size={18} />
+            {editing ? 'Save style' : 'Use this style'} <ArrowRight size={18} />
           </button>
         </div>
       </div>

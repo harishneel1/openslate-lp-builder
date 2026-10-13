@@ -272,26 +272,27 @@ export default function ItemsInput({ question, answers, onChange }) {
   // Ideas already in the list are hidden; removing one brings it back
   const ideas = pool.filter((idea) => !list.some((item) => same(item[mainField], idea[mainField])));
 
-  // One labelled box. The first field in the list is bold and gets the
-  // cursor after "Add your own".
+  // One box with its label tucked inside at the top ("Who they are"),
+  // their text under it, and "e.g. …" as the hint while it's empty.
+  // The first field is a little heavier and gets the cursor after "Add your own".
   const renderField = (item, f) => {
     const isFirst = f.id === fields[0].id;
     const boxId = `${item.id}-${f.id}`;
     return (
       <div key={f.id} className="items__field">
-        <div className="items__field-head">
-          <label htmlFor={boxId} className="items__label">{f.label}</label>
-        </div>
-
-        {/* Full-width box with its own pencil inside */}
-        <div className="items__box">
+        {/* Clicking the box's padding also puts the cursor in it */}
+        <div
+          className="items__box"
+          onClick={(e) => e.target === e.currentTarget && focusAtEnd(boxId)}
+        >
+          <label htmlFor={boxId} className="items__caption">{f.label}</label>
           <textarea
             id={boxId}
             rows={1}
             className={`items__input ${isFirst ? 'items__input--lead' : ''}`}
             value={item[f.id] ?? ''}
             maxLength={f.maxLength}
-            placeholder={f.example ? `e.g. ${f.example}` : f.label}
+            placeholder={f.example ? `e.g. ${f.example}` : ''}
             ref={(el) => {
               if (el && isFirst && focusId.current === item.id) {
                 el.focus();
@@ -301,6 +302,7 @@ export default function ItemsInput({ question, answers, onChange }) {
             onChange={(e) => updateItem(item.id, { [f.id]: e.target.value.replace(/\n/g, ' ') })}
             onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
           />
+          {/* Shows on hover and while typing */}
           <button
             type="button"
             className="items__edit"
@@ -322,12 +324,11 @@ export default function ItemsInput({ question, answers, onChange }) {
         <div className="items__list">
           {list.map((item, index) => (
             <div key={item.id} className="items__card">
-              {/* Card number on the left, × on the right */}
+              {/* "Person 1" on the left, × on the right */}
               <div className="items__card-head">
                 <span className="items__card-title">
-                <span className="items__card-number">{index + 1}</span>
-                {itemLabel}
-              </span>
+                  {itemLabel} {index + 1}
+                </span>
                 <button
                   type="button"
                   className="items__remove"

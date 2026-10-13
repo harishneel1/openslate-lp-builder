@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import { AlertCircle, ArrowLeft, Check, Pencil, Plus } from 'lucide-react';
-import PreviewFrame from '../components/PreviewFrame';
-import SimpleDesign from '../components/designs/SimpleDesign';
 import { buildPageJson } from '../data/buildPageJson';
 import { getTheme, recommendedThemeId } from '../data/themes';
 import { landingQuestions } from '../data/webinarQuestions';
@@ -49,14 +47,12 @@ function Row({ question, answers, page, onEdit }) {
 }
 
 // "Edit your landing page": one row per question screen (the same screens
-// they filled in), grouped by where they sit on the page, with the real page beside it.
+// they filled in), grouped by where they sit on the page. No preview while editing.
 // onEdit(questionId): open that screen. onChangeDesign: open the design step.
 // Answers save as they type, so there's no Cancel: Done just goes back.
 export default function LandingEditor({
   answers,
   themeId,
-  mode,
-  onModeChange,
   onEdit,
   onChangeDesign,
   onDone,
@@ -72,7 +68,7 @@ export default function LandingEditor({
   );
 
   return (
-    <div className={`editor editor--${mode}`}>
+    <div className="editor">
       <div className="editor__intro">
         <button type="button" className="flow__back flow__back--top" onClick={onDone}>
           <ArrowLeft size={16} /> Overview
@@ -132,12 +128,6 @@ export default function LandingEditor({
             <Check size={18} /> Done
           </button>
         </div>
-      </div>
-
-      <div className="editor__preview">
-        <PreviewFrame mode={mode} onModeChange={onModeChange} caption="Your landing page">
-          <SimpleDesign page={page} theme={theme} />
-        </PreviewFrame>
       </div>
     </div>
   );

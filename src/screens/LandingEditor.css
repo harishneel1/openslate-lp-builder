@@ -1,26 +1,10 @@
-/* Same split as the design step: list left, page right */
+/* One column: just the list (no preview while editing) */
 .editor {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 48px;
-  align-items: start;
-  max-width: 1040px;
+  max-width: 640px;
   margin: 0 auto;
   padding-top: 24px;
   padding-bottom: 48px;
   animation: flow-in 0.25s ease;
-}
-
-/* Desktop frame needs the room */
-.editor--desktop {
-  max-width: 1240px;
-  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
-}
-
-/* The page stays in view while the list scrolls */
-.editor__preview {
-  position: sticky;
-  top: 24px;
 }
 
 .editor__title {
@@ -149,16 +133,4 @@
 
 .editor__actions {
   margin-top: 28px;
-}
-
-/* Narrow screens: stack, page underneath */
-@media (max-width: 1000px) {
-  .editor,
-  .editor--desktop {
-    max-width: 640px;
-    grid-template-columns: 1fr;
-  }
-  .editor__preview {
-    position: static;
-  }
 }
