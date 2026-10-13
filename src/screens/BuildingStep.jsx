@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, ExternalLink } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
+import { getTheme, recommendedThemeId } from '../data/themes';
 import './QuestionFlow.css'; // reuses .flow__next and the flow-in animation
 import './BuildingStep.css';
 
-// Shown once, right after they pick a style: their page "comes together"
-// (a short checklist ticks off while the thumbnail sharpens), then it's
-// revealed with Preview (new tab) and Continue (to the funnel overview).
+// Shown once, right after the last landing question: their page "comes
+// together" (a short checklist ticks off while the thumbnail sharpens),
+// then it's revealed with Preview (new tab) and Continue (to the overview).
+// The style was picked for them from their category; the reveal says which
+// one and why, so there's no decision to make here.
 
 const STEPS = [
-  'Applying your style',
+  'Picking the best style for your topic',
   'Laying out your sections',
   'Setting up your sign-up card',
   'Making it work on phones',
@@ -27,6 +30,10 @@ export default function BuildingStep({ answers, themeId, previewHref, onPreview,
   const [skip] = useState(prefersReducedMotion);
   const [done, setDone] = useState(skip ? STEPS.length : 0); // how many steps are ticked
   const [ready, setReady] = useState(skip);
+
+  const theme = getTheme(themeId ?? recommendedThemeId(answers.category));
+  // "Best for spirituality, …" → "best for spirituality, …" to read mid-sentence
+  const bestFor = theme.description.charAt(0).toLowerCase() + theme.description.slice(1);
 
   useEffect(() => {
     if (skip) return undefined;
@@ -53,6 +60,20 @@ export default function BuildingStep({ answers, themeId, previewHref, onPreview,
       <div className="building__shot">
         <PageThumbnail answers={answers} themeId={themeId} />
       </div>
+
+      {ready && (
+        <div className="building__style">
+          <span
+            className="building__swatch"
+            aria-hidden="true"
+            style={{ '--swatch-bg': theme.tokens['hero-bg'], '--swatch-accent': theme.tokens.accent }}
+          />
+          <p className="building__style-text">
+            We styled it <strong>{theme.name}</strong>, {bestFor}.{' '}
+            <span className="building__style-note">You can change it anytime.</span>
+          </p>
+        </div>
+      )}
 
       {ready ? (
         <div className="building__actions">

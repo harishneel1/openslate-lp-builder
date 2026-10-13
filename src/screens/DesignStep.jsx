@@ -1,46 +1,36 @@
 import { useEffect, useMemo } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import PreviewFrame from '../components/PreviewFrame';
 import SimpleDesign from '../components/designs/SimpleDesign';
 import { buildPageJson } from '../data/buildPageJson';
-import {
-  themes,
-  getTheme,
-  recommendedThemeId,
-  recommendationReason,
-  loadThemeFont,
-} from '../data/themes';
+import { themes, getTheme, recommendedThemeId, resolveThemeId, loadThemeFont } from '../data/themes';
 import './QuestionFlow.css'; // reuses .flow__back, .flow__next
 import './DesignStep.css';
 
-// After Finish: pick a style (colours, fonts, shapes) for the page.
-// editing: opened from "Edit your landing page" (no "content is saved" line,
-// and the button saves the style instead of finishing the page).
-// themeId: the style they picked, or null until they pick one
-// (then the one recommended for their topic is shown).
+// "Change" on the style row of "Edit your landing page".
+// (When the page is first built, the style is picked for them from their
+// category and this screen is skipped.)
+// themeId: the style being previewed right now (changes as they tap)
+// savedThemeId: the style saved on the page when they opened this screen
+// (null = they never changed it, so it's the best match for their topic)
 export default function DesignStep({
-  editing = false,
   answers,
   themeId,
+  savedThemeId = null,
   onThemeChange,
   mode,
   onModeChange,
   onBack,
   onUse,
 }) {
-  const category = String(answers.category ?? '').trim();
-  const hasCategory = category !== '' && category !== 'Other';
-
-  const recommendedId = recommendedThemeId(category);
-  const recommended = getTheme(recommendedId);
-  const selectedId = themeId ?? recommendedId;
+  const bestId = recommendedThemeId(answers.category);
+  const currentId = resolveThemeId(savedThemeId ?? bestId);
+  const selectedId = resolveThemeId(themeId ?? currentId);
   const theme = getTheme(selectedId);
-  const reason = recommendationReason(recommended, hasCategory ? category : '');
 
-  // Recommended first, the rest in their usual order
-  const ordered = [recommended, ...themes.filter((t) => t.id !== recommendedId)];
+  // Best match first, the rest in their usual order
+  const ordered = [getTheme(bestId), ...themes.filter((t) => t.id !== bestId)];
 
-  // Load every theme's fonts so the "Aa" samples show the real typefaces
   useEffect(() => {
     themes.forEach(loadThemeFont);
   }, []);
@@ -54,36 +44,24 @@ export default function DesignStep({
           <ArrowLeft size={16} /> Back
         </button>
 
-        {!editing && (
-          <p className="design__done">
-            <CheckCircle2 size={18} /> Your landing page content is saved
-          </p>
-        )}
         <h1 className="design__title">Pick a style for your page</h1>
-        <p className="design__subtitle">
-          Each style sets your page's colours, fonts and button shapes. We've kept it to four
-          that look good and get sign-ups, and you can change it anytime.{' '}
-          {hasCategory ? (
-            <>We picked <strong>{recommended.name}</strong> for {category} webinars.</>
-          ) : (
-            <>We picked <strong>{recommended.name}</strong>, a style that suits most webinars.</>
-          )}
-        </p>
+        <p className="design__subtitle">Tap any style to preview it. Your content stays the same.</p>
 
         <div className="design__themes" role="group" aria-label="Styles">
           {ordered.map((t) => {
             const isSelected = t.id === selectedId;
-            const isRecommended = t.id === recommendedId;
+            // One tag per card: "Current" wins when it's also the best match
+            const tag =
+              t.id === currentId ? 'current' : t.id === bestId ? 'best' : null;
             return (
               <button
                 key={t.id}
                 type="button"
                 aria-pressed={isSelected}
-                aria-describedby={isRecommended ? 'design-why' : undefined}
                 className={`design__theme ${isSelected ? 'design__theme--selected' : ''}`}
                 onClick={() => onThemeChange(t.id)}
               >
-                {/* Sample: heading font on the band colour, button colour underneath */}
+                {/* Sample: heading on the band colour, button colour underneath */}
                 <span
                   className="design__swatch"
                   aria-hidden="true"
@@ -100,17 +78,10 @@ export default function DesignStep({
                 <span className="design__theme-body">
                   <span className="design__theme-name">{t.name}</span>
                   <span className="design__theme-desc">{t.description}</span>
-                  {/* Touch screens have no hover: show the reason inline once picked */}
-                  {isRecommended && isSelected && (
-                    <span className="design__why-inline" aria-hidden="true">{reason}</span>
-                  )}
                 </span>
-                {isRecommended && (
-                  <span className="design__badge-wrap">
-                    <span className="design__badge">Recommended</span>
-                    <span id="design-why" role="tooltip" className="design__tip">
-                      {reason}
-                    </span>
+                {tag && (
+                  <span className={`design__badge design__badge--${tag}`}>
+                    {tag === 'current' ? 'Current' : 'Best match'}
                   </span>
                 )}
               </button>
@@ -120,7 +91,7 @@ export default function DesignStep({
 
         <div className="design__actions">
           <button type="button" className="flow__next" onClick={() => onUse(selectedId)}>
-            {editing ? 'Save style' : 'Use this style'} <ArrowRight size={18} />
+            Save style <ArrowRight size={18} />
           </button>
         </div>
       </div>

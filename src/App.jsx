@@ -17,7 +17,9 @@ import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
 import './App.css';
 import { funnelName } from './utils/funnelName';
+import { recommendedThemeId } from './data/themes';
 
+// ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
 const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
@@ -39,6 +41,10 @@ function restoreFunnel(f) {
   if (step === 'edit') step = 'checkpoint'; // editing one answer → back to the checkpoint
   if (step === 'review-edit') step = 'review'; // editing one screen → back to "Edit your landing page"
   if (step === 'review-design') step = 'review'; // changing the style from there → back to it
+  // The style picker no longer runs during creation: send them back to the
+  // last landing screen, where Finish builds the page with the best-match style
+  const fromOldPicker = step === 'design';
+  if (fromOldPicker) step = 'landing';
 
   return {
     id: f.id,
@@ -50,7 +56,7 @@ function restoreFunnel(f) {
     themeId: typeof f.themeId === 'string' ? f.themeId : null,
     donePages: Array.isArray(f.donePages) ? f.donePages : [],
     resumeAtEnd: f.resumeAtEnd === true,
-    landingAtEnd: f.landingAtEnd === true,
+    landingAtEnd: fromOldPicker || f.landingAtEnd === true,
     // Screen they're on in each flow: { about: { at, furthest }, landing: { at, furthest } }
     positions: isObject(f.positions) ? f.positions : {},
   };
@@ -87,12 +93,12 @@ function App() {
   const current = funnels.find((f) => f.id === openId) ?? null;
   const funnel = current ? funnelTypes.find((t) => t.id === current.type) : null;
 
-  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'design' | 'building' | 'review-design' | 'registration'
+  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'building' | 'review-design' | 'registration'
   const answers = current?.answers ?? NO_ANSWERS;
   const themeId = current?.themeId ?? null;       // design they picked; null = the one recommended for their topic
   const donePages = current?.donePages ?? NO_PAGES; // pages they've finished, e.g. ['landing']
   const resumeAtEnd = current?.resumeAtEnd ?? false;   // Back from checkpoint → last about screen
-  const landingAtEnd = current?.landingAtEnd ?? false; // Back from the design step → last landing screen
+  const landingAtEnd = current?.landingAtEnd ?? false; // reopen the landing flow on its last screen
   const positions = current?.positions ?? NO_POSITIONS; // saved screen in each flow
 
   // Change the open funnel. Pass an object, or a function of the funnel
@@ -300,35 +306,15 @@ function App() {
       );
     }
 
-    if (step === 'design') {
-      return (
-        <DesignStep
-          answers={answers}
-          themeId={themeId}
-          onThemeChange={(id) => updateOpen({ themeId: id })}
-          mode={previewMode}
-          onModeChange={setPreviewMode}
-          onBack={() => updateOpen({ landingAtEnd: true, step: 'landing' })}
-          onUse={(id) =>
-            updateOpen((f) => ({
-              themeId: id,
-              donePages: f.donePages.includes('landing') ? f.donePages : [...f.donePages, 'landing'],
-              step: 'building', // the "page is ready" moment, then the overview
-            }))
-          }
-        />
-      );
-    }
-
     // "Change" on the style row of "Edit your landing page": the same picker,
     // but Back undoes what they tried and both buttons return to the list
     // (no "page is ready" moment; the page is already done).
     if (step === 'review-design') {
       return (
         <DesignStep
-          editing
           answers={answers}
           themeId={themeId}
+          savedThemeId={current.themeBefore ?? null}
           onThemeChange={(id) => updateOpen({ themeId: id })}
           mode={previewMode}
           onModeChange={setPreviewMode}
@@ -361,8 +347,8 @@ function App() {
           <h1 className="transition__title">Next: your registration page</h1>
           <p className="transition__text">This page isn't built yet.</p>
           <div className="transition__nav">
-            <button type="button" className="flow__back" onClick={() => setStep('design')}>
-              Back to your design
+            <button type="button" className="flow__back" onClick={() => setStep('overview')}>
+              Back to your funnel
             </button>
           </div>
         </div>
@@ -404,7 +390,15 @@ function App() {
         startAt={positions.landing?.at}
         startFurthest={positions.landing?.furthest}
         onPositionChange={savePosition('landing')}
-        onComplete={() => setStep('design')}
+        /* Finish: pick the style for their topic behind the scenes and build the
+           page straight away. A style they chose earlier (in the editor) is kept. */
+        onComplete={() =>
+          updateOpen((f) => ({
+            themeId: f.themeId ?? recommendedThemeId(f.answers.category),
+            donePages: f.donePages.includes('landing') ? f.donePages : [...f.donePages, 'landing'],
+            step: 'building', // the "page is ready" moment, then the overview
+          }))
+        }
         asideWidth="half"
         renderProgress={({ index, visible, furthest, goTo }) => (
           <SectionProgress

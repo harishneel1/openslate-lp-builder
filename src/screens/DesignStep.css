@@ -16,17 +16,6 @@
   grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
 }
 
-/* Own line, so it doesn't sit against "Back" */
-.design__done {
-  display: flex;
-  width: fit-content;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-success);
-}
-
 .design__title {
   margin-top: 12px;
   font-size: 28px;
@@ -38,11 +27,6 @@
   margin-top: 8px;
   font-size: 15px;
   color: var(--color-text-muted);
-}
-
-.design__subtitle strong {
-  font-weight: 600;
-  color: var(--color-text);
 }
 
 /* ---------- Theme cards ---------- */
@@ -82,7 +66,7 @@
   outline-offset: 2px;
 }
 
-/* "Aa" in the theme's heading font, on its band colour,
+/* "Aa" on the theme's band colour, in its heading weight,
    with a strip of its button colour along the bottom */
 .design__swatch {
   position: relative;
@@ -130,108 +114,30 @@
   color: var(--color-text-muted);
 }
 
-/* ---------- Recommended badge + "why" tooltip ---------- */
-.design__badge-wrap {
-  position: relative;
+/* ---------- "Best match" / "Current" tag ---------- */
+.design__badge {
   flex-shrink: 0;
   align-self: flex-start;
-  display: inline-flex;
-}
-
-.design__badge {
   padding: 3px 10px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-primary-tint);
+  white-space: nowrap;
   border-radius: var(--radius-pill);
 }
 
-.design__theme--selected .design__badge {
+.design__badge--best {
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.design__theme--selected .design__badge--best {
   background: var(--color-surface);
 }
 
-/* Pulses a few times on arrival, then stops */
-.design__badge {
-  animation: design-badge-pulse 1.6s ease-out 0.5s 3;
-}
-
-@keyframes design-badge-pulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 45%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-primary) 0%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-
-.design__tip {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
-  z-index: 5;
-  width: 240px;
-  padding: 10px 12px;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.45;
-  text-align: left;
-  color: #fff;
-  background: #1f1f1f;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(4px);
-  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
-  pointer-events: none;
-}
-
-/* Little arrow pointing at the badge */
-.design__tip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  right: 24px;
-  border: 6px solid transparent;
-  border-top-color: #1f1f1f;
-}
-
-.design__badge-wrap:hover .design__tip,
-.design__theme:focus-visible .design__tip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-/* Shown under the description on touch screens only */
-.design__why-inline {
-  display: none;
-  margin-top: 4px;
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--color-primary);
-}
-
-@media (hover: none) {
-  .design__tip {
-    display: none;
-  }
-  .design__why-inline {
-    display: block;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .design__badge {
-    animation: none;
-  }
-  .design__tip {
-    transition: none;
-  }
+/* Neutral, so it doesn't compete with "Best match" */
+.design__badge--current {
+  color: var(--color-text-muted);
+  background: #f0f0f0;
 }
 
 .design__actions {
