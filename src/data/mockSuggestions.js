@@ -8,64 +8,9 @@
 // Drops trailing full stops so drafted sentences don't end in ".."
 const noStop = (text) => String(text ?? '').trim().replace(/[.\s]+$/, '');
 
-// Text suggestions: `tag` is a 1–2 word angle shown as a small grey pill.
-// Keep it short so it reads as a label, never as a line of copy.
+// Lists for the "Suggest for me" screens, keyed by question id.
+// (The headline and the line under it have their own mock: getHeadlinePairs, below.)
 const MOCKS = {
-  headline: [
-    {
-      text: 'Fix the 5 hidden Vasthu mistakes that block money in your home, without breaking a single wall',
-      tag: 'Result-first',
-      pick: true,
-    },
-    {
-      text: 'Money keeps leaving and home feels tense? Your Vasthu may be why',
-      tag: 'Problem-first',
-    },
-    {
-      text: 'What 3,000+ homes taught me about Vasthu and money',
-      tag: 'Experience-first',
-    },
-    {
-      text: 'Simple Vasthu fixes for more money and less tension at home',
-      tag: 'Simplicity-first',
-    },
-    {
-      text: 'Building or buying a new home? Get the Vasthu right before you move in',
-      tag: 'Audience-first',
-    },
-    {
-      text: 'Stop money from leaving your home, no walls broken',
-      tag: 'Short & direct',
-    },
-  ],
-
-  subheadline: [
-    {
-      text: 'Simple remedies from 15 years of practice and 3,000+ homes, with no walls broken',
-      tag: 'Experience-first',
-      pick: true,
-    },
-    {
-      text: 'For families building or buying a new home who want money to stay and peace at home',
-      tag: 'Audience-first',
-    },
-    {
-      text: 'No breaking walls. Just small changes in the right places',
-      tag: 'Handles a doubt',
-    },
-    {
-      text: 'Learn to spot the mistakes yourself, so you never have to guess again',
-      tag: 'Outcome-first',
-    },
-    {
-      text: 'The same checks I’ve used in over 3,000 homes, explained step by step',
-      tag: 'Proof-first',
-    },
-    {
-      text: 'If money keeps leaving or home feels tense, these fixes are for you',
-      tag: 'Problem-first',
-    },
-  ],
   // Items: one object per point, using the question's itemFields ids.
   // The first 3 prefill the list, the rest show under "More ideas".
   learnings: [
@@ -106,10 +51,6 @@ const MOCKS = {
         question: 'How long is the session?',
         answer: `About ${a.duration}.`,
       },
-      a.result && {
-        question: 'What will I be able to do afterwards?',
-        answer: `You'll be able to ${noStop(a.result)}.`,
-      },
       a.format && {
         question: 'Is it live?',
         answer: a.format === 'Live' ? "Yes, it's a live session." : "No, it's a pre-recorded session.",
@@ -145,5 +86,69 @@ export function getSuggestions(questionId, answers, batch = 0) {
       if (!items.length) reject(new Error('No suggestions'));
       else resolve({ items, hasMore: all.length > start + BATCH_SIZE });
     }, 1000);
+  });
+}
+
+// ------------------------------------------------------------
+// Headline + the line under it, written together as pairs.
+// Same shape the real AI prompt returns, so swapping in the real
+// call later doesn't change the screen:
+//   { core_promise, options: [{ angle, pick, headline, subheadline }] }
+// angle is one of: 'outcome' | 'pain' | 'method_or_proof'
+// pick is true on exactly one option: the one the AI recommends
+//
+// round: 0 for the first set, 1+ each time they press "Write 3 new ones".
+// For the real call, send the headlines they've already seen so the
+// AI doesn't repeat them.
+// ------------------------------------------------------------
+const HEADLINE_SETS = [
+  [
+    {
+      angle: 'outcome',
+      pick: true,
+      headline: 'Fix the Vasthu mistakes that block money in your home, without breaking a single wall',
+      subheadline: 'A webinar for families who want money to stay and calm at home, using simple changes to placement, colour and objects.',
+    },
+    {
+      angle: 'pain',
+      headline: 'Money keeps leaving and home feels tense? Your Vasthu may be why',
+      subheadline: 'Learn to spot the common mistakes in your own home and the simple fixes you can do this weekend.',
+    },
+    {
+      angle: 'method_or_proof',
+      headline: 'What 3,000 homes taught me about Vasthu and money',
+      subheadline: 'In this webinar, I share the same room-by-room checks I use with every family, built on 15 years of practice.',
+    },
+  ],
+  [
+    {
+      angle: 'outcome',
+      headline: 'Bring money and calm back into your home with simple Vasthu fixes',
+      subheadline: 'For families who have spent on remedies before, with nothing to break or rebuild. Just changes you can make yourself.',
+    },
+    {
+      angle: 'pain',
+      pick: true,
+      headline: 'Earning well but money never stays? Check these spots in your home first',
+      subheadline: 'A webinar on the Vasthu mistakes most families miss, and how to correct them without construction.',
+    },
+    {
+      angle: 'method_or_proof',
+      headline: 'The room-by-room Vasthu check I use in every home I visit',
+      subheadline: 'Go through your entrance, kitchen, bedroom and money corner with me, and leave knowing exactly what to change.',
+    },
+  ],
+];
+
+// Resolves after a short fake delay, like a real call would
+export function getHeadlinePairs(answers, round = 0) {
+  const options = HEADLINE_SETS[round % HEADLINE_SETS.length];
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        core_promise: 'Families learn to fix the Vasthu mistakes that block money and calm, without construction.',
+        options,
+      });
+    }, 1200);
   });
 }

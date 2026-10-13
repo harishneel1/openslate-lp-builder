@@ -4,7 +4,7 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair'];
 
 // Screens that move on with their own button (Use this and continue), so Next is hidden
 const OWN_NEXT_TYPES = ['ramble'];

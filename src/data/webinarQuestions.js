@@ -142,34 +142,35 @@ export const webinarQuestions = [
   },
 
   // ---------- 1. Headline ----------
-    {
+     // ---------- 1. Headline (headline + the line under it, one screen) ----------
+  // Each line still saves under its own id (headline, subheadline),
+  // so the page, preview and funnel name work as before.
+  {
     id: 'headline',
     reviewLabel: 'Headline',
     section: 'hero',
-    target: 'hero.title',
-    type: 'textarea',
-    question: "Let's start with your headline",
-    helper: "It's the first thing people read, and it decides whether they stay.",
-    example: 'Fix the 5 hidden Vasthu mistakes that block money in your home, without breaking a single wall',
-    maxLength: 120,
-    suggest: true,
-    suggestLabel: 'headlines', // "Writing headlines from your answers…"
-     answerLabel: 'Your headline',
-    required: true,
-  },
-  {
-    id: 'subheadline',
-    reviewLabel: 'Subheadline',
-    section: 'hero',
-    target: 'hero.subtitle',
-    type: 'textarea',
-    question: 'Now, your subheadline',
-    helper: 'It sits under your headline and gives people a reason to believe it.',
-    example: 'Simple remedies you can do this weekend, based on 15 years and 3,000+ homes',
-    maxLength: 140,
-    suggest: true,
-    suggestLabel: 'lines',
-     answerLabel: 'Your subheadline',
+    type: 'headlinePair',
+    question: "Let's write your headline",
+    helper: 'Pick one to start, then make it yours.',
+    nextHint: 'Add a headline and the line under it to continue',
+    fields: [
+      {
+        id: 'headline',
+        target: 'hero.title',
+        label: 'Headline',
+        placeholder: 'Pick one below, or write your own',
+        maxLength: 120,
+        required: true,
+      },
+      {
+        id: 'subheadline',
+        target: 'hero.subtitle',
+        label: 'The line under it',
+        placeholder: 'A line that backs up your headline',
+        maxLength: 200,
+        required: true,
+      },
+    ],
     required: true,
   },
 

@@ -1,0 +1,48 @@
+/* Builds on SuggestionPicker.css (.spick…). Only what's different for pairs. */
+
+/* ---------- The two boxes ---------- */
+.hpick__boxes {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hpick__field {
+  position: relative;
+}
+
+/* Both boxes look the same: plain text, easy to edit */
+.hpick__title,
+.hpick__sub {
+  min-height: 80px;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.hpick__count {
+  align-self: flex-end;
+}
+
+/* ---------- Pair cards ---------- */
+.hpick__pair {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hpick__headline {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.hpick__subheadline {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #3d3d3d;
+}
+
+/* Skeleton: a thick line for the headline, a thinner one under it */
+.hpick__skeleton .spick__bar:first-child {
+  height: 14px;
+}

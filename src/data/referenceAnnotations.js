@@ -21,14 +21,9 @@ export const referenceImage = {
 
 export const referenceAnnotations = {
   headline: {
-    box: { x: 19.99, y: 3.0, w: 59.96, h: 2.56 },
+    box: { x: 19.99, y: 3.0, w: 59.96, h: 3.25 },
     label: 'This is your headline',
-    tip: 'The most important line on your page. Most visitors decide right here whether to keep reading.',
-  },
-  subheadline: {
-    box: { x: 23.45, y: 5.65, w: 53.16, h: 0.6 },
-    label: 'This is your subheadline',
-    tip: 'It answers their first doubt before they ask it, so they keep reading.',
+    tip: 'The big line grabs attention. The line under it gives a reason to believe it. Most visitors decide right here.',
   },
   eventDetails: {
     box: { x: 28.78, y: 6.48, w: 42.37, h: 0.96 },

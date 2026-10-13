@@ -51,11 +51,10 @@ export function needsAnswer(question, answers) {
 // page: buildPageJson(answers), so the row says exactly what the page shows.
 export function answerSummary(question, answers, page) {
   switch (question.id) {
-    case 'headline':
-      return page.hero.title || null;
-
-    case 'subheadline':
-      return page.hero.subtitle || null;
+    case 'headline': {
+      const lines = [page.hero.title, page.hero.subtitle].filter(Boolean);
+      return lines.length > 0 ? lines.join(' / ') : null;
+    }
 
     // "Tue, 20 Oct at 7:00 pm IST · 60 min · English · Live"
     case 'eventDetails': {
