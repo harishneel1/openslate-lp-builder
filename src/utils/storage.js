@@ -7,7 +7,8 @@
 //   openId,            // the funnel that's open, or null (on the picker)
 //   funnels: [         // newest first
 //     { id, type, createdAt, updatedAt, step, answers,
-//       themeId, donePages, resumeAtEnd, landingAtEnd }
+//       themeId, serviceId, donePages, resumeAtEnd, landingAtEnd }
+//     serviceId: the service picked as the registration page, or null
 //   ]
 // }
 // If we change this shape again, bump to v3 so old saves are ignored or converted.
@@ -29,6 +30,7 @@ export function createFunnel(type) {
     step: 'overview',
     answers: {},
     themeId: null,
+    serviceId: null,
     donePages: [],
     resumeAtEnd: false,
     landingAtEnd: false,

@@ -72,14 +72,16 @@
 /* ---------- Page flow ---------- */
 .overview__flow {
   display: flex;
-  align-items: center;
+  align-items: stretch; /* every card is as tall as the tallest */
   gap: 16px;
   margin-top: 40px;
 }
 
 .overview__page {
-  position: relative; /* anchors the green tick */
+  position: relative; /* anchors the status badge */
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -92,6 +94,10 @@
 }
 
 .overview__page-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 20px;
 }
 
@@ -103,10 +109,6 @@
   color: var(--color-text-muted);
 }
 
-.overview__step-next {
-  color: var(--color-primary);
-}
-
 .overview__page-name {
   margin-top: 4px;
   font-size: 17px;
@@ -114,6 +116,7 @@
 }
 
 .overview__page-job {
+  flex: 1; /* takes the extra height, so buttons and links line up at the bottom */
   margin-top: 4px;
   font-size: 14px;
   color: var(--color-text-muted);
@@ -121,11 +124,12 @@
 
 .overview__arrow {
   flex-shrink: 0;
+  align-self: center;
   color: var(--color-text-disabled);
 }
 
-/* ---------- "Done" badge on a finished page ---------- */
-.overview__tick {
+/* ---------- Status badge: "Done" (green) or "Pending" (orange) ---------- */
+.overview__badge {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -137,9 +141,47 @@
   font-size: 13px;
   font-weight: 600;
   color: #fff;
-  background: var(--color-success);
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.overview__badge--done {
+  background: var(--color-success);
+}
+
+/* Clicks pass through it to the card underneath */
+.overview__badge--pending {
+  background: var(--color-primary);
+  pointer-events: none;
+}
+
+/* ---------- The service picked as the registration page ---------- */
+.overview__service {
+  align-self: stretch; /* full width of the card */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.overview__service-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.overview__service-price {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 /* ---------- Edit and Preview on a finished page ---------- */

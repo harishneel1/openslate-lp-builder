@@ -1,0 +1,181 @@
+/* One column, same width and rhythm as "Edit your landing page" */
+.picker {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: 24px;
+  padding-bottom: 48px;
+  animation: flow-in 0.25s ease;
+}
+
+.picker__title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.picker__subtitle {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Search ---------- */
+.picker__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  padding: 0 16px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.picker__search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.picker__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 13px 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.picker__search input::placeholder {
+  color: var(--color-text-disabled);
+}
+
+/* ---------- The list ---------- */
+.picker__list {
+  margin-top: 16px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* Scrolls inside itself when there are lots of services */
+.picker__search + .picker__list {
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.picker__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.picker__row + .picker__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.picker__row:hover {
+  background: #fafafa;
+}
+
+.picker__row--picked,
+.picker__row--picked:hover {
+  background: var(--color-primary-tint);
+}
+
+/* The real radio stays for keyboards and screen readers; the circle is what they see */
+.picker__radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.picker__mark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: #fff;
+  border: 2px solid var(--color-text-disabled);
+  border-radius: 50%;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.picker__row--picked .picker__mark {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.picker__radio:focus-visible + .picker__mark {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Long titles wrap to two lines at most */
+.picker__name {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.picker__price {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.picker__price--free {
+  padding: 2px 10px;
+  font-size: 13px;
+  color: var(--color-success);
+  background: var(--color-success-tint);
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- Empty and no results ---------- */
+.picker__empty {
+  margin-top: 28px;
+  padding: 24px;
+  font-size: 15px;
+  text-align: center;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* ---------- Use this service ---------- */
+.picker__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.picker__hint {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picker {
+    animation: none;
+  }
+}

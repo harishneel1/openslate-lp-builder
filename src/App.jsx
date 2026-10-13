@@ -12,6 +12,8 @@ import Transition from './screens/Transition';
 import DesignStep from './screens/DesignStep';
 import BuildingStep from './screens/BuildingStep';
 import LandingEditor from './screens/LandingEditor';
+import ServicePicker from './screens/ServicePicker';
+import { getService } from './data/mockServices';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
@@ -20,7 +22,7 @@ import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
-const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration'];
+const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -54,6 +56,7 @@ function restoreFunnel(f) {
     step,
     answers: isObject(f.answers) ? f.answers : {},
     themeId: typeof f.themeId === 'string' ? f.themeId : null,
+    serviceId: typeof f.serviceId === 'string' ? f.serviceId : null, // registration page
     donePages: Array.isArray(f.donePages) ? f.donePages : [],
     resumeAtEnd: f.resumeAtEnd === true,
     landingAtEnd: fromOldPicker || f.landingAtEnd === true,
@@ -93,13 +96,14 @@ function App() {
   const current = funnels.find((f) => f.id === openId) ?? null;
   const funnel = current ? funnelTypes.find((t) => t.id === current.type) : null;
 
-  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'building' | 'review-design' | 'registration'
+  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'building' | 'review-design' | 'registration' | 'thank-you'
   const answers = current?.answers ?? NO_ANSWERS;
   const themeId = current?.themeId ?? null;       // design they picked; null = the one recommended for their topic
   const donePages = current?.donePages ?? NO_PAGES; // pages they've finished, e.g. ['landing']
   const resumeAtEnd = current?.resumeAtEnd ?? false;   // Back from checkpoint → last about screen
   const landingAtEnd = current?.landingAtEnd ?? false; // reopen the landing flow on its last screen
   const positions = current?.positions ?? NO_POSITIONS; // saved screen in each flow
+  const serviceId = current?.serviceId ?? null;         // service used as the registration page
 
   // Change the open funnel. Pass an object, or a function of the funnel
   // (use the function form when the change depends on what's already there).
@@ -208,10 +212,16 @@ function App() {
           previewHref={`?preview=${encodeURIComponent(openId)}`}
           onPreview={saveNow}
           onEdit={() => updateOpen({ step: 'review' }, { touch: false })}
-          onStart={() => {
-            // Landing page done → go on to the next page
-            if (donePages.includes('landing')) {
+          service={getService(serviceId)}
+          onChangeService={() => updateOpen({ step: 'registration' }, { touch: false })}
+          /* pageId: the card they clicked (always the next page to build) */
+          onStart={(pageId) => {
+            if (pageId === 'registration') {
               setStep('registration');
+              return;
+            }
+            if (pageId === 'thank-you') {
+              setStep('thank-you');
               return;
             }
             updateOpen({ resumeAtEnd: false, step: 'about' });
@@ -342,11 +352,30 @@ function App() {
       );
     }
 
-    // Placeholder until the registration page is built
+    // Registration page: pick one of their services. Picking one marks the
+    // page done and goes back to the overview; Back changes nothing.
     if (step === 'registration') {
       return (
+        <ServicePicker
+          key={serviceId ?? 'none'}
+          selectedId={serviceId}
+          onBack={() => updateOpen({ step: 'overview' }, { touch: false })}
+          onUse={(id) =>
+            updateOpen((f) => ({
+              serviceId: id,
+              donePages: f.donePages.includes('registration') ? f.donePages : [...f.donePages, 'registration'],
+              step: 'overview',
+            }))
+          }
+        />
+      );
+    }
+
+    // Placeholder until the thank you page is built
+    if (step === 'thank-you') {
+      return (
         <div className="transition">
-          <h1 className="transition__title">Next: your registration page</h1>
+          <h1 className="transition__title">Next: your thank you page</h1>
           <p className="transition__text">This page isn't built yet.</p>
           <div className="transition__nav">
             <button type="button" className="flow__back" onClick={() => setStep('overview')}>

@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink, Pencil } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
+import { servicePrice } from '../data/mockServices';
 import './FunnelOverview.css';
 
 // The thumbnail renders the page at this width (desktop layout),
@@ -49,7 +50,9 @@ export default function FunnelOverview({
   themeId = null,
   previewHref = null, // address of the full-screen preview (opens in a new tab)
   onPreview,          // called just before it opens
-  onEdit,   
+  onEdit,
+  service = null,     // the service picked as the registration page
+  onChangeService,    // reopens the service picker
 }) {
   const { pages } = funnel;
 
@@ -113,8 +116,14 @@ export default function FunnelOverview({
                   <PageSketch type={page.id} />
                 )}
 
+                {isNext && (
+                  <span className="overview__badge overview__badge--pending">
+                    <Clock size={14} strokeWidth={2.5} aria-hidden="true" /> Pending
+                  </span>
+                )}
+
                 {isDone && (
-                  <span className="overview__tick">
+                  <span className="overview__badge overview__badge--done">
                     <Check size={14} strokeWidth={3} aria-hidden="true" /> Done
                   </span>
                 )}
@@ -122,16 +131,30 @@ export default function FunnelOverview({
                 <div className="overview__page-body">
                   <span className="overview__step">
                     Page {i + 1}
-                    {isNext && <span className="overview__step-next"> · Up next</span>}
                   </span>
                   <h3 className="overview__page-name">{page.name}</h3>
                   <p className="overview__page-job">{page.job}</p>
                   {/* Covers the whole card (see .overview__page-cta::after), so a click anywhere starts this page */}
                   {isNext && (
-                    <button type="button" className="overview__page-cta" onClick={onStart}>
+                    <button type="button" className="overview__page-cta" onClick={() => onStart(page.id)}>
                       Build {page.name.toLowerCase()}
                       <ArrowRight size={16} className="overview__page-cta-arrow" />
                     </button>
+                  )}
+                  {isDone && page.id === 'registration' && (
+                    <>
+                      {service && (
+                        <div className="overview__service">
+                          <span className="overview__service-name">{service.title}</span>
+                          <span className="overview__service-price">{servicePrice(service)}</span>
+                        </div>
+                      )}
+                      <div className="overview__page-actions">
+                        <button type="button" className="overview__page-action" onClick={onChangeService}>
+                          <Pencil size={16} /> Change service
+                        </button>
+                      </div>
+                    </>
                   )}
                   {isDone && page.id === 'landing' && (
                     <div className="overview__page-actions">
