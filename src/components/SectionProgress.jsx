@@ -45,7 +45,7 @@ export default function SectionProgress({ questions = [], current = 0, furthest 
               onClick={() => canJump && onJump(i)}
             >
               <span className="sprogress__bar" />
-              <span className="sprogress__tip" aria-hidden="true">
+              <span className="tip sprogress__tip" aria-hidden="true">
                 {isDone && <Check size={13} strokeWidth={3} className="sprogress__tick" />}
                 {name(q)}
                 {isCurrent && <span className="sprogress__tip-note">You're here</span>}

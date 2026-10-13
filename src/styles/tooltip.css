@@ -1,0 +1,79 @@
+/* ---------- Tooltips ----------
+   One look and one layer for every tooltip in the app.
+
+   1. A text-only hint on any element:
+        <span data-tip="Add at least 3 to continue" data-tip-align="end">…</span>
+
+      data-tip-align picks which way the bubble grows:
+        "start" → pinned to the left edge, grows right
+        "end"   → pinned to the right edge, grows left
+        (leave it off to centre it)
+      Pick the side that grows *away* from the nearest edge or column,
+      so it never spills into the preview or off the screen.
+      Set data-tip to undefined to hide the hint.
+
+   2. A tooltip with its own markup (icons, ticks): give the bubble
+      class="tip" for the look and layer, and position and show it
+      in the component's own CSS (see SectionProgress.css). */
+
+.tip,
+[data-tip]::after {
+  z-index: var(--z-tooltip);
+  width: max-content;
+  max-width: 280px; /* long hints wrap instead of running sideways */
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  color: #fff;
+  background: var(--color-text);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+/* ---------- Text-only hints (data-tip) ---------- */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+[data-tip]:hover::after,
+[data-tip]:focus-within::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+[data-tip-align='start']::after {
+  left: 0;
+  transform: translateY(4px);
+}
+
+[data-tip-align='end']::after {
+  left: auto;
+  right: 0;
+  transform: translateY(4px);
+}
+
+[data-tip-align='start']:hover::after,
+[data-tip-align='start']:focus-within::after,
+[data-tip-align='end']:hover::after,
+[data-tip-align='end']:focus-within::after {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tip]::after {
+    transition: opacity 0.15s;
+  }
+}

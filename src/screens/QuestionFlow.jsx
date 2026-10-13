@@ -143,7 +143,11 @@ export default function QuestionFlow({
   const showNext = !OWN_NEXT_TYPES.includes(question.type);
 
   const nextButton = showNext && (
-    <span className="flow__next-wrap" data-tip={canContinue ? undefined : nextHint}>
+        <span
+      className="flow__next-wrap"
+      data-tip={canContinue ? undefined : nextHint}
+      data-tip-align={backAtTop ? 'start' : 'end'}
+    >
       <button
         type="button"
         className="flow__next"

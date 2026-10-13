@@ -30,4 +30,12 @@
     /* Success */
   --color-success: #1f9d55;
   --color-success-tint: #e7f6ed;
+
+    /* Layers: always use these, never a loose number */
+  --z-raised: 2;     /* a card lifted above its neighbours */
+  --z-sticky: 10;    /* sticky bars */
+  --z-dropdown: 20;  /* menus and popovers */
+  --z-tooltip: 30;   /* hover hints */
+  --z-sidebar: 40;   /* app sidebar sits over page content */
+  --z-toast: 100;    /* notices pinned to the screen */
 }

@@ -157,7 +157,9 @@ function ItemPicture({ name, photo, source, onChange }) {
 
 // A list the creator edits: learnings, personas, reviews, FAQs.
 // With suggest: true, AI ideas sit below to add, and a first visit opens
-// with empty cards to fill in. Nothing is ever put in the list for them.
+// with one empty card to fill in. Nothing is ever put in the list for them.
+// minItems only decides when Next unlocks (see QuestionFlow), never how many
+// cards a screen starts with.
 // With suggest: false (reviews) it's a plain list.
 // Each card is numbered by its place in the list ("Point 1", "Point 2"),
 // using itemLabel; removing one renumbers the rest.
@@ -168,7 +170,6 @@ export default function ItemsInput({ question, answers, onChange }) {
     id: questionId,
     itemFields,
     mainField,
-    minItems = 0,
     maxItems = Infinity,
     suggest,
     suggestLabel = 'ideas',
@@ -181,9 +182,8 @@ export default function ItemsInput({ question, answers, onChange }) {
   const besideFields = photoField ? fields.filter((f) => f.besidePicture) : [];
   const belowFields = fields.filter((f) => !besideFields.includes(f));
 
-  // Empty cards only on the first visit; coming back keeps their list
+  // One empty card on the first visit; coming back keeps their list
   const [firstVisit] = useState(answers[questionId] === undefined);
-  const blankCount = Math.max(minItems, 1);
 
   const [pool, setPool] = useState([]);
   const [status, setStatus] = useState(suggest ? 'loading' : 'off'); // 'loading' | 'ready' | 'error' | 'off'
@@ -195,9 +195,9 @@ export default function ItemsInput({ question, answers, onChange }) {
   // First load: 2 batches (6 ideas), all shown under "More ideas".
   // None go into the list on their own.
   useEffect(() => {
-    // A first visit opens with empty cards to fill in
+    // A first visit opens with a single empty card to fill in
     if (firstVisit && suggest) {
-      onChange(Array.from({ length: blankCount }, () => blankItem(fields)));
+      onChange([blankItem(fields)]);
     }
     if (!suggest) return;
     let cancelled = false;

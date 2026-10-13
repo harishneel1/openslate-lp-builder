@@ -70,20 +70,11 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 50%;
-  z-index: 5;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  color: #fff;
-  background: var(--color-text);
-  border-radius: var(--radius-sm);
   opacity: 0;
   transform: translate(-50%, -4px);
-  pointer-events: none;
   transition: opacity 0.15s, transform 0.15s;
 }
 
