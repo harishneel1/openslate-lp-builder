@@ -165,7 +165,7 @@ export const webinarQuestions = [
       {
         id: 'subheadline',
         target: 'hero.subtitle',
-        label: 'The line under it',
+        label: 'The line under the headline',
         placeholder: 'A line that backs up your headline',
         maxLength: 200,
         required: true,

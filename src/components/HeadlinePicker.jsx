@@ -149,7 +149,7 @@ export default function HeadlinePicker({ question, answers, onChange, onSubmit }
             <Sparkles size={16} />
             {loading
               ? 'Writing headlines from your answers…'
-              : 'We wrote these from your answers. Pick one to start.'}
+              : 'OpenSlate AI Suggestions!'}
           </p>
 
           <div className="spick__cards">
