@@ -97,14 +97,14 @@ export const webinarQuestions = [
 
   // TEMPORARY: the last blank stays as a sentence until it
   // becomes a ramble question in the next step.
-  {
+   {
     id: 'result',
-    reviewLabel: "What they'll get",
+    reviewLabel: 'What changes for them',
     section: 'about',
     type: 'ramble',
-    question: 'What will they walk away with?',
-    intro: 'Once the webinar ends, what will they be able to do, understand or change in their lives? Think about how their life looks afterwards. Write as much as you like, and we\'ll tidy it up.',
-    placeholder: "e.g. They'll be able to walk through their own home and spot the 5 most common Vasthu mistakes. They'll know simple fixes that don't need any walls broken…",
+    question: 'What will change in their life after the webinar?',
+    intro: "Once the webinar ends, how will their life look different? What will they be able to do, have, or stop worrying about? Write as much as you like, and we'll tidy it up.",
+    placeholder: "e.g. They'll stop worrying that their home is working against them. Money will feel steadier, there'll be less tension at home, and they'll know exactly what to fix without spending on expensive remedies…",
     required: true,
   },
 
@@ -116,6 +116,28 @@ export const webinarQuestions = [
     question: 'What will you teach?',
     intro: "Walk us through what you'll cover in the session. The main ideas, the steps, the examples you'll share, anything you'd normally explain. Write as much as you like, and we'll tidy it up.",
     placeholder: "e.g. I'll start with why Vasthu matters for money. Then I'll go room by room: the entrance, the kitchen, the bedroom and the money corner. For each one I'll show the common mistake and a fix that doesn't need any construction…",
+    required: true,
+  },
+
+    {
+    id: 'approach',
+    reviewLabel: 'What makes you different',
+    section: 'about',
+    type: 'ramble',
+    question: 'What makes your approach different?',
+    intro: "What have people usually tried that didn't work for them? What do you do differently, and why does it work? Write as much as you like, and we'll tidy it up.",
+    placeholder: "e.g. Most Vasthu advice tells people to break walls or move rooms around. That's expensive, and most families never do it. I only use simple fixes like moving furniture, changing colours or placing the right objects, so anyone can do them in a weekend…",
+    required: true,
+  },
+
+  {
+    id: 'trust',
+    reviewLabel: 'Why trust you',
+    section: 'about',
+    type: 'ramble',
+    question: 'Why should people trust you on this?',
+    intro: "Share anything that shows your approach works: years of experience, number of clients, results people got, a story about one client, or any training you've done. No big numbers yet? That's fine. Share what you have. Write as much as you like, and we'll tidy it up.",
+    placeholder: "e.g. I've practised Vasthu for 15 years and visited over 3,000 homes. One family in Chennai had money troubles for years. After we moved their tijori and fixed their entrance, they paid off their loan within a year…",
     required: true,
   },
 
