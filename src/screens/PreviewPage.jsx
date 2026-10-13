@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, Monitor, Smartphone, X } from 'lucide-react';
 import SimpleDesign from '../components/designs/SimpleDesign';
+import ThankYouDesign from '../components/designs/ThankYouDesign';
 import { buildPageJson } from '../data/buildPageJson';
 import { getTheme, recommendedThemeId } from '../data/themes';
 import { funnelTypes } from '../data/funnelTypes';
@@ -37,7 +38,7 @@ function readFunnel(id) {
   return {
     answers,
     themeId: typeof f.themeId === 'string' ? f.themeId : null,
-    landingDone: Array.isArray(f.donePages) && f.donePages.includes('landing'),
+    donePages: Array.isArray(f.donePages) ? f.donePages : [],
     name: funnelName({ answers }, type),
   };
 }
@@ -64,14 +65,17 @@ function Message({ title, text }) {
   );
 }
 
-export default function PreviewPage({ funnelId }) {
+// page: 'landing' (default) or 'thank-you'
+export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
+  const isThankYou = pageId === 'thank-you';
   const [funnel] = useState(() => readFunnel(funnelId));
   const [mode, setMode] = useState('desktop');
 
   // Tab title: "Preview: <their headline>"
   useEffect(() => {
-    document.title = funnel ? `Preview: ${funnel.name}` : 'Preview';
-  }, [funnel]);
+    if (!funnel) document.title = 'Preview';
+    else document.title = isThankYou ? `Preview: Thank you page · ${funnel.name}` : `Preview: ${funnel.name}`;
+  }, [funnel, isThankYou]);
 
   if (!funnel) {
     return (
@@ -82,11 +86,15 @@ export default function PreviewPage({ funnelId }) {
     );
   }
 
-  if (!funnel.landingDone) {
+  if (!funnel.donePages.includes(pageId)) {
     return (
       <Message
-        title="This landing page isn't finished yet"
-        text="Pick a design for it in the Page Builder, then you can preview it here."
+        title={isThankYou ? "This thank you page isn't finished yet" : "This landing page isn't finished yet"}
+        text={
+          isThankYou
+            ? 'Finish it in the Page Builder, then you can preview it here.'
+            : 'Pick a design for it in the Page Builder, then you can preview it here.'
+        }
       />
     );
   }
@@ -99,7 +107,7 @@ export default function PreviewPage({ funnelId }) {
   return (
     <div className={`preview preview--${mode}`}>
       <div className="preview__bar">
-        <span className="preview__label">Preview</span>
+        <span className="preview__label">{isThankYou ? 'Preview: Thank you page' : 'Preview'}</span>
         <p className="preview__name">{funnel.name}</p>
 
         <div className="preview__toggle" role="group" aria-label="Preview size">
@@ -123,7 +131,11 @@ export default function PreviewPage({ funnelId }) {
 
       <main className="preview__stage">
         <div className="preview__page">
-          <SimpleDesign page={page} theme={getTheme(resolvedId)} />
+          {isThankYou ? (
+            <ThankYouDesign answers={funnel.answers} theme={getTheme(resolvedId)} />
+          ) : (
+            <SimpleDesign page={page} theme={getTheme(resolvedId)} />
+          )}
         </div>
       </main>
     </div>

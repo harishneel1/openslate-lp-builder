@@ -1,0 +1,126 @@
+/* TEMPORARY mock of the real Create service page */
+.mockcreate {
+  min-height: 100vh;
+  padding: 32px 20px 64px;
+  background: var(--color-bg);
+}
+
+.mockcreate__banner {
+  max-width: 520px;
+  margin: 0 auto 20px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.mockcreate__card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.mockcreate__card--done {
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.mockcreate__title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.mockcreate__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mockcreate__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mockcreate__input {
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+}
+
+.mockcreate__input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.mockcreate__pills {
+  display: flex;
+  gap: 8px;
+}
+
+.mockcreate__pill {
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.mockcreate__pill--on {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.mockcreate__save {
+  align-self: flex-start;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.mockcreate__card--done .mockcreate__save {
+  align-self: center;
+  margin-top: 8px;
+}
+
+.mockcreate__save[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mockcreate__tick {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  color: #fff;
+  background: var(--color-success);
+  border-radius: 50%;
+}
+
+.mockcreate__text {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.mockcreate__error {
+  font-size: 13px;
+  color: #c0392b;
+}

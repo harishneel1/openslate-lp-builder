@@ -1,0 +1,149 @@
+/* ------------------------------------------------------------
+   Thank you page. Uses the same --sd-* theme variables as the
+   landing page (SimpleDesign), so the two look like one funnel.
+   ------------------------------------------------------------ */
+.ty {
+  min-height: 100%;
+}
+
+/* ---------- Confirmation band ---------- */
+.ty__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 22px 36px;
+  text-align: center;
+  color: var(--sd-hero-text);
+  background: var(--sd-hero-bg);
+}
+
+.ty__check {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  color: var(--sd-accent-text);
+  background: var(--sd-accent);
+  border-radius: 50%;
+}
+
+.ty__title {
+  margin-top: 18px;
+  font-family: var(--sd-display);
+  font-size: var(--sd-h1);
+  font-weight: var(--sd-display-weight);
+  line-height: var(--sd-h1-leading);
+  letter-spacing: var(--sd-tracking);
+}
+
+.ty__sub {
+  max-width: 44ch;
+  margin-top: 10px;
+  font-size: 16px;
+  color: var(--sd-hero-muted);
+}
+
+.ty__sub strong {
+  color: var(--sd-hero-text);
+}
+
+.ty__when {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--sd-card-bg);
+  border: var(--sd-card-border);
+  border-radius: var(--sd-chip-radius);
+}
+
+.ty__when svg {
+  flex-shrink: 0;
+  color: var(--sd-icon);
+}
+
+/* ---------- Cards ---------- */
+.ty__body {
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 28px 22px 48px;
+}
+
+.ty__card {
+  padding: 22px;
+  background: var(--sd-card-bg);
+  border: var(--sd-card-border);
+  border-radius: var(--sd-radius);
+}
+
+.ty__card-title {
+  font-family: var(--sd-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--sd-text);
+}
+
+.ty__card-text {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--sd-muted);
+}
+
+/* The one thing to do: join the group */
+.ty__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  color: var(--sd-accent-text);
+  background: var(--sd-accent);
+  border-radius: var(--sd-button-radius);
+}
+
+/* No link yet: the button shows where it'll be, with a note (only in the builder's preview) */
+.ty__button--missing {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ty__missing-note {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ty__steps {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-left: 20px;
+  font-size: 15px;
+  color: var(--sd-muted);
+}
+
+/* ---------- Wider screens ---------- */
+@container (min-width: 720px) {
+  .ty__hero {
+    padding: 72px 40px 56px;
+  }
+
+  .ty__title {
+    font-size: var(--sd-h1-wide);
+  }
+
+  .ty__body {
+    padding-top: 40px;
+  }
+}

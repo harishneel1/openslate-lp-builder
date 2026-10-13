@@ -110,6 +110,33 @@
 /* Back is at the top, so Next sits alone at the right */
 .flow__nav--end {
   justify-content: flex-end;
+  gap: 20px;
+}
+
+/* Next with "I'll add it later" beside it */
+.flow__nav-end {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* A quiet way past a screen they can't answer yet */
+.flow__later {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.flow__later:hover {
+  color: var(--color-text);
+}
+
+.flow__later:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 

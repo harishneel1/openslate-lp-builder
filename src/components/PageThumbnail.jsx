@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SimpleDesign from './designs/SimpleDesign';
+import ThankYouDesign from './designs/ThankYouDesign';
 import { buildPageJson } from '../data/buildPageJson';
 import { getTheme, recommendedThemeId } from '../data/themes';
 import './PageThumbnail.css';
@@ -7,10 +8,11 @@ import './PageThumbnail.css';
 // The page is drawn at this width (desktop layout), then scaled down to fit
 const THUMB_WIDTH = 1100;
 
-// A small picture of their landing page in their design.
+// A small picture of one of their pages in their design.
+// page: 'landing' (default) or 'thank-you'.
 // Only a picture: hidden from screen readers, can't be clicked.
-// Used on the funnel overview and on the "Your funnels" cards.
-export default function PageThumbnail({ answers, themeId }) {
+// Used on the funnel overview, the "Your funnels" cards and the building step.
+export default function PageThumbnail({ answers, themeId, page: pageId = 'landing' }) {
   const boxRef = useRef(null);
   const [scale, setScale] = useState(0.3);
 
@@ -32,7 +34,11 @@ export default function PageThumbnail({ answers, themeId }) {
   return (
     <div className="thumb" ref={boxRef} aria-hidden="true">
       <div className="thumb__page" style={{ width: THUMB_WIDTH, transform: `scale(${scale})` }}>
-        <SimpleDesign page={page} theme={getTheme(resolvedId)} />
+        {pageId === 'thank-you' ? (
+          <ThankYouDesign answers={answers} theme={getTheme(resolvedId)} />
+        ) : (
+          <SimpleDesign page={page} theme={getTheme(resolvedId)} />
+        )}
       </div>
     </div>
   );

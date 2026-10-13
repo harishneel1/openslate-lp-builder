@@ -37,10 +37,26 @@ export default function QuestionFlow({
   backAtTop = false,      // Back sits above the progress; Next appears once answered
   wide = false, 
 }) {
+  // An answer, or the default its screen shows as already picked
+  // (so a screen that depends on a default appears before they tap anything)
+  const answerOf = (id) => answers[id] ?? questions.find((q) => q.id === id)?.default;
+
+  // showIf: { field, equals: 'Paid' } or { field, in: ['A', 'B'] }
+  const shows = (q) => {
+    if (!q.showIf) return true;
+    const v = answerOf(q.showIf.field);
+    return Array.isArray(q.showIf.in) ? q.showIf.in.includes(v) : v === q.showIf.equals;
+  };
+
+  // variantsBy: a screen whose wording (and check) follows another answer,
+  // e.g. "Paste your WhatsApp group link" vs "Paste your Telegram link"
+  const resolve = (q) => {
+    const variant = q.variantsBy ? q.variants?.[answerOf(q.variantsBy)] : null;
+    return variant ? { ...q, ...variant } : q;
+  };
+
   // Hide questions whose showIf condition isn't met (e.g. price when Free)
-  const visible = questions.filter(
-    (q) => !q.showIf || answers[q.showIf.field] === q.showIf.equals
-  );
+  const visible = questions.filter(shows).map(resolve);
 
   // -1 if there's no id, or that question isn't on screen any more
   const indexOf = (id) => (id ? visible.findIndex((q) => q.id === id) : -1);
@@ -67,9 +83,15 @@ export default function QuestionFlow({
   const isLast = index === visible.length - 1;
   const progress = ((index + 1) / visible.length) * 100;
 
+  // validate(value): an error message, or null when it looks right.
+  // Only checked once they've typed something, so an empty box isn't an error.
+  const typed = String(value ?? '').trim();
+  const error = question.validate && typed ? question.validate(typed) : null;
+
   // Sentence questions need every blank filled; groups need every required field
   const canContinue =
-    !question.required ||
+    !error &&
+    (!question.required ||
     !SUPPORTED_TYPES.includes(question.type) ||
     (question.type === 'items'
       ? filledCount(answers[question.id], question.mainField) >= (question.minItems ?? 0)
@@ -77,7 +99,7 @@ export default function QuestionFlow({
         ? question.fields.every((f) => !f.required || isFilled(answers[f.id] ?? f.default))
         : question.parts
           ? question.parts.every((p) => isFilled(answers[p.id]))
-          : isFilled(value));
+          : isFilled(value)));
 
   // Moves to any screen and remembers the furthest one reached
   const goTo = (i) => {
@@ -91,6 +113,12 @@ export default function QuestionFlow({
     if (answers[question.id] === undefined && question.default !== undefined) {
       onAnswer(question.id, question.default);
     }
+    isLast ? onComplete() : goTo(index + 1);
+  };
+
+  // laterLabel ("I'll add it later"): move on without a valid answer.
+  // Whatever they typed is kept, so they can fix it from where they left off.
+  const goLater = () => {
     isLast ? onComplete() : goTo(index + 1);
   };
 
@@ -122,6 +150,7 @@ export default function QuestionFlow({
 
   // Shown on hover while Next is disabled. A question can set its own with `nextHint`.
   const nextHint =
+    error ??
     question.nextHint ??
     (question.type === 'items'
       ? `Add at least ${question.minItems} to continue`
@@ -141,6 +170,13 @@ export default function QuestionFlow({
       : 'Next';
 
   const showNext = !OWN_NEXT_TYPES.includes(question.type);
+
+  // Only offered while Next is blocked; once the answer is fine, Next is the way on
+  const laterButton = question.laterLabel && !canContinue && (
+    <button type="button" className="flow__later" onClick={goLater}>
+      {question.laterLabel}
+    </button>
+  );
 
   const nextButton = showNext && (
         <span
@@ -180,6 +216,7 @@ export default function QuestionFlow({
             question={question}
             value={value}
             answers={answers}
+            error={error}
             onChange={(v, id = question.id) => onAnswer(id, v)}
             onSubmit={goNext}
           />
@@ -188,11 +225,19 @@ export default function QuestionFlow({
                 {backAtTop ? (
           // Back is already at the top, so Next sits alone at the right.
           // Screens with their own button (Tidy it up) get no bottom row at all.
-          showNext && <div className="flow__nav flow__nav--end">{nextButton}</div>
+          showNext && (
+            <div className="flow__nav flow__nav--end">
+              {laterButton}
+              {nextButton}
+            </div>
+          )
         ) : (
           <div className="flow__nav">
             {backButton}
-            {nextButton}
+            <div className="flow__nav-end">
+              {laterButton}
+              {nextButton}
+            </div>
           </div>
         )}
       </div>

@@ -1,3 +1,9 @@
+/* Amber for "done, but needs something" (no warning colour in tokens.css yet) */
+.overview {
+  --color-warning: #d97706;
+  --color-warning-text: #b45309;
+}
+
 .overview {
   max-width: 1080px;
   margin: 0 auto;
@@ -93,6 +99,11 @@
   border-color: var(--color-success);
 }
 
+/* Done, but something's missing before it can go live (e.g. the group link) */
+.overview__page--warning {
+  border-color: var(--color-warning);
+}
+
 .overview__page-body {
   flex: 1;
   display: flex;
@@ -145,6 +156,10 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
+.overview__badge--warning {
+  background: var(--color-warning);
+}
+
 .overview__badge--done {
   background: var(--color-success);
 }
@@ -175,6 +190,24 @@
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.overview__service-link {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 55%;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+}
+
+.overview__service-missing {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-warning-text);
 }
 
 .overview__service-price {

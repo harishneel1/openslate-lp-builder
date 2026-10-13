@@ -1,8 +1,9 @@
 import { Fragment } from 'react';
-import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink, Pencil } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock, ExternalLink, Pencil, Plus } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
+import { joinSummary } from '../data/thankYouQuestions';
 import './FunnelOverview.css';
 
 // The thumbnail renders the page at this width (desktop layout),
@@ -53,6 +54,7 @@ export default function FunnelOverview({
   onEdit,
   service = null,     // the service picked as the registration page
   onChangeService,    // reopens the service picker
+  onEditThankYou,     // reopens the thank you page questions
 }) {
   const { pages } = funnel;
 
@@ -61,6 +63,9 @@ export default function FunnelOverview({
   const pagesLeft = pages.length - doneCount;
   const lastDone = [...pages].reverse().find((p) => done.includes(p.id));
   const nextPage = pages.find((p) => !done.includes(p.id));
+  const join = joinSummary(answers); // the group people join after signing up
+  // Thank you page finished with "I'll add it later": done, but the funnel isn't ready
+  const linkMissing = done.includes('thank-you') && join?.missing;
 
   // The design they chose (falls back to the one recommended for their topic)
   const resolvedThemeId =
@@ -82,7 +87,9 @@ export default function FunnelOverview({
           "Your customers go through them in this order. We'll fill them in together, one page at a time."}
         {started && pagesLeft > 0 &&
           `${pagesLeft} more ${pagesLeft === 1 ? 'page' : 'pages'} and your funnel is ready.`}
-        {started && pagesLeft === 0 && 'All your pages are done. Your funnel is ready.'}
+        {started && pagesLeft === 0 && linkMissing &&
+          `Add your ${join.label} link and your funnel is ready.`}
+        {started && pagesLeft === 0 && !linkMissing && 'All your pages are done. Your funnel is ready.'}
       </p>
 
       {started ? (
@@ -103,15 +110,16 @@ export default function FunnelOverview({
       <div className="overview__flow">
         {pages.map((page, i) => {
           const isDone = done.includes(page.id);
+          const needsLink = isDone && page.id === 'thank-you' && linkMissing;
           const isNext = page.id === nextPage?.id; // the page to fill in next is clickable
           return (
             <Fragment key={page.id}>
               {i > 0 && <ArrowRight size={20} className="overview__arrow" />}
               <div
-                className={`overview__page ${isDone ? 'overview__page--done' : ''} ${isNext ? 'overview__page--next' : ''}`}
+                className={`overview__page ${isDone && !needsLink ? 'overview__page--done' : ''} ${needsLink ? 'overview__page--warning' : ''} ${isNext ? 'overview__page--next' : ''}`}
               >
-                {isDone && page.id === 'landing' ? (
-                  <PageThumbnail answers={answers} themeId={resolvedThemeId} />
+                {isDone && (page.id === 'landing' || page.id === 'thank-you') ? (
+                  <PageThumbnail answers={answers} themeId={resolvedThemeId} page={page.id} />
                 ) : (
                   <PageSketch type={page.id} />
                 )}
@@ -122,7 +130,13 @@ export default function FunnelOverview({
                   </span>
                 )}
 
-                {isDone && (
+                {needsLink && (
+                  <span className="overview__badge overview__badge--warning">
+                    <AlertCircle size={14} strokeWidth={2.5} aria-hidden="true" /> Needs link
+                  </span>
+                )}
+
+                {isDone && !needsLink && (
                   <span className="overview__badge overview__badge--done">
                     <Check size={14} strokeWidth={3} aria-hidden="true" /> Done
                   </span>
@@ -153,6 +167,46 @@ export default function FunnelOverview({
                         <button type="button" className="overview__page-action" onClick={onChangeService}>
                           <Pencil size={16} /> Change service
                         </button>
+                      </div>
+                    </>
+                  )}
+                  {isDone && page.id === 'thank-you' && (
+                    <>
+                      {join && (
+                        <div className="overview__service">
+                          <span className="overview__service-name">{join.label}</span>
+                          {join.link && (
+                            <span className="overview__service-link" title={join.link}>
+                              {join.link.replace(/^https?:\/\//i, '')}
+                            </span>
+                          )}
+                          {join.missing && <span className="overview__service-missing">Link missing</span>}
+                        </div>
+                      )}
+                      <div className="overview__page-actions">
+                        <button type="button" className="overview__page-action" onClick={onEditThankYou}>
+                          {join?.missing ? (
+                            <>
+                              <Plus size={16} /> Add link
+                            </>
+                          ) : (
+                            <>
+                              <Pencil size={16} /> Edit
+                            </>
+                          )}
+                        </button>
+                        {previewHref && (
+                          <a
+                            className="overview__page-action overview__page-action--preview"
+                            href={`${previewHref}&page=thank-you`}
+                            target="_blank"
+                            rel="noopener"
+                            onClick={onPreview}
+                            aria-label="Preview your thank you page (opens in a new tab)"
+                          >
+                            <ExternalLink size={16} /> Preview
+                          </a>
+                        )}
                       </div>
                     </>
                   )}

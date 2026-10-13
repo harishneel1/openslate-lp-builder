@@ -345,6 +345,71 @@
   color: #c0392b;
 }
 
+/* A text answer that fails its check (e.g. not a WhatsApp group link) */
+.qinput__text--error,
+.qinput__text--error:focus {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.1);
+}
+
+.qinput__text-error {
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ---------- "Don't have a group yet?" how-to under a text box ---------- */
+.qinput__setup {
+  margin-top: 16px;
+}
+
+.qinput__setup-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.qinput__setup-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.qinput__setup-toggle:hover {
+  color: var(--color-primary-hover);
+}
+
+.qinput__setup-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.qinput__setup-chevron {
+  transition: transform 0.15s;
+}
+
+.qinput__setup[open] .qinput__setup-chevron {
+  transform: rotate(180deg);
+}
+
+.qinput__setup-steps {
+  margin-top: 12px;
+  padding: 16px 16px 16px 36px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.qinput__setup-steps li + li {
+  margin-top: 6px;
+}
+
 /* ---------- Money (price, regular price) ---------- */
 .qinput__money {
   position: relative;

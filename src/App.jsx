@@ -14,6 +14,7 @@ import BuildingStep from './screens/BuildingStep';
 import LandingEditor from './screens/LandingEditor';
 import ServicePicker from './screens/ServicePicker';
 import { getService } from './data/mockServices';
+import { thankYouQuestions, groupLinkMissing } from './data/thankYouQuestions';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
@@ -22,7 +23,7 @@ import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
-const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you'];
+const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -96,7 +97,7 @@ function App() {
   const current = funnels.find((f) => f.id === openId) ?? null;
   const funnel = current ? funnelTypes.find((t) => t.id === current.type) : null;
 
-  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'building' | 'review-design' | 'registration' | 'thank-you'
+  const step = current?.step ?? 'overview'; // 'overview' | 'review' | 'review-edit' | 'about' | 'checkpoint' | 'edit' | 'transition' | 'landing' | 'building' | 'review-design' | 'registration' | 'thank-you' | 'thank-you-building'
   const answers = current?.answers ?? NO_ANSWERS;
   const themeId = current?.themeId ?? null;       // design they picked; null = the one recommended for their topic
   const donePages = current?.donePages ?? NO_PAGES; // pages they've finished, e.g. ['landing']
@@ -214,6 +215,7 @@ function App() {
           onEdit={() => updateOpen({ step: 'review' }, { touch: false })}
           service={getService(serviceId)}
           onChangeService={() => updateOpen({ step: 'registration' }, { touch: false })}
+          onEditThankYou={() => updateOpen({ step: 'thank-you' }, { touch: false })}
           /* pageId: the card they clicked (always the next page to build) */
           onStart={(pageId) => {
             if (pageId === 'registration') {
@@ -371,18 +373,48 @@ function App() {
       );
     }
 
-    // Placeholder until the thank you page is built
+    // Thank you page: how people get the webinar link. Finishing marks the
+    // page done and goes back to the overview. Answers save as they go.
     if (step === 'thank-you') {
       return (
-        <div className="transition">
-          <h1 className="transition__title">Next: your thank you page</h1>
-          <p className="transition__text">This page isn't built yet.</p>
-          <div className="transition__nav">
-            <button type="button" className="flow__back" onClick={() => setStep('overview')}>
-              Back to your funnel
-            </button>
-          </div>
-        </div>
+        <QuestionFlow
+          key="thank-you"
+          backAtTop
+          pageName="Thank you page"
+          /* "Add link" on the overview opens straight on the link screen */
+          startAt={donePages.includes('thank-you') && groupLinkMissing(answers) ? 'groupLink' : null}
+          questions={thankYouQuestions}
+          answers={answers}
+          onAnswer={handleAnswer}
+          finishLabel="Done"
+          onExit={() => updateOpen({ step: 'overview' }, { touch: false })}
+          /* Done or "I'll add it later". The first time, their page "builds" with
+             Preview; after an edit, straight back to the overview. */
+          onComplete={() =>
+            updateOpen((f) => {
+              const firstTime = !f.donePages.includes('thank-you');
+              return {
+                donePages: firstTime ? [...f.donePages, 'thank-you'] : f.donePages,
+                step: firstTime ? 'thank-you-building' : 'overview',
+              };
+            })
+          }
+        />
+      );
+    }
+
+    // Right after finishing the thank you page: it "builds", then Preview / Continue
+    if (step === 'thank-you-building') {
+      return (
+        <BuildingStep
+          key="thank-you-building"
+          page="thank-you"
+          answers={answers}
+          themeId={themeId}
+          previewHref={`?preview=${encodeURIComponent(openId)}&page=thank-you`}
+          onPreview={saveNow}
+          onContinue={() => setStep('overview')}
+        />
       );
     }
 

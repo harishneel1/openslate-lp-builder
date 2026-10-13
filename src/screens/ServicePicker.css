@@ -56,7 +56,7 @@
 
 /* ---------- The list ---------- */
 .picker__list {
-  margin-top: 16px;
+  margin-top: 12px;
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -65,7 +65,7 @@
 }
 
 /* Scrolls inside itself when there are lots of services */
-.picker__search + .picker__list {
+.picker__list {
   max-height: 440px;
   overflow-y: auto;
 }
@@ -149,7 +149,122 @@
   border-radius: var(--radius-pill);
 }
 
-/* ---------- Empty and no results ---------- */
+/* ---------- Don't see it? Create a new service · Refresh ---------- */
+.picker__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+.picker__tools-text {
+  color: var(--color-text-muted);
+}
+
+.picker__create {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.picker__create:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.picker__refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.picker__refresh:hover {
+  color: var(--color-text);
+}
+
+.picker__create:focus-visible,
+.picker__refresh:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* A service made since they opened this screen */
+.picker__new {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: 2px;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+}
+
+.picker__row--new {
+  animation: picker-new 1.2s ease;
+}
+
+@keyframes picker-new {
+  from { background: #fbdcc2; }
+}
+
+/* ---------- No services at all ---------- */
+.picker__none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 28px;
+  padding: 36px 28px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.picker__none-title {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.picker__none-text {
+  max-width: 42ch;
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.picker__none-create {
+  margin-top: 20px;
+  text-decoration: none;
+}
+
+.picker__none .picker__refresh {
+  margin-top: 14px;
+  margin-left: 0;
+}
+
+.picker__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- No results ---------- */
 .picker__empty {
   margin-top: 28px;
   padding: 24px;
@@ -175,7 +290,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .picker {
+  .picker,
+  .picker__row--new {
     animation: none;
   }
 }

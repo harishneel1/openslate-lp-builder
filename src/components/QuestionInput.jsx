@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Upload, User } from 'lucide-react';
+import { ChevronDown, Upload, User } from 'lucide-react';
 import './QuestionInput.css';
 import SuggestionPicker from './SuggestionPicker';
 import ItemsInput from './ItemsInput';
@@ -66,24 +66,60 @@ function ButtonTextLine({ pricing, answers, onChange }) {
   );
 }
 
-function TextInput({ question, value, onChange, onSubmit }) {
-  const { maxLength, example } = question;
+// error: message from the question's validate(). It shows once they've
+// pasted, left the box or pressed Enter, not while they're still typing.
+function TextInput({ question, value, onChange, onSubmit, error = null }) {
+  const { maxLength, example, inputMode } = question;
+  const [checked, setChecked] = useState(false);
+  const showError = checked && error;
+  const errorId = `${question.id}-error`;
 
   return (
     <div className="qinput">
       <input
         autoFocus
-        className="qinput__text"
+        className={`qinput__text ${showError ? 'qinput__text--error' : ''}`}
         value={value}
         maxLength={maxLength}
+        inputMode={inputMode}
+        spellCheck={inputMode === 'url' ? false : undefined}
+        autoCapitalize={inputMode === 'url' ? 'off' : undefined}
         placeholder={example ? `e.g. ${example}` : ''}
+        aria-label={question.question}
+        aria-invalid={showError ? true : undefined}
+        aria-describedby={showError ? errorId : undefined}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
+        onPaste={() => setChecked(true)}
+        onBlur={() => setChecked(true)}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter') return;
+          setChecked(true);
+          onSubmit();
+        }}
       />
+      {showError && (
+        <p id={errorId} className="qinput__error qinput__text-error" role="alert">
+          {error}
+        </p>
+      )}
       {maxLength && (
         <span className="qinput__count">
           {value.length}/{maxLength}
         </span>
+      )}
+      {/* Short how-to for people who haven't set things up yet (e.g. their group). Closed until they ask. */}
+      {question.setupSteps && (
+        <details className="qinput__setup">
+          <summary className="qinput__setup-toggle">
+            {question.setupTitle ?? 'Need help?'}
+            <ChevronDown size={16} className="qinput__setup-chevron" aria-hidden="true" />
+          </summary>
+          <ol className="qinput__setup-steps">
+            {question.setupSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </details>
       )}
     </div>
   );
