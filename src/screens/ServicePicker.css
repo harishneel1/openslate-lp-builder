@@ -1,5 +1,5 @@
 /* One column, same width and rhythm as "Edit your landing page" */
-.picker {
+.service-picker {
   max-width: 640px;
   margin: 0 auto;
   padding-top: 24px;
@@ -7,20 +7,20 @@
   animation: flow-in 0.25s ease;
 }
 
-.picker__title {
+.service-picker__title {
   font-size: 28px;
   font-weight: 700;
   line-height: 1.3;
 }
 
-.picker__subtitle {
+.service-picker__subtitle {
   margin-top: 8px;
   font-size: 15px;
   color: var(--color-text-muted);
 }
 
 /* ---------- Search ---------- */
-.picker__search {
+.service-picker__search {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -33,12 +33,12 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.picker__search:focus-within {
+.service-picker__search:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px var(--color-primary-tint);
 }
 
-.picker__search input {
+.service-picker__search input {
   flex: 1;
   min-width: 0;
   padding: 13px 0;
@@ -50,12 +50,12 @@
   outline: none;
 }
 
-.picker__search input::placeholder {
+.service-picker__search input::placeholder {
   color: var(--color-text-disabled);
 }
 
 /* ---------- The list ---------- */
-.picker__list {
+.service-picker__list {
   margin-top: 12px;
   overflow: hidden;
   background: var(--color-surface);
@@ -65,12 +65,12 @@
 }
 
 /* Scrolls inside itself when there are lots of services */
-.picker__list {
+.service-picker__list {
   max-height: 440px;
   overflow-y: auto;
 }
 
-.picker__row {
+.service-picker__row {
   position: relative;
   display: flex;
   align-items: center;
@@ -80,27 +80,27 @@
   transition: background 0.15s;
 }
 
-.picker__row + .picker__row {
+.service-picker__row + .service-picker__row {
   border-top: 1px solid var(--color-border);
 }
 
-.picker__row:hover {
+.service-picker__row:hover {
   background: #fafafa;
 }
 
-.picker__row--picked,
-.picker__row--picked:hover {
+.service-picker__row--picked,
+.service-picker__row--picked:hover {
   background: var(--color-primary-tint);
 }
 
 /* The real radio stays for keyboards and screen readers; the circle is what they see */
-.picker__radio {
+.service-picker__radio {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-.picker__mark {
+.service-picker__mark {
   display: grid;
   flex-shrink: 0;
   place-items: center;
@@ -112,18 +112,18 @@
   transition: background 0.15s, border-color 0.15s;
 }
 
-.picker__row--picked .picker__mark {
+.service-picker__row--picked .service-picker__mark {
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
-.picker__radio:focus-visible + .picker__mark {
+.service-picker__radio:focus-visible + .service-picker__mark {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 /* Long titles wrap to two lines at most */
-.picker__name {
+.service-picker__name {
   flex: 1;
   min-width: 0;
   display: -webkit-box;
@@ -135,13 +135,13 @@
   -webkit-box-orient: vertical;
 }
 
-.picker__price {
+.service-picker__price {
   flex-shrink: 0;
   font-size: 15px;
   font-weight: 600;
 }
 
-.picker__price--free {
+.service-picker__price--free {
   padding: 2px 10px;
   font-size: 13px;
   color: var(--color-success);
@@ -150,7 +150,7 @@
 }
 
 /* ---------- Don't see it? Create a new service · Refresh ---------- */
-.picker__tools {
+.service-picker__tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -159,11 +159,11 @@
   font-size: 14px;
 }
 
-.picker__tools-text {
+.service-picker__tools-text {
   color: var(--color-text-muted);
 }
 
-.picker__create {
+.service-picker__create {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -172,12 +172,12 @@
   text-decoration: none;
 }
 
-.picker__create:hover {
+.service-picker__create:hover {
   color: var(--color-primary-hover);
   text-decoration: underline;
 }
 
-.picker__refresh {
+.service-picker__refresh {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -187,19 +187,19 @@
   color: var(--color-text-muted);
 }
 
-.picker__refresh:hover {
+.service-picker__refresh:hover {
   color: var(--color-text);
 }
 
-.picker__create:focus-visible,
-.picker__refresh:focus-visible {
+.service-picker__create:focus-visible,
+.service-picker__refresh:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 /* A service made since they opened this screen */
-.picker__new {
+.service-picker__new {
   display: inline-block;
   margin-left: 8px;
   padding: 1px 8px;
@@ -211,16 +211,16 @@
   border-radius: var(--radius-pill);
 }
 
-.picker__row--new {
-  animation: picker-new 1.2s ease;
+.service-picker__row--new {
+  animation: service-picker-new 1.2s ease;
 }
 
-@keyframes picker-new {
+@keyframes service-picker-new {
   from { background: #fbdcc2; }
 }
 
 /* ---------- No services at all ---------- */
-.picker__none {
+.service-picker__none {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -233,29 +233,29 @@
   box-shadow: var(--shadow-card);
 }
 
-.picker__none-title {
+.service-picker__none-title {
   font-size: 19px;
   font-weight: 700;
 }
 
-.picker__none-text {
+.service-picker__none-text {
   max-width: 42ch;
   margin-top: 8px;
   font-size: 15px;
   color: var(--color-text-muted);
 }
 
-.picker__none-create {
+.service-picker__none-create {
   margin-top: 20px;
   text-decoration: none;
 }
 
-.picker__none .picker__refresh {
+.service-picker__none .service-picker__refresh {
   margin-top: 14px;
   margin-left: 0;
 }
 
-.picker__sr {
+.service-picker__sr {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -265,7 +265,7 @@
 }
 
 /* ---------- No results ---------- */
-.picker__empty {
+.service-picker__empty {
   margin-top: 28px;
   padding: 24px;
   font-size: 15px;
@@ -277,21 +277,21 @@
 }
 
 /* ---------- Use this service ---------- */
-.picker__actions {
+.service-picker__actions {
   display: flex;
   align-items: center;
   gap: 14px;
   margin-top: 28px;
 }
 
-.picker__hint {
+.service-picker__hint {
   font-size: 14px;
   color: var(--color-text-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .picker,
-  .picker__row--new {
+  .service-picker,
+  .service-picker__row--new {
     animation: none;
   }
 }

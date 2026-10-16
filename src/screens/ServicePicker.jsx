@@ -60,33 +60,33 @@ export default function ServicePicker({ selectedId = null, onUse, onBack }) {
   };
 
   return (
-    <div className="picker">
+    <div className="service-picker">
       <button type="button" className="flow__back flow__back--top" onClick={onBack}>
         <ArrowLeft size={16} /> Overview
       </button>
 
-      <h1 className="picker__title">
+      <h1 className="service-picker__title">
         {changing ? 'Change your service' : 'Pick your service'}
       </h1>
 
       {!hasServices ? (
-        <div className="picker__none">
-          <h2 className="picker__none-title">You don't have any services yet</h2>
-          <p className="picker__none-text">
+        <div className="service-picker__none">
+          <h2 className="service-picker__none-title">You don't have any services yet</h2>
+          <p className="service-picker__none-text">
             A service is the page people sign up on, and pay on if it's paid. Create one, then
             come back here to pick it.
           </p>
-          <a className="flow__next picker__none-create" href={CREATE_SERVICE_URL} target="_blank" rel="noopener">
+          <a className="flow__next service-picker__none-create" href={CREATE_SERVICE_URL} target="_blank" rel="noopener">
             Create your first service <ExternalLink size={16} aria-hidden="true" />
           </a>
-          <button type="button" className="picker__refresh" onClick={refresh}>
+          <button type="button" className="service-picker__refresh" onClick={refresh}>
             <RotateCw size={14} aria-hidden="true" /> I've made one, refresh
           </button>
         </div>
       ) : (
         <>
           {services.length >= SEARCH_FROM && (
-            <label className="picker__search">
+            <label className="service-picker__search">
               <Search size={18} aria-hidden="true" />
               <input
                 type="search"
@@ -98,20 +98,20 @@ export default function ServicePicker({ selectedId = null, onUse, onBack }) {
             </label>
           )}
 
-          <div className="picker__tools">
-            <span className="picker__tools-text">Don't see it?</span>
-            <a className="picker__create" href={CREATE_SERVICE_URL} target="_blank" rel="noopener">
+          <div className="service-picker__tools">
+            <span className="service-picker__tools-text">Don't see it?</span>
+            <a className="service-picker__create" href={CREATE_SERVICE_URL} target="_blank" rel="noopener">
               Create a new service <ExternalLink size={14} aria-hidden="true" />
             </a>
-            <button type="button" className="picker__refresh" onClick={refresh}>
+            <button type="button" className="service-picker__refresh" onClick={refresh}>
               <RotateCw size={14} aria-hidden="true" /> Refresh
             </button>
           </div>
 
           {shown.length === 0 ? (
-            <p className="picker__empty">No services match "{query.trim()}".</p>
+            <p className="service-picker__empty">No services match "{query.trim()}".</p>
           ) : (
-            <div className="picker__list" ref={listRef} role="radiogroup" aria-label="Your services">
+            <div className="service-picker__list" ref={listRef} role="radiogroup" aria-label="Your services">
               {shown.map((s) => {
                 const isPicked = s.id === picked;
                 const isNew = newIds.includes(s.id);
@@ -119,28 +119,28 @@ export default function ServicePicker({ selectedId = null, onUse, onBack }) {
                 return (
                   <label
                     key={s.id}
-                    className={`picker__row ${isPicked ? 'picker__row--picked' : ''} ${isNew ? 'picker__row--new' : ''}`}
+                    className={`service-picker__row ${isPicked ? 'service-picker__row--picked' : ''} ${isNew ? 'service-picker__row--new' : ''}`}
                   >
                     <input
                       type="radio"
                       name="service"
-                      className="picker__radio"
+                      className="service-picker__radio"
                       value={s.id}
                       checked={isPicked}
                       onChange={() => setPicked(s.id)}
                     />
-                    <span className="picker__mark" aria-hidden="true">
+                    <span className="service-picker__mark" aria-hidden="true">
                       {isPicked && <Check size={14} strokeWidth={3} />}
                     </span>
-                    <span className="picker__name">
+                    <span className="service-picker__name">
                       {s.title}
-                      {isNew && <span className="picker__new">New</span>}
+                      {isNew && <span className="service-picker__new">New</span>}
                     </span>
-                    <span className={`picker__price ${price === 'Free' ? 'picker__price--free' : ''}`}>
+                    <span className={`service-picker__price ${price === 'Free' ? 'service-picker__price--free' : ''}`}>
                       {price}
                     </span>
                   </label>
-                );
+                ); 
               })}
             </div>
           )}
@@ -148,16 +148,16 @@ export default function ServicePicker({ selectedId = null, onUse, onBack }) {
       )}
 
       {hasServices && (
-        <div className="picker__actions">
+        <div className="service-picker__actions">
           <button type="button" className="flow__next" onClick={use} aria-disabled={!picked}>
             Use this service
           </button>
-          {!picked && <span className="picker__hint">Pick a service first</span>}
+          {!picked && <span className="service-picker__hint">Pick a service first</span>}
         </div>
       )}
 
       {/* Tells screen readers when a new service has been added and picked */}
-      <p className="picker__sr" aria-live="polite">
+      <p className="service-picker__sr" aria-live="polite">
         {newIds.length > 0 ? 'Your new service has been added and selected.' : ''}
       </p>
     </div>
