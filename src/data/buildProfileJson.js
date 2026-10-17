@@ -36,6 +36,7 @@ function price(service) {
   const compare = count(service.comparePrice);
   return {
     isFree: amount === 0,
+    amount, // rupees, for checkout's sums
     label: amount === 0 ? 'Free' : rupees(amount),
     compare: amount > 0 && compare > amount ? rupees(compare) : null,
   };
