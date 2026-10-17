@@ -1,0 +1,135 @@
+.tm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tm-head .pf__section-title {
+  margin-bottom: 0;
+}
+
+.tm-arrows {
+  display: none;
+  gap: 8px;
+}
+
+.tm-arrow {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--pf-line);
+  border-radius: 50%;
+  background: var(--pf-surface);
+  color: var(--pf-text);
+}
+
+.tm-arrow:hover:not(:disabled) {
+  border-color: var(--pf-accent);
+}
+
+.tm-arrow:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+.tm-arrow:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+/* Phones swipe; the row bleeds to the screen edge so it reads as scrollable */
+.tm-track {
+  display: flex;
+  gap: 12px;
+  margin: 0 calc(var(--pf-gutter) * -1);
+  padding: 2px var(--pf-gutter) 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--pf-gutter);
+  scrollbar-width: none;
+  list-style: none;
+}
+
+.tm-track::-webkit-scrollbar {
+  display: none;
+}
+
+.tm {
+  flex: 0 0 min(300px, 82%);
+  scroll-snap-align: start;
+}
+
+.tm__inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  height: 100%;
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--pf-panel);
+}
+
+.tm__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.tm__by {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tm__avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--pf-surface);
+  color: var(--pf-accent-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tm__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tm__name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tm__detail {
+  font-size: 12.5px;
+  color: var(--pf-muted);
+}
+
+@media (min-width: 960px) {
+  .tm-arrows {
+    display: flex;
+  }
+
+  /* On desktop the row stays inside the column */
+  .tm-track {
+    margin: 0;
+    padding: 2px 0 8px;
+    scroll-padding-inline: 0;
+  }
+
+  .tm {
+    flex-basis: 300px;
+  }
+}

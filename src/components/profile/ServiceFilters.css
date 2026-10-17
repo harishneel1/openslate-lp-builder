@@ -1,0 +1,66 @@
+/* Stays at the top while scrolling the cards, on the page's own background
+   so cards slide under it cleanly. Scrolls sideways if it doesn't fit. */
+.sf {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  gap: 8px;
+  margin: 0 calc(var(--pf-gutter) * -1) 16px;
+  padding: 12px var(--pf-gutter);
+  overflow-x: auto;
+  background: var(--pf-page);
+  scrollbar-width: none;
+}
+
+.sf::-webkit-scrollbar {
+  display: none;
+}
+
+.sf__btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-pill);
+  background: var(--pf-surface);
+  color: var(--pf-text);
+  font-size: 14px;
+  font-weight: 500;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sf__btn:hover {
+  border-color: var(--pf-accent);
+}
+
+.sf__btn:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+.sf__btn[aria-pressed='true'] {
+  border-color: var(--pf-accent);
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-weight: 600;
+}
+
+.sf__count {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pf-muted);
+}
+
+.sf__btn[aria-pressed='true'] .sf__count {
+  color: inherit;
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf__btn {
+    transition: none;
+  }
+}
