@@ -29,6 +29,7 @@ const creator = {
 //   price / comparePrice: rupees. price 0 = free; comparePrice is the crossed-out price, or null
 //   calls only: durationMins, format ('video' | 'phone')
 //   DMs only:   replyWithinDays
+//   about:   paragraphs for the service's own page (optional; falls back to description)
 //   status: 'active' | 'inactive' (inactive ones aren't shown)
 //   order: position on the page, set by the creator
 const services = [
@@ -38,6 +39,10 @@ const services = [
     title: 'Discovery call',
     description:
       "Not sure where to start? We'll talk about what's going on and whether working together makes sense.",
+    about: [
+      "A short, no-pressure call to get to know each other. Tell me what's been going on, and I'll ask a few questions to understand it better.",
+      "By the end, you'll know whether coaching with me is a good fit, and which kind of session would help most. If it isn't the right fit, I'll say so and suggest where to look instead.",
+    ],
     durationMins: 15,
     format: 'video',
     price: 0,
@@ -53,6 +58,10 @@ const services = [
     kind: 'call',
     title: '1:1 coaching session',
     description: "A focused hour on one thing that's weighing on you, with clear next steps to take away.",
+    about: [
+      "Bring one thing that's been weighing on you: a decision you keep putting off, a pattern at work or at home, or a feeling you can't shake. We'll spend the hour on that alone.",
+      "We'll get to what's really underneath it, then agree on one or two small things for you to try in the week after. You'll get a short written summary by email afterwards.",
+    ],
     durationMins: 60,
     format: 'video',
     price: 2500,
@@ -68,6 +77,10 @@ const services = [
     kind: 'call',
     title: 'Inner child healing session',
     description: 'A gentle, guided session to understand old patterns and begin letting them go.',
+    about: [
+      'Many of the ways we react as adults were learned early on. In this session I guide you, gently and at your pace, to notice where a pattern began and what it was protecting you from.',
+      "It's calm and conversational, and you stay in control throughout. Many people find it best after a regular coaching session, but it isn't required.",
+    ],
     durationMins: 75,
     format: 'video',
     price: 3500,

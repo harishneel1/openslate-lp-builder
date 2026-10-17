@@ -1,31 +1,13 @@
 /* ------------------------------------------------------------
-   Public profile page. Colours come from the product's tokens
-   (styles/tokens.css) through the --pf-* names below, so the
-   page follows the product if the brand colours change.
+   Public profile page. Colours: styles/storeTheme.css.
    ------------------------------------------------------------ */
 .pf {
-  --pf-page: var(--color-bg);
-  --pf-panel: var(--color-primary-tint);        /* warm creator panel */
-  --pf-panel-line: #f4dcc5;                     /* edge of the warm panel */
-  --pf-surface: var(--color-surface);
-  --pf-line: var(--color-border);
-  --pf-text: var(--color-text);
-  --pf-muted: var(--color-text-muted);
-  --pf-accent: var(--color-primary);            /* buttons and fills */
-  --pf-accent-hover: var(--color-primary-hover);
-  /* The brand orange is too light for text (about 2.6:1 on white).
-     Use this darker one for orange text and links: about 5.9:1 on the panel. */
-  --pf-accent-ink: #9a4a0f;
-  --pf-accent-on: #2a1606;                      /* text on an orange fill */
-
   --pf-gutter: 20px;
   --pf-gap: 48px;                                /* between sections */
 
   display: grid;
   grid-template-columns: 1fr;
   min-height: 100vh;
-  background: var(--pf-page);
-  color: var(--pf-text);
 }
 
 /* ---------- Creator panel: on top on phones, a sticky column on desktop ---------- */
@@ -44,14 +26,6 @@
   max-width: 880px;
   margin: 0 auto;
   padding: 32px var(--pf-gutter) 64px;
-}
-
-.pf__section-title {
-  margin-bottom: 16px;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
 }
 
 @media (min-width: 960px) {
@@ -99,14 +73,4 @@
   border-radius: 16px;
   background: var(--pf-surface);
   color: var(--pf-muted);
-}
-
-/* For screen readers only */
-.pf .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }

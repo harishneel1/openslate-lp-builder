@@ -4,8 +4,9 @@ import './Testimonials.css';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-// A row of reviews that scrolls sideways, with arrows on wider screens
-export default function Testimonials({ items, titleId }) {
+// A row of reviews that scrolls sideways, with arrows on wider screens.
+// showService: name the call each review is for (off when they're all for one call)
+export default function Testimonials({ items, titleId, showService = true }) {
   const track = useRef(null);
   const [edges, setEdges] = useState({ start: true, end: true });
 
@@ -62,7 +63,7 @@ export default function Testimonials({ items, titleId }) {
                 </span>
                 <span className="tm__who">
                   <span className="tm__name">{t.name}</span>
-                  <span className="tm__detail">{t.service ? `${t.service}, ${t.date}` : t.date}</span>
+                  <span className="tm__detail">{showService && t.service ? `${t.service}, ${t.date}` : t.date}</span>
                 </span>
               </figcaption>
             </figure>

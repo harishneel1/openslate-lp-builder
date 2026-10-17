@@ -1,0 +1,200 @@
+/* ------------------------------------------------------------
+   Left side of the booking page. Colours: styles/storeTheme.css.
+   Order: rating, title, coach, length/format, description,
+   reviews. Kept calm: short lines, few boxes.
+   ------------------------------------------------------------ */
+.cd {
+  min-width: 0;
+  max-width: 600px;
+}
+
+/* Only when the creator added a picture for the call */
+.cd__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 28px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  background: var(--pf-panel);
+}
+
+/* ---------- Rating, then title ---------- */
+.cd__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--pf-muted);
+}
+
+.cd__rating svg {
+  color: var(--pf-accent);
+  fill: var(--pf-accent);
+}
+
+.cd__rating-value {
+  font-weight: 600;
+  color: var(--pf-text);
+}
+
+.cd__title {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Coach card: the whole card links to the profile ---------- */
+.cd__coach {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-lg);
+  background: var(--pf-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.cd__coach:hover {
+  border-color: var(--pf-accent);
+}
+
+.cd__coach:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 3px;
+}
+
+.cd__coach-photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.cd__coach-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cd__coach-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cd__coach-name {
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cd__coach-role {
+  font-size: 14px;
+  color: var(--pf-muted);
+}
+
+.cd__coach-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--pf-muted);
+}
+
+.cd__coach-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cd__coach-stat svg {
+  color: var(--pf-accent);
+  fill: var(--pf-accent);
+}
+
+.cd__coach-go {
+  flex: none;
+  color: var(--pf-muted);
+}
+
+/* ---------- Length and format: one row, divided, no boxes ---------- */
+.cd__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 20px;
+  font-size: 15px;
+}
+
+.cd__fact {
+  display: flex;
+  align-items: center;
+  padding: 2px 18px;
+  border-left: 1px solid var(--pf-line);
+}
+
+.cd__fact:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+.cd__fact dd {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--pf-body);
+}
+
+.cd__fact svg {
+  color: var(--pf-muted);
+}
+
+
+/* ---------- Description: short lines, softer than the title ---------- */
+.cd__about {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 58ch;
+  margin-top: 28px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--pf-body);
+}
+
+/* ---------- Reviews ---------- */
+.cd__reviews {
+  margin-top: 48px;
+}
+
+@media (min-width: 960px) {
+  .cd__title {
+    font-size: 32px;
+  }
+
+  .cd__reviews {
+    margin-top: 56px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd__coach {
+    transition: none;
+  }
+}

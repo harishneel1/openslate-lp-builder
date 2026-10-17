@@ -1,0 +1,46 @@
+/* One line: "Times in [India (Kolkata), GMT+5:30 ▾]". Colours: styles/storeTheme.css */
+.tz {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--pf-muted);
+}
+
+.tz svg {
+  flex: none;
+}
+
+.tz__label {
+  flex: none;
+}
+
+/* Looks like a link with a chevron; still the browser's own dropdown underneath */
+.tz__select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 20px 2px 4px;
+  overflow: hidden;
+  border: none;
+  border-radius: 6px;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239a4a0f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat right 3px center;
+  color: var(--pf-accent-ink);
+  font: inherit;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  appearance: none;
+  cursor: pointer;
+}
+
+.tz__select:hover {
+  background-color: var(--pf-panel);
+}
+
+.tz__select:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 1px;
+}

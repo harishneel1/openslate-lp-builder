@@ -5,6 +5,7 @@ import CreatorPanel from '../components/profile/CreatorPanel';
 import ServiceCard from '../components/profile/ServiceCard';
 import ServiceFilters from '../components/profile/ServiceFilters';
 import Testimonials from '../components/profile/Testimonials';
+import '../styles/storeTheme.css';
 import './ProfilePage.css';
 
 // ------------------------------------------------------------
@@ -30,7 +31,7 @@ export default function ProfilePage({ state }) {
   }, [creator.name]);
 
   return (
-    <div className="pf">
+    <div className="pf store-theme">
       <aside className="pf__creator" aria-label={`About ${creator.name}`}>
         <CreatorPanel creator={creator} />
       </aside>

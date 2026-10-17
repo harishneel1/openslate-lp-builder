@@ -1,0 +1,254 @@
+/* ------------------------------------------------------------
+   A call's booking page. Colours: styles/storeTheme.css.
+   Phones: details, then the picker, with a bar pinned to the
+   bottom. Desktop: details on the left, the picker on the
+   right, staying in view while the details scroll.
+   ------------------------------------------------------------ */
+.bk {
+  --bk-gutter: 20px;
+  --pf-gutter: var(--bk-gutter);               /* the reviews row uses this name */
+  --bk-bar: 76px;                               /* height of the phone bar */
+
+  min-height: 100vh;
+  padding-bottom: calc(var(--bk-bar) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---------- Back to the profile ---------- */
+.bk__top {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px var(--bk-gutter) 0;
+}
+
+.bk__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 6px;
+  border-radius: var(--radius-pill);
+  color: var(--pf-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.bk__back:hover {
+  background: var(--pf-panel);
+}
+
+.bk__back:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+
+/* ---------- Details and picker ---------- */
+.bk__layout {
+  display: grid;
+  gap: 32px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px var(--bk-gutter) 48px;
+}
+
+.bk__picker {
+  scroll-margin-top: 16px;                     /* where the bar's link lands */
+}
+
+.bk__picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 22px 20px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-lg);
+  background: var(--pf-surface);
+}
+
+/* ---------- The chosen time and Continue (bottom of the picker card) ---------- */
+.bk__go {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--pf-line);
+}
+
+.bk__go-when {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.bk__go-label {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--pf-muted);
+}
+
+.bk__go-when--empty {
+  font-weight: 400;
+  color: var(--pf-muted);
+}
+
+.bk__go-btn {
+  flex: none;
+  padding: 12px 28px;
+  border-radius: var(--radius-pill);
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bk__go-btn:hover:not(:disabled) {
+  background: var(--pf-accent-hover);
+}
+
+.bk__go-btn:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+.bk__go-btn:disabled {
+  background: var(--pf-line);
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+/* ---------- Phone bar ---------- */
+.bk__bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: var(--bk-bar);
+  padding: 12px var(--bk-gutter) calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--pf-line);
+  background: var(--pf-surface);
+}
+
+.bk__bar-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bk__bar-detail {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--pf-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bk__bar-cta {
+  flex: none;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bk__bar-cta:hover {
+  background: var(--pf-accent-hover);
+}
+
+.bk__bar-cta:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+/* ---------- A call that doesn't exist ---------- */
+.bk__missing {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 80px var(--bk-gutter);
+  text-align: center;
+}
+
+.bk__missing-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.bk__missing-text {
+  margin-top: 8px;
+  color: var(--pf-muted);
+}
+
+.bk__missing-link {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* The missing page has no bar */
+.bk:has(.bk__missing) {
+  padding-bottom: 0;
+}
+
+@media (min-width: 960px) {
+  .bk {
+    --bk-gutter: 40px;
+    padding-bottom: 0;
+  }
+
+  .bk__top {
+    padding-top: 24px;
+  }
+
+  .bk__layout {
+    grid-template-columns: minmax(0, 600px) 400px;
+    justify-content: space-between;               /* the details keep short lines; the space goes between */
+    gap: 56px;
+    align-items: start;
+    padding-top: 24px;
+    padding-bottom: 80px;
+  }
+
+  .bk__picker {
+    position: sticky;
+    top: 24px;
+  }
+
+  /* Never taller than the screen, so the time zone and Continue are always
+     visible; the list of times scrolls inside instead (SlotPicker.css) */
+  .bk__picker-card {
+    max-height: calc(100vh - 48px);
+  }
+
+  .bk__go {
+    flex: none;
+  }
+
+  .bk__bar {
+    display: none;
+  }
+}

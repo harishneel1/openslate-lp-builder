@@ -49,6 +49,10 @@ function buildService(s) {
     kind: kind.id,
     title: text(s.title),
     description: text(s.description),
+    // Longer text for the service's own page (optional)
+    about: (Array.isArray(s.about) ? s.about.map(text).filter(Boolean) : []).length
+      ? s.about.map(text).filter(Boolean)
+      : [text(s.description)].filter(Boolean),
     facts: kind.facts(s),
     cta: kind.cta,
     price: price(s),
@@ -101,6 +105,7 @@ export function buildProfileJson({ creator, services, testimonials }) {
       initials: initials(t.name),     // '' when anonymous: show an icon instead
       text: text(t.text),
       date: formatDate(t.date),
+      serviceId: t.serviceId,
       service: titles[t.serviceId] ?? null, // null if that service is no longer offered
       pinned: t.pinned === true,
     }));
