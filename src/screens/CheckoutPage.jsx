@@ -16,6 +16,7 @@ import './CheckoutPage.css';
 // ?mock=checkout&service=<id>&time=<UTC instant>&tz=<zone>
 //   &taken=1   the time was taken before they got here
 //   &hold=20   hold for 20 seconds instead of 10 minutes, to see it run out
+//   &fail=1    the first payment attempt fails, to see the try-again state
 // Paying goes to ?mock=booked (the confirmation page).
 // ------------------------------------------------------------
 
@@ -23,7 +24,7 @@ const ICONS = { clock: Clock, phone: Phone, video: Video };
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Each check returns the message to show, or null if the field is fine
-function check(form, coach) {
+function check(form) {
   const digits = form.phone.replace(/\D/g, '');
   return {
     name: form.name.trim() ? null : 'Enter your name',
@@ -33,15 +34,21 @@ function check(form, coach) {
         ? null
         : 'Enter an email address like name@example.com',
     phone: !digits ? 'Enter your phone number' : digits.length < 6 || digits.length > 15 ? 'Enter a valid phone number' : null,
-    topic: form.topic.trim() ? null : `Tell ${coach} a little about what you'd like to talk about`,
   };
 }
 
-function Field({ id, label, hint, error, children }) {
+// required: a red asterisk after the label; optional: "(optional)" after it
+function Field({ id, label, hint, error, required, optional, children }) {
   return (
     <div className={error ? 'co-field co-field--error' : 'co-field'}>
       <label className="co-field__label" htmlFor={id}>
         {label}
+        {required && (
+          <span className="co-field__req" aria-hidden="true">
+            {' '}*
+          </span>
+        )}
+        {optional && <span className="co-field__opt"> (optional)</span>}
       </label>
       {hint && (
         <p className="co-field__hint" id={`${id}-hint`}>
@@ -59,7 +66,8 @@ function Field({ id, label, hint, error, children }) {
 }
 
 // aria props that tie an input to its hint and error
-const describe = (id, hasHint, error) => ({
+const describe = (id, hasHint, error, required = true) => ({
+  'aria-required': required || undefined,
   'aria-invalid': error ? true : undefined,
   'aria-describedby': [hasHint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined,
 });
@@ -74,7 +82,7 @@ function duration(seconds) {
 // 583 → '9:43'
 const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold }) {
+export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold, fail }) {
   const zone = matchZone(timeZone) ?? matchZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ?? 'Asia/Kolkata';
   const page = useMemo(
     () => buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone, taken: taken === '1' }),
@@ -85,6 +93,8 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
   const [form, setForm] = useState({ name: '', email: '', code: '+91', phone: '', topic: '' });
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  const [payFailed, setPayFailed] = useState(false); // the last payment attempt didn't go through
+  const failedOnce = useRef(false); // &fail=1 fails only the first attempt
   const [couponOpen, setCouponOpen] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [coupon, setCoupon] = useState(null); // { code, percent } once applied
@@ -196,7 +206,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
   const submit = (e) => {
     e.preventDefault();
     if (busy) return;
-    const found = check(form, creator.firstName);
+    const found = check(form);
     setErrors(found);
     const first = Object.keys(found).find((k) => found[k]);
     if (first) {
@@ -204,12 +214,42 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
       return;
     }
     setBusy(true);
-    const next =
-      `?mock=booked&service=${encodeURIComponent(service.id)}&time=${encodeURIComponent(slot.start)}` +
-      `&tz=${encodeURIComponent(zone)}&name=${encodeURIComponent(form.name.trim())}` +
-      `&email=${encodeURIComponent(form.email.trim())}${stateParam}`;
+    setPayFailed(false);
+
+    // What the confirmation page needs (the real product would load the booking by its id instead)
+    const params = new URLSearchParams({
+      mock: 'booked',
+      service: service.id,
+      time: slot.start,
+      tz: zone,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: `${form.code} ${form.phone.trim()}`,
+    });
+    if (!price.isFree) {
+      params.set('paid', String(sums.total));
+      params.set('pid', `pay_${Math.random().toString(36).slice(2, 16)}`);
+    }
+    if (gst) {
+      params.set('gstin', gst.gstin);
+      params.set('gstname', gst.business);
+    }
+    if (state) params.set('state', state);
+
     // Pretend payment (or the booking, when free) takes a moment
-    timer.current = setTimeout(() => window.location.assign(next), price.isFree ? 700 : 1500);
+    const failNow = fail === '1' && !price.isFree && !failedOnce.current;
+    timer.current = setTimeout(
+      () => {
+        if (failNow) {
+          failedOnce.current = true;
+          setBusy(false);
+          setPayFailed(true); // the hold timer carries on from where it paused
+          return;
+        }
+        window.location.assign(`?${params}`);
+      },
+      price.isFree ? 700 : 1500,
+    );
   };
 
   const ordered = [...service.facts].sort((a, b) => Number(b.icon === 'clock') - Number(a.icon === 'clock'));
@@ -282,15 +322,15 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
           <div className="co__box">
             <h2 id="co-details" className="co__box-title">Your details</h2>
 
-            <Field id="co-name" label="Name" error={errors.name}>
+            <Field id="co-name" label="Name" required error={errors.name}>
               <input id="co-name" className="co-input" type="text" autoComplete="name" value={form.name} onChange={set('name')} {...describe('co-name', false, errors.name)} />
             </Field>
 
-            <Field id="co-email" label="Email" hint="We'll send the joining link here." error={errors.email}>
+            <Field id="co-email" label="Email" required hint="We'll send the joining link here." error={errors.email}>
               <input id="co-email" className="co-input" type="email" autoComplete="email" inputMode="email" value={form.email} onChange={set('email')} {...describe('co-email', true, errors.email)} />
             </Field>
 
-            <Field id="co-phone" label="Phone number" error={errors.phone}>
+            <Field id="co-phone" label="Phone number" required error={errors.phone}>
               <div className="co-phone">
                 <select className="co-input co-select co-phone__code" aria-label="Country code" value={form.code} onChange={set('code')}>
                   {COUNTRY_CODES.map((c) => (
@@ -307,10 +347,10 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
             <Field
               id="co-topic"
               label="What would you like to talk about?"
+              optional
               hint={`A line or two helps ${creator.firstName} prepare.`}
-              error={errors.topic}
             >
-              <textarea id="co-topic" className="co-input co-input--area" rows={3} value={form.topic} onChange={set('topic')} {...describe('co-topic', true, errors.topic)} />
+              <textarea id="co-topic" className="co-input co-input--area" rows={3} value={form.topic} onChange={set('topic')} {...describe('co-topic', true, null, false)} />
             </Field>
           </div>
 
@@ -389,7 +429,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
                   {gstOpen && (
                     <div id="co-gst" className="co__gst">
                       <p className="co-field__hint">For a tax invoice in your business's name.</p>
-                      <Field id="co-gstin" label="GSTIN" error={gstErrors.gstin}>
+                      <Field id="co-gstin" label="GSTIN" required error={gstErrors.gstin}>
                         <input
                           id="co-gstin"
                           className="co-input co-input--caps"
@@ -401,7 +441,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
                           {...describe('co-gstin', false, gstErrors.gstin)}
                         />
                       </Field>
-                      <Field id="co-business" label="Registration name" error={gstErrors.business}>
+                      <Field id="co-business" label="Registration name" required error={gstErrors.business}>
                         <input
                           id="co-business"
                           className="co-input"
@@ -412,7 +452,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
                           {...describe('co-business', false, gstErrors.business)}
                         />
                       </Field>
-                      <Field id="co-address" label="Registration address" error={gstErrors.address}>
+                      <Field id="co-address" label="Registration address" required error={gstErrors.address}>
                         <textarea
                           id="co-address"
                           className="co-input co-input--area co-input--short"
@@ -423,7 +463,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
                           {...describe('co-address', false, gstErrors.address)}
                         />
                       </Field>
-                      <Field id="co-gst-state" label="State" error={gstErrors.state}>
+                      <Field id="co-gst-state" label="State" required error={gstErrors.state}>
                         <select
                           id="co-gst-state"
                           className="co-input co-select"
@@ -480,6 +520,16 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
                 <dd>{price.isFree ? 'Free' : money(sums.total)}</dd>
               </div>
             </dl>
+
+            {payFailed && (
+              <div className="co__failed" role="alert">
+                <p className="co__failed-title">Your payment didn't go through</p>
+                <p className="co__failed-text">
+                  You haven't been charged, and your details are still here. We're holding your time for another{' '}
+                  <strong>{clock(left)}</strong>, so you can try again or use a different way to pay.
+                </p>
+              </div>
+            )}
 
             <button type="submit" className="co__pay-btn" disabled={busy}>
               {busy ? (price.isFree ? 'Booking…' : 'Processing payment…') : payLabel}

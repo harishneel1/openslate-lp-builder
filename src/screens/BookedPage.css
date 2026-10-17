@@ -1,0 +1,277 @@
+/* ------------------------------------------------------------
+   Confirmation page. Colours: styles/storeTheme.css.
+   One centred column, read top to bottom like a receipt.
+   ------------------------------------------------------------ */
+.bd {
+  --bd-gutter: 20px;
+  min-height: 100vh;
+}
+
+.bd__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px var(--bd-gutter) 64px;
+}
+
+.bd__wrap--center {
+  align-items: center;
+  max-width: 480px;
+  padding-top: 96px;
+  text-align: center;
+}
+
+/* ---------- You're booked ---------- */
+.bd__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.bd__tick {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: var(--color-success-tint);
+  color: var(--color-success);
+}
+
+.bd__title {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.bd__lead {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--pf-body);
+}
+
+.bd__lead strong {
+  color: var(--pf-text);
+  font-weight: 600;
+}
+
+/* ---------- The session: the warm block ---------- */
+.bd__session {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--pf-panel);
+}
+
+.bd__cal {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  width: 60px;
+  height: fit-content;
+  border: 1px solid var(--pf-panel-line);
+  border-radius: 10px;
+  background: var(--pf-surface);
+}
+
+.bd__cal-month {
+  width: 100%;
+  padding: 3px 0;
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.bd__cal-day {
+  padding: 4px 0 6px;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.bd__session-text {
+  min-width: 0;
+}
+
+.bd__session-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.bd__session-with {
+  font-size: 14px;
+  color: var(--pf-body);
+}
+
+.bd__session-when {
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bd__session-zone {
+  font-size: 13px;
+  color: var(--pf-body);
+}
+
+.bd__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin-top: 8px;
+  list-style: none;
+  font-size: 13px;
+  color: var(--pf-body);
+}
+
+.bd__facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ---------- How to join ---------- */
+.bd__box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-lg);
+  background: var(--pf-surface);
+}
+
+.bd__box-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bd__link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-md);
+  background: var(--pf-page);
+}
+
+.bd__link {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pf-accent-ink);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd__copy {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-pill);
+  background: var(--pf-surface);
+  color: var(--pf-text);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.bd__copy:hover {
+  border-color: var(--pf-accent);
+}
+
+.bd__phone {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pf-body);
+}
+
+.bd__phone svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--pf-accent-ink);
+}
+
+.bd__phone strong {
+  color: var(--pf-text);
+}
+
+.bd__note {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--pf-muted);
+}
+
+.bd__calendar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.bd__cal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ---------- The not-found page ---------- */
+.bd__btn {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Every control: one visible focus style */
+.bd a:focus-visible,
+.bd button:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+  .bd {
+    --bd-gutter: 28px;
+  }
+
+  .bd__wrap {
+    padding-top: 64px;
+  }
+
+  .bd__title {
+    font-size: 30px;
+  }
+}

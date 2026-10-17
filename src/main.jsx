@@ -7,6 +7,7 @@ import MockCreateService from './screens/MockCreateService.jsx'
 import ProfilePage from './screens/ProfilePage.jsx'
 import BookingPage from './screens/BookingPage.jsx'
 import CheckoutPage from './screens/CheckoutPage.jsx'
+import BookedPage from './screens/BookedPage.jsx'
 
 // ?preview=<funnelId> → full-screen preview of that funnel's landing page (new tab).
 // Add &page=thank-you for its thank you page.
@@ -15,7 +16,9 @@ import CheckoutPage from './screens/CheckoutPage.jsx'
 // ?mock=book&service=<id> → a call's booking page. Optional: &state= (as above),
 //   &slots=busy or none (mockAvailability.js), &tz=Europe/London (try another time zone).
 // ?mock=checkout&service=<id>&time=<UTC instant>&tz=<zone> → checkout (from Continue).
-//   Add &taken=1 to see the time having just been taken, or &hold=20 to see a 20-second hold run out.
+//   Add &taken=1 to see the time having just been taken, &hold=20 to see a 20-second hold run out,
+//   or &fail=1 to see the first payment fail.
+// ?mock=booked → the confirmation page (checkout's Pay goes here with the booking's details).
 // Anything else → the Page Builder.
 const params = new URLSearchParams(window.location.search)
 const previewId = params.get('preview')
@@ -44,6 +47,19 @@ function Root() {
         timeZone={params.get('tz')}
         taken={params.get('taken')}
         hold={params.get('hold')}
+        fail={params.get('fail')}
+      />
+    )
+  if (mock === 'booked')
+    return (
+      <BookedPage
+        serviceId={params.get('service')}
+        time={params.get('time')}
+        timeZone={params.get('tz')}
+        state={params.get('state')}
+        name={params.get('name')}
+        email={params.get('email')}
+        phone={params.get('phone')}
       />
     )
   if (previewId !== null) return <PreviewPage funnelId={previewId} page={previewPage} />
