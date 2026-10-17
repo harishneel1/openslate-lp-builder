@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import {
   Layers, Compass, Video, BookOpen, MessageCircle,
   Grid3x3, Bell, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
-  ArrowLeftRight, Monitor, User, TrendingUp, SlidersHorizontal,
+  ArrowLeftRight, Filter, User, TrendingUp, SlidersHorizontal,
+  Copy, ExternalLink,
 } from 'lucide-react';
+import { getMockProfile } from '../data/mockProfile';
+import { initials } from '../utils/initials';
 import './AppLayout.css';
 
 const topNavItems = [
@@ -21,7 +25,8 @@ const sidebarItems = [
   { id: 'services', label: 'Services', icon: Briefcase },
   { id: 'products', label: 'Products', icon: ShoppingCart, hasMenu: true },
   { id: 'sales', label: 'Sales', icon: ArrowLeftRight, hasMenu: true },
-  { id: 'page-builder', label: 'Page Builder', icon: Monitor },
+  // id stays 'page-builder': saved progress (storage.js) restores activeNav by it
+  { id: 'page-builder', label: 'Funnels', icon: Filter },
   { id: 'customers', label: 'Customers', icon: User, hasMenu: true },
   { id: 'marketing', label: 'Marketing', icon: TrendingUp, hasMenu: true },
   { id: 'automation', label: 'Automation', icon: SlidersHorizontal, hasMenu: true },
@@ -50,6 +55,51 @@ function FocusBar({ title, onExit, saveFailed }) {
         </p>
       )}
     </header>
+  );
+}
+
+// The creator's one public page. Pinned above the nav because it's the thing
+// they share everywhere: collapsed it's just their avatar, expanded it shows
+// the link and quick actions.
+const PAGE_DOMAIN = 'yourdomain.com'; // TODO: real domain
+
+function MyPageCard({ active, onOpen }) {
+  const { creator } = getMockProfile();
+  const link = `${PAGE_DOMAIN}/${creator.handle}`;
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(`https://${link}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked: nothing to do, the link is visible on the card
+    }
+  }
+
+  return (
+    <div className={`mypage ${active ? 'mypage--active' : ''}`}>
+      <button type="button" className="mypage__main" onClick={onOpen} title="My Page">
+        <span className="mypage__avatar">
+          {creator.photo ? <img src={creator.photo} alt="" /> : initials(creator.name)}
+        </span>
+        <span className="mypage__text">
+          <span className="mypage__label">My Page</span>
+          <span className="mypage__link">{link}</span>
+        </span>
+      </button>
+
+      <div className="mypage__actions">
+        <button type="button" className="mypage__action" onClick={copyLink}>
+          {copied ? <Check size={14} /> : <Copy size={14} />}
+          {copied ? 'Copied' : 'Copy link'}
+        </button>
+        <a className="mypage__action" href="?mock=profile" target="_blank" rel="noreferrer">
+          <ExternalLink size={14} /> View
+        </a>
+      </div>
+    </div>
   );
 }
 
@@ -98,6 +148,8 @@ export default function AppLayout({ activeNav, onNavigate, focus = null, childre
               <Search size={16} />
               <input placeholder="Search..." />
             </div>
+
+            <MyPageCard active={activeNav === 'my-page'} onOpen={() => onNavigate('my-page')} />
 
             <nav className="sidebar__nav">
               {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => (

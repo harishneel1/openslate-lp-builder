@@ -510,7 +510,7 @@ function App() {
         renderPageBuilder()
       ) : (
         <p style={{ color: 'var(--color-text-muted)' }}>
-          Dummy page. Click <strong>Page Builder</strong> in the sidebar.
+          Dummy page. Click <strong>Funnels</strong> in the sidebar.
         </p>
       )}
 

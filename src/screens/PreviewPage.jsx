@@ -18,7 +18,7 @@ const MODES = [
   { id: 'desktop', label: 'Desktop', icon: Monitor },
 ];
 
-// The Page Builder's own address (this one without ?preview=…)
+// The Funnels page's own address (this one without ?preview=…)
 const builderUrl = () => window.location.pathname;
 
 // One funnel from the save → what the preview needs. null if it's missing or unreadable.
@@ -43,8 +43,8 @@ function readFunnel(id) {
   };
 }
 
-// Tabs opened from the Page Builder can close themselves. If this one can't
-// (the address was typed or bookmarked), go to the Page Builder instead.
+// Tabs opened from Funnels can close themselves. If this one can't
+// (the address was typed or bookmarked), go to Funnels instead.
 function closePreview() {
   window.close();
   setTimeout(() => window.location.assign(builderUrl()), 150);
@@ -58,7 +58,7 @@ function Message({ title, text }) {
         <h1 className="preview__message-title">{title}</h1>
         <p className="preview__message-text">{text}</p>
         <a className="preview__home" href={builderUrl()}>
-          Go to Page Builder <ArrowRight size={18} />
+          Go to Funnels <ArrowRight size={18} />
         </a>
       </div>
     </div>
@@ -81,7 +81,7 @@ export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
     return (
       <Message
         title="This funnel isn't here anymore"
-        text="It may have been deleted. Your other funnels are in the Page Builder."
+        text="It may have been deleted. You'll find your other funnels under Funnels."
       />
     );
   }
@@ -92,8 +92,8 @@ export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
         title={isThankYou ? "This thank you page isn't finished yet" : "This landing page isn't finished yet"}
         text={
           isThankYou
-            ? 'Finish it in the Page Builder, then you can preview it here.'
-            : 'Pick a design for it in the Page Builder, then you can preview it here.'
+            ? 'Finish it in Funnels, then you can preview it here.'
+            : 'Pick a design for it in Funnels, then you can preview it here.'
         }
       />
     );
