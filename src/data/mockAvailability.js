@@ -1,4 +1,5 @@
 import { addDays, toInstant, todayIn, weekdayOf } from '../utils/slots';
+import { loadSchedule } from './availabilityStore';
 
 // ------------------------------------------------------------
 // Mock availability for the booking page. One calendar per
@@ -7,73 +8,65 @@ import { addDays, toInstant, todayIn, weekdayOf } from '../utils/slots';
 // mock never goes stale.
 //
 // Add &slots=<id> to the booking page URL for other situations:
-//   default  bookings on the next two working days, then a day off
+//   default  the creator's saved schedule (Availability screen), with a few
+//            bookings on their next working days. Until they save one: the
+//            starting schedule, plus a mock day off.
 //   busy     fully booked for the next week
 //   none     no hours set at all
 // ------------------------------------------------------------
 
-const ZONE = 'Asia/Kolkata';
-
-const weekdayHours = [['10:00', '13:00'], ['16:00', '20:00']];
-
-const baseSchedule = {
-  timeZone: ZONE,
-  weekly: {
-    mon: weekdayHours,
-    tue: weekdayHours,
-    wed: weekdayHours,
-    thu: [['16:00', '20:00']],   // afternoons off
-    fri: weekdayHours,
-    sat: [['10:00', '14:00']],
-    sun: [],                     // never on Sundays
-  },
-  overrides: {},
-  bufferMins: 15,
-  minNoticeMins: 240,            // 4 hours
-  bookAheadDays: 14,
-  startEveryMins: 15,
+// The creator's own schedule from the Availability screen, if they've saved
+// one; otherwise the starting schedule (see availabilityStore.js)
+const currentSchedule = () => {
+  const { saved, ...schedule } = loadSchedule();
+  return { schedule, saved };
 };
 
 // The creator's next working days after today, so the mock bookings
 // always land on days they work, whatever day the page is opened
-function workingDays(today, count) {
+function workingDays(schedule, today, count) {
   const days = [];
   for (let i = 1; days.length < count && i < 30; i++) {
     const date = addDays(today, i);
-    if ((baseSchedule.weekly[weekdayOf(date)] ?? []).length) days.push(date);
+    if ((schedule.overrides?.[date] ?? schedule.weekly[weekdayOf(date)] ?? []).length) days.push(date);
   }
   return days;
 }
 
 // A booking on the creator's clock
-function booking(date, from, to) {
+function booking(zone, date, from, to) {
   return {
-    start: new Date(toInstant(date, from, ZONE)).toISOString(),
-    end: new Date(toInstant(date, to, ZONE)).toISOString(),
+    start: new Date(toInstant(date, from, zone)).toISOString(),
+    end: new Date(toInstant(date, to, zone)).toISOString(),
   };
 }
 
 export function getMockAvailability(state, now = Date.now()) {
-  const today = todayIn(ZONE, now);
+  const { schedule, saved } = currentSchedule();
+  const zone = schedule.timeZone;
+  const today = todayIn(zone, now);
 
   if (state === 'none') {
-    return { schedule: { ...baseSchedule, weekly: {} }, bookings: [] };
+    return { schedule: { ...schedule, weekly: {}, overrides: {} }, bookings: [] };
   }
 
   if (state === 'busy') {
     // Every day for the next week is off or full; the first free day is 8 days out
     const overrides = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [addDays(today, i), []]));
-    return { schedule: { ...baseSchedule, overrides }, bookings: [] };
+    return { schedule: { ...schedule, overrides: { ...schedule.overrides, ...overrides } }, bookings: [] };
   }
 
-  const [first, second, third, fourth] = workingDays(today, 4);
+  // Mock bookings: two on the first working day, one on the second, one on the fourth
+  const [first, second, third, fourth] = workingDays(schedule, today, 4);
+  const at = (date, from, to) => (date ? [booking(zone, date, from, to)] : []);
   return {
-    schedule: { ...baseSchedule, overrides: { [third]: [] } }, // a day off
+    // Until the creator saves their own schedule, the third working day is a mock day off
+    schedule: saved || !third ? schedule : { ...schedule, overrides: { ...schedule.overrides, [third]: [] } },
     bookings: [
-      booking(first, '10:00', '11:00'),
-      booking(first, '17:00', '17:15'),
-      booking(second, '16:00', '17:15'),
-      booking(fourth, '18:00', '19:00'),
+      ...at(first, '10:00', '11:00'),
+      ...at(first, '17:00', '17:15'),
+      ...at(second, '16:00', '17:15'),
+      ...at(fourth, '18:00', '19:00'),
     ],
   };
 }

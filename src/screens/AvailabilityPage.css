@@ -1,0 +1,453 @@
+/* ------------------------------------------------------------
+   Creator's Availability screen. Uses the product's own tokens
+   (styles/tokens.css), like the rest of the dashboard.
+   ------------------------------------------------------------ */
+.av {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+  color: var(--color-text);
+}
+
+.av__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.av__title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.av__subtitle {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.av__preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.av__preview:hover {
+  border-color: var(--color-primary);
+}
+
+/* ---------- Cards ---------- */
+.av-card {
+  margin-bottom: 16px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.av-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 8px;
+}
+
+.av-card__head--stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.av-card__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.av-card__hint {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.av-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Inputs ---------- */
+.av-select {
+  padding: 9px 32px 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6b6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.av-select:hover {
+  border-color: #cfcfcf;
+}
+
+.av-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.av-select--time {
+  width: 124px;
+  font-variant-numeric: tabular-nums;
+}
+
+.av-date {
+  padding-right: 12px;
+  background-image: none;
+}
+
+/* ---------- Switch ---------- */
+.av-switch {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: #d4d4d4;
+  transition: background 0.15s ease;
+}
+
+.av-switch[aria-checked='true'] {
+  background: var(--color-primary);
+}
+
+.av-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.av-switch[aria-checked='true'] .av-switch__knob {
+  transform: translateX(16px);
+}
+
+/* ---------- Days ---------- */
+.av-days {
+  list-style: none;
+}
+
+.av-day {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.av-day:first-child {
+  border-top: none;
+}
+
+.av-day__name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.av-day--off .av-day__name > span {
+  color: var(--color-text-muted);
+}
+
+.av-day__hours {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.av-day__closed {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.av-range__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.av-range__to {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.av-day__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.av-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  color: var(--color-primary-hover);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.av-link--quiet {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.av-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.av-icon-btn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+
+.av-icon-btn:hover {
+  background: #f3f3f3;
+  color: var(--color-text);
+}
+
+.av-error {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b42318;
+}
+
+.av-warning {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: #fff6e5;
+  color: #7a4f0f;
+  font-size: 14px;
+}
+
+/* ---------- Days off ---------- */
+.av-offs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  list-style: none;
+}
+
+.av-off {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-tint);
+  font-size: 14.5px;
+}
+
+.av-off svg:first-child {
+  color: var(--color-primary-hover);
+}
+
+.av-off span {
+  flex: 1;
+}
+
+.av-add-off {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- Booking rules ---------- */
+.av-rules {
+  display: flex;
+  flex-direction: column;
+}
+
+.av-rule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.av-rule:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.av-rule__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.av-rule__label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.av-rule__hint {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+.av-rule .av-select {
+  min-width: 170px;
+}
+
+/* ---------- Buttons ---------- */
+.av-primary,
+.av-secondary {
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.av-primary {
+  background: var(--color-primary);
+  color: #2a1606;
+}
+
+.av-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.av-primary:disabled {
+  background: #ececec;
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+.av-secondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.av-secondary:hover {
+  border-color: #cfcfcf;
+}
+
+.av-reset {
+  margin: 4px 0 20px;
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Save bar: stays at the bottom of the main area ---------- */
+.av-bar {
+  position: sticky;
+  bottom: -32px;                /* sits flush with the bottom of .app__main (32px padding) */
+  z-index: var(--z-sticky);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 -24px -32px;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.av-bar__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.av-bar__status svg {
+  color: var(--color-success);
+}
+
+.av-bar__failed {
+  color: #b42318;
+}
+
+.av-bar__actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* One visible focus style for every control */
+.av button:focus-visible,
+.av a:focus-visible {
+  outline: 2px solid var(--color-primary-hover);
+  outline-offset: 2px;
+}
+
+@media (min-width: 720px) {
+  .av-day {
+    grid-template-columns: 170px 1fr;
+    align-items: start;
+  }
+
+  .av-day__name {
+    min-height: 38px;           /* lines up with the first row of times */
+  }
+
+  .av-day--off .av-day__hours {
+    justify-content: center;
+    min-height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-switch,
+  .av-switch__knob {
+    transition: none;
+  }
+}

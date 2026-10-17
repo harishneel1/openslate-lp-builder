@@ -8,6 +8,7 @@ import ProfilePage from './screens/ProfilePage.jsx'
 import BookingPage from './screens/BookingPage.jsx'
 import CheckoutPage from './screens/CheckoutPage.jsx'
 import BookedPage from './screens/BookedPage.jsx'
+import AvailabilityPage from './screens/AvailabilityPage.jsx'
 
 // ?preview=<funnelId> → full-screen preview of that funnel's landing page (new tab).
 // Add &page=thank-you for its thank you page.
@@ -19,6 +20,7 @@ import BookedPage from './screens/BookedPage.jsx'
 //   Add &taken=1 to see the time having just been taken, &hold=20 to see a 20-second hold run out,
 //   or &fail=1 to see the first payment fail.
 // ?mock=booked → the confirmation page (checkout's Pay goes here with the booking's details).
+// ?mock=availability → the creator's Availability screen (in the app, under Services).
 // Anything else → the Page Builder.
 const params = new URLSearchParams(window.location.search)
 const previewId = params.get('preview')
@@ -50,6 +52,7 @@ function Root() {
         fail={params.get('fail')}
       />
     )
+  if (mock === 'availability') return <AvailabilityPage />
   if (mock === 'booked')
     return (
       <BookedPage

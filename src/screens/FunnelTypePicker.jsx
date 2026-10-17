@@ -13,9 +13,8 @@ export default function FunnelTypePicker({ onSelect, savedFunnels = [], onOpen, 
     <header className="picker__header">
       <h1 className="picker__title">How do you want to get customers?</h1>
       <p className="picker__subtitle">
-        Pick one and we'll build the web pages for it. We'll ask you simple
-        questions about your business, one at a time, and turn your answers
-        into pages you can share. No design or tech skills needed.
+        Pick one and we'll build the entire funnel for you. We'll ask you simple
+        questions about your business, one at a time. No design or tech skills needed. You can start running ads in less than 15 minutes. 
       </p>
     </header>
 
