@@ -1,0 +1,116 @@
+.offer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.offer__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 18px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.offer__card:hover {
+  border-color: #d6d6d6;
+}
+
+.offer__card--selected,
+.offer__card--selected:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.offer__card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.offer__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.offer__card--selected .offer__icon {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.offer__label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.offer__line {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* Not open yet: visible, but quiet and not clickable */
+.offer__card--soon,
+.offer__card--soon:hover {
+  cursor: not-allowed;
+  border-color: var(--color-border);
+  background: transparent;
+}
+
+.offer__card--soon .offer__icon {
+  color: var(--color-text-muted);
+  background: #efefef;
+}
+
+.offer__card--soon .offer__label,
+.offer__card--soon .offer__line {
+  color: var(--color-text-muted);
+}
+
+.offer__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.offer__soon {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: #ececec;
+  border-radius: var(--radius-pill);
+}
+
+/* Tick in the corner of the picked card */
+.offer__check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--color-primary);
+}
+
+@media (max-width: 560px) {
+  .offer {
+    grid-template-columns: 1fr;
+  }
+}

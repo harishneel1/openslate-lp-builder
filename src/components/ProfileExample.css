@@ -1,0 +1,217 @@
+.pex {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- Header ---------- */
+.pex__caption {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* "Meera Joshi, life coach": makes it plain this is someone else's page */
+.pex__creator {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pex__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.pex__note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ---------- Browser frame ---------- */
+.pex__frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: min(760px, calc(100vh - 200px));
+  min-height: 480px;
+  overflow: hidden; /* also clips the dimming around the spot */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* The intro: nearly the full window height */
+.pex__frame--tall {
+  height: calc(100vh - 150px);
+  min-height: 560px;
+}
+
+.pex__bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: #f6f6f6;
+}
+
+.pex__dots {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.pex__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dcdcdc;
+}
+
+/* The address, as a browser shows it */
+.pex__url {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-radius: var(--radius-pill);
+}
+
+.pex__url svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* ---------- The example page ---------- */
+.pex__view {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.pex__page {
+  display: block;
+  border: 0;
+  transform-origin: 0 0;
+  pointer-events: none; /* annotated: for looking at, not clicking */
+}
+
+/* The intro: they can scroll and look around */
+.pex__page--explore {
+  pointer-events: auto;
+}
+
+/* Gently dims the rest, so the boxed part stands out
+   but everything around it can still be read */
+.pex__spot {
+  --pex-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  position: absolute;
+  border-radius: 10px;
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  transition: left 0.5s var(--pex-ease), top 0.5s var(--pex-ease),
+    width 0.5s var(--pex-ease), height 0.5s var(--pex-ease);
+}
+
+/* ---------- Marks: box, arrows, pill, bubble ---------- */
+.pex__marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: pex-appear 0.3s ease-out 0.35s both;
+}
+
+@keyframes pex-appear {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.pex__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pex__box {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(239, 138, 60, 0.45));
+}
+
+.pex__arrow {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.pex__arrowhead {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* "This is your link" */
+.pex__label {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 14px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* Why it matters */
+.pex__tip {
+  position: absolute;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* No room below: the bubble sits at the bottom of the frame, over the box */
+.pex__tip--inside {
+  transform: translateY(-100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pex__spot {
+    transition: none;
+  }
+  .pex__marks {
+    animation: none;
+  }
+}

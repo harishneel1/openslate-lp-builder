@@ -13,7 +13,8 @@ import AvailabilityPage from './screens/AvailabilityPage.jsx'
 // ?preview=<funnelId> → full-screen preview of that funnel's landing page (new tab).
 // Add &page=thank-you for its thank you page.
 // ?mock=create-service → stand-in for the real Create service page (new tab).
-// ?mock=profile → the creator's public profile page. Add &state=calls-only, new or single.
+// ?mock=profile → the creator's public profile page. Add &state=calls-only, new or single,
+//   or &source=mine for the creator's own page from their setup answers.
 // ?mock=book&service=<id> → a call's booking page. Optional: &state= (as above),
 //   &slots=busy or none (mockAvailability.js), &tz=Europe/London (try another time zone).
 // ?mock=checkout&service=<id>&time=<UTC instant>&tz=<zone> → checkout (from Continue).
@@ -29,7 +30,7 @@ const mock = params.get('mock')
 
 function Root() {
   if (mock === 'create-service') return <MockCreateService />
-  if (mock === 'profile') return <ProfilePage state={params.get('state')} />
+  if (mock === 'profile') return <ProfilePage state={params.get('state')} source={params.get('source')} />
   if (mock === 'book')
     return (
       <BookingPage

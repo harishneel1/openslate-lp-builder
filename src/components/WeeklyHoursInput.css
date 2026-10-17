@@ -1,0 +1,208 @@
+.wh {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- Selects (time zone, times) ---------- */
+.wh__zone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wh__select {
+  padding: 10px 34px 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6b6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  appearance: none;
+  cursor: pointer;
+}
+
+.wh__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.wh__select--time {
+  width: 128px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Days ---------- */
+.wh__days {
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.wh__day + .wh__day {
+  border-top: 1px solid var(--color-border);
+}
+
+.wh__day--open {
+  background: #fcfaf8;
+}
+
+.wh__row {
+  display: grid;
+  grid-template-columns: auto 104px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  padding: 8px 16px;
+}
+
+.wh__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wh__hours {
+  font-size: 14px;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.wh__hours--off {
+  color: var(--color-text-muted);
+}
+
+.wh__hours--broken {
+  color: #c0392b;
+  font-weight: 500;
+}
+
+.wh__edit {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+}
+
+.wh__edit:hover {
+  background: #f1f1f1;
+}
+
+/* ---------- Switch ---------- */
+.wh__switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: #d4d4d4;
+  transition: background 0.15s ease;
+}
+
+.wh__switch[aria-checked='true'] {
+  background: var(--color-primary);
+}
+
+.wh__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.wh__switch[aria-checked='true'] .wh__knob {
+  transform: translateX(16px);
+}
+
+/* ---------- Editing a day ---------- */
+.wh__editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 16px 68px; /* lines up under the day's name */
+}
+
+.wh__range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wh__range-wrap .qinput__error {
+  margin-top: 6px;
+}
+
+.wh__to {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.wh__remove {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+}
+
+.wh__remove:hover {
+  color: var(--color-text);
+  background: #f1f1f1;
+}
+
+.wh__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.wh__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pf-accent-ink, #9a4a0f);
+}
+
+.wh__tool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wh__switch:focus-visible,
+.wh__edit:focus-visible,
+.wh__remove:focus-visible,
+.wh__tool:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.wh__note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 560px) {
+  .wh__row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .wh__hours {
+    grid-column: 2 / -1;
+  }
+  .wh__editor {
+    padding-left: 16px;
+  }
+}

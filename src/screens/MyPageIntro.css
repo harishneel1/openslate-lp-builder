@@ -1,0 +1,141 @@
+/* The example gets most of the room; the left side is short */
+.mpi {
+  position: relative; /* the arrow is drawn over both columns */
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 88px;
+  align-items: start;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.mpi__main {
+  padding-top: 56px;
+}
+
+/* ---------- Headline ---------- */
+.mpi__title {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.mpi__nowrap {
+  white-space: nowrap;
+}
+
+/* Marker stroke behind a few words (headline and the pointer line) */
+.mpi__mark,
+.mpi__look-mark {
+  white-space: nowrap;
+  padding: 0 4px;
+  margin: 0 -4px;
+  color: inherit;
+  background: linear-gradient(transparent 58%, #fbd3b0 58%, #fbd3b0 92%, transparent 92%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.mpi__sub {
+  margin-top: 10px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* ---------- The dotted box: pointer line and button ---------- */
+.mpi__box {
+  display: inline-block; /* hugs its content, so the arrow starts close by */
+  margin-top: 44px;
+  padding: 24px 28px 28px;
+  border: 2px dashed var(--color-primary);
+  border-radius: 24px;
+}
+
+/* "Check out … Meera's Offering Page" */
+.mpi__look {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+/* ---------- The arrow ---------- */
+.mpi__arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2; /* above the example */
+}
+
+.mpi__arrow path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mpi__arrow-halo {
+  stroke: var(--color-surface);
+  stroke-width: 9;
+}
+
+.mpi__arrow-line {
+  stroke: var(--color-primary);
+  stroke-width: 4;
+}
+
+/* Stays still; only a soft glow pulses on and off */
+.mpi__arrow-glow {
+  animation: mpi-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes mpi-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(239, 138, 60, 0)); }
+  50%      { filter: drop-shadow(0 0 7px rgba(239, 138, 60, 0.75)); }
+}
+
+/* ---------- Start ---------- */
+.mpi__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.mpi__cta:hover {
+  background: var(--color-primary-hover);
+}
+
+.mpi__cta:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* Not enough room for the example: the explanation alone, no arrow */
+@media (max-width: 1000px) {
+  .mpi {
+    max-width: 640px;
+    grid-template-columns: 1fr;
+  }
+  .mpi__aside,
+  .mpi__arrow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mpi__arrow-glow {
+    animation: none;
+  }
+}

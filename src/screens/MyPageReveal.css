@@ -1,0 +1,152 @@
+/* Same split as the intro: what to do on the left, their page on the right */
+.mpr {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 72px;
+  align-items: start;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.mpr__main {
+  padding-top: 48px;
+}
+
+.mpr__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-success);
+  background: var(--color-success-tint);
+  border-radius: var(--radius-pill);
+}
+
+.mpr__title {
+  margin-top: 14px;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.mpr__sub {
+  margin-top: 10px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* ---------- The link ---------- */
+.mpr__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+  padding: 8px 8px 8px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.mpr__url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.mpr__copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.mpr__copy:hover {
+  background: var(--color-primary-hover);
+}
+
+/* ---------- Share and view ---------- */
+.mpr__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mpr__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+
+.mpr__btn:hover {
+  border-color: #cfcfcf;
+}
+
+.mpr__btn--whatsapp svg {
+  color: #1f9d55;
+}
+
+.mpr__copy:focus-visible,
+.mpr__btn:focus-visible,
+.mpr__edit:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Afterwards ---------- */
+.mpr__later {
+  margin-top: 36px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.mpr__edit {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mpr__edit:hover {
+  color: var(--color-text);
+}
+
+/* Not enough room for the page: the sharing part alone */
+@media (max-width: 1000px) {
+  .mpr {
+    max-width: 640px;
+    grid-template-columns: 1fr;
+  }
+  .mpr__aside {
+    display: none;
+  }
+}

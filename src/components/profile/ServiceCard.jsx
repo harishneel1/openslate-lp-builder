@@ -1,8 +1,15 @@
-import { Clock, MessageSquare, Phone, Star, Video } from 'lucide-react';
+import { BookOpen, CalendarDays, Clock, MessageSquare, Phone, Star, Video } from 'lucide-react';
 import './ServiceCard.css';
 
 // Icon names used in serviceKinds.js → the picture. A new name needs a line here.
-const ICONS = { clock: Clock, message: MessageSquare, phone: Phone, video: Video };
+const ICONS = {
+  calendar: CalendarDays,
+  clock: Clock,
+  lessons: BookOpen,
+  message: MessageSquare,
+  phone: Phone,
+  video: Video,
+};
 
 // One service of any kind. The whole card is the link to its next page.
 // Everything kind-specific (facts, button text, link) comes from serviceKinds.js.

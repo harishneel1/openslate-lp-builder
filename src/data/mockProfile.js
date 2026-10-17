@@ -14,7 +14,7 @@ const creator = {
   id: 'cr-meera',
   name: 'Meera Joshi',
   handle: 'meerajoshi',
-  photo: null, // image URL, or null to show initials
+  photo: '/meera.jpg', // image URL (public/meera.jpg), or null to show initials
   headline: 'Life & relationship coach',
   bio:
     'I spent 14 years in corporate HR before I trained as a coach. Now I help people who feel stuck, ' +
@@ -25,13 +25,26 @@ const creator = {
   bookingCount: 80,
 };
 
-//   kind: 'call' | 'dm' (see serviceKinds.js; unknown kinds aren't shown)
+//   kind: 'call' | 'dm' | 'webinar' | 'course' (see serviceKinds.js; unknown kinds aren't shown)
 //   price / comparePrice: rupees. price 0 = free; comparePrice is the crossed-out price, or null
 //   calls only: durationMins, format ('video' | 'phone')
 //   DMs only:   replyWithinDays
+//   webinars only: startsAt (ISO date and time), durationMins
+//   courses only:  lessonCount, totalMins
 //   about:   paragraphs for the service's own page (optional; falls back to description)
 //   status: 'active' | 'inactive' (inactive ones aren't shown)
 //   order: position on the page, set by the creator
+
+// A date some days from today at a set hour in India (IST, UTC+5:30), as an
+// ISO string. Keeps webinars in the near future whenever the mock is opened.
+function daysFromNow(days, hourIST) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + days);
+  d.setUTCHours(hourIST, 0, 0, 0);
+  d.setUTCMinutes(d.getUTCMinutes() - 330); // IST is 5 hr 30 min ahead of UTC
+  return d.toISOString();
+}
+
 const services = [
   {
     id: 'call-discovery',
@@ -89,7 +102,7 @@ const services = [
     rating: 4.8,
     ratingCount: 4,
     status: 'active',
-    order: 3,
+    order: 5,
   },
   {
     id: 'call-relationship',
@@ -105,7 +118,7 @@ const services = [
     rating: null,
     ratingCount: 0,
     status: 'active',
-    order: 4,
+    order: 6,
   },
   {
     id: 'call-festive-reset',
@@ -120,7 +133,7 @@ const services = [
     rating: null,
     ratingCount: 0,
     status: 'inactive', // shouldn't appear on the page
-    order: 9,
+    order: 11,
   },
   {
     id: 'dm-quick',
@@ -135,7 +148,7 @@ const services = [
     rating: 5,
     ratingCount: 6,
     status: 'active',
-    order: 5,
+    order: 7,
   },
   {
     id: 'dm-review',
@@ -150,7 +163,67 @@ const services = [
     rating: null,
     ratingCount: 0,
     status: 'active',
-    order: 6,
+    order: 8,
+  },
+  {
+    id: 'webinar-repeat',
+    kind: 'webinar',
+    title: 'Why we keep repeating the same relationship',
+    description: 'A live session on the patterns we carry from one relationship to the next, and how to spot yours.',
+    startsAt: daysFromNow(9, 19), // 7 pm, IST
+    durationMins: 90,
+    price: 299,
+    comparePrice: null,
+    image: null,
+    rating: 4.9,
+    ratingCount: 14,
+    status: 'active',
+    order: 3,
+  },
+  {
+    id: 'webinar-breakup',
+    kind: 'webinar',
+    title: 'Healing after a breakup',
+    description: 'An hour on getting through the first few weeks, with time at the end for your questions.',
+    startsAt: daysFromNow(16, 18), // 6 pm, IST
+    durationMins: 60,
+    price: 0,
+    comparePrice: null,
+    image: null,
+    rating: null,
+    ratingCount: 0,
+    status: 'active',
+    order: 9,
+  },
+  {
+    id: 'course-overthinking',
+    kind: 'course',
+    title: 'Stop overthinking: a 21-day course',
+    description: 'Short daily lessons and one small exercise each day to quiet the loop in your head.',
+    lessonCount: 14,
+    totalMins: 200,
+    price: 1499,
+    comparePrice: 2499,
+    image: null,
+    rating: 4.8,
+    ratingCount: 31,
+    status: 'active',
+    order: 4,
+  },
+  {
+    id: 'course-boundaries',
+    kind: 'course',
+    title: 'Boundaries without guilt',
+    description: 'Learn to say no to family, friends and work without the guilt that usually follows.',
+    lessonCount: 8,
+    totalMins: 105,
+    price: 999,
+    comparePrice: null,
+    image: null,
+    rating: null,
+    ratingCount: 0,
+    status: 'active',
+    order: 10,
   },
 ];
 

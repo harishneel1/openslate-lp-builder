@@ -4,7 +4,7 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair', 'handle', 'offerType', 'callDetails', 'weeklyHours'];
 
 // Screens that move on with their own button (Use this and continue), so Next is hidden
 const OWN_NEXT_TYPES = ['ramble'];
@@ -23,7 +23,7 @@ export default function QuestionFlow({
   questions,
   answers,
   onAnswer,
-  onExit,
+  onExit,                 // Optional: Back on the first screen. Without it, there's no Back there
   onComplete,
   startAtEnd = false,     // Back from the checkpoint lands on the last screen
   startAt = null,         // Optional: question id to open on (their saved screen)
@@ -89,9 +89,11 @@ export default function QuestionFlow({
   const error = question.validate && typed ? question.validate(typed) : null;
 
   // Sentence questions need every blank filled; groups need every required field
+  // isComplete(answers): a screen's own rule for when it's done (e.g. price only if paid)
   const canContinue =
     !error &&
-    (!question.required ||
+    (question.isComplete ? question.isComplete(answers) :
+    !question.required ||
     !SUPPORTED_TYPES.includes(question.type) ||
     (question.type === 'items'
       ? filledCount(answers[question.id], question.mainField) >= (question.minItems ?? 0)
@@ -121,6 +123,9 @@ export default function QuestionFlow({
   const goLater = () => {
     isLast ? onComplete() : goTo(index + 1);
   };
+
+  // The first screen only has Back when there's somewhere to go back to
+  const canGoBack = index > 0 || Boolean(onExit);
 
   const goBack = () => {
     index === 0 ? onExit() : setIndex(index - 1);
@@ -202,7 +207,7 @@ export default function QuestionFlow({
       }`}
     >
       <div className="flow__main">
-        {backAtTop && backButton}
+        {backAtTop && canGoBack && backButton}
 
         {!hideProgress &&
           (renderProgress
@@ -233,7 +238,7 @@ export default function QuestionFlow({
           )
         ) : (
           <div className="flow__nav">
-            {backButton}
+            {canGoBack ? backButton : <span />}
             <div className="flow__nav-end">
               {laterButton}
               {nextButton}

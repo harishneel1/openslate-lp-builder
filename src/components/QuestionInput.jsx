@@ -7,6 +7,10 @@ import { defaultCtaLabel } from '../data/webinarQuestions';
 import { readPhoto } from '../utils/readPhoto';
 import RambleInput from './RambleInput';
 import HeadlinePicker from './HeadlinePicker';
+import HandleInput from './HandleInput';
+import OfferTypeInput from './OfferTypeInput';
+import CallDetailsInput from './CallDetailsInput';
+import WeeklyHoursInput from './WeeklyHoursInput';
 
 const CTA_MAX = 25;
 
@@ -339,7 +343,8 @@ function GroupInput({ question, answers, onChange }) {
     const value = valueOf(f);
 
         if (f.type === 'image') {
-      const initial = String(answers.hostName ?? '').trim().charAt(0).toUpperCase();
+      // The letter shown before a photo: from the name field (initialFrom), or the host's name
+      const initial = String(answers[f.initialFrom ?? 'hostName'] ?? '').trim().charAt(0).toUpperCase();
       return (
         <PhotoField
           key={f.id}
@@ -523,6 +528,14 @@ export default function QuestionInput(props) {
       return <RambleInput {...props} />;  
     case 'headlinePair':
       return <HeadlinePicker {...props} />;
+    case 'handle':
+      return <HandleInput {...props} />;
+    case 'offerType':
+      return <OfferTypeInput {...props} />;
+    case 'callDetails':
+      return <CallDetailsInput {...props} />;
+    case 'weeklyHours':
+      return <WeeklyHoursInput {...props} />;
     default:
       return (
         <p className="qinput__todo">

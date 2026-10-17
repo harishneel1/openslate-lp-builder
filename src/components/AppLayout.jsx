@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Layers, Compass, Video, BookOpen, MessageCircle,
   Grid3x3, Bell, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
@@ -6,8 +6,8 @@ import {
   ArrowLeftRight, Filter, User, TrendingUp, SlidersHorizontal,
   Copy, ExternalLink,
 } from 'lucide-react';
-import { getMockProfile } from '../data/mockProfile';
 import { initials } from '../utils/initials';
+import { PAGE_DOMAIN, SETUP_CHANGED_EVENT, mockAccount, savedHandle } from '../data/myPage';
 import './AppLayout.css';
 
 const topNavItems = [
@@ -58,15 +58,21 @@ function FocusBar({ title, onExit, saveFailed }) {
   );
 }
 
-// The creator's one public page. Pinned above the nav because it's the thing
+// The creator's offerings page. Pinned above the nav because it's the thing
 // they share everywhere: collapsed it's just their avatar, expanded it shows
-// the link and quick actions.
-const PAGE_DOMAIN = 'yourdomain.com'; // TODO: real domain
-
+// the link and quick actions. Before they've picked a link, it invites them
+// to set it up instead.
 function MyPageCard({ active, onOpen }) {
-  const { creator } = getMockProfile();
-  const link = `${PAGE_DOMAIN}/${creator.handle}`;
+  const [handle, setHandle] = useState(savedHandle);
   const [copied, setCopied] = useState(false);
+  const link = handle ? `${PAGE_DOMAIN}/${handle}` : null;
+
+  // The setup screen saves the link; pick it up as soon as it does
+  useEffect(() => {
+    const update = () => setHandle(savedHandle());
+    window.addEventListener(SETUP_CHANGED_EVENT, update);
+    return () => window.removeEventListener(SETUP_CHANGED_EVENT, update);
+  }, []);
 
   async function copyLink() {
     try {
@@ -80,24 +86,31 @@ function MyPageCard({ active, onOpen }) {
 
   return (
     <div className={`mypage ${active ? 'mypage--active' : ''}`}>
-      <button type="button" className="mypage__main" onClick={onOpen} title="My Page">
-        <span className="mypage__avatar">
-          {creator.photo ? <img src={creator.photo} alt="" /> : initials(creator.name)}
-        </span>
+      <button type="button" className="mypage__main" onClick={onOpen} title="My offerings page">
+        <span className="mypage__avatar">{initials(mockAccount.name)}</span>
         <span className="mypage__text">
-          <span className="mypage__label">My Page</span>
-          <span className="mypage__link">{link}</span>
+          <span className="mypage__label">My offerings page</span>
+          <span className="mypage__link">{link ?? 'Not set up yet'}</span>
         </span>
       </button>
 
       <div className="mypage__actions">
-        <button type="button" className="mypage__action" onClick={copyLink}>
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-          {copied ? 'Copied' : 'Copy link'}
-        </button>
-        <a className="mypage__action" href="?mock=profile" target="_blank" rel="noreferrer">
-          <ExternalLink size={14} /> View
-        </a>
+        {link ? (
+          <>
+            <button type="button" className="mypage__action" onClick={copyLink}>
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+            {/* Stand-in: opens the example page until theirs can be shown */}
+            <a className="mypage__action" href="?mock=profile" target="_blank" rel="noreferrer">
+              <ExternalLink size={14} /> View
+            </a>
+          </>
+        ) : (
+          <button type="button" className="mypage__action mypage__action--start" onClick={onOpen}>
+            Set it up
+          </button>
+        )}
       </div>
     </div>
   );

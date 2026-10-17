@@ -18,6 +18,7 @@ import { thankYouQuestions, groupLinkMissing } from './data/thankYouQuestions';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
+import MyPageSetup from './screens/MyPageSetup';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
@@ -508,6 +509,8 @@ function App() {
     >
         {activeNav === 'page-builder' ? (
         renderPageBuilder()
+      ) : activeNav === 'my-page' ? (
+        <MyPageSetup />
       ) : (
         <p style={{ color: 'var(--color-text-muted)' }}>
           Dummy page. Click <strong>Funnels</strong> in the sidebar.

@@ -1,0 +1,94 @@
+/* The fixed address and the part they type, in one box */
+.hdl__box {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.hdl__box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.hdl__box--error,
+.hdl__box--error:focus-within {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.1);
+}
+
+.hdl__prefix {
+  flex-shrink: 0;
+  padding: 16px 0 16px 18px;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+.hdl__input {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px 16px 1px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+/* ---------- Under the box ---------- */
+.hdl__status {
+  min-height: 21px; /* no jump as the message changes */
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hdl__status .qinput__error {
+  font-size: 14px;
+}
+
+.hdl__hint {
+  color: var(--color-text-muted);
+}
+
+.hdl__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--color-success);
+}
+
+/* Free links close to the one they wanted */
+.hdl__ideas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.hdl__idea {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.hdl__idea:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.hdl__idea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

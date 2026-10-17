@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMockProfile } from '../data/mockProfile';
+import { getMyProfile } from '../data/myProfile';
 import { buildProfileJson } from '../data/buildProfileJson';
 import CreatorPanel from '../components/profile/CreatorPanel';
 import ServiceCard from '../components/profile/ServiceCard';
@@ -11,10 +12,14 @@ import './ProfilePage.css';
 // ------------------------------------------------------------
 // The creator's public profile, opened at ?mock=profile (see main.jsx).
 // Add &state=calls-only, &state=new or &state=single for other situations (mockProfile.js).
+// Add &source=mine for the creator's own page, built from their setup answers (myProfile.js).
 // Renders only from the page JSON (buildProfileJson), never raw data.
 // ------------------------------------------------------------
-export default function ProfilePage({ state }) {
-  const page = useMemo(() => buildProfileJson(getMockProfile(state)), [state]);
+export default function ProfilePage({ state, source }) {
+  const page = useMemo(
+    () => buildProfileJson(source === 'mine' ? getMyProfile() : getMockProfile(state)),
+    [state, source]
+  );
   const { creator, services, kinds, testimonials } = page;
   const firstName = creator.name.split(' ')[0] || 'This coach';
 
@@ -45,7 +50,7 @@ export default function ProfilePage({ state }) {
           {services.length > 0 ? (
             <ul className="pf__services">
               {shown.map((s) => (
-                <li key={s.id}>
+                <li key={s.id} data-kind={s.kind}>
                   <ServiceCard service={s} />
                 </li>
               ))}

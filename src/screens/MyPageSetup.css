@@ -1,0 +1,116 @@
+/* The example gets most of the room; the left side is short */
+.mpi {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 72px; /* room for the arrow to cross */
+  align-items: start;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.mpi__main {
+  padding-top: 72px; /* puts the arrow level with Meera's name on her page */
+  animation: mpi-in 0.25s ease;
+}
+
+@keyframes mpi-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.mpi__title {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.mpi__sub {
+  margin-top: 12px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* ---------- "Look: Meera built this" ---------- */
+.mpi__look {
+  position: relative;
+  margin-top: 40px;
+  padding-right: 64px; /* the arrow sits in here and reaches into the gap */
+}
+
+.mpi__look-text {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+
+.mpi__arrow {
+  position: absolute;
+  top: -44px;
+  right: -88px;
+  width: 132px;
+  height: 88px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: mpi-nudge 3.2s ease-in-out 0.6s infinite;
+}
+
+/* A couple of quick nudges toward the page, then a rest */
+@keyframes mpi-nudge {
+  0%, 30%, 100% { transform: translate(0, 0) rotate(0deg); }
+  7%  { transform: translate(7px, -3px) rotate(-3deg); }
+  14% { transform: translate(0, 0) rotate(0deg); }
+  21% { transform: translate(7px, -3px) rotate(-3deg); }
+}
+
+/* ---------- Start ---------- */
+.mpi__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 40px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.mpi__cta:hover {
+  background: var(--color-primary-hover);
+}
+
+.mpi__cta:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* Not enough room for the example: the explanation alone, no arrow */
+@media (max-width: 1000px) {
+  .mpi {
+    max-width: 640px;
+    grid-template-columns: 1fr;
+  }
+  .mpi__aside,
+  .mpi__arrow {
+    display: none;
+  }
+  .mpi__look {
+    padding-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mpi__main,
+  .mpi__arrow {
+    animation: none;
+  }
+}

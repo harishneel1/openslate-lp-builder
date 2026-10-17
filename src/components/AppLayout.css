@@ -329,6 +329,17 @@
   background: #eaeaea;
 }
 
+/* Not set up yet: one clear way in */
+.mypage__action--start,
+.mypage__action--start:hover {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.mypage__action--start:hover {
+  background: var(--color-primary-hover);
+}
+
 /* ---------- Main content ---------- */
 .app__main {
   flex: 1;
