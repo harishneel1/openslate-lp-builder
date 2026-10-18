@@ -1,11 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Phone, Video } from 'lucide-react';
 import {
   CALL_DEFAULTS,
+  CUSTOM_HOURS,
+  CUSTOM_MINUTES,
   DURATIONS,
+  customDuration,
   TITLE_SUGGESTIONS,
   callDescriptionOf,
 } from '../data/callDetails';
+import { durationLabel } from '../data/serviceKinds';
 import './CallDetailsInput.css';
 
 const TITLE_MAX = 60;
@@ -19,6 +23,12 @@ export default function CallDetailsInput({ answers, onChange }) {
   const pricing = valueOf('callPricing');
   const description = callDescriptionOf(answers);
   const suggested = answers.callDescription === undefined && description !== '';
+  const duration = Number(valueOf('callDuration'));
+
+  // Custom is open when they chose it, or came back with a length that isn't a chip
+  const [custom, setCustom] = useState(!DURATIONS.includes(duration));
+  const hours = Math.floor(duration / 60);
+  const minutes = duration % 60;
 
   // Save the starting choices (30 min, video, paid) so the next steps see them
   useEffect(() => {
@@ -61,7 +71,7 @@ export default function CallDetailsInput({ answers, onChange }) {
         <span className="qinput__label" id="call-duration">How long</span>
         <div className="call__chips" role="radiogroup" aria-labelledby="call-duration">
           {DURATIONS.map((mins) => {
-            const on = Number(valueOf('callDuration')) === mins;
+            const on = !custom && duration === mins;
             return (
               <button
                 key={mins}
@@ -69,13 +79,58 @@ export default function CallDetailsInput({ answers, onChange }) {
                 role="radio"
                 aria-checked={on}
                 className={`call__chip call__chip--big ${on ? 'call__chip--on' : ''}`}
-                onClick={() => onChange(mins, 'callDuration')}
+                onClick={() => {
+                  setCustom(false);
+                  onChange(mins, 'callDuration');
+                }}
               >
-                {mins} min
+                {durationLabel(mins)}
               </button>
             );
           })}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={custom}
+            className={`call__chip call__chip--big ${custom ? 'call__chip--on' : ''}`}
+            onClick={() => setCustom(true)}
+          >
+            Custom
+          </button>
         </div>
+
+        {/* Starts from the length they had, so switching to Custom changes nothing until they pick */}
+        {custom && (
+          <div className="call__custom">
+            <label className="call__custom-part">
+              <select
+                className="call__select"
+                autoFocus
+                value={hours}
+                onChange={(e) => onChange(customDuration(e.target.value, minutes), 'callDuration')}
+              >
+                {CUSTOM_HOURS.map((h) => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
+              hr
+            </label>
+            <label className="call__custom-part">
+              <select
+                className="call__select"
+                value={minutes}
+                onChange={(e) => onChange(customDuration(hours, e.target.value), 'callDuration')}
+              >
+                {/* No 0 min when it's 0 hr: a call needs some length */}
+                {CUSTOM_MINUTES.filter((m) => hours > 0 || m > 0).map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              min
+            </label>
+            <span className="call__custom-total" aria-live="polite">{durationLabel(duration)} call</span>
+          </div>
+        )}
       </div>
 
       {/* ---------- Video or phone ---------- */}
@@ -146,7 +201,7 @@ export default function CallDetailsInput({ answers, onChange }) {
       {/* ---------- Description (optional) ---------- */}
       <div className="qinput__field">
         <label className="qinput__label" htmlFor="call-description">
-          What will you talk about?
+          Short description?
           <span className="qinput__optional"> · Optional</span>
         </label>
         <textarea

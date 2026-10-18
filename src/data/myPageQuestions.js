@@ -1,5 +1,5 @@
 import { HANDLE_MAX, HANDLE_MIN, isHandleTaken, mockAccount, suggestedHandle } from './myPage';
-import { callDetailsComplete } from './callDetails';
+import { callAboutOf, callDetailsComplete } from './callDetails';
 
 // ------------------------------------------------------------
 // Questions that set up the creator's page, one per screen.
@@ -12,7 +12,7 @@ import { callDetailsComplete } from './callDetails';
 // ------------------------------------------------------------
 
 // Shown as "1 of 6"
-export const MY_PAGE_STEPS = 6;
+export const MY_PAGE_STEPS = 7;
 
 export const myPageQuestions = [
   {
@@ -100,9 +100,18 @@ export const myPageQuestions = [
     type: 'weeklyHours', // WeeklyHoursInput: saves to the Availability store, reports hoursStatus
     required: true,
     question: 'When can people book you?',
-    helper: 'We’ve filled in some hours to start. Change any day, or carry on if they suit you.',
+    helper: 'We’ve filled in some hours to start. Change any day, or click "next" if they suit you.',
     isComplete: (answers) => (answers.hoursStatus ?? 'ok') === 'ok',
     nextHint: 'Switch on at least one day, and fix any hours marked in red',
+  },
+  {
+    id: 'callAbout',
+    type: 'callAbout', // CallAboutInput: saves callAbout, prefilled with a written description
+    required: true,
+    question: 'Describe your call',
+    helper: 'This shows on your booking page, under the call’s name, while people pick a time.',
+    isComplete: (answers) => callAboutOf(answers).trim() !== '',
+    nextHint: 'Add a description to continue',
   },
   {
     id: 'service',

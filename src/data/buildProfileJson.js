@@ -76,7 +76,10 @@ function buildKinds(services) {
 }
 
 // Only the numbers worth showing, so a brand-new creator gets none
-function buildStats(creator, reviewCount) {
+// reviewCount: a count given on the creator (made-up, for a new page) wins
+// over counting the testimonials, so it can show before any are added
+function buildStats(creator, testimonialCount) {
+  const reviewCount = count(creator.reviewCount) || testimonialCount;
   const stats = [];
   const r = rating(creator.rating, creator.ratingCount);
   if (r) stats.push({ id: 'rating', value: r.value, label: `from ${r.count} ratings` });

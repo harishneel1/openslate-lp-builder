@@ -1,0 +1,55 @@
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Says the text was written for them: quiet, but the first thing they read */
+.about__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-sm);
+}
+
+.about__note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-primary);
+}
+
+.about__text {
+  resize: vertical;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.about__reset {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.about__reset:hover {
+  color: var(--color-text);
+}
+
+.about__reset:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}

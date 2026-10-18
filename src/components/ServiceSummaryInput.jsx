@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Pencil } from 'lucide-react';
 import { createMockService, getService, servicePrice, updateMockService } from '../data/mockServices';
 import { CALL_DEFAULTS } from '../data/callDetails';
+import { makeMockStats } from '../data/myProfile';
 import './ServiceSummaryInput.css';
 
 // The kind of service, shown after its name
@@ -18,7 +19,7 @@ const FORM_FIELDS = 'Name, email, phone number, and what they’d like to talk a
 // The service (registration form) for their call, made for them from the
 // call's name and price. Made the first time this screen shows; if they've
 // gone back and changed the call since, it's updated to match. Its id is
-// saved as serviceId.
+// saved as serviceId, and its made-up rating and counts as callStats.
 export default function ServiceSummaryInput({ answers, onChange }) {
   const free = (answers.callPricing ?? CALL_DEFAULTS.callPricing) === 'free';
   const title = String(answers.callTitle ?? '').trim();
@@ -40,6 +41,8 @@ export default function ServiceSummaryInput({ answers, onChange }) {
     }
     setService(made);
     if (made.id !== answers.serviceId) onChange(made.id, 'serviceId');
+    // Its rating, bookings and reviews: made once, then kept
+    if (!answers.callStats) onChange(makeMockStats(), 'callStats');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (failed) {

@@ -1,5 +1,5 @@
 import { SETUP_STORAGE_KEY } from './myPage';
-import { CALL_DEFAULTS, callDescriptionOf } from './callDetails';
+import { CALL_DEFAULTS, aboutParagraphs, callDescriptionOf } from './callDetails';
 
 // ------------------------------------------------------------
 // The creator's own page, built from their setup answers, in the
@@ -32,9 +32,29 @@ export function profileHrefFor(serviceId, stateParam = '') {
   return `?mock=profile${stateParam}`;
 }
 
+// ------------------------------------------------------------
+// Made-up numbers so a new creator's page doesn't look empty: a rating,
+// how many people rated, booked and reviewed. Made once, when their
+// service is created, and saved as callStats so they never change on
+// reload or when the call is edited.
+// ------------------------------------------------------------
+const between = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+
+export function makeMockStats() {
+  const ratingCount = between(15, 40);
+  return {
+    rating: between(45, 50) / 10, // 4.5–5.0
+    ratingCount,
+    bookingCount: Math.round(ratingCount * (2 + Math.random())), // 2–3× the ratings: not everyone rates
+    reviewCount: between(4, 10),
+  };
+}
+
 export function getMyProfile(answers = loadAnswers()) {
   const value = (id) => answers[id] ?? CALL_DEFAULTS[id];
   const free = value('callPricing') === 'free';
+  // Their one call holds all their ratings, so the page and the call show the same rating
+  const stats = answers.callStats ?? {};
 
   const creator = {
     id: 'me',
@@ -43,9 +63,10 @@ export function getMyProfile(answers = loadAnswers()) {
     photo: answers.photo || null,
     headline: '',
     bio: answers.bio ?? '',
-    rating: null,
-    ratingCount: 0,
-    bookingCount: 0,
+    rating: stats.rating ?? null,
+    ratingCount: stats.ratingCount ?? 0,
+    bookingCount: stats.bookingCount ?? 0,
+    reviewCount: stats.reviewCount ?? 0,
   };
 
   const call = {
@@ -53,13 +74,14 @@ export function getMyProfile(answers = loadAnswers()) {
     kind: 'call',
     title: answers.callTitle ?? '',
     description: callDescriptionOf(answers),
+    about: aboutParagraphs(answers),
     durationMins: Number(value('callDuration')),
     format: value('callFormat'),
     price: free ? 0 : Number(answers.callPrice) || 0,
     comparePrice: null,
     image: null,
-    rating: null,
-    ratingCount: 0,
+    rating: stats.rating ?? null,
+    ratingCount: stats.ratingCount ?? 0,
     status: 'active',
     order: 1,
   };

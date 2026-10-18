@@ -50,6 +50,50 @@
   outline-offset: 2px;
 }
 
+/* ---------- Custom length ---------- */
+.call__custom {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.call__custom-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.call__select {
+  width: 76px;
+  padding: 10px 30px 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6b6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  appearance: none;
+  cursor: pointer;
+}
+
+.call__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* How it'll read on the page, so "1 hr 15 min" is confirmed back to them */
+.call__custom-total {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
 /* ---------- Price ---------- */
 .call__price {
   display: flex;

@@ -59,6 +59,12 @@ export const profileAnnotations = {
     label: 'This is where people pick a time',
     tip: 'The times they see come from the hours you set here.',
   },
+  callAbout: {
+    page: 'book',
+    target: '.cd__about',
+    label: 'This is your call’s description',
+    tip: 'People read it while they pick a time. Say what happens on the call and what they’ll leave with.',
+  },
   callDetails: {
     target: '.pf__services > li[data-kind="call"]',
     label: 'This is your call',

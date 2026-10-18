@@ -3,13 +3,28 @@
 // on the setup screen, and the description suggested from its name.
 // ------------------------------------------------------------
 
+import { getMockProfile } from './mockProfile';
+
 export const CALL_DEFAULTS = {
   callDuration: 30,
   callFormat: 'video',
   callPricing: 'paid',
 };
 
-export const DURATIONS = [15, 30, 45, 60];
+// In minutes. Shown as "60 min", then "1 hr 30 min", "2 hr", "3 hr"
+// (see durationLabel in serviceKinds.js)
+export const DURATIONS = [15, 30, 45, 60, 90, 120, 180];
+
+// "Custom" length: hours and minutes picked separately.
+// Minutes go in 5s, so 20 min or 1 hr 15 min both work.
+export const CUSTOM_HOURS = Array.from({ length: 9 }, (_, i) => i); // 0–8
+export const CUSTOM_MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0–55
+
+// Hours + minutes as one length, never zero (0 hr 0 min becomes 15 min)
+export function customDuration(hours, minutes) {
+  const total = Number(hours) * 60 + Number(minutes);
+  return total > 0 ? total : 15;
+}
 
 // Names to tap, each with a description to start from
 const SUGGESTED = {
@@ -34,10 +49,37 @@ export function callDescriptionOf(answers) {
   return answers.callDescription ?? suggestedDescription(answers.callTitle);
 }
 
-// Ready to go on: a name, and a price unless it's free
+// Ready to go on: a name, a length, and a price unless it's free
 export function callDetailsComplete(answers) {
   const titled = String(answers.callTitle ?? '').trim() !== '';
+  const timed = Number(answers.callDuration ?? CALL_DEFAULTS.callDuration) > 0;
   const pricing = answers.callPricing ?? CALL_DEFAULTS.callPricing;
   const priced = pricing === 'free' || Number(answers.callPrice) > 0;
-  return titled && priced;
+  return titled && timed && priced;
+}
+
+// ------------------------------------------------------------
+// The longer description on the booking page, under the call's name.
+// Starts as Meera's Discovery call text (the booking page shown in the
+// preview beside these screens) for them to edit. Stored as one string,
+// paragraphs separated by a blank line.
+// ------------------------------------------------------------
+
+export const ABOUT_MAX = 1000;
+
+const EXAMPLE_ABOUT = (getMockProfile().services.find((s) => s.id === 'call-discovery')?.about ?? []).join('\n\n');
+
+export const suggestedAbout = () => EXAMPLE_ABOUT;
+
+// Theirs once they've edited it (even emptied), otherwise the starting text
+export function callAboutOf(answers) {
+  return answers.callAbout ?? EXAMPLE_ABOUT;
+}
+
+// As paragraphs for the page: split on blank lines, empty ones dropped
+export function aboutParagraphs(answers) {
+  return callAboutOf(answers)
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 }

@@ -16,10 +16,12 @@
 const count = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0);
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-// 15 → "15 min", 60 → "1 hr", 75 → "1 hr 15 min"
-function duration(mins) {
+// Up to an hour stays in minutes, longer switches to hours:
+// 15 → "15 min", 60 → "60 min", 90 → "1 hr 30 min", 120 → "2 hr"
+// Used everywhere a call's length is shown, so it reads the same throughout.
+export function durationLabel(mins) {
   const m = count(mins);
-  if (m < 60) return `${m} min`;
+  if (m <= 60) return `${m} min`;
   const h = Math.floor(m / 60);
   const rest = m % 60;
   return rest ? `${h} hr ${rest} min` : `${h} hr`;
@@ -50,7 +52,7 @@ export const serviceKinds = [
       s.format === 'phone'
         ? { icon: 'phone', text: 'Phone call' }
         : { icon: 'video', text: 'Video call' },
-      { icon: 'clock', text: duration(s.durationMins) },
+      { icon: 'clock', text: durationLabel(s.durationMins) },
     ],
     href: (s) => link('book', s.id),
   },
@@ -71,7 +73,7 @@ export const serviceKinds = [
     cta: 'Save my seat',
     facts: (s) => [
       { icon: 'calendar', text: when(s.startsAt) },
-      { icon: 'clock', text: duration(s.durationMins) },
+      { icon: 'clock', text: durationLabel(s.durationMins) },
     ],
     href: (s) => link('webinar', s.id), // placeholder: no webinar page yet
   },
@@ -82,7 +84,7 @@ export const serviceKinds = [
     cta: 'View course',
     facts: (s) => [
       { icon: 'lessons', text: plural(count(s.lessonCount) || 1, 'lesson', 'lessons') },
-      { icon: 'clock', text: duration(s.totalMins) },
+      { icon: 'clock', text: durationLabel(s.totalMins) },
     ],
     href: (s) => link('course', s.id), // placeholder: no course page yet
   },
