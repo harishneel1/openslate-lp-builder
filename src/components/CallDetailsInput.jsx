@@ -252,11 +252,14 @@ export default function CallDetailsInput({
               Try:
             </span>
             <div className="call__try-list" role="group" aria-labelledby="call-try">
-              {TITLE_SUGGESTIONS.map((s) => (
+              {TITLE_SUGGESTIONS.map((s, i) => (
                 <button
                   key={s}
                   type="button"
-                  className={`call__try-chip ${title === s ? 'call__try-chip--on' : ''}`}
+                  // Setup, nothing typed yet: the first suggestion pulses to show it's there to tap
+                  className={`call__try-chip ${title === s ? 'call__try-chip--on' : ''} ${
+                    grouped && i === 0 && title.trim() === '' ? 'call__try-chip--pulse' : ''
+                  }`}
                   aria-pressed={title === s}
                   onClick={() => onChange(s, 'callTitle')}
                 >

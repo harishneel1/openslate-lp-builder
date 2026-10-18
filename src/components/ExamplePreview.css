@@ -1,179 +1,407 @@
-.ex {
+.call {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  container-type: inline-size; /* the length tiles fit themselves to this width */
+}
+
+/* Setup screen: three cards, set apart by their edges */
+.call--grouped {
+  gap: 20px;
+}
+
+/* ---------- A group's heading (setup screen) ---------- */
+.call__group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.call__group-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.call__group-sub {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Name suggestions: quiet "Try:" chips ---------- */
+.call__try {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 4px;
+}
+
+.call__try-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.call__try-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.call__try-chip {
+  padding: 4px 11px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.call__try-chip:hover {
+  border-color: #d6d6d6;
+}
+
+.call__try-chip--on,
+.call__try-chip--on:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-color: transparent;
+}
+
+/* Nothing typed yet (setup only): an orange ring pulses out from the
+   first suggestion, to show the chips can be tapped. Stops once there's a name. */
+.call__try-chip--pulse {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  animation: call-try-pulse 1.8s ease-out infinite;
+}
+
+@keyframes call-try-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 138, 60, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 138, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 138, 60, 0);
+  }
+}
+
+.call__try-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Length: one track of tiles ----------
+   Four to a row in a narrow column (the setup screen), all eight in one
+   row when there's room (the edit screen) */
+.call__lengths {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+@container (min-width: 600px) {
+  .call__lengths {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+.call__length {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 8px 4px;
+  color: var(--color-text);
+  text-align: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-md) - 4px);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.call__length:hover {
+  background: var(--color-surface);
+}
+
+.call__length--on,
+.call__length--on:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card);
+}
+
+.call__length-value {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.call__length-unit {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+}
+
+.call__length--custom .call__length-value {
+  font-size: 14px;
+}
+
+.call__length:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Video or phone: two choice cards ---------- */
+.call__formats {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* ---------- Header ---------- */
-.ex__caption {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-
-.ex__note {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--color-text-muted);
-}
-
-.ex__note svg {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-/* ---------- Browser frame ---------- */
-.ex__frame {
-  display: flex;
-  flex-direction: column;
-  height: min(760px, calc(100vh - 200px));
-  min-height: 480px;
+.call__format {
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.ex__browserbar {
+.call__format:hover {
+  border-color: #d6d6d6;
+}
+
+.call__format--on,
+.call__format--on:hover {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+/* The whole top row picks it */
+.call__format-pick {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  height: 32px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.ex__dots {
-  display: inline-flex;
-  gap: 6px;
-}
-
-.ex__dots span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #dcdcdc;
-}
-
-/* ---------- The example page ---------- */
-.ex__viewport {
-  position: relative;
-  flex: 1;
-  overflow: hidden;
-  background: #05050a; /* matches the example page, so no flash while it loads */
-}
-
-.ex__stage {
-  --ex-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  position: relative;
-  transition: transform 0.5s var(--ex-ease);
-  will-change: transform;
-}
-
-.ex__image {
-  display: block;
+  gap: 14px;
   width: 100%;
-  height: 100%;
-  user-select: none;
+  padding: 14px 16px;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: inherit;
+  cursor: pointer;
 }
 
-/* Gently dims the rest of the page, so the boxed part stands out
-   but everything around it can still be read */
-.ex__spot {
-  position: absolute;
-  border-radius: 12px;
-  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.22);
-  pointer-events: none;
-  transition: left 0.5s var(--ex-ease), top 0.5s var(--ex-ease),
-    width 0.5s var(--ex-ease), height 0.5s var(--ex-ease);
+.call__format-pick:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-/* ---------- Marks: box, arrows, pill, bubble ---------- */
-.ex__marks {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  animation: ex-appear 0.3s ease-out 0.35s both;
+.call__format-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-sm);
 }
 
-@keyframes ex-appear {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
+.call__format--on .call__format-icon {
+  background: var(--color-surface);
 }
 
-.ex__svg {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
+.call__format-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
-.ex__box {
-  fill: none;
-  stroke: var(--color-primary);
-  stroke-width: 2;
-  stroke-dasharray: 7 5;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 6px rgba(239, 138, 60, 0.45));
+.call__format-name {
+  font-size: 15px;
+  font-weight: 600;
 }
 
-.ex__arrow {
-  fill: none;
-  stroke: var(--color-primary);
-  stroke-width: 2;
-  stroke-linecap: round;
+.call__format-line {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
-.ex__arrowhead {
-  fill: none;
-  stroke: var(--color-primary);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* A radio dot, so it reads as one-or-the-other */
+.call__format-mark {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background: var(--color-surface);
+  border: 2px solid #cfcfcf;
+  border-radius: 50%;
+  transition: border-color 0.15s, border-width 0.15s;
 }
 
-/* "This is your headline" */
-.ex__label {
-  position: absolute;
+.call__format--on .call__format-mark {
+  border: 6px solid var(--color-primary);
+}
+
+/* Video's meeting link, inside its card */
+.call__format-body {
+  padding: 0 16px 16px;
+}
+
+/* ---------- Free or paid ---------- */
+.call__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.call__chip {
   display: inline-flex;
   align-items: center;
-  height: 30px;
-  padding: 0 14px;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--color-primary);
-  border-radius: var(--radius-pill);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-}
-
-/* Why it matters */
-.ex__tip {
-  position: absolute;
-  padding: 10px 14px;
-  font-size: 13px;
-  line-height: 1.45;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--color-text);
   background: var(--color-surface);
-  border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s, background 0.15s;
 }
 
-/* Tall boxes: the bubble sits at the bottom of the panel, inside the box */
-.ex__tip--inside {
-  transform: translateY(-100%);
+.call__chip:hover {
+  border-color: #d6d6d6;
+}
+
+/* Free or paid: a bit bigger */
+.call__chip--big {
+  padding: 10px 18px;
+  font-size: 15px;
+}
+
+.call__chip--on,
+.call__chip--on:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.call__chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Custom length ---------- */
+.call__custom {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.call__custom-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.call__select {
+  width: 76px;
+  padding: 10px 30px 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6b6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  appearance: none;
+  cursor: pointer;
+}
+
+.call__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* How it'll read on the page, so "1 hr 15 min" is confirmed back to them */
+.call__custom-total {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Price ---------- */
+/* Paid: discounted and regular price side by side, then "On your page" */
+.call__prices {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.call__price-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 16px;
+  align-items: start;
+}
+
+/* ---------- Description ---------- */
+.call__description {
+  resize: vertical;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* ---------- The link people use to join a video call ---------- */
+.call__link-input {
+  font-size: 16px;
+}
+
+.call__link-under {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px; /* the field already spaces it from the box */
+}
+
+/* "✓ Zoom link": what kind of room it is, once it's usable */
+.call__link-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-success);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ex__stage,
-  .ex__spot {
-    transition: none;
-  }
-  .ex__marks {
+  /* No pulse: a still orange ring instead */
+  .call__try-chip--pulse {
     animation: none;
+    box-shadow: 0 0 0 2px rgba(239, 138, 60, 0.45);
+  }
+
+  .call__try-chip,
+  .call__length,
+  .call__format,
+  .call__format-mark {
+    transition: none;
   }
 }
