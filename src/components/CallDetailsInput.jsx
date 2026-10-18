@@ -10,19 +10,113 @@ import {
   callDescriptionOf,
 } from '../data/callDetails';
 import { durationLabel } from '../data/serviceKinds';
+import PriceExample from './PriceExample';
 import './CallDetailsInput.css';
 
 const TITLE_MAX = 60;
 const DESCRIPTION_MAX = 200;
 
+// The short description: a line or two on the offering card.
+// Its own piece so the edit screen can show it with the long description.
+// note: shown under the box, beside the count (in place of the suggestion hint)
+export function ShortDescriptionField({ answers, onChange, note = null }) {
+  const description = callDescriptionOf(answers);
+  const suggested = answers.callDescription === undefined && description !== '';
+
+  return (
+    <div className="qinput__field">
+      <label className="qinput__label" htmlFor="call-description">
+        Short description
+        <span className="qinput__optional"> · Optional</span>
+      </label>
+      <textarea
+        id="call-description"
+        className="qinput__text call__description"
+        rows={3}
+        maxLength={DESCRIPTION_MAX}
+        placeholder="A line or two on what happens in the call"
+        value={description}
+        onChange={(e) => onChange(e.target.value, 'callDescription')}
+      />
+      <span className="qinput__under">
+        <span className="qinput__example">
+          {note ?? (suggested ? 'Suggested from the name. Change it, or clear it to leave it out.' : '')}
+        </span>
+        <span className="qinput__count">{description.length}/{DESCRIPTION_MAX}</span>
+      </span>
+    </div>
+  );
+}
+
+// Rupee amount: digits only, no leading zeros
+const rupees = (text) => text.replace(/\D/g, '').replace(/^0+/, '');
+
+// Discounted price (callPrice) and an optional regular price (callComparePrice),
+// shown crossed out. Same fields, wording and rules as the webinar flow's
+// "Set your price": a regular price that isn't higher gets a note, and simply
+// doesn't show on the page.
+function PaidPrices({ answers, onChange }) {
+  const price = answers.callPrice ?? '';
+  const regular = answers.callComparePrice ?? '';
+  const floor = Number(price) || 0;
+  const tooLow = floor > 0 && String(regular).trim() !== '' && Number(regular) <= floor;
+
+  return (
+    <div className="call__prices">
+      <div className="call__price-fields">
+        <label className="qinput__field">
+          <span className="qinput__label">Discounted price</span>
+          <span className="qinput__money">
+            <span className="qinput__currency" aria-hidden="true">₹</span>
+            <input
+              inputMode="numeric"
+              className="qinput__text qinput__money-input"
+              value={price}
+              maxLength={6}
+              onChange={(e) => onChange(rupees(e.target.value), 'callPrice')}
+            />
+          </span>
+          <span className="qinput__example">e.g. ₹1500</span>
+        </label>
+
+        <label className="qinput__field">
+          <span className="qinput__label">
+            Regular price
+            <span className="qinput__optional"> · Optional</span>
+          </span>
+          <span className="qinput__money">
+            <span className="qinput__currency" aria-hidden="true">₹</span>
+            <input
+              inputMode="numeric"
+              className="qinput__text qinput__money-input"
+              value={regular}
+              maxLength={6}
+              onChange={(e) => onChange(rupees(e.target.value), 'callComparePrice')}
+            />
+          </span>
+          {tooLow ? (
+            <span className="qinput__error" role="alert">
+              This needs to be more than your discounted price (₹{floor}) to show crossed out.
+            </span>
+          ) : (
+            <span className="qinput__example">Shown crossed out next to your discounted price.</span>
+          )}
+        </label>
+      </div>
+
+      <PriceExample price={price} oldPrice={regular} />
+    </div>
+  );
+}
+
 // Everything that makes a 1:1 call bookable, on one screen.
 // Each part saves under its own id (callTitle, callDuration, ...).
-export default function CallDetailsInput({ answers, onChange }) {
+// showDescription: false leaves out the short description (the edit
+// screen shows it in its own section instead).
+export default function CallDetailsInput({ answers, onChange, showDescription = true }) {
   const valueOf = (id) => answers[id] ?? CALL_DEFAULTS[id] ?? '';
   const title = String(valueOf('callTitle'));
   const pricing = valueOf('callPricing');
-  const description = callDescriptionOf(answers);
-  const suggested = answers.callDescription === undefined && description !== '';
   const duration = Number(valueOf('callDuration'));
 
   // Custom is open when they chose it, or came back with a length that isn't a chip
@@ -179,47 +273,14 @@ export default function CallDetailsInput({ answers, onChange }) {
               </button>
             ))}
           </div>
-          {pricing === 'paid' && (
-            <span className="call__money">
-              <span className="call__rupee" aria-hidden="true">₹</span>
-              <input
-                className="qinput__text call__money-input"
-                inputMode="numeric"
-                aria-label="Price in rupees"
-                placeholder="1,500"
-                maxLength={6}
-                value={valueOf('callPrice')}
-                onChange={(e) =>
-                  onChange(e.target.value.replace(/\D/g, '').replace(/^0+/, ''), 'callPrice')
-                }
-              />
-            </span>
-          )}
         </div>
+
+        {/* Paid: the same two boxes and "On your page" line as the webinar price screen */}
+        {pricing === 'paid' && <PaidPrices answers={answers} onChange={onChange} />}
       </div>
 
       {/* ---------- Description (optional) ---------- */}
-      <div className="qinput__field">
-        <label className="qinput__label" htmlFor="call-description">
-          Short description?
-          <span className="qinput__optional"> · Optional</span>
-        </label>
-        <textarea
-          id="call-description"
-          className="qinput__text call__description"
-          rows={3}
-          maxLength={DESCRIPTION_MAX}
-          placeholder="A line or two on what happens in the call"
-          value={description}
-          onChange={(e) => onChange(e.target.value, 'callDescription')}
-        />
-        <span className="qinput__under">
-          <span className="qinput__example">
-            {suggested ? 'Suggested from the name. Change it, or clear it to leave it out.' : ''}
-          </span>
-          <span className="qinput__count">{description.length}/{DESCRIPTION_MAX}</span>
-        </span>
-      </div>
+      {showDescription && <ShortDescriptionField answers={answers} onChange={onChange} />}
     </div>
   );
 }

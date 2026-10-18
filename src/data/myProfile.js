@@ -78,7 +78,8 @@ export function getMyProfile(answers = loadAnswers()) {
     durationMins: Number(value('callDuration')),
     format: value('callFormat'),
     price: free ? 0 : Number(answers.callPrice) || 0,
-    comparePrice: null,
+    // Regular price, crossed out. Ignored for a free call; only shows when it's higher (buildProfileJson)
+    comparePrice: free ? null : Number(answers.callComparePrice) || null,
     image: null,
     rating: stats.rating ?? null,
     ratingCount: stats.ratingCount ?? 0,

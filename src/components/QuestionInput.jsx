@@ -11,6 +11,7 @@ import HandleInput from './HandleInput';
 import OfferTypeInput from './OfferTypeInput';
 import CallDetailsInput from './CallDetailsInput';
 import CallAboutInput from './CallAboutInput';
+import PriceExample from './PriceExample';
 import WeeklyHoursInput from './WeeklyHoursInput';
 import ServiceSummaryInput from './ServiceSummaryInput';
 
@@ -295,30 +296,6 @@ function PhotoField({ field, value, initial, onChange }) {
     </div>
   );
 }
-
-// How their price will look on the page, using their own numbers.
-// The regular price only shows crossed out when it's higher.
-function PriceExample({ price, oldPrice }) {
-  const p = Number(price) || 0;
-  const o = Number(oldPrice) || 0;
-  if (p <= 0) return null;
-
-  const money = (n) => `₹${n.toLocaleString('en-IN')}`;
-  const showOld = o > p;
-  const percentOff = showOld ? Math.round((1 - p / o) * 100) : 0;
-
-  return (
-    <div className="qinput__price-example">
-      <span className="qinput__price-example-label">On your page</span>
-      <p className="qinput__price-example-line">
-        {showOld && <s className="qinput__price-example-old">{money(o)}</s>}
-        <strong className="qinput__price-example-new">{money(p)}</strong>
-        {showOld && <span className="qinput__price-example-off">{percentOff}% off</span>}
-      </p>
-    </div>
-  );
-}
-
 
 // Several small fields on one screen; each saves under its own id
 function GroupInput({ question, answers, onChange }) {

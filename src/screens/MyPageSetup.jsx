@@ -71,7 +71,15 @@ export default function MyPageSetup() {
   }
 
   if (step === 'editService') {
-    return <EditService answers={answers} serviceId={editingId} onBack={() => setStep('home')} />;
+    return (
+      <EditService
+        answers={answers}
+        serviceId={editingId}
+        onBack={() => setStep('home')}
+        // Saved changes go straight onto the live page (and into this browser)
+        onSave={(changes) => setAnswers((prev) => ({ ...prev, ...changes }))}
+      />
+    );
   }
 
   return (

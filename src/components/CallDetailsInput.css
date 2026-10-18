@@ -102,25 +102,19 @@
   gap: 12px;
 }
 
-.call__money {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
+/* Paid: discounted and regular price side by side, then "On your page" */
+.call__prices {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
 }
 
-.call__rupee {
-  position: absolute;
-  left: 16px;
-  font-size: 17px;
-  color: var(--color-text-muted);
-  pointer-events: none;
-}
-
-.call .call__money-input {
-  width: 150px;
-  padding: 10px 14px 10px 34px;
-  font-size: 17px;
-  font-weight: 600;
+.call__price-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 16px;
+  align-items: start;
 }
 
 /* ---------- Description ---------- */
