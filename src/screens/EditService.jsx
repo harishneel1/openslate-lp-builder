@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Check, ExternalLink } from 'lucide-react';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
@@ -44,9 +44,8 @@ function EditCall({ answers, onBack, onSave }) {
   );
   const [edits, setEdits] = useState({}); // only what they've changed since the last save
   const [formKey, setFormKey] = useState(0); // bumped on Discard, so the form starts afresh
-  const [justSaved, setJustSaved] = useState(false);
+  const [justSaved, setJustSaved] = useState(false); // shows "Changes saved" until they edit again
   const [leaving, setLeaving] = useState(false); // "Leave without saving?" showing
-  const savedTimer = useRef(null);
 
   const draft = useMemo(() => ({ ...saved, ...edits }), [saved, edits]);
   const changed = FIELDS.filter((id) => id in edits && edits[id] !== saved[id]);
@@ -70,8 +69,6 @@ function EditCall({ answers, onBack, onSave }) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  useEffect(() => () => clearTimeout(savedTimer.current), []);
-
   const handleChange = (value, id) => {
     if (!FIELDS.includes(id)) return;
     setEdits((prev) => ({ ...prev, [id]: value }));
@@ -89,8 +86,6 @@ function EditCall({ answers, onBack, onSave }) {
     onSave(changes);
     setEdits({});
     setJustSaved(true);
-    clearTimeout(savedTimer.current);
-    savedTimer.current = setTimeout(() => setJustSaved(false), 3000);
   };
 
   const discard = () => {
@@ -175,21 +170,36 @@ function EditCall({ answers, onBack, onSave }) {
           <p className="es__status" aria-live="polite">
             {dirty && problem}
             {dirty && valid && 'You have unsaved changes'}
+            {/* Saved: say so, and offer a look at the live page */}
             {!dirty && justSaved && (
-              <span className="es__saved">
-                <Check size={16} strokeWidth={3} aria-hidden="true" /> Changes saved. They’re on your page now.
-              </span>
+              <>
+                <span className="es__saved">
+                  <Check size={16} strokeWidth={3} aria-hidden="true" /> Changes saved
+                </span>
+                <a className="es__view" href={pageUrl(saved.handle)} target="_blank" rel="noopener">
+                  View your page
+                  <ExternalLink size={14} aria-hidden="true" />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </>
             )}
           </p>
+          {/* Unsaved changes: Discard and Save. Nothing to save: Done, back to the offerings home. */}
           <div className="es__bar-actions">
-            {dirty && (
-              <button type="button" className="es__btn es__btn--quiet" onClick={discard}>
-                Discard changes
+            {dirty ? (
+              <>
+                <button type="button" className="es__btn es__btn--quiet" onClick={discard}>
+                  Discard changes
+                </button>
+                <button type="button" className="es__btn es__btn--primary" onClick={save} disabled={!valid}>
+                  Save changes
+                </button>
+              </>
+            ) : (
+              <button type="button" className="es__btn es__btn--primary" onClick={onBack}>
+                Done
               </button>
             )}
-            <button type="button" className="es__btn es__btn--primary" onClick={save} disabled={!dirty || !valid}>
-              Save changes
-            </button>
           </div>
         </div>
       </div>

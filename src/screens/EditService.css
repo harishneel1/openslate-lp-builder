@@ -170,12 +170,40 @@
   color: var(--color-text-muted);
 }
 
+/* "✓ Changes saved   View your page ↗" */
+.es__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+}
+
 .es__saved {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: 600;
   color: var(--color-success);
+}
+
+.es__view {
+  position: relative; /* holds its hidden "(opens in a new tab)" in place */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  text-decoration: none;
+}
+
+.es__view:hover {
+  text-decoration: underline;
+}
+
+.es__view:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .es__bar-actions {
