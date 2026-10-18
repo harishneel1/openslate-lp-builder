@@ -3,6 +3,8 @@ import QuestionFlow from './QuestionFlow';
 import ProfileExample from '../components/ProfileExample';
 import MyPageIntro from './MyPageIntro';
 import MyPageReveal from './MyPageReveal';
+import OfferingsHome from './OfferingsHome';
+import EditService from './EditService';
 import { MY_PAGE_STEPS, myPageQuestions } from '../data/myPageQuestions';
 import { SETUP_CHANGED_EVENT, SETUP_STORAGE_KEY } from '../data/myPage';
 
@@ -18,15 +20,19 @@ function loadAnswers() {
 // The offerings page, the first time: an intro to what a page is, then
 // questions on the left with a popular creator's page on the right,
 // the part each answer fills in highlighted, then their page, live.
+// After that, the offerings home: no more questions, just their page
+// and services to change directly.
 // Answers are kept in this browser for now.
 // ------------------------------------------------------------
 export default function MyPageSetup() {
   const [answers, setAnswers] = useState(loadAnswers);
-  // 'intro' → 'questions' → 'done' (the page, live).
-  // Finished before? Their page. Started before? Straight to the questions.
+  // Setup: 'intro' → 'questions' → 'done' (the page, live, shown once).
+  // Then: 'home' (the offerings home) ↔ 'editService' (one offering, or a new one).
+  // Finished before? The home. Started before? Straight to the questions.
   const [step, setStep] = useState(() =>
-    answers.publishedAt ? 'done' : Object.keys(answers).length > 0 ? 'questions' : 'intro'
+    answers.publishedAt ? 'home' : Object.keys(answers).length > 0 ? 'questions' : 'intro'
   );
+  const [editingId, setEditingId] = useState(null); // the offering open in 'editService'; null = a new one
 
   useEffect(() => {
     try {
@@ -43,9 +49,29 @@ export default function MyPageSetup() {
     return <MyPageIntro onStart={() => setStep('questions')} />;
   }
 
-  // Done: the page is live. Back to the questions to change anything.
+  // Done: the page is live. "Edit my offerings page" goes to the home, not back to the questions.
   if (step === 'done') {
-    return <MyPageReveal handle={answers.handle} onEdit={() => setStep('questions')} />;
+    return <MyPageReveal handle={answers.handle} onEdit={() => setStep('home')} />;
+  }
+
+  if (step === 'home') {
+    return (
+      <OfferingsHome
+        answers={answers}
+        onEditOffering={(id) => {
+          setEditingId(id);
+          setStep('editService');
+        }}
+        onAddOffering={() => {
+          setEditingId(null);
+          setStep('editService');
+        }}
+      />
+    );
+  }
+
+  if (step === 'editService') {
+    return <EditService answers={answers} serviceId={editingId} onBack={() => setStep('home')} />;
   }
 
   return (

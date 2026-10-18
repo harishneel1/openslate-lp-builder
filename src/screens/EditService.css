@@ -1,0 +1,36 @@
+.es {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-top: 16px;
+}
+
+.es__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.es__back:hover {
+  color: var(--color-text);
+}
+
+.es__back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.es__title {
+  margin-top: 20px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.es__soon {
+  margin-top: 10px;
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
