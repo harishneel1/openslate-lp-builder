@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ExternalLink } from 'lucide-react';
-import EditFrame, { EditPanel, EditPlaceholder, useEditDraft } from './EditFrame';
+import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
+import ServicePickInput from '../components/ServicePickInput';
 import { MY_CALL_ID } from '../data/myProfile';
+import { getService, servicePrice } from '../data/mockServices';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsComplete } from '../data/callDetails';
 import { loadSchedule } from '../data/availabilityStore';
@@ -11,6 +13,7 @@ import { timeZones } from '../data/timeZones';
 import { durationLabel } from '../data/serviceKinds';
 import { longestBlock, weekSummary } from '../utils/weeklyHours';
 import '../components/QuestionInput.css'; // field styles the call details use
+import './QuestionFlow.css'; // the picker's "Create your first service" button
 import './EditService.css';
 
 // The call's answers this screen edits. Anything else in the answers is left alone.
@@ -23,15 +26,28 @@ const FIELDS = [
   'callComparePrice',
   'callDescription',
   'callAbout',
+  'serviceId',
 ];
 
+// Which answers belong to which section, for its "Edited" tag
+const SECTION_FIELDS = {
+  basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice'],
+  descriptions: ['callDescription', 'callAbout'],
+  service: ['serviceId'],
+};
+
 // ------------------------------------------------------------
-// Editing one offering, opened from its card on the offerings home:
-// Basics (name, length, format, price) and Descriptions (short and long).
-// Changes stay on this screen until Save (see EditFrame.jsx).
-//
-// When people can book: a summary of their hours (shared by all calls),
-// with a link to the Availability screen to change them.
+// Editing one offering, opened from its card on the offerings home.
+// Four sections, each closed to a one-line summary until opened:
+//   Basics                name, length, format, price
+//   Descriptions          short and long
+//   When people can book  their hours (shared by all calls), with a link
+//                         to the Availability screen to change them
+//   Service               the checkout page people book and pay through,
+//                         picked from their services (the same picker as
+//                         the funnel builder and storefront setup)
+// Changes stay on this screen until Save (see EditFrame.jsx). The call's
+// price and the service's price are kept separately, as set.
 //
 // serviceId null: "Add a new offering" (a placeholder for now).
 // onSave(changes): merges the changed answers into the saved ones.
@@ -53,13 +69,27 @@ function EditCall({ answers, onBack, onSave }) {
   );
   const edit = useEditDraft(saved, FIELDS);
   const { draft, formKey, handleChange } = edit;
+  const schedule = useSchedule();
 
-  // What's stopping a save, if anything
-  const problem = !callDetailsComplete(draft)
-    ? 'Add a name and a price (or make it free) to save'
+  // Every section starts closed; any number can be open at once
+  const [open, setOpen] = useState({});
+  const toggle = (id) => setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
+  const edited = (id) => SECTION_FIELDS[id].some((f) => draft[f] !== saved[f]);
+
+  // What's stopping a save, if anything, and which section it's in
+  const blocker = !callDetailsComplete(draft)
+    ? { section: 'basics', text: 'Add a name and a price (or make it free) to save' }
     : callAboutOf(draft).trim() === ''
-      ? 'Add a long description to save'
+      ? { section: 'descriptions', text: 'Add a long description to save' }
       : null;
+  const problem = blocker?.text ?? null;
+
+  // A new problem opens its section, so what needs fixing is in view.
+  // They can still close it; it opens again only if the problem changes.
+  const blockedSection = blocker?.section ?? null;
+  useEffect(() => {
+    if (blockedSection) setOpen((prev) => ({ ...prev, [blockedSection]: true }));
+  }, [blockedSection]);
 
   const save = () => {
     if (!edit.dirty || problem) return;
@@ -72,6 +102,9 @@ function EditCall({ answers, onBack, onSave }) {
     edit.saved();
   };
 
+  const hours = hoursAtAGlance(schedule, Number(draft.callDuration));
+  const shortDescription = String(draft.callDescription ?? '').trim();
+
   return (
     <EditFrame
       edit={edit}
@@ -82,14 +115,32 @@ function EditCall({ answers, onBack, onSave }) {
       problem={problem}
       viewHref={pageUrl(saved.handle)}
     >
-      <EditPanel id="es-basics" title="Basics" sub="The name, length, format and price people see before they book.">
+      <EditSection
+        id="es-basics"
+        title="Basics"
+        sub="The name, length, format and price people see before they book."
+        summary={blocker?.section === 'basics' ? blocker.text : basicsSummary(draft)}
+        warn={blocker?.section === 'basics'}
+        edited={edited('basics')}
+        open={Boolean(open.basics)}
+        onToggle={() => toggle('basics')}
+      >
         <CallDetailsInput key={formKey} answers={draft} onChange={handleChange} showDescription={false} />
-      </EditPanel>
+      </EditSection>
 
-      <EditPanel
+      <EditSection
         id="es-descriptions"
         title="Descriptions"
         sub="What people read about your call before they book."
+        summary={
+          blocker?.section === 'descriptions'
+            ? blocker.text
+            : shortDescription || 'No short description'
+        }
+        warn={blocker?.section === 'descriptions'}
+        edited={edited('descriptions')}
+        open={Boolean(open.descriptions)}
+        onToggle={() => toggle('descriptions')}
         className="es__fields"
       >
         <ShortDescriptionField
@@ -112,13 +163,88 @@ function EditCall({ answers, onBack, onSave }) {
           showNote={false}
           note={<WhereItShows text="Shows on" href={BOOKING_HREF} label="your booking page" />}
         />
-      </EditPanel>
+      </EditSection>
 
-      <EditPanel id="es-when" title="When people can book" sub="Your hours. They’re the same for all your 1:1 calls.">
-        <HoursSummary durationMins={Number(draft.callDuration)} />
-      </EditPanel>
+      <EditSection
+        id="es-when"
+        title="When people can book"
+        sub="Your hours. They’re the same for all your 1:1 calls."
+        summary={hours.warning ? hours.short : hours.text}
+        warn={Boolean(hours.warning)}
+        open={Boolean(open.when)}
+        onToggle={() => toggle('when')}
+      >
+        <HoursSummary schedule={schedule} warning={hours.warning} />
+      </EditSection>
+
+      <EditSection
+        id="es-service"
+        title="Service"
+        sub="The checkout page people fill in, and pay on, when they book this call."
+        summary={serviceSummary(draft.serviceId)}
+        edited={edited('service')}
+        open={Boolean(open.service)}
+        onToggle={() => toggle('service')}
+        className="es-service"
+      >
+        <ServicePickInput
+          key={`service-${formKey}`}
+          value={draft.serviceId ?? null}
+          onChange={(id) => handleChange(id, 'serviceId')}
+        />
+      </EditSection>
     </EditFrame>
   );
+}
+
+// ---------- One-line summaries, shown while a section is closed ----------
+
+// "Career clarity call · 60 min · Video call · ₹1,500"
+function basicsSummary(draft) {
+  const name = String(draft.callTitle ?? '').trim() || 'No name yet';
+  const format = draft.callFormat === 'phone' ? 'Phone call' : 'Video call';
+  const price =
+    draft.callPricing === 'free'
+      ? 'Free'
+      : Number(draft.callPrice) > 0
+        ? `₹${Number(draft.callPrice).toLocaleString('en-IN')}`
+        : 'No price yet';
+  return [name, durationLabel(draft.callDuration), format, price].join(' · ');
+}
+
+// "Career Clarity Call – Checkout · ₹1,500". Read fresh each render, so a
+// service made in another tab and picked here shows straight away.
+function serviceSummary(serviceId) {
+  const service = getService(serviceId);
+  if (!service) return 'No service picked yet';
+  return `${service.title} · ${servicePrice(service)}`;
+}
+
+// Their hours, short: "Mon–Fri, 10 am – 6 pm", or the first group and
+// "+ 2 more" when days have different hours. Also says when nobody can book.
+// durationMins: this call's length, to warn when no block is long enough.
+function hoursAtAGlance(schedule, durationMins) {
+  const { open } = weekSummary(schedule.weekly);
+  const longest = longestBlock(schedule.weekly);
+
+  if (open.length === 0) {
+    return {
+      warning: 'You haven’t set any hours, so people can’t book this call.',
+      short: 'No hours set, so people can’t book',
+    };
+  }
+
+  const first = `${open[0].days}, ${open[0].hours}`;
+  const text = open.length > 1 ? `${first} + ${open.length - 1} more` : first;
+
+  if (durationMins > longest) {
+    return {
+      text,
+      warning: `None of your hours are long enough for a ${durationLabel(durationMins)} call, so people won’t see any times. Add a longer block, or make the call shorter.`,
+      short: `No hours long enough for a ${durationLabel(durationMins)} call`,
+    };
+  }
+  return { text, warning: null };
 }
 
 // Their call's booking page (the same link as Preview on the offerings home)
@@ -143,11 +269,10 @@ function WhereItShows({ text, href, label }) {
 // (like the service's Preview and Edit links)
 const AVAILABILITY_HREF = '?mock=availability';
 
-// Their weekly hours at a glance, read from where the Availability screen
-// saves them. Read again whenever they come back to this tab, so it's
-// up to date after changing hours there.
-// durationMins: this call's length, to warn when no block is long enough.
-function HoursSummary({ durationMins }) {
+// Their weekly hours, read from where the Availability screen saves them.
+// Read again whenever they come back to this tab, so it's up to date
+// after changing hours there.
+function useSchedule() {
   const [schedule, setSchedule] = useState(loadSchedule);
 
   useEffect(() => {
@@ -162,17 +287,14 @@ function HoursSummary({ durationMins }) {
     };
   }, []);
 
+  return schedule;
+}
+
+// Their weekly hours, day by day.
+// warning: why nobody can book this call, if so (from hoursAtAGlance).
+function HoursSummary({ schedule, warning }) {
   const { open, closed } = weekSummary(schedule.weekly);
   const zone = timeZones.find((z) => z.id === schedule.timeZone)?.name ?? schedule.timeZone;
-  const longest = longestBlock(schedule.weekly);
-
-  // Nothing bookable: no hours, or none long enough for this call
-  let warning = null;
-  if (open.length === 0) {
-    warning = 'You haven’t set any hours, so people can’t book this call.';
-  } else if (durationMins > longest) {
-    warning = `None of your hours are long enough for a ${durationLabel(durationMins)} call, so people won’t see any times. Add a longer block, or make the call shorter.`;
-  }
 
   return (
     <div className="es-hours">

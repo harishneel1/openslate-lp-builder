@@ -95,6 +95,131 @@
   padding: 24px;
 }
 
+/* ---------- Collapsible section (EditSection) ---------- */
+/* Closed sections sit closer together, so the list reads as one set */
+.es-sec + .es-sec {
+  margin-top: 16px;
+}
+
+.es-sec__heading {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* The whole head is the button */
+.es-sec__toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 20px 24px;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.es-sec--open .es-sec__toggle {
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.es-sec__toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.es-sec__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.es-sec__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Unsaved changes in this section */
+.es-sec__edited {
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-pill);
+}
+
+/* Summary (closed) or what the section is for (open) */
+.es-sec__line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Closed: one line, then … */
+.es-sec__line-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.es-sec--open .es-sec__line-text {
+  white-space: normal;
+}
+
+.es-sec__line--warn {
+  color: #92400e;
+}
+
+.es-sec__line--warn svg {
+  flex-shrink: 0;
+}
+
+.es-sec__action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.es-sec__toggle:hover .es-sec__action {
+  color: var(--color-primary-hover);
+}
+
+.es-sec__chevron {
+  transition: transform 0.2s;
+}
+
+.es-sec--open .es-sec__chevron {
+  transform: rotate(180deg);
+}
+
+/* A closed body is hidden even when its own class sets display (e.g. .es__fields) */
+.es-sec > .es-sec__body[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .es-sec__chevron {
+    transition: none;
+  }
+}
+
 /* Fields stacked in a panel, spaced like the Basics fields */
 .es__fields {
   display: flex;

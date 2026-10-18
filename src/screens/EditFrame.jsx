@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, ChevronDown, ExternalLink } from 'lucide-react';
 import './EditFrame.css';
 
 // ------------------------------------------------------------
@@ -8,6 +8,7 @@ import './EditFrame.css';
 //   useEditDraft  keeps changes on screen until Save
 //   EditFrame     back link, title, "Leave without saving?", save bar
 //   EditPanel     one white section with a heading
+//   EditSection   the same, collapsed to a one-line summary until opened
 // ------------------------------------------------------------
 
 // saved: what's saved now. fields: the answer ids this screen may change.
@@ -209,6 +210,54 @@ export function EditPanel({ id, title, sub, className = '', children }) {
         {sub && <p className="es__panel-sub">{sub}</p>}
       </div>
       <div className={`es__panel-body ${className}`}>{children}</div>
+    </section>
+  );
+}
+
+// A section that starts as one line: its title and a summary of what's set.
+// The whole head opens and closes it. Closing keeps any changes (they only
+// go when the save bar's Discard is pressed), and "Edited" marks a section
+// with unsaved changes so they're easy to spot while it's closed.
+// The body stays mounted while closed, so nothing in it resets.
+//
+// summary: what's set, shown while closed (sub shows while open)
+// warn: something here needs fixing; the summary shows it in amber
+// edited: unsaved changes in this section
+export function EditSection({ id, title, sub, summary, warn = false, edited = false, open, onToggle, className = '', children }) {
+  const bodyId = `${id}-body`;
+  const line = open ? sub : summary;
+  return (
+    <section className={`es__panel es-sec ${open ? 'es-sec--open' : ''}`} aria-label={title}>
+      <h2 className="es-sec__heading">
+        <button
+          type="button"
+          id={id}
+          className="es-sec__toggle"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={onToggle}
+        >
+          <span className="es-sec__text">
+            <span className="es-sec__title">
+              {title}
+              {edited && <span className="es-sec__edited">Edited</span>}
+            </span>
+            {line && (
+              <span className={`es-sec__line ${!open && warn ? 'es-sec__line--warn' : ''}`}>
+                {!open && warn && <AlertTriangle size={14} aria-hidden="true" />}
+                <span className="es-sec__line-text">{line}</span>
+              </span>
+            )}
+          </span>
+          <span className="es-sec__action" aria-hidden="true">
+            {open ? 'Hide' : 'Edit'}
+            <ChevronDown size={16} className="es-sec__chevron" />
+          </span>
+        </button>
+      </h2>
+      <div id={bodyId} className={`es__panel-body es-sec__body ${className}`} hidden={!open}>
+        {children}
+      </div>
     </section>
   );
 }

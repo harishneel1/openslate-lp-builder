@@ -104,3 +104,18 @@
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* ---------- Service: the shared picker, sitting inside a section ---------- */
+/* The picker's first block has room above it on its own screen; not here */
+.es-service .qinput > :first-child {
+  margin-top: 0;
+}
+
+/* No services yet: the section is already the card, so no second one inside */
+.es-service .service-picker__none {
+  margin-top: 0;
+  padding: 8px 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
