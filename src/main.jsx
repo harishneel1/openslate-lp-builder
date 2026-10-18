@@ -23,7 +23,8 @@ import { getMockProfile } from './data/mockProfile'
 // ?mock=checkout&service=<id>&time=<UTC instant>&tz=<zone> → checkout (from Continue).
 //   Add &taken=1 to see the time having just been taken, &hold=20 to see a 20-second hold run out,
 //   or &fail=1 to see the first payment fail.
-// ?mock=booked → the confirmation page (checkout's Pay goes here with the booking's details).
+// ?mock=booked → the confirmation page (checkout's Pay goes here with the booking's details;
+//   &booking=<id> for the creator's own calls, the booking checkout saved).
 // ?mock=availability → the creator's Availability screen (in the app, under Services).
 // /<handle> (e.g. localhost:5173/harishneel) → that creator's page: the one made
 //   in setup (saved in this browser), or Meera's at /meerajoshi. Unknown → not found.
@@ -78,6 +79,7 @@ function Root() {
         name={params.get('name')}
         email={params.get('email')}
         phone={params.get('phone')}
+        bookingId={params.get('booking')}
       />
     )
   if (previewId !== null) return <PreviewPage funnelId={previewId} page={previewPage} />

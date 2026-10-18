@@ -7,7 +7,7 @@ import ServicePickInput from '../components/ServicePickInput';
 import { callAnswersOf, newCallId } from '../data/myProfile';
 import { createMockService, getService, servicePrice } from '../data/mockServices';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
-import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsComplete, newCallAbout } from '../data/callDetails';
+import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsProblem, newCallAbout, readMeetingLink } from '../data/callDetails';
 import { loadSchedule } from '../data/availabilityStore';
 import { timeZones } from '../data/timeZones';
 import { durationLabel } from '../data/serviceKinds';
@@ -27,6 +27,7 @@ const FIELDS = [
   'callDescription',
   'callAbout',
   'serviceId',
+  'meetingLink', // shared by all their video calls: saved on the setup answers (see myProfile.js)
 ];
 
 // A new call also chooses how it gets its service: 'auto' (made for it from
@@ -35,7 +36,7 @@ const NEW_FIELDS = [...FIELDS, 'serviceMode'];
 
 // Which answers belong to which section, for its "Edited" tag
 const SECTION_FIELDS = {
-  basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice'],
+  basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice', 'meetingLink'],
   descriptions: ['callDescription', 'callAbout'],
   service: ['serviceId', 'serviceMode'],
 };
@@ -66,7 +67,7 @@ const SECTION_FIELDS = {
 export default function EditService({ answers, serviceId, kind, onBack, onSave, onCreate }) {
   if (!serviceId) {
     if (kind === 'call') {
-      return <EditCall handle={answers.handle} onBack={onBack} onCreate={onCreate} />;
+      return <EditCall handle={answers.handle} meetingLink={answers.meetingLink} onBack={onBack} onCreate={onCreate} />;
     }
     return <EditPlaceholder title="Add a new offering" sub="Adding this kind of offering is on its way." onBack={onBack} />;
   }
@@ -75,11 +76,21 @@ export default function EditService({ answers, serviceId, kind, onBack, onSave, 
   if (!call) {
     return <EditPlaceholder title="This offering isn’t here" sub="It may have been removed. Go back to see what’s on your page." onBack={onBack} />;
   }
-  return <EditCall id={serviceId} call={call} handle={answers.handle} onBack={onBack} onSave={onSave} />;
+  return (
+    <EditCall
+      id={serviceId}
+      call={call}
+      handle={answers.handle}
+      meetingLink={answers.meetingLink}
+      onBack={onBack}
+      onSave={onSave}
+    />
+  );
 }
 
 // id/call: the call being edited and its answers. No call: a new one.
-function EditCall({ id = null, call = null, handle, onBack, onSave, onCreate }) {
+// meetingLink: the link all their video calls share (from the setup answers)
+function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave, onCreate }) {
   const isNew = call === null;
 
   // What's saved, with the starting choices filled in, so the form opens unchanged.
@@ -89,9 +100,9 @@ function EditCall({ id = null, call = null, handle, onBack, onSave, onCreate }) 
   const saved = useMemo(
     () =>
       isNew
-        ? { ...CALL_DEFAULTS, handle, serviceMode: 'auto', serviceId: null }
-        : { ...CALL_DEFAULTS, ...call, handle, callDescription: callDescriptionOf(call) },
-    [isNew, call, handle],
+        ? { ...CALL_DEFAULTS, handle, meetingLink, serviceMode: 'auto', serviceId: null }
+        : { ...CALL_DEFAULTS, ...call, handle, meetingLink, callDescription: callDescriptionOf(call) },
+    [isNew, call, handle, meetingLink],
   );
   const edit = useEditDraft(saved, isNew ? NEW_FIELDS : FIELDS);
   const { handleChange } = edit;
@@ -110,9 +121,12 @@ function EditCall({ id = null, call = null, handle, onBack, onSave, onCreate }) 
 
   // What's stopping a save, if anything, and which section it's in
   const verb = isNew ? 'add it' : 'save';
-  const blocker = !callDetailsComplete(draft)
+  const detailsProblem = callDetailsProblem(draft);
+  const blocker = detailsProblem === 'basics'
     ? { section: 'basics', text: `Add a name and a price (or make it free) to ${verb}` }
-    : callAboutOf(draft).trim() === ''
+    : detailsProblem === 'link'
+      ? { section: 'basics', text: `Add the link people use to join to ${verb}` }
+      : callAboutOf(draft).trim() === ''
       ? { section: 'descriptions', text: `Add a long description to ${verb}` }
       : isNew && draft.serviceMode === 'pick' && !getService(draft.serviceId)
         ? { section: 'service', text: 'Pick one of your services, or let us create one' }
@@ -207,7 +221,14 @@ function EditCall({ id = null, call = null, handle, onBack, onSave, onCreate }) 
         open={Boolean(open.basics)}
         onToggle={() => toggle('basics')}
       >
-        <CallDetailsInput key={formKey} answers={draft} onChange={handleChange} showDescription={false} />
+        <CallDetailsInput
+          key={formKey}
+          answers={draft}
+          onChange={handleChange}
+          showDescription={false}
+          grouped={false}
+          linkNote="Used for all your video calls. Changing it here changes it for all of them."
+        />
       </EditSection>
 
       <EditSection
@@ -315,7 +336,7 @@ function ServiceChoice({ mode, onMode, picker }) {
     {
       id: 'auto',
       name: 'Create a service for me',
-      text: 'We’ll create it automatically for you. You will find it in sidebar -> services',
+      text: 'We’ll make it from this call’s name and price when you add it to your page.',
       tag: 'Recommended',
     },
     {
@@ -362,7 +383,9 @@ function ServiceChoice({ mode, onMode, picker }) {
 // "Career clarity call · 60 min · Video call · ₹1,500"
 function basicsSummary(draft) {
   const name = String(draft.callTitle ?? '').trim() || 'No name yet';
-  const format = draft.callFormat === 'phone' ? 'Phone call' : 'Video call';
+  // "Video call on Zoom" once there's a link we can name
+  const provider = readMeetingLink(draft.meetingLink).provider;
+  const format = draft.callFormat === 'phone' ? 'Phone call' : provider ? `Video call on ${provider}` : 'Video call';
   const price =
     draft.callPricing === 'free'
       ? 'Free'

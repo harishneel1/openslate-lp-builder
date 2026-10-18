@@ -1,5 +1,5 @@
 import { HANDLE_MAX, HANDLE_MIN, isHandleTaken, mockAccount, suggestedHandle } from './myPage';
-import { callAboutOf, callDetailsComplete } from './callDetails';
+import { callAboutOf, callDetailsComplete, callDetailsProblem } from './callDetails';
 
 // ------------------------------------------------------------
 // Questions that set up the creator's page, one per screen.
@@ -88,12 +88,16 @@ export const myPageQuestions = [
   },
   {
     id: 'callDetails',
-    type: 'callDetails', // CallDetailsInput: saves callTitle, callDuration, callFormat, callPricing, callPrice, callDescription
+    type: 'callDetails', // CallDetailsInput: saves callTitle, callDuration, callFormat, callPricing, callPrice, callDescription, meetingLink
     required: true,
     question: 'Set up your 1:1 call',
     helper: 'Just the basics. You can change any of it later.',
     isComplete: callDetailsComplete,
-    nextHint: 'Give it a name and a price (or make it free) to continue',
+    // Says which part is missing: the name and price first, then a video call's link
+    nextHint: (answers) =>
+      callDetailsProblem(answers) === 'link'
+        ? 'Add the link people use to join to continue'
+        : 'Give it a name and a price (or make it free) to continue',
   },
   {
     id: 'availability',

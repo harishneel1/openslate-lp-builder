@@ -1,7 +1,7 @@
 import { buildProfileJson } from './buildProfileJson';
 import { getMockProfile } from './mockProfile';
 import { getMyProfile, isMyCall } from './myProfile';
-import { getMockAvailability } from './mockAvailability';
+import { getMockAvailability, getMyAvailability } from './mockAvailability';
 import { findSlots } from '../utils/slots';
 
 // ------------------------------------------------------------
@@ -41,7 +41,13 @@ export function buildBookingJson({ serviceId, profileState, slotsState, timeZone
     service,
     durationMins,
     reviews: page.testimonials.filter((t) => t.serviceId === serviceId),
-    // Their own call: just their saved hours, no made-up bookings
-    availability: findSlots({ ...getMockAvailability(slotsState ?? (mine ? 'clear' : undefined), now), durationMins, timeZone, now }),
+    // Their own calls: their hours minus their bookings and Google Calendar busy times.
+    // &slots=<id> still shows the mock situations, for testing.
+    availability: findSlots({
+      ...(mine && !slotsState ? getMyAvailability(now) : getMockAvailability(slotsState, now)),
+      durationMins,
+      timeZone,
+      now,
+    }),
   };
 }

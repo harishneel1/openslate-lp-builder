@@ -1,5 +1,5 @@
 import { SETUP_STORAGE_KEY } from './myPage';
-import { CALL_DEFAULTS, aboutParagraphs, callDescriptionOf } from './callDetails';
+import { CALL_DEFAULTS, aboutParagraphs, callDescriptionOf, readMeetingLink } from './callDetails';
 
 // ------------------------------------------------------------
 // The creator's own page, built from their setup answers, in the
@@ -46,18 +46,43 @@ export function callAnswersOf(answers, id) {
   return addedCallsOf(answers).find((c) => c.id === id) ?? null;
 }
 
+// Answers that belong to the creator, not to one call, even when they're
+// changed while editing a call: the meeting link every video call uses.
+// These always save on the setup answers, so changing one changes it for every call.
+export const SHARED_CALL_KEYS = ['meetingLink'];
+
+// Splits changes into the creator's own (shared) and the call's
+function splitShared(changes) {
+  const shared = {};
+  const own = {};
+  Object.entries(changes).forEach(([key, value]) => {
+    if (SHARED_CALL_KEYS.includes(key)) shared[key] = value;
+    else own[key] = value;
+  });
+  return { shared, own };
+}
+
 // The answers with one call's changes saved
 export function withCallChanges(answers, id, changes) {
   if (id === MY_CALL_ID) return { ...answers, ...changes };
+  const { shared, own } = splitShared(changes);
   return {
     ...answers,
-    addedCalls: addedCallsOf(answers).map((c) => (c.id === id ? { ...c, ...changes } : c)),
+    ...shared,
+    addedCalls: addedCallsOf(answers).map((c) => (c.id === id ? { ...c, ...own } : c)),
   };
 }
 
 // The answers with a new call added, at the front
 export function withAddedCall(answers, call) {
-  return { ...answers, addedCalls: [call, ...addedCallsOf(answers)] };
+  const { shared, own } = splitShared(call);
+  return { ...answers, ...shared, addedCalls: [own, ...addedCallsOf(answers)] };
+}
+
+// The link people use to join their video calls, ready to use, or null
+export function myMeetingLink(answers = loadAnswers()) {
+  const link = readMeetingLink(answers.meetingLink);
+  return link.valid ? link.url : null;
 }
 
 // Back to the page the call is on: theirs at /<handle>, or Meera's

@@ -153,10 +153,11 @@ export default function QuestionFlow({
     </button>
   );
 
-  // Shown on hover while Next is disabled. A question can set its own with `nextHint`.
+  // Shown on hover while Next is disabled. A question can set its own with `nextHint`:
+  // a string, or a function of the answers when it depends on what's missing.
   const nextHint =
     error ??
-    question.nextHint ??
+    (typeof question.nextHint === 'function' ? question.nextHint(answers) : question.nextHint) ??
     (question.type === 'items'
       ? `Add at least ${question.minItems} to continue`
       : question.fields || question.parts

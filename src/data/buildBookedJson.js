@@ -1,13 +1,17 @@
 import { buildProfileJson } from './buildProfileJson';
 import { getMockProfile } from './mockProfile';
 import { getMyProfile, isMyCall } from './myProfile';
+import { getBooking } from './bookingsStore';
+import { readMeetingLink } from './callDetails';
 import { zoneOptions } from './timeZones';
 import { formatTime, zoned } from '../utils/slots';
 
 // ------------------------------------------------------------
 // Everything the confirmation page shows. In the real product
 // this is the saved booking, loaded by its id; here it's
-// rebuilt from the details checkout put in the URL.
+// rebuilt from the details checkout put in the URL, plus, for the
+// creator's own calls, the booking checkout saved (bookingId),
+// with the creator's meeting link.
 //
 // Returns null when the call or the time can't be found.
 // ------------------------------------------------------------
@@ -21,8 +25,9 @@ function mockMeetingCode(seed) {
   return `${pick(3)}-${pick(4)}-${pick(3)}`;
 }
 
-export function buildBookedJson({ serviceId, time, timeZone, profileState }) {
-  const raw = isMyCall(serviceId) ? getMyProfile() : getMockProfile(profileState);
+export function buildBookedJson({ serviceId, time, timeZone, profileState, bookingId = null }) {
+  const mine = isMyCall(serviceId);
+  const raw = mine ? getMyProfile() : getMockProfile(profileState);
   const page = buildProfileJson(raw);
   const service = page.services.find((s) => s.id === serviceId && s.kind === 'call');
   const ms = Date.parse(time);
@@ -38,12 +43,22 @@ export function buildBookedJson({ serviceId, time, timeZone, profileState }) {
 
   const { name, firstName = name.split(' ')[0], initials, photo } = page.creator;
 
+  // Their own call: the link saved with the booking (their meeting link).
+  // Meera's demo calls: a made-up Meet link, as before.
+  const saved = mine ? getBooking(bookingId) : null;
+  const meetingLink = mine
+    ? (saved?.meetingLink ?? null)
+    : format === 'phone'
+      ? null
+      : `https://meet.google.com/${mockMeetingCode(`${serviceId}${ms}`)}`;
+
   return {
-    id: `booking-${serviceId}-${ms}`,
+    id: saved?.id ?? `booking-${serviceId}-${ms}`,
     creator: { name, firstName, initials, photo },
     service,
     format, // 'video' | 'phone'
-    meetingLink: format === 'phone' ? null : `https://meet.google.com/${mockMeetingCode(`${serviceId}${ms}`)}`,
+    meetingLink, // null: a phone call (or, for a booking made before links were needed, none saved)
+    meetingProvider: meetingLink ? readMeetingLink(meetingLink).provider : null, // 'Zoom', ... or null
     start: ms,
     end,
     weekday: part({ weekday: 'long' }),

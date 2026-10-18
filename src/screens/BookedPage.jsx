@@ -16,11 +16,11 @@ import { profileHrefFor } from '../data/myProfile';
 
 const ICONS = { clock: Clock, phone: Phone, video: Video };
 
-export default function BookedPage({ serviceId, time, timeZone, state, name, email, phone }) {
+export default function BookedPage({ serviceId, time, timeZone, state, name, email, phone, bookingId }) {
   const zone = matchZone(timeZone) ?? matchZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ?? 'Asia/Kolkata';
   const booking = useMemo(
-    () => buildBookedJson({ serviceId, time, timeZone: zone, profileState: state }),
-    [serviceId, time, zone, state],
+    () => buildBookedJson({ serviceId, time, timeZone: zone, profileState: state, bookingId }),
+    [serviceId, time, zone, state, bookingId],
   );
 
   const [copied, setCopied] = useState(false);
@@ -54,10 +54,15 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
   const ordered = [...service.facts].sort((a, b) => Number(b.icon === 'clock') - Number(a.icon === 'clock'));
 
   const title = `${service.title} with ${creator.name}`;
-  const location = booking.meetingLink ?? `${creator.firstName} will call ${phone ?? 'you'}`;
+  // A video call with no link saved: only bookings made before every video
+  // call needed one. The creator sends the link themselves.
+  const linkToCome = booking.format === 'video' && !booking.meetingLink;
+  const location = booking.meetingLink ?? (linkToCome ? 'Video call' : `${creator.firstName} will call ${phone ?? 'you'}`);
   const details = booking.meetingLink
     ? `Join: ${booking.meetingLink}`
-    : `${creator.firstName} will call you on ${phone}.`;
+    : linkToCome
+      ? `${creator.firstName} will email you the link to join before the call.`
+      : `${creator.firstName} will call you on ${phone}.`;
   const event = { id: booking.id, title, start: booking.start, end: booking.end, details, location };
 
   const copyLink = async () => {
@@ -115,7 +120,10 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
 
         {/* ---------- How to join ---------- */}
         <section className="bd__box" aria-labelledby="bd-join">
-          <h2 id="bd-join" className="bd__box-title">How to join</h2>
+          {/* "How to join on Zoom": the creator's room, named when we know it */}
+          <h2 id="bd-join" className="bd__box-title">
+            {booking.meetingProvider ? `How to join on ${booking.meetingProvider}` : 'How to join'}
+          </h2>
           {booking.meetingLink ? (
             <>
               <div className="bd__link-row">
@@ -131,6 +139,16 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
                 Open it a minute or two before the call. It's in your email too.
               </p>
             </>
+          ) : linkToCome ? (
+            <p className="bd__phone">
+              <Video size={16} aria-hidden="true" /> {creator.firstName} will email you the link to join
+              {email ? (
+                <>
+                  {' '}at <strong>{email}</strong>
+                </>
+              ) : null}{' '}
+              before the call.
+            </p>
           ) : (
             <p className="bd__phone">
               <Phone size={16} aria-hidden="true" /> {creator.firstName} will call you on <strong>{phone}</strong> at{' '}

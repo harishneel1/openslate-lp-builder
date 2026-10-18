@@ -5,7 +5,8 @@ import { matchZone } from '../data/timeZones';
 import { COUNTRY_CODES, COUPONS, GSTIN, HOLD_SECONDS, INDIAN_STATES, PAYMENT_METHODS, breakdown, money } from '../data/checkoutRules';
 import '../styles/storeTheme.css';
 import './CheckoutPage.css';
-import { profileHrefFor } from '../data/myProfile';
+import { getMyProfile, isMyCall, myMeetingLink, profileHrefFor } from '../data/myProfile';
+import { createBooking } from '../data/bookingsStore';
 
 // ------------------------------------------------------------
 // Mock checkout, laid out like the product's real checkout:
@@ -18,7 +19,9 @@ import { profileHrefFor } from '../data/myProfile';
 //   &taken=1   the time was taken before they got here
 //   &hold=20   hold for 20 seconds instead of 10 minutes, to see it run out
 //   &fail=1    the first payment attempt fails, to see the try-again state
-// Paying goes to ?mock=booked (the confirmation page).
+// Paying goes to ?mock=booked (the confirmation page). For the creator's
+// own calls it first checks the time is still free and saves the booking
+// (bookingsStore.js), with the link people use to join their video calls.
 // ------------------------------------------------------------
 
 const ICONS = { clock: Clock, phone: Phone, video: Video };
@@ -98,6 +101,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [payFailed, setPayFailed] = useState(false); // the last payment attempt didn't go through
+  const [lost, setLost] = useState(false); // the time was taken while they were filling in the form
   const failedOnce = useRef(false); // &fail=1 fails only the first attempt
   const [couponOpen, setCouponOpen] = useState(false);
   const [couponCode, setCouponCode] = useState('');
@@ -185,7 +189,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
       `See ${creator.firstName}'s other services`,
     );
   }
-  if (status === 'taken') {
+  if (status === 'taken' || lost) {
     return notice(
       'That time is no longer available',
       `Someone may have booked it while you were choosing. Pick another time for your ${service.title.toLowerCase()} with ${creator.firstName}.`,
@@ -249,6 +253,28 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
           setBusy(false);
           setPayFailed(true); // the hold timer carries on from where it paused
           return;
+        }
+        // Their own call: the server's last check, then the booking is saved.
+        // (Meera's demo calls aren't saved, so her mock bookings stay as they are.)
+        if (isMyCall(service.id)) {
+          const again = buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone });
+          if (again.status !== 'ok') {
+            setBusy(false);
+            setLost(true);
+            return;
+          }
+          const call = getMyProfile().services.find((s) => s.id === service.id);
+          const made = createBooking({
+            serviceId: service.id,
+            title: service.title,
+            start: slot.start,
+            durationMins: call.durationMins,
+            format: call.format,
+            guest: { name: form.name.trim(), email: form.email.trim(), phone: `${form.code} ${form.phone.trim()}` },
+            meetingLink: myMeetingLink(),
+          });
+          // Couldn't save it (browser storage blocked): the mock carries on without it
+          if (made) params.set('booking', made.id);
         }
         window.location.assign(`?${params}`);
       },
