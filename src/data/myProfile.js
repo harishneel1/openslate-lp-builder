@@ -16,12 +16,49 @@ function loadAnswers() {
   }
 }
 
-// The id of the creator's own call, as it appears in booking links
+// The id of the creator's first call (made during setup), as it appears in booking links.
+// Calls added later get ids that start the same way: 'my-call-<something>'.
 export const MY_CALL_ID = 'my-call';
 
-// Whose page a call belongs to: the creator's own call reads their setup
+// Whose page a call belongs to: the creator's own calls read their setup
 // answers; anything else is Meera's (mockProfile.js)
-export const isMyCall = (serviceId) => serviceId === MY_CALL_ID;
+export const isMyCall = (serviceId) =>
+  serviceId === MY_CALL_ID || String(serviceId ?? '').startsWith(`${MY_CALL_ID}-`);
+
+// ------------------------------------------------------------
+// Calls added from "Add a new offering", after setup. The first call
+// stays where setup saved it (callTitle, callPrice, ... on the answers);
+// added ones are kept beside it as answers.addedCalls, newest first.
+// Each uses the same answer ids as the first call, plus its own id:
+//   { id, createdAt, callTitle, callDuration, callFormat, callPricing,
+//     callPrice, callComparePrice, callDescription, callAbout, serviceId }
+// so the same fields and page-building work for every call.
+// ------------------------------------------------------------
+export const addedCallsOf = (answers) => (Array.isArray(answers?.addedCalls) ? answers.addedCalls : []);
+
+// A fresh id for a new call, e.g. 'my-call-mgx3k2a1'
+export const newCallId = () => `${MY_CALL_ID}-${Date.now().toString(36)}`;
+
+// One call's answers by id: the first call is the setup answers themselves.
+// null when there's no such call.
+export function callAnswersOf(answers, id) {
+  if (id === MY_CALL_ID) return answers;
+  return addedCallsOf(answers).find((c) => c.id === id) ?? null;
+}
+
+// The answers with one call's changes saved
+export function withCallChanges(answers, id, changes) {
+  if (id === MY_CALL_ID) return { ...answers, ...changes };
+  return {
+    ...answers,
+    addedCalls: addedCallsOf(answers).map((c) => (c.id === id ? { ...c, ...changes } : c)),
+  };
+}
+
+// The answers with a new call added, at the front
+export function withAddedCall(answers, call) {
+  return { ...answers, addedCalls: [call, ...addedCallsOf(answers)] };
+}
 
 // Back to the page the call is on: theirs at /<handle>, or Meera's
 export function profileHrefFor(serviceId, stateParam = '') {
@@ -50,10 +87,31 @@ export function makeMockStats() {
   };
 }
 
-export function getMyProfile(answers = loadAnswers()) {
-  const value = (id) => answers[id] ?? CALL_DEFAULTS[id];
+// One call, from its answers, in the raw service shape (see mockProfile.js)
+function callService(c, { id, order, stats = {} }) {
+  const value = (key) => c[key] ?? CALL_DEFAULTS[key];
   const free = value('callPricing') === 'free';
-  // Their one call holds all their ratings, so the page and the call show the same rating
+  return {
+    id,
+    kind: 'call',
+    title: c.callTitle ?? '',
+    description: callDescriptionOf(c),
+    about: aboutParagraphs(c),
+    durationMins: Number(value('callDuration')),
+    format: value('callFormat'),
+    price: free ? 0 : Number(c.callPrice) || 0,
+    // Regular price, crossed out. Ignored for a free call; only shows when it's higher (buildProfileJson)
+    comparePrice: free ? null : Number(c.callComparePrice) || null,
+    image: null,
+    rating: stats.rating ?? null,
+    ratingCount: stats.ratingCount ?? 0,
+    status: 'active',
+    order,
+  };
+}
+
+export function getMyProfile(answers = loadAnswers()) {
+  // Their first call holds all their ratings, so the page and that call show the same rating
   const stats = answers.callStats ?? {};
 
   const creator = {
@@ -69,23 +127,10 @@ export function getMyProfile(answers = loadAnswers()) {
     reviewCount: stats.reviewCount ?? 0,
   };
 
-  const call = {
-    id: MY_CALL_ID,
-    kind: 'call',
-    title: answers.callTitle ?? '',
-    description: callDescriptionOf(answers),
-    about: aboutParagraphs(answers),
-    durationMins: Number(value('callDuration')),
-    format: value('callFormat'),
-    price: free ? 0 : Number(answers.callPrice) || 0,
-    // Regular price, crossed out. Ignored for a free call; only shows when it's higher (buildProfileJson)
-    comparePrice: free ? null : Number(answers.callComparePrice) || null,
-    image: null,
-    rating: stats.rating ?? null,
-    ratingCount: stats.ratingCount ?? 0,
-    status: 'active',
-    order: 1,
-  };
+  // Newest first: added calls (already newest first), then the first call.
+  // Added calls start with no ratings of their own.
+  const added = addedCallsOf(answers).map((c, i) => callService(c, { id: c.id, order: i }));
+  const first = callService(answers, { id: MY_CALL_ID, order: added.length, stats });
 
-  return { creator, services: [call], testimonials: [] };
+  return { creator, services: [...added, first], testimonials: [] };
 }

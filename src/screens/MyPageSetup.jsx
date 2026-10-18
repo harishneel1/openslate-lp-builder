@@ -8,6 +8,7 @@ import EditService from './EditService';
 import EditProfile from './EditProfile';
 import { MY_PAGE_STEPS, myPageQuestions } from '../data/myPageQuestions';
 import { SETUP_CHANGED_EVENT, SETUP_STORAGE_KEY } from '../data/myPage';
+import { withAddedCall, withCallChanges } from '../data/myProfile';
 
 function loadAnswers() {
   try {
@@ -28,13 +29,16 @@ function loadAnswers() {
 export default function MyPageSetup() {
   const [answers, setAnswers] = useState(loadAnswers);
   // Setup: 'intro' → 'questions' → 'done' (the page, live, shown once).
-  // Then: 'home' (the offerings home) ↔ 'editService' (one offering, or a new one)
+  // Then: 'home' (the offerings home) ↔ 'editService' (one offering, or a new one
+  //                                      of the kind picked on the home)
   //                                    ↔ 'editProfile' (photo, name, bio, link).
   // Finished before? The home. Started before? Straight to the questions.
   const [step, setStep] = useState(() =>
     answers.publishedAt ? 'home' : Object.keys(answers).length > 0 ? 'questions' : 'intro'
   );
   const [editingId, setEditingId] = useState(null); // the offering open in 'editService'; null = a new one
+  const [addingKind, setAddingKind] = useState(null); // a new one's kind ('call', ...), picked on the home
+  const [justAddedId, setJustAddedId] = useState(null); // marked on the home after adding it
 
   useEffect(() => {
     try {
@@ -61,12 +65,16 @@ export default function MyPageSetup() {
       <OfferingsHome
         answers={answers}
         onEditProfile={() => setStep('editProfile')}
+        justAddedId={justAddedId}
         onEditOffering={(id) => {
           setEditingId(id);
+          setJustAddedId(null);
           setStep('editService');
         }}
-        onAddOffering={() => {
+        onAddOffering={(kind) => {
           setEditingId(null);
+          setAddingKind(kind);
+          setJustAddedId(null);
           setStep('editService');
         }}
       />
@@ -87,11 +95,19 @@ export default function MyPageSetup() {
   if (step === 'editService') {
     return (
       <EditService
+        key={editingId ?? `new-${addingKind}`}
         answers={answers}
         serviceId={editingId}
+        kind={addingKind}
         onBack={() => setStep('home')}
         // Saved changes go straight onto the live page (and into this browser)
-        onSave={(changes) => setAnswers((prev) => ({ ...prev, ...changes }))}
+        onSave={(changes) => setAnswers((prev) => withCallChanges(prev, editingId, changes))}
+        // A new one goes on the page straight away, and the home marks it
+        onCreate={(call) => {
+          setAnswers((prev) => withAddedCall(prev, call));
+          setJustAddedId(call.id);
+          setStep('home');
+        }}
       />
     );
   }

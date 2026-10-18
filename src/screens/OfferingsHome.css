@@ -335,6 +335,45 @@
   padding: 20px;
 }
 
+/* "Live", and "Just added" beside it on a new offering */
+.oh-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.oh-card__new {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-pill);
+}
+
+/* Just added: an orange outline that settles back to normal */
+.oh-card--new {
+  border-color: var(--color-primary);
+  animation: oh-card-new 2.4s ease-out;
+}
+
+@keyframes oh-card-new {
+  0%,
+  40% {
+    box-shadow: 0 0 0 4px var(--color-primary-tint), var(--shadow-hover);
+  }
+  100% {
+    box-shadow: var(--shadow-card);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oh-card--new {
+    animation: none;
+  }
+}
+
 /* Solid green "Live", as on a published funnel */
 .oh-card__status {
   display: inline-flex;

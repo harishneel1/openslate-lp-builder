@@ -278,6 +278,12 @@
   gap: 4px 20px;
 }
 
+/* Something went wrong, but they can try again */
+.es__message {
+  font-weight: 500;
+  color: #b45309;
+}
+
 .es__saved {
   display: inline-flex;
   align-items: center;

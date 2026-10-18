@@ -4,6 +4,7 @@
 // ------------------------------------------------------------
 
 import { getMockProfile } from './mockProfile';
+import { durationLabel } from './serviceKinds';
 
 export const CALL_DEFAULTS = {
   callDuration: 30,
@@ -71,9 +72,26 @@ const EXAMPLE_ABOUT = (getMockProfile().services.find((s) => s.id === 'call-disc
 
 export const suggestedAbout = () => EXAMPLE_ABOUT;
 
-// Theirs once they've edited it (even emptied), otherwise the starting text
+// Theirs once they've edited it (even emptied), otherwise the starting text:
+// aboutStart when the screen gives one (a new call's text, written from its
+// name), or Meera's example during setup
 export function callAboutOf(answers) {
-  return answers.callAbout ?? EXAMPLE_ABOUT;
+  return answers.callAbout ?? answers.aboutStart ?? EXAMPLE_ABOUT;
+}
+
+// The starting long description for a call added after setup, written from
+// its own details so it fits whatever the call is (Meera's example is a
+// discovery call, which wouldn't suit a teaching session, say).
+// Follows the name, length and format until they edit it.
+export function newCallAbout(answers) {
+  const name = String(answers.callTitle ?? '').trim() || 'This call';
+  const format = (answers.callFormat ?? CALL_DEFAULTS.callFormat) === 'phone' ? 'phone' : 'video';
+  const length = durationLabel(answers.callDuration ?? CALL_DEFAULTS.callDuration);
+  return [
+    `${name} is a one-on-one ${format} call, ${length} long, just the two of us.`,
+    'Bring what you’re working on and the questions you have. We’ll go through them together, at your pace.',
+    'You’ll leave knowing exactly what to do next.',
+  ].join('\n\n');
 }
 
 // As paragraphs for the page: split on blank lines, empty ones dropped

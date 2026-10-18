@@ -57,6 +57,10 @@ export function useEditDraft(saved, fields) {
 // viewHref: their live page, linked after saving.
 // confirm: { title, body, confirmLabel, onConfirm, onCancel } to ask before saving
 //          (shown as a pop-up), or null.
+// createLabel: set when making something new ("Add to your page"). The bar
+//          then always shows Cancel and this button (disabled while there's
+//          a problem), and leaving asks before dropping what they've filled in.
+// message: a note in the bar that doesn't stop saving (e.g. a failed try).
 export default function EditFrame({
   edit,
   title,
@@ -64,11 +68,14 @@ export default function EditFrame({
   onBack,
   onSave,
   problem = null,
+  message = null,
   viewHref,
   confirm = null,
+  createLabel = null,
   children,
 }) {
   const { dirty, justSaved, leaving, setLeaving } = edit;
+  const creating = Boolean(createLabel);
 
   // Closing the tab with unsaved changes: the browser asks first
   useEffect(() => {
@@ -96,14 +103,22 @@ export default function EditFrame({
         {leaving && (
           <div className="es__leave" role="alert">
             <p>
-              <strong>You have unsaved changes.</strong> Leave without saving them?
+              {creating ? (
+                <>
+                  <strong>This isn’t on your page yet.</strong> Leave without adding it?
+                </>
+              ) : (
+                <>
+                  <strong>You have unsaved changes.</strong> Leave without saving them?
+                </>
+              )}
             </p>
             <div className="es__leave-actions">
               <button type="button" className="es__btn es__btn--quiet" onClick={() => setLeaving(false)}>
                 Keep editing
               </button>
               <button type="button" className="es__btn es__btn--danger" onClick={onBack}>
-                Leave without saving
+                {creating ? 'Leave without adding' : 'Leave without saving'}
               </button>
             </div>
           </div>
@@ -116,9 +131,15 @@ export default function EditFrame({
       <div className="es__bar">
         <div className="es__bar-inner">
           <p className="es__status" aria-live="polite">
-            {dirty && (problem ?? 'You have unsaved changes')}
+            {message ? (
+              <span className="es__message">{message}</span>
+            ) : creating ? (
+              problem
+            ) : (
+              dirty && (problem ?? 'You have unsaved changes')
+            )}
             {/* Saved: say so, and offer a look at the live page */}
-            {!dirty && justSaved && (
+            {!creating && !dirty && justSaved && (
               <>
                 <span className="es__saved">
                   <Check size={16} strokeWidth={3} aria-hidden="true" /> Changes saved
@@ -135,7 +156,16 @@ export default function EditFrame({
           </p>
           {/* Unsaved changes: Discard and Save. Nothing to save: Done, back to the offerings home. */}
           <div className="es__bar-actions">
-            {dirty ? (
+            {creating ? (
+              <>
+                <button type="button" className="es__btn es__btn--quiet" onClick={back}>
+                  Cancel
+                </button>
+                <button type="button" className="es__btn es__btn--primary" onClick={onSave} disabled={Boolean(problem)}>
+                  {createLabel}
+                </button>
+              </>
+            ) : dirty ? (
               <>
                 <button type="button" className="es__btn es__btn--quiet" onClick={edit.discard}>
                   Discard changes

@@ -4,10 +4,10 @@ import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFra
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
 import ServicePickInput from '../components/ServicePickInput';
-import { MY_CALL_ID } from '../data/myProfile';
-import { getService, servicePrice } from '../data/mockServices';
+import { callAnswersOf, newCallId } from '../data/myProfile';
+import { createMockService, getService, servicePrice } from '../data/mockServices';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
-import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsComplete } from '../data/callDetails';
+import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsComplete, newCallAbout } from '../data/callDetails';
 import { loadSchedule } from '../data/availabilityStore';
 import { timeZones } from '../data/timeZones';
 import { durationLabel } from '../data/serviceKinds';
@@ -29,15 +29,20 @@ const FIELDS = [
   'serviceId',
 ];
 
+// A new call also chooses how it gets its service: 'auto' (made for it from
+// its name and price when it's added) or 'pick' (one of theirs). Not saved.
+const NEW_FIELDS = [...FIELDS, 'serviceMode'];
+
 // Which answers belong to which section, for its "Edited" tag
 const SECTION_FIELDS = {
   basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice'],
   descriptions: ['callDescription', 'callAbout'],
-  service: ['serviceId'],
+  service: ['serviceId', 'serviceMode'],
 };
 
 // ------------------------------------------------------------
-// Editing one offering, opened from its card on the offerings home.
+// Editing one offering, opened from its card on the offerings home,
+// or making a new one ("Add a new offering", after picking its kind).
 // Four sections, each closed to a one-line summary until opened:
 //   Basics                name, length, format, price
 //   Descriptions          short and long
@@ -49,39 +54,69 @@ const SECTION_FIELDS = {
 // Changes stay on this screen until Save (see EditFrame.jsx). The call's
 // price and the service's price are kept separately, as set.
 //
-// serviceId null: "Add a new offering" (a placeholder for now).
-// onSave(changes): merges the changed answers into the saved ones.
+// A new call opens with Basics open (the one thing to fill in), its
+// descriptions written from its name, and a service made for it unless
+// they pick one of theirs. "Add to your page" puts it live.
+//
+// serviceId: the offering to edit, or null for a new one
+// kind: a new one's kind (only 'call' can be made so far)
+// onSave(changes): merges an edited offering's changed answers into the saved ones
+// onCreate(call): adds a new call (its answers, with its id and service)
 // ------------------------------------------------------------
-export default function EditService({ answers, serviceId, onBack, onSave }) {
+export default function EditService({ answers, serviceId, kind, onBack, onSave, onCreate }) {
   if (!serviceId) {
-    return <EditPlaceholder title="Add a new offering" sub="Adding offerings from here is on its way." onBack={onBack} />;
+    if (kind === 'call') {
+      return <EditCall handle={answers.handle} onBack={onBack} onCreate={onCreate} />;
+    }
+    return <EditPlaceholder title="Add a new offering" sub="Adding this kind of offering is on its way." onBack={onBack} />;
   }
-  return <EditCall answers={answers} onBack={onBack} onSave={onSave} />;
+
+  const call = callAnswersOf(answers, serviceId);
+  if (!call) {
+    return <EditPlaceholder title="This offering isn’t here" sub="It may have been removed. Go back to see what’s on your page." onBack={onBack} />;
+  }
+  return <EditCall id={serviceId} call={call} handle={answers.handle} onBack={onBack} onSave={onSave} />;
 }
 
-function EditCall({ answers, onBack, onSave }) {
+// id/call: the call being edited and its answers. No call: a new one.
+function EditCall({ id = null, call = null, handle, onBack, onSave, onCreate }) {
+  const isNew = call === null;
+
   // What's saved, with the starting choices filled in, so the form opens unchanged.
   // The short description is fixed to what's on the page now: during setup it
   // follows the name, but renaming a live call shouldn't rewrite its description.
+  // A new call starts empty, with its descriptions following its name.
   const saved = useMemo(
-    () => ({ ...CALL_DEFAULTS, ...answers, callDescription: callDescriptionOf(answers) }),
-    [answers],
+    () =>
+      isNew
+        ? { ...CALL_DEFAULTS, handle, serviceMode: 'auto', serviceId: null }
+        : { ...CALL_DEFAULTS, ...call, handle, callDescription: callDescriptionOf(call) },
+    [isNew, call, handle],
   );
-  const edit = useEditDraft(saved, FIELDS);
-  const { draft, formKey, handleChange } = edit;
+  const edit = useEditDraft(saved, isNew ? NEW_FIELDS : FIELDS);
+  const { handleChange } = edit;
+  // A new call's long description starts from its own details, and follows them until edited
+  const draft = isNew ? { ...edit.draft, aboutStart: newCallAbout(edit.draft) } : edit.draft;
+  const formKey = edit.formKey;
   const schedule = useSchedule();
+  const [createFailed, setCreateFailed] = useState(false);
 
-  // Every section starts closed; any number can be open at once
+  // Every section starts closed (a new call's Basics opens itself, below);
+  // any number can be open at once
   const [open, setOpen] = useState({});
-  const toggle = (id) => setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
-  const edited = (id) => SECTION_FIELDS[id].some((f) => draft[f] !== saved[f]);
+  const toggle = (section) => setOpen((prev) => ({ ...prev, [section]: !prev[section] }));
+  // Unsaved changes in a section. Not shown on a new call: everything is new.
+  const edited = (section) => !isNew && SECTION_FIELDS[section].some((f) => draft[f] !== saved[f]);
 
   // What's stopping a save, if anything, and which section it's in
+  const verb = isNew ? 'add it' : 'save';
   const blocker = !callDetailsComplete(draft)
-    ? { section: 'basics', text: 'Add a name and a price (or make it free) to save' }
+    ? { section: 'basics', text: `Add a name and a price (or make it free) to ${verb}` }
     : callAboutOf(draft).trim() === ''
-      ? { section: 'descriptions', text: 'Add a long description to save' }
-      : null;
+      ? { section: 'descriptions', text: `Add a long description to ${verb}` }
+      : isNew && draft.serviceMode === 'pick' && !getService(draft.serviceId)
+        ? { section: 'service', text: 'Pick one of your services, or let us create one' }
+        : null;
   const problem = blocker?.text ?? null;
 
   // A new problem opens its section, so what needs fixing is in view.
@@ -95,25 +130,72 @@ function EditCall({ answers, onBack, onSave }) {
     if (!edit.dirty || problem) return;
     const changes = edit.changes();
     // Still following the name? Keep the text that's showing, so a rename doesn't change it
-    if (answers.callDescription === undefined && !('callDescription' in changes)) {
+    if (call.callDescription === undefined && !('callDescription' in changes)) {
       changes.callDescription = saved.callDescription;
     }
     onSave(changes);
     edit.saved();
   };
 
+  // A new call: make its service if they left that to us, then put it on the page.
+  // Its descriptions are fixed to what's showing, so they no longer follow the name.
+  const create = () => {
+    if (problem) return;
+    let serviceId = draft.serviceId;
+    if (draft.serviceMode === 'auto') {
+      const free = draft.callPricing === 'free';
+      const made = createMockService({
+        title: draft.callTitle.trim(),
+        price: free ? 0 : Number(draft.callPrice) || 0,
+      });
+      if (!made) {
+        setCreateFailed(true);
+        return;
+      }
+      serviceId = made.id;
+    }
+    onCreate({
+      id: newCallId(),
+      createdAt: new Date().toISOString(),
+      ...Object.fromEntries(FIELDS.map((f) => [f, draft[f]])),
+      callTitle: draft.callTitle.trim(),
+      callDescription: callDescriptionOf(draft),
+      callAbout: callAboutOf(draft),
+      serviceId,
+    });
+  };
+
   const hours = hoursAtAGlance(schedule, Number(draft.callDuration));
-  const shortDescription = String(draft.callDescription ?? '').trim();
+  const shortDescription = callDescriptionOf(draft).trim();
+  const aboutWrittenForThem = isNew && draft.callAbout === undefined;
+
+  // The service picked from theirs (or none yet)
+  const chooseService = (mode) => {
+    setCreateFailed(false);
+    handleChange(mode, 'serviceMode');
+    // Back to "create one for me": forget the pick, so there's no doubt which applies
+    if (mode === 'auto') handleChange(null, 'serviceId');
+  };
+
+  const bookingHref = isNew ? null : `?mock=book&service=${encodeURIComponent(id)}`;
 
   return (
     <EditFrame
       edit={edit}
-      title={saved.callTitle || 'Your call'}
-      sub="Changes show up on your page once you save them."
+      title={isNew ? 'New 1:1 call' : saved.callTitle || 'Your call'}
+      sub={
+        isNew
+          ? draft.serviceMode === 'auto'
+            ? 'Fill in the basics. We’ll create the service for you.'
+            : 'Fill in the basics, then add it to your page.'
+          : 'Changes show up on your page once you save them.'
+      }
       onBack={onBack}
-      onSave={save}
+      onSave={isNew ? create : save}
       problem={problem}
+      message={createFailed ? 'We couldn’t create the service just now. Try again, or pick one of yours.' : null}
       viewHref={pageUrl(saved.handle)}
+      createLabel={isNew ? 'Add to your page' : null}
     >
       <EditSection
         id="es-basics"
@@ -135,7 +217,9 @@ function EditCall({ answers, onBack, onSave }) {
         summary={
           blocker?.section === 'descriptions'
             ? blocker.text
-            : shortDescription || 'No short description'
+            : aboutWrittenForThem
+              ? 'Written for you from the name. Open to make it yours.'
+              : shortDescription || 'No short description'
         }
         warn={blocker?.section === 'descriptions'}
         edited={edited('descriptions')}
@@ -148,11 +232,15 @@ function EditCall({ answers, onBack, onSave }) {
           answers={draft}
           onChange={handleChange}
           note={
-            <WhereItShows
-              text="Shows on your call’s card at"
-              href={pageUrl(saved.handle)}
-              label={`${PAGE_DOMAIN}/${saved.handle}`}
-            />
+            isNew ? (
+              'Shows on your call’s card on your page.'
+            ) : (
+              <WhereItShows
+                text="Shows on your call’s card at"
+                href={pageUrl(saved.handle)}
+                label={`${PAGE_DOMAIN}/${saved.handle}`}
+              />
+            )
           }
         />
         <CallAboutInput
@@ -160,8 +248,10 @@ function EditCall({ answers, onBack, onSave }) {
           answers={draft}
           onChange={handleChange}
           label="Long description"
-          showNote={false}
-          note={<WhereItShows text="Shows on" href={BOOKING_HREF} label="your booking page" />}
+          showNote={isNew}
+          note={
+            isNew ? 'Shows on its booking page.' : <WhereItShows text="Shows on" href={bookingHref} label="its booking page" />
+          }
         />
       </EditSection>
 
@@ -181,19 +271,89 @@ function EditCall({ answers, onBack, onSave }) {
         id="es-service"
         title="Service"
         sub="The checkout page people fill in, and pay on, when they book this call."
-        summary={serviceSummary(draft.serviceId)}
+        summary={
+          blocker?.section === 'service'
+            ? blocker.text
+            : isNew && draft.serviceMode === 'auto'
+              ? 'We’ll create one for you from the name and price'
+              : serviceSummary(draft.serviceId)
+        }
+        warn={blocker?.section === 'service'}
         edited={edited('service')}
         open={Boolean(open.service)}
         onToggle={() => toggle('service')}
         className="es-service"
       >
-        <ServicePickInput
-          key={`service-${formKey}`}
-          value={draft.serviceId ?? null}
-          onChange={(id) => handleChange(id, 'serviceId')}
-        />
+        {isNew ? (
+          <ServiceChoice
+            mode={draft.serviceMode}
+            onMode={chooseService}
+            picker={
+              <ServicePickInput
+                key={`service-${formKey}`}
+                value={draft.serviceId ?? null}
+                onChange={(serviceId) => handleChange(serviceId, 'serviceId')}
+              />
+            }
+          />
+        ) : (
+          <ServicePickInput
+            key={`service-${formKey}`}
+            value={draft.serviceId ?? null}
+            onChange={(serviceId) => handleChange(serviceId, 'serviceId')}
+          />
+        )}
       </EditSection>
     </EditFrame>
+  );
+}
+
+// A new call's service: made for them (the default, as in setup), or one of
+// theirs. The picker shows only while "Use one of my services" is chosen.
+function ServiceChoice({ mode, onMode, picker }) {
+  const options = [
+    {
+      id: 'auto',
+      name: 'Create a service for me',
+      text: 'We’ll create it automatically for you. You will find it in sidebar -> services',
+      tag: 'Recommended',
+    },
+    {
+      id: 'pick',
+      name: 'Use one of my services',
+      text: 'Pick a checkout page you’ve already made.',
+    },
+  ];
+
+  return (
+    <div className="es-choice">
+      <div className="es-choice__options" role="radiogroup" aria-label="Service">
+        {options.map((o) => {
+          const picked = mode === o.id;
+          return (
+            <label key={o.id} className={`es-choice__option ${picked ? 'es-choice__option--picked' : ''}`}>
+              <input
+                type="radio"
+                name="service-mode"
+                className="es-choice__radio"
+                value={o.id}
+                checked={picked}
+                onChange={() => onMode(o.id)}
+              />
+              <span className="es-choice__mark" aria-hidden="true" />
+              <span className="es-choice__text">
+                <span className="es-choice__name">
+                  {o.name}
+                  {o.tag && <span className="es-choice__tag">{o.tag}</span>}
+                </span>
+                <span className="es-choice__blurb">{o.text}</span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      {mode === 'pick' && <div className="es-choice__picker">{picker}</div>}
+    </div>
   );
 }
 
@@ -246,9 +406,6 @@ function hoursAtAGlance(schedule, durationMins) {
   }
   return { text, warning: null };
 }
-
-// Their call's booking page (the same link as Preview on the offerings home)
-const BOOKING_HREF = `?mock=book&service=${MY_CALL_ID}`;
 
 // One line under a description: where it shows, with a link to see it.
 // The link opens the live page, so it shows what's saved.

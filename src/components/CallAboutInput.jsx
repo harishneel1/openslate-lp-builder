@@ -20,7 +20,9 @@ export default function CallAboutInput({
 }) {
   const text = callAboutOf(answers);
   const written = answers.callAbout === undefined;
-  const changed = !written && answers.callAbout !== suggestedAbout();
+  // Our version: the screen's own starting text if it gave one (see callAboutOf)
+  const ours = answers.aboutStart ?? suggestedAbout();
+  const changed = !written && answers.callAbout !== ours;
 
   return (
     <div className="qinput about">

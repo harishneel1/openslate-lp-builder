@@ -4,6 +4,7 @@ import { getMyProfile } from '../data/myProfile';
 import { buildProfileJson } from '../data/buildProfileJson';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import { initials } from '../utils/initials';
+import OfferingKindPicker from '../components/OfferingKindPicker';
 import './OfferingsHome.css';
 
 // The offering's look, from its first fact (see serviceKinds.js)
@@ -35,12 +36,13 @@ async function copyText(text) {
 
 // One offering, laid out like a funnel card on the funnel list:
 // the whole card opens the editor; the round button previews it.
-function OfferingCard({ offering, onEdit }) {
+// isNew: just added, so it's marked and lit up briefly
+function OfferingCard({ offering, onEdit, isNew = false }) {
   const Icon = KIND_ICONS[offering.facts[0]?.icon] ?? Video;
   const details = offering.facts.map((f) => f.text).join(' · ');
 
   return (
-    <div className="oh-card">
+    <div className={`oh-card ${isNew ? 'oh-card--new' : ''}`}>
       <button type="button" className="oh-card__open" onClick={() => onEdit(offering.id)}>
         <div className="oh-card__panel" aria-hidden="true">
           <span className="oh-card__icon">
@@ -49,8 +51,11 @@ function OfferingCard({ offering, onEdit }) {
         </div>
 
         <div className="oh-card__body">
-          <span className="oh-card__status">
-            <span className="oh-card__live-dot" aria-hidden="true" /> Live
+          <span className="oh-card__tags">
+            <span className="oh-card__status">
+              <span className="oh-card__live-dot" aria-hidden="true" /> Live
+            </span>
+            {isNew && <span className="oh-card__new">Just added</span>}
           </span>
           <h3 className="oh-card__name">{offering.title}</h3>
           <p className="oh-card__detail">{details}</p>
@@ -87,10 +92,14 @@ function OfferingCard({ offering, onEdit }) {
 //
 // onEditProfile: opens the profile editor (photo, name, bio, link)
 // onEditOffering(id): opens the editor for one offering
-// onAddOffering: starts a new one
+// onAddOffering(kind): starts a new one of that kind, picked in the
+//   "What do you want to offer?" pop-up
+// justAddedId: the offering just added, if they've come back from adding it
 // ------------------------------------------------------------
-export default function OfferingsHome({ answers, onEditProfile, onEditOffering, onAddOffering }) {
+export default function OfferingsHome({ answers, onEditProfile, onEditOffering, onAddOffering, justAddedId = null }) {
   const offerings = useMemo(() => buildProfileJson(getMyProfile(answers)).services, [answers]);
+  const [choosing, setChoosing] = useState(false); // "What do you want to offer?" showing
+  const justAdded = offerings.find((o) => o.id === justAddedId) ?? null;
   const link = `${PAGE_DOMAIN}/${answers.handle}`;
   const url = pageUrl(answers.handle);
 
@@ -168,7 +177,7 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
             </h2>
             <p className="oh__panel-sub">What people can book from your page.</p>
           </div>
-          <button type="button" className="oh__add" onClick={onAddOffering}>
+          <button type="button" className="oh__add" onClick={() => setChoosing(true)}>
             <Plus size={16} strokeWidth={2.5} aria-hidden="true" /> Add a new offering
           </button>
         </div>
@@ -176,11 +185,25 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
         <div className="oh__panel-body">
           <div className="oh__grid">
             {offerings.map((o) => (
-              <OfferingCard key={o.id} offering={o} onEdit={onEditOffering} />
+              <OfferingCard key={o.id} offering={o} onEdit={onEditOffering} isNew={o.id === justAddedId} />
             ))}
           </div>
+          {/* Tells screen readers the new offering is on the page */}
+          <p className="oh__sr-only" aria-live="polite">
+            {justAdded ? `${justAdded.title} is now on your page.` : ''}
+          </p>
         </div>
       </section>
+
+      {choosing && (
+        <OfferingKindPicker
+          onClose={() => setChoosing(false)}
+          onPick={(kind) => {
+            setChoosing(false);
+            onAddOffering(kind);
+          }}
+        />
+      )}
     </div>
   );
 }

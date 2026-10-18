@@ -1,0 +1,168 @@
+/* "What do you want to offer?" pop-up (OfferingKindPicker.jsx) */
+.okp {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  margin: auto;
+  padding: 28px;
+  overflow-y: auto;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.okp::backdrop {
+  background: rgba(17, 17, 17, 0.4);
+}
+
+.okp__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.okp__title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.okp__sub {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.okp__close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: -6px -6px 0 0;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: 50%;
+}
+
+.okp__close:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* ---------- The kinds ---------- */
+.okp__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 0;
+  list-style: none;
+}
+
+/* One kind: the whole row is the button */
+.okp__kind {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  color: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.okp__kind:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.okp__kind:disabled {
+  cursor: default;
+  background: var(--color-bg);
+}
+
+.okp__icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-md);
+}
+
+.okp__kind:hover:not(:disabled) .okp__icon {
+  background: var(--color-surface);
+}
+
+.okp__kind:disabled .okp__icon {
+  color: var(--color-text-disabled);
+  background: var(--color-surface);
+}
+
+.okp__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.okp__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.okp__kind:disabled .okp__name {
+  color: var(--color-text-muted);
+}
+
+.okp__soon {
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.okp__blurb {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.okp__go {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.okp__kind:hover:not(:disabled) .okp__go {
+  color: var(--color-primary);
+}
+
+.okp__close:focus-visible,
+.okp__kind:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .okp {
+    padding: 22px 18px;
+  }
+}
