@@ -227,6 +227,24 @@
   color: var(--pf-body);
 }
 
+.co__desc p + p {
+  margin-top: 12px;
+}
+
+/* The creator previewing their own service */
+.co__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pf-ink, #1a1a1a);
+  background: #fff4e5;
+  border-bottom: 1px solid #f3dcc0;
+}
+
 
 /* ================= Right ================= */
 .co__pay {

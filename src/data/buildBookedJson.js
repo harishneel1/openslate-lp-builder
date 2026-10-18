@@ -1,5 +1,6 @@
 import { buildProfileJson } from './buildProfileJson';
 import { getMockProfile } from './mockProfile';
+import { getMyProfile, isMyCall } from './myProfile';
 import { zoneOptions } from './timeZones';
 import { formatTime, zoned } from '../utils/slots';
 
@@ -16,12 +17,12 @@ function mockMeetingCode(seed) {
   let h = 0;
   for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const letters = 'abcdefghijkmnopqrstuvwxyz';
-  const pick = (n) => Array.from({ length: n }, (_, i) => letters[(h >> (i * 2 + n)) % letters.length]).join('');
+  const pick = (n) => Array.from({ length: n }, (_, i) => letters[(h >>> (i * 2 + n)) % letters.length]).join('');
   return `${pick(3)}-${pick(4)}-${pick(3)}`;
 }
 
 export function buildBookedJson({ serviceId, time, timeZone, profileState }) {
-  const raw = getMockProfile(profileState);
+  const raw = isMyCall(serviceId) ? getMyProfile() : getMockProfile(profileState);
   const page = buildProfileJson(raw);
   const service = page.services.find((s) => s.id === serviceId && s.kind === 'call');
   const ms = Date.parse(time);

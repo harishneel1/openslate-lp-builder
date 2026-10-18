@@ -143,6 +143,22 @@ export function createMockService({ title, price }) {
   }
 }
 
+// Change a service made in this browser (title and price only).
+// Returns the updated service, or null if it isn't one of ours or storage failed.
+export function updateMockService(id, { title, price }) {
+  const list = loadCreated();
+  const i = list.findIndex((s) => s.id === id);
+  if (i === -1) return null;
+  const amount = Math.max(0, Number(price) || 0);
+  list[i] = { ...list[i], title: String(title).trim(), price: amount, type: amount > 0 ? 'onetime' : 'free' };
+  try {
+    localStorage.setItem(CREATED_KEY, JSON.stringify(list));
+    return list[i];
+  } catch {
+    return null;
+  }
+}
+
 // "Free", "₹499" or "₹299/month"
 export function servicePrice(service) {
   if (!service || service.price === 0 || service.type === 'free') return 'Free';

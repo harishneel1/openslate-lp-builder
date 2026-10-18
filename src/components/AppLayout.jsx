@@ -7,7 +7,7 @@ import {
   Copy, ExternalLink,
 } from 'lucide-react';
 import { initials } from '../utils/initials';
-import { PAGE_DOMAIN, SETUP_CHANGED_EVENT, mockAccount, savedHandle } from '../data/myPage';
+import { PAGE_DOMAIN, SETUP_CHANGED_EVENT, mockAccount, pageUrl, savedHandle } from '../data/myPage';
 import './AppLayout.css';
 
 const topNavItems = [
@@ -76,7 +76,7 @@ function MyPageCard({ active, onOpen }) {
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(`https://${link}`);
+      await navigator.clipboard.writeText(pageUrl(handle));
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -101,8 +101,7 @@ function MyPageCard({ active, onOpen }) {
               {copied ? <Check size={14} /> : <Copy size={14} />}
               {copied ? 'Copied' : 'Copy link'}
             </button>
-            {/* Stand-in: opens the example page until theirs can be shown */}
-            <a className="mypage__action" href="?mock=profile" target="_blank" rel="noreferrer">
+            <a className="mypage__action" href={`/${handle}`} target="_blank" rel="noreferrer">
               <ExternalLink size={14} /> View
             </a>
           </>

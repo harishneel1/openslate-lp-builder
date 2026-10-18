@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarClock, ChevronDown, Clock, Lock, Phone, Video } from 'lucide-react';
+import { CalendarClock, ChevronDown, Clock, Eye, Lock, Phone, Video } from 'lucide-react';
 import { buildCheckoutJson } from '../data/buildCheckoutJson';
 import { matchZone } from '../data/timeZones';
 import { COUNTRY_CODES, COUPONS, GSTIN, HOLD_SECONDS, INDIAN_STATES, PAYMENT_METHODS, breakdown, money } from '../data/checkoutRules';
 import '../styles/storeTheme.css';
 import './CheckoutPage.css';
+import { profileHrefFor } from '../data/myProfile';
 
 // ------------------------------------------------------------
 // Mock checkout, laid out like the product's real checkout:
@@ -82,11 +83,14 @@ function duration(seconds) {
 // 583 → '9:43'
 const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold, fail }) {
+// preview=1: the creator previewing their service. No time, no session box,
+// no hold, and nothing can be booked from it.
+export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold, fail, preview }) {
+  const previewing = preview === '1';
   const zone = matchZone(timeZone) ?? matchZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ?? 'Asia/Kolkata';
   const page = useMemo(
-    () => buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone, taken: taken === '1' }),
-    [serviceId, time, state, slots, zone, taken],
+    () => buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone, taken: taken === '1', preview: previewing }),
+    [serviceId, time, state, slots, zone, taken, previewing],
   );
   const { status, creator, service, slot } = page;
 
@@ -113,14 +117,14 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
   const holdFor = Number(hold) > 0 ? Number(hold) : HOLD_SECONDS;
   const [left, setLeft] = useState(holdFor);
   useEffect(() => {
-    if (status !== 'ok' || busy) return undefined;
+    if (status !== 'ok' || busy || previewing) return undefined;
     const id = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
   }, [status, busy]);
 
   const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
   const bookingHref = `?mock=book&service=${encodeURIComponent(serviceId ?? '')}&tz=${encodeURIComponent(zone)}${stateParam}`;
-  const profileHref = `?mock=profile${stateParam}`;
+  const profileHref = profileHrefFor(serviceId, stateParam); // their own page, or Meera's
 
   useEffect(() => {
     document.title = service ? `Book ${service.title} with ${creator.name}` : creator.name;
@@ -189,7 +193,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
       'Pick another time',
     );
   }
-  if (left === 0 && !busy) {
+  if (left === 0 && !busy && !previewing) {
     return notice(
       'Your hold on this time has ended',
       `We held ${slot.weekday} ${slot.day} ${slot.month}, ${slot.time} for you for ${duration(holdFor)}. It may still be free: pick it again to carry on.`,
@@ -205,7 +209,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
 
   const submit = (e) => {
     e.preventDefault();
-    if (busy) return;
+    if (busy || previewing) return;
     const found = check(form);
     setErrors(found);
     const first = Object.keys(found).find((k) => found[k]);
@@ -253,10 +257,15 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
   };
 
   const ordered = [...service.facts].sort((a, b) => Number(b.icon === 'clock') - Number(a.icon === 'clock'));
-  const when = `${slot.weekday} ${slot.day} ${slot.month}, ${slot.time}`;
+  const when = slot ? `${slot.weekday} ${slot.day} ${slot.month}, ${slot.time}` : null;
 
   return (
     <div className="co store-theme">
+      {previewing && (
+        <p className="co__preview">
+          <Eye size={16} aria-hidden="true" /> This is a preview of your service. Nobody can book from it.
+        </p>
+      )}
       <div className="co__layout">
         {/* ================= Left: what they're buying ================= */}
         <section className="co__what" aria-label="Your booking">
@@ -277,7 +286,8 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
             )}
           </p>
 
-          {/* Only for calls: the chosen time, held while they pay */}
+          {/* Only for calls: the chosen time, held while they pay (none in a preview) */}
+          {slot && (
           <div className="co__session">
             <div className="co__session-head">
               <h2 className="co__session-label">Your session</h2>
@@ -312,9 +322,19 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
               We're holding this time for you for <strong>{clock(left)}</strong>
             </p>
           </div>
+          )}
 
           {service.image && <img className="co__image" src={service.image} alt="" />}
-          {service.description && <p className="co__desc">{service.description}</p>}
+          {/* The full description, as on the booking page */}
+          {service.about?.length > 0 ? (
+            <div className="co__desc">
+              {service.about.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+            </div>
+          ) : (
+            service.description && <p className="co__desc">{service.description}</p>
+          )}
         </section>
 
         {/* ================= Right: their details and the money ================= */}
@@ -496,7 +516,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
               <div className="co__line">
                 <dt>
                   {service.title}
-                  <span className="co__line-sub">{when}</span>
+                  {when && <span className="co__line-sub">{when}</span>}
                 </dt>
                 <dd>
                   {price.isFree ? 'Free' : money(sums.amount)}
@@ -531,7 +551,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
               </div>
             )}
 
-            <button type="submit" className="co__pay-btn" disabled={busy}>
+            <button type="submit" className="co__pay-btn" disabled={busy || previewing}>
               {busy ? (price.isFree ? 'Booking…' : 'Processing payment…') : payLabel}
             </button>
             {!price.isFree && (

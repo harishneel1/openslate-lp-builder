@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Check, Copy, ExternalLink, MessageCircle, PartyPopper } from 'lucide-react';
+import { Check, Copy, PartyPopper } from 'lucide-react';
 import ProfileExample from '../components/ProfileExample';
-import { PAGE_DOMAIN } from '../data/myPage';
+import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import './MyPageReveal.css';
 
 // ------------------------------------------------------------
@@ -10,7 +10,7 @@ import './MyPageReveal.css';
 // ------------------------------------------------------------
 export default function MyPageReveal({ handle, onEdit }) {
   const link = `${PAGE_DOMAIN}/${handle}`;
-  const url = `https://${link}`;
+  const url = pageUrl(handle);
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
@@ -22,8 +22,6 @@ export default function MyPageReveal({ handle, onEdit }) {
       // Clipboard blocked: the link is on screen to copy by hand
     }
   }
-
-  const whatsapp = `https://wa.me/?text=${encodeURIComponent(`You can book a time with me here: ${url}`)}`;
 
   return (
     <div className="mpr">
@@ -42,21 +40,8 @@ export default function MyPageReveal({ handle, onEdit }) {
           </button>
         </div>
 
-        <div className="mpr__actions">
-          <a className="mpr__btn mpr__btn--whatsapp" href={whatsapp} target="_blank" rel="noreferrer">
-            <MessageCircle size={18} aria-hidden="true" /> Share on WhatsApp
-          </a>
-          {/* Stand-in for their live address until pages are hosted */}
-          <a className="mpr__btn" href="?mock=profile&source=mine" target="_blank" rel="noreferrer">
-            <ExternalLink size={18} aria-hidden="true" /> View my page
-          </a>
-        </div>
-
-        <p className="mpr__later">
-          Webinars, Priority DMs and courses are on their way. You’ll be able to add them here.
-        </p>
         <button type="button" className="mpr__edit" onClick={onEdit}>
-          Change my answers
+          Edit my offerings page
         </button>
       </div>
 

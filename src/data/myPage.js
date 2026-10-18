@@ -1,9 +1,15 @@
 // ------------------------------------------------------------
 // The creator's one public page: its address, and the checks
-// for the link they choose (openslate.ai/<handle>).
+// for the link they choose (yourdomain.com/<handle>).
 // ------------------------------------------------------------
 
-export const PAGE_DOMAIN = 'openslate.ai'; // TODO: real domain
+// Where pages live. For now, this app's own address (localhost:5173), so
+// localhost:5173/harishneel opens the page. Swap for 'openslate.ai' once
+// pages are hosted there.
+export const PAGE_DOMAIN = window.location.host;
+
+// The full web address of a page, to copy or open: http://localhost:5173/harishneel
+export const pageUrl = (handle) => `${window.location.protocol}//${PAGE_DOMAIN}/${handle}`;
 
 // Who's signed in. Stand-in until the real account comes from the API.
 export const mockAccount = { name: 'Harish Neel' };

@@ -13,6 +13,7 @@ import { loadSchedule } from './availabilityStore';
 //            starting schedule, plus a mock day off.
 //   busy     fully booked for the next week
 //   none     no hours set at all
+//   clear    the saved schedule as it is, with no mock bookings (a new creator's own call)
 // ------------------------------------------------------------
 
 // The creator's own schedule from the Availability screen, if they've saved
@@ -45,6 +46,8 @@ export function getMockAvailability(state, now = Date.now()) {
   const { schedule, saved } = currentSchedule();
   const zone = schedule.timeZone;
   const today = todayIn(zone, now);
+
+  if (state === 'clear') return { schedule, bookings: [] };
 
   if (state === 'none') {
     return { schedule: { ...schedule, weekly: {}, overrides: {} }, bookings: [] };

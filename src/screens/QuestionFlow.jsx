@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair', 'handle', 'offerType', 'callDetails', 'weeklyHours'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair', 'handle', 'offerType', 'callDetails', 'weeklyHours', 'serviceSummary'];
 
 // Screens that move on with their own button (Use this and continue), so Next is hidden
 const OWN_NEXT_TYPES = ['ramble'];
@@ -32,7 +32,7 @@ export default function QuestionFlow({
   finishLabel = 'Finish', // Label of the button on the last screen
   hideProgress = false,   // Edit mode shows a single screen, no progress bar
   renderProgress,         // Optional: replaces the default progress bar
-  renderAside,            // Optional: right-hand column (the page preview)
+  renderAside,            // Optional: right-hand column (the page preview); return null to leave a screen without it
   asideWidth = 'narrow',  // 'narrow' (phone preview) or 'wide' (desktop preview)
   backAtTop = false,      // Back sits above the progress; Next appears once answered
   wide = false, 
@@ -200,9 +200,12 @@ export default function QuestionFlow({
     </span>
   );
 
+  // A screen can go without the right-hand column: renderAside returns null for it
+  const aside = renderAside ? renderAside({ question }) : null;
+
   return (
     <div
-      className={`flow ${renderAside ? `flow--split flow--aside-${asideWidth}` : ''} ${
+      className={`flow ${aside ? `flow--split flow--aside-${asideWidth}` : ''} ${
           wide || WIDE_TYPES.includes(question.type) ? 'flow--wide' : ''
       }`}
     >
@@ -215,6 +218,10 @@ export default function QuestionFlow({
             : defaultProgress)}
 
         <div className="flow__question" key={question.id}>
+          {/* titleTick: a green tick above the title, for screens that report something done */}
+          {question.titleTick && (
+            <span className="flow__tick" aria-hidden="true"><Check size={22} strokeWidth={3} /></span>
+          )}
           <h1 className="flow__title">{question.question}</h1>
           {question.helper && <p className="flow__helper">{question.helper}</p>}
           <QuestionInput
@@ -247,7 +254,7 @@ export default function QuestionFlow({
         )}
       </div>
 
-      {renderAside && <aside className="flow__aside">{renderAside({ question })}</aside>}
+      {aside && <aside className="flow__aside">{aside}</aside>}
     </div>
   );
 }

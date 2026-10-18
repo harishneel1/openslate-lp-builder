@@ -1,5 +1,6 @@
 import { buildProfileJson } from './buildProfileJson';
 import { getMockProfile } from './mockProfile';
+import { getMyProfile, isMyCall } from './myProfile';
 import { getMockAvailability } from './mockAvailability';
 import { findSlots } from '../utils/slots';
 
@@ -8,13 +9,15 @@ import { findSlots } from '../utils/slots';
 // profile's page JSON so a call looks the same on both pages.
 //
 // In the real product this would be one API response; here it
-// reads the mocks (mockProfile, mockAvailability).
+// reads the mocks (mockProfile, mockAvailability), or the creator's own
+// page from their setup answers when it's their call (myProfile).
 //
 // Returns { creator, service, durationMins, reviews, availability }, or with
 // service: null when the id isn't a call this creator offers.
 // ------------------------------------------------------------
 export function buildBookingJson({ serviceId, profileState, slotsState, timeZone, now = Date.now() }) {
-  const raw = getMockProfile(profileState);
+  const mine = isMyCall(serviceId);
+  const raw = mine ? getMyProfile() : getMockProfile(profileState);
   const page = buildProfileJson(raw);
   const { name, initials, photo, headline, stats } = page.creator;
   // Rating and bookings for the coach card (reviews are shown on the page itself)
@@ -38,6 +41,7 @@ export function buildBookingJson({ serviceId, profileState, slotsState, timeZone
     service,
     durationMins,
     reviews: page.testimonials.filter((t) => t.serviceId === serviceId),
-    availability: findSlots({ ...getMockAvailability(slotsState, now), durationMins, timeZone, now }),
+    // Their own call: just their saved hours, no made-up bookings
+    availability: findSlots({ ...getMockAvailability(slotsState ?? (mine ? 'clear' : undefined), now), durationMins, timeZone, now }),
   };
 }

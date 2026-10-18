@@ -81,54 +81,15 @@
   background: var(--color-primary-hover);
 }
 
-/* ---------- Share and view ---------- */
-.mpr__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.mpr__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
-  font-size: 15px;
-  font-weight: 600;
-  text-decoration: none;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: border-color 0.15s;
-}
-
-.mpr__btn:hover {
-  border-color: #cfcfcf;
-}
-
-.mpr__btn--whatsapp svg {
-  color: #1f9d55;
-}
-
 .mpr__copy:focus-visible,
-.mpr__btn:focus-visible,
 .mpr__edit:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* ---------- Afterwards ---------- */
-.mpr__later {
-  margin-top: 36px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
+/* ---------- Edit ---------- */
 .mpr__edit {
-  margin-top: 8px;
+  margin-top: 20px;
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-muted);

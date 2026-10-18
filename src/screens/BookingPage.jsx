@@ -8,6 +8,7 @@ import SlotPicker from '../components/booking/SlotPicker';
 import TimeZonePicker from '../components/booking/TimeZonePicker';
 import '../styles/storeTheme.css';
 import './BookingPage.css';
+import { profileHrefFor } from '../data/myProfile';
 
 // ------------------------------------------------------------
 // One call's booking page: what the call is, and when to have it.
@@ -53,7 +54,7 @@ export default function BookingPage({ serviceId, state, slots, timeZone }) {
 
   // Back to the same version of the profile they came from
   const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
-  const profileHref = `?mock=profile${stateParam}`;
+  const profileHref = profileHrefFor(serviceId, stateParam); // their own page, or Meera's
 
   useEffect(() => {
     document.title = service ? `${service.title} with ${creator.name}` : creator.name;

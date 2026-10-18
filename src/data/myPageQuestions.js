@@ -6,13 +6,13 @@ import { callDetailsComplete } from './callDetails';
 // Each id matches an entry in profileAnnotations.js, which points
 // at the part of the example page that answer fills in.
 //
-// The link, about you, what they offer first, its details, and when
-// people can book it.
+// The link, about you, what they offer first, its details, when people
+// can book it, and the service (registration form) made for it.
 // After the last one comes the reveal: their page, built.
 // ------------------------------------------------------------
 
-// Shown as "1 of 5"
-export const MY_PAGE_STEPS = 5;
+// Shown as "1 of 6"
+export const MY_PAGE_STEPS = 6;
 
 export const myPageQuestions = [
   {
@@ -100,8 +100,21 @@ export const myPageQuestions = [
     type: 'weeklyHours', // WeeklyHoursInput: saves to the Availability store, reports hoursStatus
     required: true,
     question: 'When can people book you?',
-    helper: '',
+    helper: 'We’ve filled in some hours to start. Change any day, or carry on if they suit you.',
     isComplete: (answers) => (answers.hoursStatus ?? 'ok') === 'ok',
     nextHint: 'Switch on at least one day, and fix any hours marked in red',
+  },
+  {
+    id: 'service',
+    type: 'serviceSummary', // ServiceSummaryInput: makes the service from the call's details
+    required: true,
+    preview: false, // no example page on this screen
+    titleTick: true,
+    question: 'We’ve auto-created your service',
+    helper:
+      'Based on the details you gave us. A service is the form people fill in, ' +
+      'and pay through, when they book your call.',
+    isComplete: (answers) => Boolean(answers.serviceId),
+    nextHint: 'Setting up your service…',
   },
 ];

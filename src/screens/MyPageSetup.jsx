@@ -55,7 +55,7 @@ export default function MyPageSetup() {
       questions={myPageQuestions}
       answers={answers}
       onAnswer={handleAnswer}
-      finishLabel={answers.publishedAt ? 'Save changes' : 'Make my page live'}
+      finishLabel={answers.publishedAt ? 'Save changes' : 'Continue'}
       onExit={() => setStep('intro')}
       // Finishing puts the page live straight away: no separate publish step
       onComplete={() => {
@@ -77,9 +77,11 @@ export default function MyPageSetup() {
           </div>
         </div>
       )}
-      renderAside={({ question }) => (
-        <ProfileExample questionId={question.id} answer={answers[question.id] ?? question.default} />
-      )}
+      renderAside={({ question }) =>
+        question.preview === false ? null : (
+          <ProfileExample questionId={question.id} answer={answers[question.id] ?? question.default} />
+        )
+      }
     />
   );
 }

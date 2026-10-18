@@ -186,3 +186,14 @@
 .flow--wide {
   max-width: 960px;
 }
+/* Green tick above the title (titleTick), for screens that report something done */
+.flow__tick {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--color-success);
+}

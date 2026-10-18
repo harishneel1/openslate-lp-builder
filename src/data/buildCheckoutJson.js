@@ -12,13 +12,16 @@ import { formatTime } from '../utils/slots';
 //              valid time): send them back to pick another
 //   'missing'  the call doesn't exist
 //
+// preview: the creator looking at their own service, with no time
+// picked. Shows the form with no session (slot is null).
 // In the real product the server checks the time again when they
 // pay, since someone else can take it in the meantime.
 // ------------------------------------------------------------
-export function buildCheckoutJson({ serviceId, time, profileState, slotsState, timeZone, taken = false, now = Date.now() }) {
+export function buildCheckoutJson({ serviceId, time, profileState, slotsState, timeZone, taken = false, preview = false, now = Date.now() }) {
   const base = buildBookingJson({ serviceId, profileState, slotsState, timeZone, now });
   const { creator, service, durationMins, availability } = base;
   if (!service) return { status: 'missing', creator, service: null, slot: null };
+  if (preview) return { status: 'ok', creator, service, slot: null };
 
   const ms = Date.parse(time);
   const start = Number.isFinite(ms) ? new Date(ms).toISOString() : null;

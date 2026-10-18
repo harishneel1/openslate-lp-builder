@@ -1,0 +1,86 @@
+.svc__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.svc__row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.svc__row + .svc__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.svc__row dt {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.svc__row dd {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.svc__name {
+  font-weight: 600;
+}
+
+.svc__type {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* Preview and Edit, along the bottom of the card */
+.svc__actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.svc__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+
+.svc__action:hover {
+  border-color: #cfcfcf;
+}
+
+.svc__action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.svc__free {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.svc__note {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 560px) {
+  .svc__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

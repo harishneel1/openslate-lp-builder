@@ -11,6 +11,7 @@ import HandleInput from './HandleInput';
 import OfferTypeInput from './OfferTypeInput';
 import CallDetailsInput from './CallDetailsInput';
 import WeeklyHoursInput from './WeeklyHoursInput';
+import ServiceSummaryInput from './ServiceSummaryInput';
 
 const CTA_MAX = 25;
 
@@ -536,6 +537,8 @@ export default function QuestionInput(props) {
       return <CallDetailsInput {...props} />;
     case 'weeklyHours':
       return <WeeklyHoursInput {...props} />;
+    case 'serviceSummary':
+      return <ServiceSummaryInput {...props} />;
     default:
       return (
         <p className="qinput__todo">

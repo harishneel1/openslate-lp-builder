@@ -5,6 +5,7 @@ import { matchZone } from '../data/timeZones';
 import { googleCalendarUrl } from '../utils/calendar';
 import '../styles/storeTheme.css';
 import './BookedPage.css';
+import { profileHrefFor } from '../data/myProfile';
 
 // ------------------------------------------------------------
 // Confirmation page, after checkout. Answers three things: you're
@@ -27,7 +28,7 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
   useEffect(() => () => clearTimeout(copyTimer.current), []);
 
   const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
-  const profileHref = `?mock=profile${stateParam}`;
+  const profileHref = profileHrefFor(serviceId, stateParam); // their own page, or Meera's
   const firstName = String(name ?? '').trim().split(/\s+/)[0];
 
   useEffect(() => {

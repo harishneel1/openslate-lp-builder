@@ -1,0 +1,18 @@
+.pnf {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 120px 24px;
+  text-align: center;
+}
+
+.pnf__title {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.pnf__text {
+  margin-top: 10px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}

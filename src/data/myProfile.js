@@ -16,6 +16,22 @@ function loadAnswers() {
   }
 }
 
+// The id of the creator's own call, as it appears in booking links
+export const MY_CALL_ID = 'my-call';
+
+// Whose page a call belongs to: the creator's own call reads their setup
+// answers; anything else is Meera's (mockProfile.js)
+export const isMyCall = (serviceId) => serviceId === MY_CALL_ID;
+
+// Back to the page the call is on: theirs at /<handle>, or Meera's
+export function profileHrefFor(serviceId, stateParam = '') {
+  if (isMyCall(serviceId)) {
+    const { handle } = loadAnswers();
+    return handle ? `/${handle}` : '/';
+  }
+  return `?mock=profile${stateParam}`;
+}
+
 export function getMyProfile(answers = loadAnswers()) {
   const value = (id) => answers[id] ?? CALL_DEFAULTS[id];
   const free = value('callPricing') === 'free';
@@ -33,7 +49,7 @@ export function getMyProfile(answers = loadAnswers()) {
   };
 
   const call = {
-    id: 'my-call',
+    id: MY_CALL_ID,
     kind: 'call',
     title: answers.callTitle ?? '',
     description: callDescriptionOf(answers),
