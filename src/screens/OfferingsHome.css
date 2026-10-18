@@ -11,7 +11,7 @@
   line-height: 1.2;
 }
 
-/* ---------- Panels: one for the link, one for the offerings ---------- */
+/* ---------- Panels: profile, link and offerings ---------- */
 .oh__panel {
   margin-top: 24px;
   background: var(--color-surface);
@@ -20,8 +20,59 @@
   box-shadow: var(--shadow-card);
 }
 
-.oh__title + .oh__panel {
+.oh__title + .oh__panel,
+.oh__title + .oh__top {
   margin-top: 28px;
+}
+
+/* ---------- Profile and link on one row ---------- */
+.oh__top {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Both cards share the row's height; their content sits centred in the body */
+.oh__top .oh__panel {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0;
+}
+
+.oh__top .oh__panel-head {
+  min-height: 89px; /* same height whether a head has a button or a subtitle */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.oh__top .oh__panel-head--split {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.oh__top .oh__panel-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.oh__top .oh__link {
+  width: 100%;
+}
+
+/* Narrower screens: back to one card under the other */
+@media (max-width: 860px) {
+  .oh__top {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .oh__top .oh__panel + .oh__panel {
+    margin-top: 24px;
+  }
 }
 
 .oh__panel-head {
@@ -141,7 +192,7 @@
 
 .oh__url {
   flex: 1;
-  min-width: 160px;
+  min-width: 140px; /* below this, the buttons drop to their own line */
   overflow: hidden;
   font-size: 16px;
   font-weight: 600;

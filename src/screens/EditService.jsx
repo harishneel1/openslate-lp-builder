@@ -1,11 +1,15 @@
-import { useMemo } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ExternalLink } from 'lucide-react';
 import EditFrame, { EditPanel, EditPlaceholder, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
 import { MY_CALL_ID } from '../data/myProfile';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsComplete } from '../data/callDetails';
+import { loadSchedule } from '../data/availabilityStore';
+import { timeZones } from '../data/timeZones';
+import { durationLabel } from '../data/serviceKinds';
+import { longestBlock, weekSummary } from '../utils/weeklyHours';
 import '../components/QuestionInput.css'; // field styles the call details use
 import './EditService.css';
 
@@ -25,6 +29,9 @@ const FIELDS = [
 // Editing one offering, opened from its card on the offerings home:
 // Basics (name, length, format, price) and Descriptions (short and long).
 // Changes stay on this screen until Save (see EditFrame.jsx).
+//
+// When people can book: a summary of their hours (shared by all calls),
+// with a link to the Availability screen to change them.
 //
 // serviceId null: "Add a new offering" (a placeholder for now).
 // onSave(changes): merges the changed answers into the saved ones.
@@ -106,6 +113,10 @@ function EditCall({ answers, onBack, onSave }) {
           note={<WhereItShows text="Shows on" href={BOOKING_HREF} label="your booking page" />}
         />
       </EditPanel>
+
+      <EditPanel id="es-when" title="When people can book" sub="Your hours. They’re the same for all your 1:1 calls.">
+        <HoursSummary durationMins={Number(draft.callDuration)} />
+      </EditPanel>
     </EditFrame>
   );
 }
@@ -125,5 +136,78 @@ function WhereItShows({ text, href, label }) {
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
     </span>
+  );
+}
+
+// The Availability screen: for now, the stand-in opened in a new tab
+// (like the service's Preview and Edit links)
+const AVAILABILITY_HREF = '?mock=availability';
+
+// Their weekly hours at a glance, read from where the Availability screen
+// saves them. Read again whenever they come back to this tab, so it's
+// up to date after changing hours there.
+// durationMins: this call's length, to warn when no block is long enough.
+function HoursSummary({ durationMins }) {
+  const [schedule, setSchedule] = useState(loadSchedule);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== 'hidden') setSchedule(loadSchedule());
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, []);
+
+  const { open, closed } = weekSummary(schedule.weekly);
+  const zone = timeZones.find((z) => z.id === schedule.timeZone)?.name ?? schedule.timeZone;
+  const longest = longestBlock(schedule.weekly);
+
+  // Nothing bookable: no hours, or none long enough for this call
+  let warning = null;
+  if (open.length === 0) {
+    warning = 'You haven’t set any hours, so people can’t book this call.';
+  } else if (durationMins > longest) {
+    warning = `None of your hours are long enough for a ${durationLabel(durationMins)} call, so people won’t see any times. Add a longer block, or make the call shorter.`;
+  }
+
+  return (
+    <div className="es-hours">
+      {open.length > 0 && (
+        <dl className="es-hours__list">
+          {open.map(({ days, hours }) => (
+            <div key={days} className="es-hours__row">
+              <dt>{days}</dt>
+              <dd>{hours}</dd>
+            </div>
+          ))}
+          {closed && (
+            <div className="es-hours__row es-hours__row--off">
+              <dt>{closed}</dt>
+              <dd>Not available</dd>
+            </div>
+          )}
+        </dl>
+      )}
+
+      {warning && (
+        <p className="es-hours__warning" role="alert">
+          <AlertTriangle size={16} aria-hidden="true" />
+          <span>{warning}</span>
+        </p>
+      )}
+
+      <p className="es-hours__foot">
+        <span>Times are in {zone} time.</span>
+        <a href={AVAILABILITY_HREF} target="_blank" rel="noopener">
+          Change your hours
+          <ExternalLink size={14} aria-hidden="true" />
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </div>
   );
 }

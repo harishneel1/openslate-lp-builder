@@ -109,55 +109,55 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
     <div className="oh">
       <h1 className="oh__title">Your offerings page</h1>
 
-      {/* ---------- Their profile: the top of their page ---------- */}
-      <section className="oh__panel" aria-labelledby="oh-profile">
-        <div className="oh__panel-head oh__panel-head--split">
-          <div>
+      {/* ---------- Profile and link, side by side, so offerings stay in view ---------- */}
+      <div className="oh__top">
+        {/* ---------- Their profile: the top of their page ---------- */}
+        <section className="oh__panel" aria-labelledby="oh-profile">
+          <div className="oh__panel-head oh__panel-head--split">
             <h2 className="oh__panel-title" id="oh-profile">Your profile</h2>
-            <p className="oh__panel-sub">The first thing visitors see on your page.</p>
+            <button type="button" className="oh__edit" onClick={onEditProfile}>
+              <Pencil size={15} aria-hidden="true" /> Edit your profile
+            </button>
           </div>
-          <button type="button" className="oh__edit" onClick={onEditProfile}>
-            <Pencil size={15} aria-hidden="true" /> Edit profile
-          </button>
-        </div>
-        <div className="oh__panel-body oh__profile">
-          <span className="oh__avatar" aria-hidden="true">
-            {answers.photo ? <img src={answers.photo} alt="" /> : initials(answers.name)}
-          </span>
-          <div className="oh__profile-text">
-            <p className="oh__name">{answers.name}</p>
-            {answers.bio && <p className="oh__bio">{answers.bio}</p>}
+          <div className="oh__panel-body oh__profile">
+            <span className="oh__avatar" aria-hidden="true">
+              {answers.photo ? <img src={answers.photo} alt="" /> : initials(answers.name)}
+            </span>
+            <div className="oh__profile-text">
+              <p className="oh__name">{answers.name}</p>
+              {answers.bio && <p className="oh__bio">{answers.bio}</p>}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ---------- The link ---------- */}
-      <section className="oh__panel" aria-labelledby="oh-link">
-        <div className="oh__panel-head">
-          <div>
-            <h2 className="oh__panel-title" id="oh-link">Your link</h2>
-            <p className="oh__panel-sub">Any change you make shows up on your page straight away.</p>
+        {/* ---------- The link ---------- */}
+        <section className="oh__panel" aria-labelledby="oh-link">
+          <div className="oh__panel-head">
+            <div>
+              <h2 className="oh__panel-title" id="oh-link">Your link</h2>
+              <p className="oh__panel-sub">Any change you make shows up on your page straight away.</p>
+            </div>
           </div>
-        </div>
-        <div className="oh__panel-body">
-          <div className="oh__link">
-        <span className="oh__url" title={url}>{link}</span>
-        <button type="button" className="oh__copy" onClick={handleCopy}>
-          {copy === 'copied' ? <Check size={16} strokeWidth={3} /> : <Copy size={16} />}
-          {copy === 'copied' ? 'Copied' : 'Copy link'}
-        </button>
-        <a className="oh__open" href={url} target="_blank" rel="noopener" aria-label="Open your page (opens in a new tab)">
-          <ExternalLink size={16} aria-hidden="true" /> Open
-        </a>
-        <span className="oh__sr-only" aria-live="polite">{copy === 'copied' && 'Link copied'}</span>
-        {copy === 'failed' && (
-          <p className="oh__copy-error" role="alert">
-            Couldn’t copy. Select the link and copy it yourself.
-          </p>
-        )}
+          <div className="oh__panel-body">
+            <div className="oh__link">
+              <span className="oh__url" title={url}>{link}</span>
+              <button type="button" className="oh__copy" onClick={handleCopy}>
+                {copy === 'copied' ? <Check size={16} strokeWidth={3} /> : <Copy size={16} />}
+                {copy === 'copied' ? 'Copied' : 'Copy link'}
+              </button>
+              <a className="oh__open" href={url} target="_blank" rel="noopener" aria-label="Open your page (opens in a new tab)">
+                <ExternalLink size={16} aria-hidden="true" /> Open
+              </a>
+              <span className="oh__sr-only" aria-live="polite">{copy === 'copied' && 'Link copied'}</span>
+              {copy === 'failed' && (
+                <p className="oh__copy-error" role="alert">
+                  Couldn’t copy. Select the link and copy it yourself.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       {/* ---------- Offerings ---------- */}
       <section className="oh__panel" aria-labelledby="oh-offerings">
