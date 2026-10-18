@@ -5,6 +5,7 @@ import MyPageIntro from './MyPageIntro';
 import MyPageReveal from './MyPageReveal';
 import OfferingsHome from './OfferingsHome';
 import EditService from './EditService';
+import EditProfile from './EditProfile';
 import { MY_PAGE_STEPS, myPageQuestions } from '../data/myPageQuestions';
 import { SETUP_CHANGED_EVENT, SETUP_STORAGE_KEY } from '../data/myPage';
 
@@ -27,7 +28,8 @@ function loadAnswers() {
 export default function MyPageSetup() {
   const [answers, setAnswers] = useState(loadAnswers);
   // Setup: 'intro' → 'questions' → 'done' (the page, live, shown once).
-  // Then: 'home' (the offerings home) ↔ 'editService' (one offering, or a new one).
+  // Then: 'home' (the offerings home) ↔ 'editService' (one offering, or a new one)
+  //                                    ↔ 'editProfile' (photo, name, bio, link).
   // Finished before? The home. Started before? Straight to the questions.
   const [step, setStep] = useState(() =>
     answers.publishedAt ? 'home' : Object.keys(answers).length > 0 ? 'questions' : 'intro'
@@ -58,6 +60,7 @@ export default function MyPageSetup() {
     return (
       <OfferingsHome
         answers={answers}
+        onEditProfile={() => setStep('editProfile')}
         onEditOffering={(id) => {
           setEditingId(id);
           setStep('editService');
@@ -66,6 +69,17 @@ export default function MyPageSetup() {
           setEditingId(null);
           setStep('editService');
         }}
+      />
+    );
+  }
+
+  if (step === 'editProfile') {
+    return (
+      <EditProfile
+        answers={answers}
+        onBack={() => setStep('home')}
+        // A new link is saved like any answer: the sidebar card and the live address follow it
+        onSave={(changes) => setAnswers((prev) => ({ ...prev, ...changes }))}
       />
     );
   }

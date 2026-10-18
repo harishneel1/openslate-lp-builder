@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, Copy, ExternalLink, MessageSquare, Phone, Plus, Video } from 'lucide-react';
+import { ArrowRight, Check, Copy, ExternalLink, MessageSquare, Pencil, Phone, Plus, Video } from 'lucide-react';
 import { getMyProfile } from '../data/myProfile';
 import { buildProfileJson } from '../data/buildProfileJson';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
+import { initials } from '../utils/initials';
 import './OfferingsHome.css';
 
 // The offering's look, from its first fact (see serviceKinds.js)
@@ -84,10 +85,11 @@ function OfferingCard({ offering, onEdit }) {
 // offering on it. Where creators land once setup is done; from
 // here on, no step-by-step questions.
 //
+// onEditProfile: opens the profile editor (photo, name, bio, link)
 // onEditOffering(id): opens the editor for one offering
 // onAddOffering: starts a new one
 // ------------------------------------------------------------
-export default function OfferingsHome({ answers, onEditOffering, onAddOffering }) {
+export default function OfferingsHome({ answers, onEditProfile, onEditOffering, onAddOffering }) {
   const offerings = useMemo(() => buildProfileJson(getMyProfile(answers)).services, [answers]);
   const link = `${PAGE_DOMAIN}/${answers.handle}`;
   const url = pageUrl(answers.handle);
@@ -106,6 +108,28 @@ export default function OfferingsHome({ answers, onEditOffering, onAddOffering }
   return (
     <div className="oh">
       <h1 className="oh__title">Your offerings page</h1>
+
+      {/* ---------- Their profile: the top of their page ---------- */}
+      <section className="oh__panel" aria-labelledby="oh-profile">
+        <div className="oh__panel-head oh__panel-head--split">
+          <div>
+            <h2 className="oh__panel-title" id="oh-profile">Your profile</h2>
+            <p className="oh__panel-sub">The first thing visitors see on your page.</p>
+          </div>
+          <button type="button" className="oh__edit" onClick={onEditProfile}>
+            <Pencil size={15} aria-hidden="true" /> Edit profile
+          </button>
+        </div>
+        <div className="oh__panel-body oh__profile">
+          <span className="oh__avatar" aria-hidden="true">
+            {answers.photo ? <img src={answers.photo} alt="" /> : initials(answers.name)}
+          </span>
+          <div className="oh__profile-text">
+            <p className="oh__name">{answers.name}</p>
+            {answers.bio && <p className="oh__bio">{answers.bio}</p>}
+          </div>
+        </div>
+      </section>
 
       {/* ---------- The link ---------- */}
       <section className="oh__panel" aria-labelledby="oh-link">

@@ -1,0 +1,229 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Check, ExternalLink } from 'lucide-react';
+import './EditFrame.css';
+
+// ------------------------------------------------------------
+// Shared by every edit screen (a call, their profile), so they all
+// behave the same:
+//   useEditDraft  keeps changes on screen until Save
+//   EditFrame     back link, title, "Leave without saving?", save bar
+//   EditPanel     one white section with a heading
+// ------------------------------------------------------------
+
+// saved: what's saved now. fields: the answer ids this screen may change.
+// Returns the draft (saved + changes) and everything the frame needs.
+export function useEditDraft(saved, fields) {
+  const [edits, setEdits] = useState({}); // only what they've changed since the last save
+  const [formKey, setFormKey] = useState(0); // bumped on Discard, so the form starts afresh
+  const [justSaved, setJustSaved] = useState(false); // "Changes saved" until they edit again
+  const [leaving, setLeaving] = useState(false); // "Leave without saving?" showing
+
+  const draft = useMemo(() => ({ ...saved, ...edits }), [saved, edits]);
+  const changed = fields.filter((id) => id in edits && edits[id] !== saved[id]);
+  const dirty = changed.length > 0;
+
+  return {
+    draft,
+    dirty,
+    formKey,
+    justSaved,
+    leaving,
+    setLeaving,
+    // The changed answers, ready to save
+    changes: () => Object.fromEntries(changed.map((id) => [id, edits[id]])),
+    handleChange: (value, id) => {
+      if (!fields.includes(id)) return;
+      setEdits((prev) => ({ ...prev, [id]: value }));
+      setJustSaved(false);
+      setLeaving(false);
+    },
+    discard: () => {
+      setEdits({});
+      setFormKey((k) => k + 1);
+      setLeaving(false);
+    },
+    // Call after saving: the draft is now what's saved
+    saved: () => {
+      setEdits({});
+      setJustSaved(true);
+    },
+  };
+}
+
+// edit: from useEditDraft.
+// problem: what's stopping a save (shown in the bar), or null.
+// onSave: the screen's own save (it calls edit.saved() once done).
+// viewHref: their live page, linked after saving.
+// confirm: { title, body, confirmLabel, onConfirm, onCancel } to ask before saving
+//          (shown as a pop-up), or null.
+export default function EditFrame({
+  edit,
+  title,
+  sub,
+  onBack,
+  onSave,
+  problem = null,
+  viewHref,
+  confirm = null,
+  children,
+}) {
+  const { dirty, justSaved, leaving, setLeaving } = edit;
+
+  // Closing the tab with unsaved changes: the browser asks first
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  const back = () => (dirty ? setLeaving(true) : onBack());
+
+  return (
+    <div className="es">
+      <div className="es__content">
+        <button type="button" className="es__back" onClick={back}>
+          <ArrowLeft size={16} aria-hidden="true" /> Your offerings page
+        </button>
+        <h1 className="es__title">{title}</h1>
+        {sub && <p className="es__sub">{sub}</p>}
+
+        {/* Back pressed with unsaved changes */}
+        {leaving && (
+          <div className="es__leave" role="alert">
+            <p>
+              <strong>You have unsaved changes.</strong> Leave without saving them?
+            </p>
+            <div className="es__leave-actions">
+              <button type="button" className="es__btn es__btn--quiet" onClick={() => setLeaving(false)}>
+                Keep editing
+              </button>
+              <button type="button" className="es__btn es__btn--danger" onClick={onBack}>
+                Leave without saving
+              </button>
+            </div>
+          </div>
+        )}
+
+        {children}
+      </div>
+
+      {/* ---------- Save bar: full width, pinned to the bottom of the window ---------- */}
+      <div className="es__bar">
+        <div className="es__bar-inner">
+          <p className="es__status" aria-live="polite">
+            {dirty && (problem ?? 'You have unsaved changes')}
+            {/* Saved: say so, and offer a look at the live page */}
+            {!dirty && justSaved && (
+              <>
+                <span className="es__saved">
+                  <Check size={16} strokeWidth={3} aria-hidden="true" /> Changes saved
+                </span>
+                {viewHref && (
+                  <a className="es__view" href={viewHref} target="_blank" rel="noopener">
+                    View your page
+                    <ExternalLink size={14} aria-hidden="true" />
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                )}
+              </>
+            )}
+          </p>
+          {/* Unsaved changes: Discard and Save. Nothing to save: Done, back to the offerings home. */}
+          <div className="es__bar-actions">
+            {dirty ? (
+              <>
+                <button type="button" className="es__btn es__btn--quiet" onClick={edit.discard}>
+                  Discard changes
+                </button>
+                <button type="button" className="es__btn es__btn--primary" onClick={onSave} disabled={Boolean(problem)}>
+                  Save changes
+                </button>
+              </>
+            ) : (
+              <button type="button" className="es__btn es__btn--primary" onClick={onBack}>
+                Done
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {confirm && <ConfirmDialog {...confirm} />}
+    </div>
+  );
+}
+
+// A pop-up that asks before a save that can't be quietly undone (a new link).
+// The browser's own <dialog>: it sits above everything, dims the page,
+// keeps the keyboard inside, and Escape cancels. Cancel has focus first,
+// so pressing Enter by habit doesn't change anything.
+function ConfirmDialog({ title, body, confirmLabel, onConfirm, onCancel }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => dialog?.open && dialog.close();
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      className="es-dialog"
+      aria-labelledby="es-dialog-title"
+      onCancel={(e) => {
+        e.preventDefault(); // Escape: we close it ourselves
+        onCancel();
+      }}
+      // A click on the dimmed page around it cancels too
+      onClick={(e) => e.target === ref.current && onCancel()}
+    >
+      <h2 className="es-dialog__title" id="es-dialog-title">
+        {title}
+      </h2>
+      <div className="es-dialog__body">{body}</div>
+      <div className="es-dialog__actions">
+        <button type="button" className="es__btn es__btn--quiet" onClick={onCancel} autoFocus>
+          Cancel
+        </button>
+        <button type="button" className="es__btn es__btn--primary" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
+// One white section with a heading and a line under it
+export function EditPanel({ id, title, sub, className = '', children }) {
+  return (
+    <section className="es__panel" aria-labelledby={id}>
+      <div className="es__panel-head">
+        <h2 className="es__panel-title" id={id}>
+          {title}
+        </h2>
+        {sub && <p className="es__panel-sub">{sub}</p>}
+      </div>
+      <div className={`es__panel-body ${className}`}>{children}</div>
+    </section>
+  );
+}
+
+// The "Add a new offering" placeholder and any other simple page in the same frame
+export function EditPlaceholder({ title, sub, onBack }) {
+  return (
+    <div className="es">
+      <div className="es__content">
+        <button type="button" className="es__back" onClick={onBack}>
+          <ArrowLeft size={16} aria-hidden="true" /> Your offerings page
+        </button>
+        <h1 className="es__title">{title}</h1>
+        <p className="es__sub">{sub}</p>
+      </div>
+    </div>
+  );
+}

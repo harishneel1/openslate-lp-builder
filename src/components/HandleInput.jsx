@@ -6,7 +6,9 @@ import './HandleInput.css';
 // The link to their page: the address is fixed, they type the end.
 // "Taken" shows straight away, with free links close to theirs to tap.
 // "Too short" waits until they leave the box or press Enter.
-export default function HandleInput({ question, value, error, onChange, onSubmit }) {
+// autoFocus: false when it isn't the first thing on the screen (editing).
+// current: their link today, if they have one: it says so rather than "available".
+export default function HandleInput({ question, value, error, onChange, onSubmit, autoFocus = true, current = null }) {
   const [checked, setChecked] = useState(false);
   const taken = isHandleTaken(value);
   const showError = Boolean(error) && (checked || taken);
@@ -18,7 +20,7 @@ export default function HandleInput({ question, value, error, onChange, onSubmit
       <div className={`hdl__box ${showError ? 'hdl__box--error' : ''}`}>
         <span className="hdl__prefix" aria-hidden="true">{PAGE_DOMAIN}/</span>
         <input
-          autoFocus
+          autoFocus={autoFocus}
           className="hdl__input"
           value={value}
           maxLength={question.maxLength}
@@ -41,6 +43,8 @@ export default function HandleInput({ question, value, error, onChange, onSubmit
       <div id={statusId} className="hdl__status" aria-live="polite">
         {showError ? (
           <p className="qinput__error">{error}</p>
+        ) : current && value === current ? (
+          <p className="hdl__hint">This is your link now.</p>
         ) : value && !error ? (
           <p className="hdl__ok">
             <Check size={15} strokeWidth={2.5} aria-hidden="true" /> {PAGE_DOMAIN}/{value} is available
