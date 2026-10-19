@@ -131,23 +131,38 @@
   outline-offset: 2px;
 }
 
+/* Same warm panel as the top of their public page (storeTheme.css),
+   so this reads as "that part of your page", not a settings card */
+.oh__panel--warm {
+  background: var(--color-primary-tint);
+  border-color: #f4dcc5;
+}
+
+/* Photo, name and edit on one row; the bio underneath, full width */
 .oh__profile {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'photo name edit'
+    'bio   bio  bio';
   align-items: center;
-  gap: 16px;
+  align-content: center; /* centred in the card when the link card is taller */
+  gap: 16px 16px;
 }
 
 .oh__avatar {
+  grid-area: photo;
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   overflow: hidden;
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 600;
-  color: #fff;
+  color: #2a1606; /* dark on orange, as on their page; white is too faint */
   background: var(--color-primary);
+  border: 3px solid var(--color-surface);
   border-radius: 50%;
 }
 
@@ -157,25 +172,52 @@
   object-fit: cover;
 }
 
-.oh__profile-text {
+.oh__name {
+  grid-area: name;
   min-width: 0;
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.oh__name {
-  font-size: 16px;
-  font-weight: 600;
+.oh__profile .oh__edit {
+  grid-area: edit;
 }
 
 /* A taste of the bio: two lines, then … */
 .oh__bio {
+  grid-area: bio;
   display: -webkit-box;
   overflow: hidden;
-  margin-top: 2px;
   font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
+  line-height: 1.6;
+  color: #3d3d3d;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+/* Narrow card: the button gets its own line under the name */
+@media (max-width: 1040px) and (min-width: 861px) {
+  .oh__profile {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'photo name'
+      'photo edit'
+      'bio   bio';
+    gap: 8px 16px;
+  }
+
+  .oh__profile .oh__edit {
+    justify-self: start;
+  }
+
+  .oh__bio {
+    margin-top: 8px;
+  }
 }
 
 /* ---------- The link ---------- */

@@ -178,7 +178,7 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
             <p className="oh__panel-sub">What people can book from your page.</p>
           </div>
           <button type="button" className="oh__add" onClick={() => setChoosing(true)}>
-            <Plus size={16} strokeWidth={2.5} aria-hidden="true" /> Add a new service
+            <Plus size={16} strokeWidth={2.5} aria-hidden="true" /> Add a new offering
           </button>
         </div>
 
