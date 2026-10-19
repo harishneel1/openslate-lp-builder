@@ -189,32 +189,52 @@ export default function ProfileExample({
     const boxRight = box.left + box.width;
     const boxBottom = box.top + box.height;
 
-    // Pill above the box when there's room (there isn't for the link, at the very top)
-    const labelAbove = box.top - LABEL_GAP - LABEL_H >= EDGE;
-    const label = {
-      left: clamp(box.left, EDGE, frameW - EDGE - LABEL_W),
-      top: labelAbove ? box.top - LABEL_GAP - LABEL_H : boxBottom + LABEL_GAP,
-    };
+    const viewTop = viewRef.current?.offsetTop ?? 0;
+
+    // Pinned to the top of the page, when the note asks for it and the box
+    // sits far enough down to leave room for the arrow
+    const pinTop = note.labelAt === 'top' && box.top - (viewTop + EDGE + LABEL_H) >= LABEL_GAP;
+
+    // Otherwise above the box when there's room (there isn't for the link, at the very top)
+    const labelAbove = !pinTop && box.top - LABEL_GAP - LABEL_H >= EDGE;
+    const label = pinTop
+      ? { left: EDGE, top: viewTop + EDGE }
+      : {
+          left: clamp(box.left, EDGE, frameW - EDGE - LABEL_W),
+          top: labelAbove ? box.top - LABEL_GAP - LABEL_H : boxBottom + LABEL_GAP,
+        };
 
     // Bubble below everything, lined up with the box's right edge.
     // No room below: it sits at the bottom of the frame, over the box.
-    const below = (labelAbove ? boxBottom : label.top + LABEL_H) + TIP_GAP;
-    const inside = below + TIP_H > frameH - EDGE;
-    const tip = {
-      left: clamp(boxRight - TIP_W, EDGE, frameW - EDGE - TIP_W),
-      top: inside ? frameH - EDGE : below,
-      inside,
-    };
+    let tip = null;
+    if (note.tip) {
+      const below = (pinTop || labelAbove ? boxBottom : label.top + LABEL_H) + TIP_GAP;
+      const inside = below + TIP_H > frameH - EDGE;
+      tip = {
+        left: clamp(boxRight - TIP_W, EDGE, frameW - EDGE - TIP_W),
+        top: inside ? frameH - EDGE : below,
+        inside,
+      };
+    }
 
     // Gentle curves from the pill and the bubble to the box
     const curve = (a, b, bend) =>
       `M ${a.x} ${a.y} Q ${(a.x + b.x) / 2 + bend} ${(a.y + b.y) / 2} ${b.x} ${b.y}`;
-    const labelArrow = labelAbove
-      ? curve({ x: label.left + 22, y: label.top + LABEL_H + 2 }, { x: label.left + 46, y: box.top - 4 }, 14)
-      : curve({ x: label.left + 22, y: label.top - 2 }, { x: label.left + 46, y: boxBottom + 4 }, 14);
+    let labelArrow;
+    if (pinTop) {
+      // Straight down the left edge, then a hook into the box's side,
+      // so it crosses nothing on the page
+      const a = { x: label.left + 14, y: label.top + LABEL_H + 2 };
+      const b = { x: box.left - 3, y: box.top + 22 };
+      labelArrow = `M ${a.x} ${a.y} C ${a.x} ${a.y + (b.y - a.y) * 0.7}, ${b.x - 18} ${b.y}, ${b.x} ${b.y}`;
+    } else if (labelAbove) {
+      labelArrow = curve({ x: label.left + 22, y: label.top + LABEL_H + 2 }, { x: label.left + 46, y: box.top - 4 }, 14);
+    } else {
+      labelArrow = curve({ x: label.left + 22, y: label.top - 2 }, { x: label.left + 46, y: boxBottom + 4 }, 14);
+    }
     // With the pill below the box, the bubble reads as part of it: no second arrow
     const tipArrow =
-      labelAbove && !inside
+      tip && (pinTop || labelAbove) && !tip.inside
         ? curve({ x: tip.left + TIP_W - 48, y: tip.top - 2 }, { x: tip.left + TIP_W - 84, y: boxBottom + 4 }, -18)
         : null;
 
@@ -227,7 +247,7 @@ export default function ProfileExample({
       {note && (
         <>
           <div className="pex__whose">
-            <p className="pex__caption">A popular creator’s services page</p>
+            <p className="pex__caption">A popular creator’s offerings page</p>
             <p className="pex__creator">{EXAMPLE_CREATOR.name}, {EXAMPLE_CREATOR.headline.toLowerCase()}</p>
           </div>
           <p className="pex__note">
@@ -297,12 +317,14 @@ export default function ProfileExample({
               <p className="pex__label" style={{ left: marks.label.left, top: marks.label.top }}>
                 {note.label}
               </p>
-              <p
-                className={`pex__tip ${marks.tip.inside ? 'pex__tip--inside' : ''}`}
-                style={{ left: marks.tip.left, top: marks.tip.top, width: TIP_W }}
-              >
-                {note.tip}
-              </p>
+              {marks.tip && (
+                <p
+                  className={`pex__tip ${marks.tip.inside ? 'pex__tip--inside' : ''}`}
+                  style={{ left: marks.tip.left, top: marks.tip.top, width: TIP_W }}
+                >
+                  {note.tip}
+                </p>
+              )}
             </div>
           </>
         )}

@@ -10,7 +10,10 @@
 // page:   which of Meera's pages to show: 'profile' (default) or 'book',
 //         the booking page for her Discovery call.
 // label:  names the part (the orange pill).
-// tip:    why it matters (the white bubble), one or two short lines.
+// labelAt: optional. 'top' pins the pill to the top of the page, with
+//         an arrow down the left edge to the box, for parts surrounded by
+//         things that shouldn't be covered.
+// tip:    optional. Why it matters (the white bubble), one or two short lines.
 // Keys match question ids in myPageQuestions.js. An entry can also be a
 // function of that question's answer, to point at something that depends
 // on what they picked.
@@ -63,7 +66,7 @@ export const profileAnnotations = {
     page: 'book',
     target: '.cd__about',
     label: 'This is your call’s description',
-    tip: 'People read it while they pick a time. Say what happens on the call and what they’ll leave with.',
+    labelAt: 'top', // the bubble and a pill beside the box would cover the call's details
   },
   callDetails: {
     target: '.pf__services > li[data-kind="call"]',
