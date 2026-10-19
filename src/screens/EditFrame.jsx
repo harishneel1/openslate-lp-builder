@@ -94,7 +94,7 @@ export default function EditFrame({
     <div className="es">
       <div className="es__content">
         <button type="button" className="es__back" onClick={back}>
-          <ArrowLeft size={16} aria-hidden="true" /> Your services page
+          <ArrowLeft size={16} aria-hidden="true" /> Your offerings page
         </button>
         <h1 className="es__title">{title}</h1>
         {sub && <p className="es__sub">{sub}</p>}
@@ -298,7 +298,7 @@ export function EditPlaceholder({ title, sub, onBack }) {
     <div className="es">
       <div className="es__content">
         <button type="button" className="es__back" onClick={onBack}>
-          <ArrowLeft size={16} aria-hidden="true" /> Your services page
+          <ArrowLeft size={16} aria-hidden="true" /> Your offerings page
         </button>
         <h1 className="es__title">{title}</h1>
         <p className="es__sub">{sub}</p>
