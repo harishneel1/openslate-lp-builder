@@ -19,9 +19,9 @@ export const myPageQuestions = [
     id: 'handle',
     type: 'handle',
     required: true,
-    question: 'First, pick the link to your offerings page',
+    question: 'First, pick the link to your services page',
     // The intro already explained what a page is, so this just says what the link is for
-    helper: 'This is the link you’ll share so people can find your offerings page: in your Instagram bio, on WhatsApp, anywhere.',
+    helper: 'This is the link you’ll share so people can find your services page: in your Instagram bio, on WhatsApp, anywhere.',
     hint: 'Letters, numbers and underscores. Short and easy to say works best.',
     maxLength: HANDLE_MAX,
     default: suggestedHandle(mockAccount.name), // their name, ready to accept

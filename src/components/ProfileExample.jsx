@@ -227,7 +227,7 @@ export default function ProfileExample({
       {note && (
         <>
           <div className="pex__whose">
-            <p className="pex__caption">A popular creator’s offerings page</p>
+            <p className="pex__caption">A popular creator’s services page</p>
             <p className="pex__creator">{EXAMPLE_CREATOR.name}, {EXAMPLE_CREATOR.headline.toLowerCase()}</p>
           </div>
           <p className="pex__note">

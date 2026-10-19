@@ -1,11 +1,12 @@
-/* The example gets most of the room; the left side is short */
+/* The left side is only as wide as its words; the example takes the rest.
+   fit-content (not max-content) so the headline can still break after the comma. */
 .mpi {
   position: relative; /* the arrow is drawn over both columns */
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  gap: 88px;
+  grid-template-columns: fit-content(420px) minmax(0, 1fr);
+  gap: 72px; /* room for the arrow's swoop; much less and it flattens out */
   align-items: start;
-  max-width: 1320px;
+  max-width: 1480px;
   margin: 0 auto;
 }
 
@@ -123,7 +124,7 @@
 }
 
 /* Not enough room for the example: the explanation alone, no arrow */
-@media (max-width: 1000px) {
+@media (max-width: 1080px) {
   .mpi {
     max-width: 640px;
     grid-template-columns: 1fr;

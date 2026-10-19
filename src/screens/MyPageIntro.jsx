@@ -38,12 +38,15 @@ function measureArrow(root, from, around) {
   };
 }
 
-// A loose, hand-drawn swoop from start to end, and a head that follows its angle
+// A loose, hand-drawn swoop from start to end, and a head that follows its angle.
+// The bends are sized from the actual distance, so it still reads as a swoop
+// (not a kink) when the columns sit close together and the photo is far above.
 function arrowPaths({ start: s, end: e }) {
   const dx = e.x - s.x;
   const dy = e.y - s.y;
-  const c1 = { x: s.x + dx * 0.55, y: s.y + 18 };    // dips a little first
-  const c2 = { x: e.x - dx * 0.35, y: e.y - dy * 0.05 };
+  const reach = Math.max(dx, 48);                       // never bend tighter than this
+  const c1 = { x: s.x + reach * 0.8, y: s.y + 12 };     // heads out right, dipping a little
+  const c2 = { x: e.x - reach * 0.5, y: e.y - dy * 0.25 }; // comes in from below, rising into the photo
   const angle = Math.atan2(e.y - c2.y, e.x - c2.x);
   const wing = (turn) => ({
     x: e.x - HEAD * Math.cos(angle + turn),
@@ -67,13 +70,16 @@ export default function MyPageIntro({ onStart }) {
     if (rootRef.current) setArrow(measureArrow(rootRef.current, fromRef.current, aroundRef.current));
   }, []);
 
-  // Re-measure when the window or layout changes size
+  // Re-measure when the window or layout changes size. The columns can trade
+  // width without the whole page changing size, so watch each side too.
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return undefined;
     const ro = new ResizeObserver(update);
     ro.observe(root);
+    root.querySelectorAll('.mpi__aside, .mpi__box').forEach((el) => ro.observe(el));
     window.addEventListener('resize', update);
+    document.fonts?.ready.then(update); // the headline font can shift the box once it loads
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', update);

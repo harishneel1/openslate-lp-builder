@@ -99,7 +99,7 @@ export default function WeeklyHoursInput({ answers = {}, onChange }) {
             Weekly hours
           </h2>
           <p className="wh__sub">
-  The hours you’re usually free, every week. We’ll split them into slots for your{' '}
+  The hours you’re usually free, every week. We’ll split them later into slots for your{' '}
   <strong>{callLength}</strong> call.
 </p>
         </header>

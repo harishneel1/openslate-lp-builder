@@ -78,9 +78,6 @@ export default function ServiceSummaryInput({ answers, onChange }) {
           <a className="svc__action" href={PREVIEW_URL} target="_blank" rel="noreferrer">
             <ExternalLink size={15} aria-hidden="true" /> Preview
           </a>
-          <a className="svc__action" href={EDIT_URL} target="_blank" rel="noreferrer">
-            <Pencil size={15} aria-hidden="true" /> Edit
-          </a>
         </div>
       </div>
     </div>
