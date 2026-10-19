@@ -20,16 +20,8 @@ const topNavItems = [
 
 const sidebarItems = [
   { id: 'get-started', label: 'Get Started', icon: LayoutGrid },
-  { id: 'ai-cofounder', label: 'AI Co-Founder', icon: Sparkles, badge: 'NEW' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'services', label: 'Contracts', icon: Briefcase },
-  { id: 'products', label: 'Products', icon: ShoppingCart, hasMenu: true },
-  { id: 'sales', label: 'Sales', icon: ArrowLeftRight, hasMenu: true },
-  // id stays 'page-builder': saved progress (storage.js) restores activeNav by it
-  { id: 'page-builder', label: 'Funnels', icon: Filter },
-  { id: 'customers', label: 'Customers', icon: User, hasMenu: true },
-  { id: 'marketing', label: 'Marketing', icon: TrendingUp, hasMenu: true },
-  { id: 'automation', label: 'Automation', icon: SlidersHorizontal, hasMenu: true },
+  { id: 'page-builder', label: 'Funnels', icon: Filter }
 ];
 
 // Focus mode: while a funnel is open, the app's top nav and sidebar step back

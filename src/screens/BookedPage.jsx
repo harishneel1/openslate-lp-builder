@@ -91,7 +91,7 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
           <p className="bd__lead">
             {email ? (
               <>
-                {creator.firstName} has sent a calendar invite to <strong>{email}</strong>.
+                {creator.firstName} has sent a google calendar invite to <strong>{email}</strong>.
               </>
             ) : (
               `${creator.firstName} has sent you a calendar invite by email.`

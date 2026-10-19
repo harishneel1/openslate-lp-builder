@@ -55,39 +55,7 @@ export const serviceKinds = [
       { icon: 'clock', text: durationLabel(s.durationMins) },
     ],
     href: (s) => link('book', s.id),
-  },
-  {
-    id: 'dm',
-    label: 'Priority DMs',
-    title: 'Ask a question',
-    cta: 'Ask a question',
-    facts: (s) => [
-      { icon: 'clock', text: `Reply within ${plural(count(s.replyWithinDays) || 1, 'day', 'days')}` },
-    ],
-    href: (s) => link('ask', s.id),
-  },
-  {
-    id: 'webinar',
-    label: 'Webinars',
-    title: 'Join a live session',
-    cta: 'Save my seat',
-    facts: (s) => [
-      { icon: 'calendar', text: when(s.startsAt) },
-      { icon: 'clock', text: durationLabel(s.durationMins) },
-    ],
-    href: (s) => link('webinar', s.id), // placeholder: no webinar page yet
-  },
-  {
-    id: 'course',
-    label: 'Courses',
-    title: 'Courses',
-    cta: 'View course',
-    facts: (s) => [
-      { icon: 'lessons', text: plural(count(s.lessonCount) || 1, 'lesson', 'lessons') },
-      { icon: 'clock', text: durationLabel(s.totalMins) },
-    ],
-    href: (s) => link('course', s.id), // placeholder: no course page yet
-  },
+  }
 ];
 
 // One kind by id, or null for kinds this page doesn't know (they aren't shown)

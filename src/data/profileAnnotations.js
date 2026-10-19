@@ -25,22 +25,7 @@ const offerNotes = {
     target: '.pf__services > li[data-kind="call"]',
     label: 'This is a 1:1 call',
     tip: 'People pick a time that suits them and pay when they book.',
-  },
-  dm: {
-    target: '.pf__services > li[data-kind="dm"]',
-    label: 'This is a Priority DM',
-    tip: 'People send a question and pay. You reply in writing, when it suits you.',
-  },
-  webinar: {
-    target: '.pf__services > li[data-kind="webinar"]',
-    label: 'This is a webinar',
-    tip: 'One live session for a group. People save a seat and pay.',
-  },
-  course: {
-    target: '.pf__services > li[data-kind="course"]',
-    label: 'This is a course',
-    tip: 'Lessons people buy once and go through at their own pace.',
-  },
+  }
 };
 
 export const profileAnnotations = {

@@ -75,10 +75,7 @@ export const myPageQuestions = [
     // ids match the kinds on the page (serviceKinds.js).
     // soon: shown, but can't be picked yet
     options: [
-      { id: 'call', label: '1:1 call', line: 'A video or phone call, one on one' },
-      { id: 'dm', label: 'Priority DM', line: 'Answer questions in writing, on your own time', soon: true },
-      { id: 'webinar', label: 'Webinar', line: 'A live session for a group', soon: true },
-      { id: 'course', label: 'Course', line: 'Recorded lessons people buy once', soon: true },
+      { id: 'call', label: '1:1 call', line: 'A video or phone call, one on one' }
     ],
     default: 'call', // the only one open for now, so it starts picked
     // An earlier pick that isn't open yet (from testing) can't be carried on with

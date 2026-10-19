@@ -11,28 +11,7 @@ const KINDS = [
     text: 'A video or phone call people book at a time that suits them.',
     Icon: Video,
     ready: true,
-  },
-  {
-    id: 'dm',
-    name: 'Priority DMs',
-    text: 'People send you a question, and you reply within a few days.',
-    Icon: MessageSquare,
-    ready: false,
-  },
-  {
-    id: 'webinar',
-    name: 'Webinar',
-    text: 'A live session for a group, on a date you set.',
-    Icon: CalendarDays,
-    ready: false,
-  },
-  {
-    id: 'course',
-    name: 'Course',
-    text: 'Lessons people buy and work through at their own pace.',
-    Icon: BookOpen,
-    ready: false,
-  },
+  }
 ];
 
 // ------------------------------------------------------------
