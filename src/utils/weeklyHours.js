@@ -49,6 +49,14 @@ export function dayProblems(ranges) {
   return found;
 }
 
+// Whether a week's hours can be used: 'ok', 'none' (no open days)
+// or 'fix' (a day's hours end before they start, or overlap)
+export function hoursStatus(weekly = {}) {
+  const broken = WEEK.some(({ id }) => Object.keys(dayProblems(weekly[id] ?? [])).length > 0);
+  if (broken) return 'fix';
+  return WEEK.some(({ id }) => (weekly[id] ?? []).length > 0) ? 'ok' : 'none';
+}
+
 // "10:00 am – 1:00 pm, 4:00 pm – 8:00 pm"
 export const rangesText = (ranges) =>
   ranges.map(([f, t]) => `${timeLabel(toMinutes(f))} – ${timeLabel(toMinutes(t))}`).join(', ');

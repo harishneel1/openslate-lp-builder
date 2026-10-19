@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
@@ -8,7 +8,8 @@ import { callAnswersOf, newCallId } from '../data/myProfile';
 import { createMockService, getService, servicePrice } from '../data/mockServices';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsProblem, newCallAbout, readMeetingLink } from '../data/callDetails';
-import { loadSchedule } from '../data/availabilityStore';
+import { DEFAULT_HOURS, loadCallHours, saveCallHours, sameHours } from '../data/availabilityStore';
+import HoursDrawer from '../components/HoursDrawer';
 import { timeZones } from '../data/timeZones';
 import { durationLabel } from '../data/serviceKinds';
 import { longestBlock, weekSummary } from '../utils/weeklyHours';
@@ -30,16 +31,24 @@ const FIELDS = [
   'meetingLink', // shared by all their video calls: saved on the setup answers (see myProfile.js)
 ];
 
+// The call's hours ({ timeZone, weekly, ...booking rules }). Edited here like
+// the answers above, but saved apart from them, as the call's own hours
+// (availabilityStore.js), where the booking page reads them.
+const EDIT_FIELDS = [...FIELDS, 'callHours'];
+
 // A new call also chooses how it gets its service: 'auto' (made for it from
 // its name and price when it's added) or 'pick' (one of theirs). Not saved.
-const NEW_FIELDS = [...FIELDS, 'serviceMode'];
+const NEW_FIELDS = [...EDIT_FIELDS, 'serviceMode'];
 
 // Which answers belong to which section, for its "Edited" tag
 const SECTION_FIELDS = {
   basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice', 'meetingLink'],
   descriptions: ['callDescription', 'callAbout'],
   service: ['serviceId', 'serviceMode'],
+  when: ['callHours'],
 };
+
+const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-vars
 
 // ------------------------------------------------------------
 // Editing one offering, opened from its card on the offerings home,
@@ -47,17 +56,18 @@ const SECTION_FIELDS = {
 // Four sections, each closed to a one-line summary until opened:
 //   Basics                name, length, format, price
 //   Descriptions          short and long
-//   When people can book  their hours (shared by all calls), with a link
-//                         to the Availability screen to change them
+//   When people can book  this call's own hours, changed in a panel from
+//                         the right (HoursDrawer.jsx)
 //   Service               the checkout page people book and pay through,
 //                         picked from their services (the same picker as
 //                         the funnel builder and storefront setup)
-// Changes stay on this screen until Save (see EditFrame.jsx). The call's
-// price and the service's price are kept separately, as set.
+// Changes stay on this screen until Save (see EditFrame.jsx), hours too.
+// The call's price and the service's price are kept separately, as set.
 //
 // A new call opens with Basics open (the one thing to fill in), its
 // descriptions written from its name, and a service made for it unless
-// they pick one of theirs. "Add to your page" puts it live.
+// they pick one of theirs, and the default hours (weekdays 9–5).
+// "Add to your page" puts it live.
 //
 // serviceId: the offering to edit, or null for a new one
 // kind: a new one's kind (only 'call' can be made so far)
@@ -97,20 +107,37 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
   // The short description is fixed to what's on the page now: during setup it
   // follows the name, but renaming a live call shouldn't rewrite its description.
   // A new call starts empty, with its descriptions following its name.
+  // Hours are read from where they're saved; hoursVersion reads them again after a save.
+  const [hoursVersion, setHoursVersion] = useState(0);
   const saved = useMemo(
     () =>
       isNew
-        ? { ...CALL_DEFAULTS, handle, meetingLink, serviceMode: 'auto', serviceId: null }
-        : { ...CALL_DEFAULTS, ...call, handle, meetingLink, callDescription: callDescriptionOf(call) },
-    [isNew, call, handle, meetingLink],
+        ? {
+            ...CALL_DEFAULTS,
+            handle,
+            meetingLink,
+            serviceMode: 'auto',
+            serviceId: null,
+            callHours: structuredClone(DEFAULT_HOURS),
+          }
+        : {
+            ...CALL_DEFAULTS,
+            ...call,
+            handle,
+            meetingLink,
+            callDescription: callDescriptionOf(call),
+            callHours: strip(loadCallHours(id)),
+          },
+    [isNew, id, call, handle, meetingLink, hoursVersion], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const edit = useEditDraft(saved, isNew ? NEW_FIELDS : FIELDS);
+  const edit = useEditDraft(saved, isNew ? NEW_FIELDS : EDIT_FIELDS);
   const { handleChange } = edit;
   // A new call's long description starts from its own details, and follows them until edited
   const draft = isNew ? { ...edit.draft, aboutStart: newCallAbout(edit.draft) } : edit.draft;
   const formKey = edit.formKey;
-  const schedule = useSchedule();
   const [createFailed, setCreateFailed] = useState(false);
+  const [hoursFailed, setHoursFailed] = useState(false); // the hours didn't save
+  const [hoursOpen, setHoursOpen] = useState(false); // the hours panel
 
   // Every section starts closed (a new call's Basics opens itself, below);
   // any number can be open at once
@@ -140,12 +167,19 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
 
   const save = () => {
     if (!edit.dirty || problem) return;
-    const changes = edit.changes();
+    const { callHours, ...changes } = edit.changes();
+    // Hours first: if they don't save, nothing does, so the draft stays as it was
+    setHoursFailed(false);
+    if (callHours && !saveCallHours(id, callHours)) {
+      setHoursFailed(true);
+      return;
+    }
     // Still following the name? Keep the text that's showing, so a rename doesn't change it
     if (call.callDescription === undefined && !('callDescription' in changes)) {
       changes.callDescription = saved.callDescription;
     }
-    onSave(changes);
+    if (Object.keys(changes).length > 0) onSave(changes);
+    if (callHours) setHoursVersion((v) => v + 1);
     edit.saved();
   };
 
@@ -153,6 +187,14 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
   // Its descriptions are fixed to what's showing, so they no longer follow the name.
   const create = () => {
     if (problem) return;
+    // Its hours are saved under its id before anything else is made.
+    // (A failed try leaves them under an id nobody uses; the next try gets a new one.)
+    const callId = newCallId();
+    setHoursFailed(false);
+    if (!saveCallHours(callId, draft.callHours)) {
+      setHoursFailed(true);
+      return;
+    }
     let serviceId = draft.serviceId;
     if (draft.serviceMode === 'auto') {
       const free = draft.callPricing === 'free';
@@ -167,7 +209,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       serviceId = made.id;
     }
     onCreate({
-      id: newCallId(),
+      id: callId,
       createdAt: new Date().toISOString(),
       ...Object.fromEntries(FIELDS.map((f) => [f, draft[f]])),
       callTitle: draft.callTitle.trim(),
@@ -177,7 +219,15 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
     });
   };
 
-  const hours = hoursAtAGlance(schedule, Number(draft.callDuration));
+  const hours = hoursAtAGlance(draft.callHours, Number(draft.callDuration));
+
+  // Hours from the panel go into the draft. Back to what's saved: the saved
+  // hours themselves, so the section isn't marked as edited.
+  const applyHours = (next) => {
+    handleChange(sameHours(next, saved.callHours) ? saved.callHours : next, 'callHours');
+    setHoursFailed(false);
+    setHoursOpen(false);
+  };
   const shortDescription = callDescriptionOf(draft).trim();
   const aboutWrittenForThem = isNew && draft.callAbout === undefined;
 
@@ -205,7 +255,13 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       onBack={onBack}
       onSave={isNew ? create : save}
       problem={problem}
-      message={createFailed ? 'We couldn’t create the service just now. Try again, or pick one of yours.' : null}
+      message={
+        hoursFailed
+          ? 'We couldn’t save your hours just now. Try again.'
+          : createFailed
+            ? 'We couldn’t create the service just now. Try again, or pick one of yours.'
+            : null
+      }
       viewHref={pageUrl(saved.handle)}
       createLabel={isNew ? 'Add to your page' : null}
     >
@@ -276,13 +332,14 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       <EditSection
         id="es-when"
         title="When people can book"
-        sub="Your hours. They’re the same for all your 1:1 calls."
+        sub="This call’s hours. Your other calls keep their own."
         summary={hours.warning ? hours.short : hours.text}
         warn={Boolean(hours.warning)}
+        edited={edited('when')}
         open={Boolean(open.when)}
         onToggle={() => toggle('when')}
       >
-        <HoursSummary schedule={schedule} warning={hours.warning} />
+        <HoursSummary schedule={draft.callHours} warning={hours.warning} onEdit={() => setHoursOpen(true)} />
       </EditSection>
 
       <EditSection
@@ -322,6 +379,16 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
           />
         )}
       </EditSection>
+
+      {hoursOpen && (
+        <HoursDrawer
+          value={draft.callHours}
+          callName={String(draft.callTitle ?? '').trim()}
+          callLength={durationLabel(Number(draft.callDuration))}
+          onApply={applyHours}
+          onClose={() => setHoursOpen(false)}
+        />
+      )}
     </EditFrame>
   );
 }
@@ -442,34 +509,9 @@ function WhereItShows({ text, href, label }) {
   );
 }
 
-// The Availability screen: for now, the stand-in opened in a new tab
-// (like the service's Preview and Edit links)
-const AVAILABILITY_HREF = '?mock=availability';
-
-// Their weekly hours, read from where the Availability screen saves them.
-// Read again whenever they come back to this tab, so it's up to date
-// after changing hours there.
-function useSchedule() {
-  const [schedule, setSchedule] = useState(loadSchedule);
-
-  useEffect(() => {
-    const refresh = () => {
-      if (document.visibilityState !== 'hidden') setSchedule(loadSchedule());
-    };
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
-    return () => {
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
-    };
-  }, []);
-
-  return schedule;
-}
-
-// Their weekly hours, day by day.
+// This call's weekly hours, day by day, and the button that opens the panel to change them.
 // warning: why nobody can book this call, if so (from hoursAtAGlance).
-function HoursSummary({ schedule, warning }) {
+function HoursSummary({ schedule, warning, onEdit }) {
   const { open, closed } = weekSummary(schedule.weekly);
   const zone = timeZones.find((z) => z.id === schedule.timeZone)?.name ?? schedule.timeZone;
 
@@ -499,14 +541,13 @@ function HoursSummary({ schedule, warning }) {
         </p>
       )}
 
-      <p className="es-hours__foot">
+      <div className="es-hours__foot">
         <span>Times are in {zone} time.</span>
-        <a href={AVAILABILITY_HREF} target="_blank" rel="noopener">
-          Change your hours
-          <ExternalLink size={14} aria-hidden="true" />
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
-      </p>
+        <button type="button" className="es-hours__edit" onClick={onEdit}>
+          <Clock size={15} aria-hidden="true" />
+          Edit hours
+        </button>
+      </div>
     </div>
   );
 }

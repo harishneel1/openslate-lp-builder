@@ -1,0 +1,160 @@
+/* The hours panel (HoursDrawer.jsx). The panel is already the white
+   surface, so the weekly hours sheet drops its own card here. */
+.hd .wh__card {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.hd .wh__head {
+  padding: 0 0 8px;
+}
+
+.hd .wh__days {
+  padding: 8px 0;
+}
+
+.hd .wh__foot {
+  padding: 14px 0 0;
+}
+
+/* ---------- Booking rules ---------- */
+.hd-rules {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.hd-rules__title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.hd-rules__list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.hd-rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  cursor: pointer;
+}
+
+.hd-rule + .hd-rule {
+  border-top: 1px solid var(--color-border);
+}
+
+.hd-rule__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hd-rule__label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.hd-rule__hint {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.hd-rule__select {
+  flex-shrink: 0;
+  min-width: 150px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.hd-rule__select:hover {
+  border-color: #d6d6d6;
+}
+
+.hd-rule__select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+@media (max-width: 480px) {
+  .hd-rule {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .hd-rule__select {
+    min-width: 0;
+  }
+}
+
+/* ---------- Days off: shared by every call, so only a pointer ---------- */
+.hd__days-off {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.hd__days-off svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.hd__days-off a {
+  position: relative; /* holds its hidden "(opens in a new tab)" in place */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  text-decoration: none;
+}
+
+.hd__days-off a:hover {
+  text-decoration: underline;
+}
+
+.hd__days-off a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---------- Footer ---------- */
+.hd__status {
+  flex: 1 1 200px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.hd__status strong {
+  color: var(--color-text);
+}
+
+.hd__actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}

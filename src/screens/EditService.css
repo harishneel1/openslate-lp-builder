@@ -85,24 +85,27 @@
   border-top: 1px solid var(--color-border);
 }
 
-.es-hours__foot a {
-  position: relative; /* holds its hidden "(opens in a new tab)" in place */
+.es-hours__edit {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-primary-hover);
-  text-decoration: none;
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-pill);
+  transition: background 0.15s;
 }
 
-.es-hours__foot a:hover {
-  text-decoration: underline;
+.es-hours__edit:hover {
+  background: #fbe4d1;
 }
 
-.es-hours__foot a:focus-visible {
+.es-hours__edit:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
 /* ---------- Service: the shared picker, sitting inside a section ---------- */

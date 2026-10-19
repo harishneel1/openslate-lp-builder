@@ -3,13 +3,13 @@ import { loadSchedule } from './availabilityStore';
 import { loadBookings } from './bookingsStore';
 
 // ------------------------------------------------------------
-// Mock availability for the booking page. One calendar per
-// creator: a booking for any of their calls blocks that time
-// for all of them. Dates are worked out from today, so the
-// mock never goes stale.
+// Mock availability for the booking page. Each call has its own
+// hours, but one calendar per creator: a booking for any of their
+// calls blocks that time for all of them. Dates are worked out
+// from today, so the mock never goes stale.
 //
 // Add &slots=<id> to the booking page URL for other situations:
-//   default  the creator's saved schedule (Availability screen), with a few
+//   default  the call's saved hours (set while editing the call), with a few
 //            bookings on their next working days. Until they save one: the
 //            starting schedule, plus a mock day off.
 //   busy     fully booked for the next week
@@ -17,10 +17,10 @@ import { loadBookings } from './bookingsStore';
 //   clear    the saved schedule as it is, with no mock bookings (a new creator's own call)
 // ------------------------------------------------------------
 
-// The creator's own schedule from the Availability screen, if they've saved
-// one; otherwise the starting schedule (see availabilityStore.js)
-const currentSchedule = () => {
-  const { saved, ...schedule } = loadSchedule();
+// The call's hours and the creator's days off, if they've saved any;
+// otherwise the starting hours (see availabilityStore.js)
+const currentSchedule = (serviceId) => {
+  const { saved, ...schedule } = loadSchedule(serviceId);
   return { schedule, saved };
 };
 
@@ -43,8 +43,8 @@ function booking(zone, date, from, to) {
   };
 }
 
-export function getMockAvailability(state, now = Date.now()) {
-  const { schedule, saved } = currentSchedule();
+export function getMockAvailability(state, serviceId, now = Date.now()) {
+  const { schedule, saved } = currentSchedule(serviceId);
   const zone = schedule.timeZone;
   const today = todayIn(zone, now);
 
@@ -76,12 +76,12 @@ export function getMockAvailability(state, now = Date.now()) {
 }
 
 // ------------------------------------------------------------
-// The creator's own calls: their saved hours, minus the times already
-// booked (bookingsStore.js). One calendar for all their calls, so a
-// booking for one blocks that time for every call.
+// The creator's own calls: this call's saved hours, minus the times
+// already booked (bookingsStore.js). One calendar for all their calls,
+// so a booking for one blocks that time for every call.
 // ------------------------------------------------------------
-export function getMyAvailability() {
-  const { saved, ...schedule } = loadSchedule(); // eslint-disable-line no-unused-vars
+export function getMyAvailability(serviceId) {
+  const { saved, ...schedule } = loadSchedule(serviceId); // eslint-disable-line no-unused-vars
   const bookings = loadBookings().map(({ start, end }) => ({ start, end }));
   return { schedule, bookings };
 }

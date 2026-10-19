@@ -1,16 +1,46 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Copy, Globe, Plus, Repeat, X } from 'lucide-react';
-import { loadSchedule, saveSchedule, weekdayHours } from '../data/availabilityStore';
+import { loadCallHours, saveCallHours, weekdayHours } from '../data/availabilityStore';
+import { MY_CALL_ID } from '../data/myProfile';
 import { zoneOptions } from '../data/timeZones';
 import { CALL_DEFAULTS } from '../data/callDetails';
 import { durationLabel } from '../data/serviceKinds';
-import { QUARTERS, WEEK, dayProblems, timeLabel, toMinutes, toTime } from '../utils/weeklyHours';
+import { QUARTERS, WEEK, dayProblems, hoursStatus, timeLabel, toMinutes, toTime } from '../utils/weeklyHours';
 import './WeeklyHoursInput.css';
 
 const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-vars
 
 // ------------------------------------------------------------
+// Setup's weekly hours step, for their first call.
+//
+// Starts from the hours already saved for it (or the defaults), so
+// most people can just carry on. Every valid change is saved as that
+// call's hours, where the booking page reads them. Tells the flow
+// whether it's ready through hoursStatus: 'ok', 'none' (no open days)
+// or 'fix'.
+// ------------------------------------------------------------
+export default function WeeklyHoursInput({ answers = {}, onChange }) {
+  const [hours, setHours] = useState(() => strip(loadCallHours(MY_CALL_ID)));
+  const callLength = durationLabel(Number(answers.callDuration ?? CALL_DEFAULTS.callDuration));
+
+  // Save whenever it's valid, and tell the flow whether Next can unlock
+  useEffect(() => {
+    const status = hoursStatus(hours.weekly);
+    if (status === 'ok') saveCallHours(MY_CALL_ID, hours);
+    onChange(status, 'hoursStatus');
+  }, [hours]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <WeeklyHours value={hours} onChange={setHours} callLength={callLength} className="qinput">
+      <p className="wh__note">You can change these anytime when you edit this call.</p>
+    </WeeklyHours>
+  );
+}
+
+// ------------------------------------------------------------
 // Weekly hours: when they're free, not the times people book.
+// Used by setup (above) and the hours panel on the call's edit screen.
+// It only edits: whoever uses it decides when to save.
 //
 // People kept reading each day's hours as slots they were making one
 // by one. So, like Calendly, every day is laid out as an open sheet:
@@ -26,31 +56,25 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // ✕ on a day's last hours closes the day (no separate switch).
 // ⧉ copies a day's hours to the days they tick.
 //
-// Starts from the hours already saved (or the defaults), so most people
-// can just carry on. Every valid change is saved to the same place the
-// Availability page and booking page use. Tells the flow whether it's
-// ready through hoursStatus: 'ok', 'none' (no open days) or 'fix'.
+// value: the call's hours ({ timeZone, weekly, ... }); anything else on it is kept
+// onChange(hours): the hours with a change made
+// callLength: "30 min", for the line at the top
+// children: shown under the sheet
 // ------------------------------------------------------------
-export default function WeeklyHoursInput({ answers = {}, onChange }) {
-  const [schedule, setSchedule] = useState(() => strip(loadSchedule()));
+export function WeeklyHours({ value, onChange, callLength, className = '', children }) {
   const [copying, setCopying] = useState(null); // the day whose copy menu is open
+  const titleId = useId();
+  const zoneId = useId();
+  const weekly = value.weekly ?? {};
 
   const problems = useMemo(
-    () => Object.fromEntries(WEEK.map((d) => [d.id, dayProblems(schedule.weekly[d.id] ?? [])])),
-    [schedule.weekly],
+    () => Object.fromEntries(WEEK.map((d) => [d.id, dayProblems(weekly[d.id] ?? [])])),
+    [weekly],
   );
-  const hasProblems = Object.values(problems).some((p) => Object.keys(p).length > 0);
-  const anyOpen = WEEK.some(({ id }) => (schedule.weekly[id] ?? []).length > 0);
-  const zones = useMemo(() => zoneOptions(schedule.timeZone), [schedule.timeZone]);
-  const callLength = durationLabel(Number(answers.callDuration ?? CALL_DEFAULTS.callDuration));
+  const anyOpen = WEEK.some(({ id }) => (weekly[id] ?? []).length > 0);
+  const zones = useMemo(() => zoneOptions(value.timeZone), [value.timeZone]);
 
-  // Save whenever it's valid, and tell the flow whether Next can unlock
-  useEffect(() => {
-    if (!hasProblems && anyOpen) saveSchedule(schedule);
-    onChange(hasProblems ? 'fix' : anyOpen ? 'ok' : 'none', 'hoursStatus');
-  }, [schedule]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const change = (fn) => setSchedule((s) => fn(structuredClone(s)));
+  const change = (fn) => onChange(fn(structuredClone(value)));
 
   const openDay = (day) =>
     change((s) => {
@@ -58,9 +82,9 @@ export default function WeeklyHoursInput({ answers = {}, onChange }) {
       return s;
     });
 
-  const setRange = (day, i, part, value) =>
+  const setRange = (day, i, part, v) =>
     change((s) => {
-      s.weekly[day][i][part] = value;
+      s.weekly[day][i][part] = v;
       return s;
     });
 
@@ -91,22 +115,22 @@ export default function WeeklyHoursInput({ answers = {}, onChange }) {
     });
 
   return (
-    <div className="qinput wh">
-      <section className="wh__card" aria-labelledby="wh-title">
+    <div className={`wh ${className}`}>
+      <section className="wh__card" aria-labelledby={titleId}>
         <header className="wh__head">
-          <h2 className="wh__title" id="wh-title">
+          <h2 className="wh__title" id={titleId}>
             <Repeat size={18} aria-hidden="true" />
             Weekly hours
           </h2>
           <p className="wh__sub">
-  The hours you’re usually free, every week. We’ll split them later into slots for your{' '}
-  <strong>{callLength}</strong> call.
-</p>
+            The hours you’re usually free, every week. We’ll split them into slots for your{' '}
+            <strong>{callLength}</strong> call.
+          </p>
         </header>
 
         <ul className="wh__days">
           {WEEK.map(({ id, label, short }) => {
-            const ranges = schedule.weekly[id] ?? [];
+            const ranges = weekly[id] ?? [];
             const on = ranges.length > 0;
             const dayErrors = problems[id];
             const broken = Object.keys(dayErrors).length > 0;
@@ -207,9 +231,9 @@ export default function WeeklyHoursInput({ answers = {}, onChange }) {
             Times in
           </label>
           <select
-            id="wh-zone"
+            id={zoneId}
             className="wh__zone"
-            value={schedule.timeZone}
+            value={value.timeZone}
             onChange={(e) => change((s) => ({ ...s, timeZone: e.target.value }))}
           >
             {zones.map((z) => (
@@ -226,7 +250,7 @@ export default function WeeklyHoursInput({ answers = {}, onChange }) {
           Add hours to at least one day so people can book you.
         </p>
       )}
-      <p className="wh__note">You can change these anytime from Availability.</p>
+      {children}
     </div>
   );
 }
@@ -286,6 +310,7 @@ function CopyMenu({ from, onApply, onClose }) {
     };
     const esc = (e) => {
       if (e.key !== 'Escape') return;
+      e.preventDefault(); // only the menu closes, not a panel it sits in
       close.current();
       menu?.parentElement?.querySelector('button')?.focus(); // back to the copy button
     };

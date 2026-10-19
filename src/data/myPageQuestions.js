@@ -19,8 +19,9 @@ export const myPageQuestions = [
     id: 'handle',
     type: 'handle',
     required: true,
-    question: 'First, pick the link to your offerings page',
+    question: 'First, pick the link to your services page',
     // The intro already explained what a page is, so this just says what the link is for
+    helper: 'This is the link you’ll share so people can find your services page: in your Instagram bio, on WhatsApp, anywhere.',
     hint: 'Letters, numbers and underscores. Short and easy to say works best.',
     maxLength: HANDLE_MAX,
     default: suggestedHandle(mockAccount.name), // their name, ready to accept
@@ -75,7 +76,10 @@ export const myPageQuestions = [
     // ids match the kinds on the page (serviceKinds.js).
     // soon: shown, but can't be picked yet
     options: [
-      { id: 'call', label: '1:1 call', line: 'A video or phone call, one on one' }
+      { id: 'call', label: '1:1 call', line: 'A video or phone call, one on one' },
+      { id: 'dm', label: 'Priority DM', line: 'Answer questions in writing, on your own time', soon: true },
+      { id: 'webinar', label: 'Webinar', line: 'A live session for a group', soon: true },
+      { id: 'course', label: 'Course', line: 'Recorded lessons people buy once', soon: true },
     ],
     default: 'call', // the only one open for now, so it starts picked
     // An earlier pick that isn't open yet (from testing) can't be carried on with
@@ -93,7 +97,7 @@ export const myPageQuestions = [
   },
   {
     id: 'availability',
-    type: 'weeklyHours', // WeeklyHoursInput: saves to the Availability store, reports hoursStatus
+    type: 'weeklyHours', // WeeklyHoursInput: saves the first call's hours (availabilityStore.js), reports hoursStatus
     required: true,
     question: 'Set your working hours, and we’ll create the slots',
     helper: '',

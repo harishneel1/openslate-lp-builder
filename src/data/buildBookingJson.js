@@ -41,10 +41,10 @@ export function buildBookingJson({ serviceId, profileState, slotsState, timeZone
     service,
     durationMins,
     reviews: page.testimonials.filter((t) => t.serviceId === serviceId),
-    // Their own calls: their hours minus their bookings and Google Calendar busy times.
+    // Their own calls: this call's hours minus their bookings and Google Calendar busy times.
     // &slots=<id> still shows the mock situations, for testing.
     availability: findSlots({
-      ...(mine && !slotsState ? getMyAvailability(now) : getMockAvailability(slotsState, now)),
+      ...(mine && !slotsState ? getMyAvailability(serviceId) : getMockAvailability(slotsState, serviceId, now)),
       durationMins,
       timeZone,
       now,
