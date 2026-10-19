@@ -130,7 +130,7 @@ export default function MyPageSetup() {
       renderProgress={({ index }) => (
         <div className="flow__progress">
           <div className="flow__progress-label">
-            <span>Setting up your services page</span>
+            <span>Setting up your offerings page</span>
             <span>{index + 1} of {MY_PAGE_STEPS}</span>
           </div>
           <div className="flow__progress-track">

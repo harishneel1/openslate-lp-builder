@@ -120,7 +120,7 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
 
   return (
     <div className="oh">
-      <h1 className="oh__title">Your services page</h1>
+      <h1 className="oh__title">Your offerings page</h1>
 
       {/* ---------- Profile and link, side by side, so offerings stay in view ---------- */}
       <div className="oh__top">
