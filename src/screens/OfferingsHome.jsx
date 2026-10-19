@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, Copy, ExternalLink, MessageSquare, Pencil, Phone, Plus, Video } from 'lucide-react';
+import { Check, Copy, ExternalLink, MessageSquare, Pencil, Phone, Plus, Video } from 'lucide-react';
 import { getMyProfile } from '../data/myProfile';
 import { buildProfileJson } from '../data/buildProfileJson';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
@@ -34,54 +34,58 @@ async function copyText(text) {
   }
 }
 
-// One offering, laid out like a funnel card on the funnel list:
-// the whole card opens the editor; the round button previews it.
+// One offering, laid out like a funnel card on the funnel list, but the
+// card itself does nothing: only its two controls do. People didn't know
+// what clicking the card meant, so editing is a plain "Edit" button and
+// previewing is "Open", as on the link above.
 // isNew: just added, so it's marked and lit up briefly
 function OfferingCard({ offering, onEdit, isNew = false }) {
   const Icon = KIND_ICONS[offering.facts[0]?.icon] ?? Video;
   const details = offering.facts.map((f) => f.text).join(' · ');
 
   return (
-    <div className={`oh-card ${isNew ? 'oh-card--new' : ''}`}>
-      <button type="button" className="oh-card__open" onClick={() => onEdit(offering.id)}>
-        <div className="oh-card__panel" aria-hidden="true">
-          <span className="oh-card__icon">
-            <Icon size={22} strokeWidth={2} />
-          </span>
-        </div>
-
-        <div className="oh-card__body">
-          <span className="oh-card__tags">
-            <span className="oh-card__status">
-              <span className="oh-card__live-dot" aria-hidden="true" /> Live
-            </span>
-            {isNew && <span className="oh-card__new">Just added</span>}
-          </span>
-          <h3 className="oh-card__name">{offering.title}</h3>
-          <p className="oh-card__detail">{details}</p>
-
-          <div className="oh-card__footer">
-            <span className={`oh-card__price ${offering.price.isFree ? 'oh-card__price--free' : ''}`}>
-              {offering.price.label}
-            </span>
-            <span className="oh-card__cta">
-              Edit <ArrowRight size={16} />
-            </span>
-          </div>
-        </div>
-      </button>
+    <article className={`oh-card ${isNew ? 'oh-card--new' : ''}`}>
+      <div className="oh-card__panel" aria-hidden="true">
+        <span className="oh-card__icon">
+          <Icon size={22} strokeWidth={2} />
+        </span>
+      </div>
 
       <a
-        className="oh-card__preview"
+        className="oh__open oh-card__preview"
         href={offering.href}
         target="_blank"
         rel="noopener"
-        aria-label={`Preview the booking page for ${offering.title} (opens in a new tab)`}
-        title="Preview"
+        aria-label={`Open the booking page for ${offering.title} (opens in a new tab)`}
       >
-        <ExternalLink size={16} aria-hidden="true" />
+        <ExternalLink size={16} aria-hidden="true" /> Open
       </a>
-    </div>
+
+      <div className="oh-card__body">
+        <span className="oh-card__tags">
+          <span className="oh-card__status">
+            <span className="oh-card__live-dot" aria-hidden="true" /> Live
+          </span>
+          {isNew && <span className="oh-card__new">Just added</span>}
+        </span>
+        <h3 className="oh-card__name">{offering.title}</h3>
+        <p className="oh-card__detail">{details}</p>
+
+        <div className="oh-card__footer">
+          <span className={`oh-card__price ${offering.price.isFree ? 'oh-card__price--free' : ''}`}>
+            {offering.price.label}
+          </span>
+          <button
+            type="button"
+            className="oh-card__edit"
+            onClick={() => onEdit(offering.id)}
+            aria-label={`Edit ${offering.title}`}
+          >
+            <Pencil size={15} aria-hidden="true" /> Edit
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -173,7 +177,7 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
         <div className="oh__panel-head oh__panel-head--split">
           <div>
             <h2 className="oh__panel-title" id="oh-offerings">
-              Services <span className="oh__count">{offerings.length}</span>
+              Offerings <span className="oh__count">{offerings.length}</span>
             </h2>
             <p className="oh__panel-sub">What people can book from your page.</p>
           </div>

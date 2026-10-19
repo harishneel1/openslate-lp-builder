@@ -131,38 +131,23 @@
   outline-offset: 2px;
 }
 
-/* Same warm panel as the top of their public page (storeTheme.css),
-   so this reads as "that part of your page", not a settings card */
-.oh__panel--warm {
-  background: var(--color-primary-tint);
-  border-color: #f4dcc5;
-}
-
-/* Photo, name and edit on one row; the bio underneath, full width */
 .oh__profile {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    'photo name edit'
-    'bio   bio  bio';
+  display: flex;
   align-items: center;
-  align-content: center; /* centred in the card when the link card is taller */
-  gap: 16px 16px;
+  gap: 16px;
 }
 
 .oh__avatar {
-  grid-area: photo;
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   overflow: hidden;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 600;
-  color: #2a1606; /* dark on orange, as on their page; white is too faint */
+  color: #fff;
   background: var(--color-primary);
-  border: 3px solid var(--color-surface);
   border-radius: 50%;
 }
 
@@ -172,52 +157,25 @@
   object-fit: cover;
 }
 
-.oh__name {
-  grid-area: name;
+.oh__profile-text {
   min-width: 0;
-  overflow: hidden;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.oh__profile .oh__edit {
-  grid-area: edit;
+.oh__name {
+  font-size: 16px;
+  font-weight: 600;
 }
 
 /* A taste of the bio: two lines, then … */
 .oh__bio {
-  grid-area: bio;
   display: -webkit-box;
   overflow: hidden;
+  margin-top: 2px;
   font-size: 14px;
-  line-height: 1.6;
-  color: #3d3d3d;
+  line-height: 1.5;
+  color: var(--color-text-muted);
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-}
-
-/* Narrow card: the button gets its own line under the name */
-@media (max-width: 1040px) and (min-width: 861px) {
-  .oh__profile {
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      'photo name'
-      'photo edit'
-      'bio   bio';
-    gap: 8px 16px;
-  }
-
-  .oh__profile .oh__edit {
-    justify-self: start;
-  }
-
-  .oh__bio {
-    margin-top: 8px;
-  }
 }
 
 /* ---------- The link ---------- */
@@ -316,37 +274,19 @@
   gap: 20px;
 }
 
-/* ---------- One offering (same card as .saved-card) ---------- */
+/* ---------- One offering (same look as .saved-card) ---------- */
+/* The card itself is static: no hover lift, no pointer. Only "Open" and
+   "Edit" do anything. */
 .oh-card {
   position: relative;
   display: flex;
+  flex-direction: column;
+  overflow: hidden; /* rounds the panel's top corners */
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-}
-
-.oh-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-2px);
-}
-
-/* Everything except the preview button opens the editor */
-.oh-card__open {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  width: 100%;
-  overflow: hidden; /* rounds the panel's top corners */
-  padding: 0;
-  text-align: left;
-  color: inherit;
-  background: none;
-  border: none;
-  border-radius: calc(var(--radius-lg) - 1px);
 }
 
 .oh-card__panel {
@@ -472,46 +412,54 @@
   color: var(--color-success);
 }
 
-.oh-card__cta {
+/* Edit: the one way into the editor. Orange outline, dashed like the
+   boxes in setup, so it reads as a button rather than a link. */
+.oh-card__edit {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 8px 16px;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1.5px dashed var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-/* Round button on the panel, where the ⋯ sits on a funnel card */
+.oh-card__edit:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary-hover);
+}
+
+/* Open: the same icon-and-word link as on "Your link" (.oh__open),
+   in the panel's top-right corner */
 .oh-card__preview {
   position: absolute;
   top: 10px;
-  right: 10px;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  color: var(--color-text);
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  right: 12px;
+  padding: 4px 2px; /* a bigger target without looking bigger */
 }
 
-.oh-card__preview:hover {
-  background: #f3f3f3;
+/* ---------- Pointer ---------- */
+/* Everything you can click on this page says so, without relying on
+   browser or global defaults. The cards themselves stay plain. */
+.oh__edit,
+.oh__copy,
+.oh__add,
+.oh__open,
+.oh-card__edit {
+  cursor: pointer;
 }
 
 /* ---------- Focus ---------- */
 .oh__copy:focus-visible,
 .oh__add:focus-visible,
 .oh__open:focus-visible,
-.oh-card__preview:focus-visible {
+.oh-card__edit:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.oh-card__open:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 3px;
 }
