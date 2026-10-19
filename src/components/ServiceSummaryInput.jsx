@@ -60,7 +60,7 @@ export default function ServiceSummaryInput({ answers, onChange }) {
       <div className="svc__card">
         <dl>
           <div className="svc__row">
-            <dt>Service</dt>
+            <dt>Contract Name</dt>
             <dd className="svc__name">
               {service?.title ?? title} <span className="svc__type">| {SERVICE_TYPE}</span>
             </dd>
@@ -83,7 +83,6 @@ export default function ServiceSummaryInput({ answers, onChange }) {
           </a>
         </div>
       </div>
-      <p className="svc__note">You’ll find it in Sidebar → Services.</p>
     </div>
   );
 }

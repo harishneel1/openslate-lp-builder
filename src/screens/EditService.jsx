@@ -124,9 +124,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
   const detailsProblem = callDetailsProblem(draft);
   const blocker = detailsProblem === 'basics'
     ? { section: 'basics', text: `Add a name and a price (or make it free) to ${verb}` }
-    : detailsProblem === 'link'
-      ? { section: 'basics', text: `Add the link people use to join to ${verb}` }
-      : callAboutOf(draft).trim() === ''
+    : callAboutOf(draft).trim() === ''
       ? { section: 'descriptions', text: `Add a long description to ${verb}` }
       : isNew && draft.serviceMode === 'pick' && !getService(draft.serviceId)
         ? { section: 'service', text: 'Pick one of your services, or let us create one' }
@@ -214,7 +212,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       <EditSection
         id="es-basics"
         title="Basics"
-        sub="The name, length, format and price people see before they book."
+        sub="The name, length and price people see before they book."
         summary={blocker?.section === 'basics' ? blocker.text : basicsSummary(draft)}
         warn={blocker?.section === 'basics'}
         edited={edited('basics')}
@@ -227,7 +225,6 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
           onChange={handleChange}
           showDescription={false}
           grouped={false}
-          linkNote="Used for all your video calls. Changing it here changes it for all of them."
         />
       </EditSection>
 

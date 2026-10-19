@@ -9,7 +9,9 @@
 
 const KEY = 'pagebuilder:mock-availability';
 
-const weekdayHours = [['10:00', '13:00'], ['16:00', '20:00']];
+// One block on weekdays, weekends off: the same start Calendly gives everyone.
+// Also the hours a day gets when it's switched back on.
+export const weekdayHours = [['09:00', '17:00']];
 
 // Starting point until the creator saves their own
 export const DEFAULT_SCHEDULE = {
@@ -18,9 +20,9 @@ export const DEFAULT_SCHEDULE = {
     mon: weekdayHours,
     tue: weekdayHours,
     wed: weekdayHours,
-    thu: [['16:00', '20:00']],
+    thu: weekdayHours,
     fri: weekdayHours,
-    sat: [['10:00', '14:00']],
+    sat: [],
     sun: [],
   },
   overrides: {},          // { '2026-10-26': [] } = a day off

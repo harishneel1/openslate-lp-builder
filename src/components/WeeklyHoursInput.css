@@ -1,191 +1,294 @@
 .wh {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ---------- Selects (time zone, times) ---------- */
-.wh__zone {
+/* ---------- The sheet: one card, every day open ---------- */
+.wh__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.wh__head {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  padding: 22px 24px 8px;
+}
+
+.wh__title {
+  display: flex;
+  align-items: center;
   gap: 8px;
-}
-
-.wh__select {
-  padding: 10px 34px 10px 12px;
-  font: inherit;
-  font-size: 15px;
+  font-size: 17px;
+  font-weight: 600;
   color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6b6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
-    no-repeat right 10px center;
-  appearance: none;
-  cursor: pointer;
 }
 
-.wh__select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+.wh__title svg {
+  color: var(--color-primary);
 }
 
-.wh__select--time {
-  width: 128px;
+/* What happens to these hours: the line that stops them reading as slots */
+.wh__sub {
+  max-width: 52ch;
   font-size: 14px;
-  font-variant-numeric: tabular-nums;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.wh__sub strong {
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 /* ---------- Days ---------- */
 .wh__days {
   list-style: none;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: 8px 24px;
 }
 
-.wh__day + .wh__day {
-  border-top: 1px solid var(--color-border);
-}
-
-.wh__day--open {
-  background: #fcfaf8;
-}
-
-.wh__row {
+.wh__day {
   display: grid;
-  grid-template-columns: auto 104px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  min-height: 56px;
-  padding: 8px 16px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding: 10px 0;
 }
 
-.wh__name {
-  font-size: 15px;
+/* Day name: a quiet round badge, filled when the day is open */
+.wh__badge {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--color-text);
-}
-
-.wh__hours {
-  font-size: 14px;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.wh__hours--off {
-  color: var(--color-text-muted);
-}
-
-.wh__hours--broken {
-  color: #c0392b;
-  font-weight: 500;
-}
-
-.wh__edit {
-  padding: 6px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  border-radius: var(--radius-sm);
-}
-
-.wh__edit:hover {
-  background: #f1f1f1;
-}
-
-/* ---------- Switch ---------- */
-.wh__switch {
-  position: relative;
-  width: 38px;
-  height: 22px;
-  border-radius: var(--radius-pill);
-  background: #d4d4d4;
-  transition: background 0.15s ease;
-}
-
-.wh__switch[aria-checked='true'] {
-  background: var(--color-primary);
-}
-
-.wh__knob {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
+  letter-spacing: 0.01em;
+  color: var(--pf-accent-ink, #9a4a0f);
+  background: var(--color-primary-tint);
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease;
 }
 
-.wh__switch[aria-checked='true'] .wh__knob {
-  transform: translateX(16px);
+.wh__day--off .wh__badge {
+  color: var(--color-text-muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
-/* ---------- Editing a day ---------- */
-.wh__editor {
+.wh__ranges {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 0 16px 16px 68px; /* lines up under the day's name */
+  gap: 8px;
 }
 
 .wh__range {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.wh__range-wrap .qinput__error {
+/* ---------- A start or end time ---------- */
+.wh__time {
+  width: 116px;
+  height: 44px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  text-align-last: center;
+  color: var(--color-text);
+  background: #f5f5f4;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wh__time:hover {
+  border-color: #d9d9d9;
+  background: var(--color-surface);
+}
+
+.wh__time:focus {
+  outline: none;
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.wh__time--error,
+.wh__time--error:hover {
+  background: #fdf0ee;
+  border-color: #e3a49b;
+}
+
+.wh__dash {
+  color: var(--color-text-muted);
+}
+
+.wh__error {
   margin-top: 6px;
 }
 
-.wh__to {
-  font-size: 14px;
+/* ---------- Closed day ---------- */
+.wh__closed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.wh__unavailable {
+  font-size: 15px;
   color: var(--color-text-muted);
 }
 
-.wh__remove {
+/* ---------- Icon actions ---------- */
+.wh__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+}
+
+.wh__icon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   color: var(--color-text-muted);
   border-radius: 50%;
+  transition: color 0.15s, background 0.15s;
 }
 
-.wh__remove:hover {
+.wh__icon:hover:not(:disabled),
+.wh__icon[aria-expanded='true'] {
   color: var(--color-text);
   background: #f1f1f1;
 }
 
-.wh__tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.wh__tool {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--pf-accent-ink, #9a4a0f);
-}
-
-.wh__tool:disabled {
-  opacity: 0.4;
+.wh__icon:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.wh__switch:focus-visible,
-.wh__edit:focus-visible,
-.wh__remove:focus-visible,
-.wh__tool:focus-visible {
+.wh__icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Copy times to… ---------- */
+.wh__copy {
+  position: relative;
+}
+
+.wh__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: var(--z-dropdown);
+  width: 220px;
+  padding: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.wh__menu-title {
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.wh__menu-days {
+  list-style: none;
+}
+
+.wh__menu-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  font-size: 14.5px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.wh__menu-day--self {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.wh__menu-day input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: inherit;
+}
+
+.wh__menu-apply {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.wh__menu-apply:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.wh__menu-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wh__menu-apply:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Time zone: a quiet line at the foot ---------- */
+.wh__foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 24px 18px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.wh__zone {
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 20px 2px 2px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--pf-accent-ink, #9a4a0f);
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239a4a0f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat right 2px center;
+  border: 0;
+  border-radius: 4px;
+  appearance: none;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.wh__zone:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -195,14 +298,43 @@
   color: var(--color-text-muted);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .wh__time,
+  .wh__icon {
+    transition: none;
+  }
+}
+
+/* ---------- Narrow screens ---------- */
 @media (max-width: 560px) {
-  .wh__row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-  .wh__hours {
-    grid-column: 2 / -1;
-  }
-  .wh__editor {
+  .wh__head,
+  .wh__foot {
     padding-left: 16px;
+    padding-right: 16px;
+  }
+  .wh__days {
+    padding: 4px 16px;
+  }
+  .wh__day {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .wh__badge {
+    width: 38px;
+    height: 38px;
+    font-size: 11.5px;
+  }
+  .wh__time {
+    width: 104px;
+    height: 40px;
+    font-size: 14px;
+  }
+  .wh__actions {
+    margin-left: 0;
+  }
+  /* The menu would spill off the right edge from here: open it leftwards */
+  .wh__menu {
+    left: auto;
+    right: 0;
   }
 }

@@ -142,104 +142,6 @@
   outline-offset: 2px;
 }
 
-/* ---------- Video or phone: two choice cards ---------- */
-.call__formats {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.call__format {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.call__format:hover {
-  border-color: #d6d6d6;
-}
-
-.call__format--on,
-.call__format--on:hover {
-  background: var(--color-primary-tint);
-  border-color: var(--color-primary);
-}
-
-/* The whole top row picks it */
-.call__format-pick {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 14px 16px;
-  text-align: left;
-  color: inherit;
-  background: none;
-  border: 0;
-  border-radius: inherit;
-  cursor: pointer;
-}
-
-.call__format-pick:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.call__format-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  color: var(--color-primary);
-  background: var(--color-primary-tint);
-  border-radius: var(--radius-sm);
-}
-
-.call__format--on .call__format-icon {
-  background: var(--color-surface);
-}
-
-.call__format-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.call__format-name {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.call__format-line {
-  font-size: 13.5px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
-}
-
-/* A radio dot, so it reads as one-or-the-other */
-.call__format-mark {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  background: var(--color-surface);
-  border: 2px solid #cfcfcf;
-  border-radius: 50%;
-  transition: border-color 0.15s, border-width 0.15s;
-}
-
-.call__format--on .call__format-mark {
-  border: 6px solid var(--color-primary);
-}
-
-/* Video's meeting link, inside its card */
-.call__format-body {
-  padding: 0 16px 16px;
-}
-
 /* ---------- Free or paid ---------- */
 .call__chips {
   display: flex;
@@ -349,33 +251,9 @@
   line-height: 1.5;
 }
 
-/* ---------- The link people use to join a video call ---------- */
-.call__link-input {
-  font-size: 16px;
-}
-
-.call__link-under {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px; /* the field already spaces it from the box */
-}
-
-/* "✓ Zoom link": what kind of room it is, once it's usable */
-.call__link-ok {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-success);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .call__try-chip,
-  .call__length,
-  .call__format,
-  .call__format-mark {
+  .call__length {
     transition: none;
   }
 }

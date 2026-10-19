@@ -111,7 +111,6 @@ export function callDetailsProblem(answers) {
   const pricing = answers.callPricing ?? CALL_DEFAULTS.callPricing;
   const priced = pricing === 'free' || Number(answers.callPrice) > 0;
   if (!(titled && timed && priced)) return 'basics';
-  if (needsMeetingLink(answers)) return 'link';
   return null;
 }
 

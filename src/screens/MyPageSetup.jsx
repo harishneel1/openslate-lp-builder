@@ -55,9 +55,9 @@ export default function MyPageSetup() {
     return <MyPageIntro onStart={() => setStep('questions')} />;
   }
 
-  // Done: the page is live. "Edit my offerings page" goes to the home, not back to the questions.
+  // Done: the page is live. "Done" goes to the home, not back to the questions.
   if (step === 'done') {
-    return <MyPageReveal handle={answers.handle} onEdit={() => setStep('home')} />;
+    return <MyPageReveal handle={answers.handle} onDone={() => setStep('home')} />;
   }
 
   if (step === 'home') {
@@ -130,7 +130,7 @@ export default function MyPageSetup() {
       renderProgress={({ index }) => (
         <div className="flow__progress">
           <div className="flow__progress-label">
-            <span>Setting up your offerings page</span>
+            <span>Setting up your services page</span>
             <span>{index + 1} of {MY_PAGE_STEPS}</span>
           </div>
           <div className="flow__progress-track">

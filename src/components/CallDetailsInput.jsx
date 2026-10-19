@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Check, Phone, Video } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import {
   CALL_DEFAULTS,
   CUSTOM_HOURS,
@@ -8,8 +7,6 @@ import {
   customDuration,
   TITLE_SUGGESTIONS,
   callDescriptionOf,
-  MEETING_LINK_EXAMPLE,
-  readMeetingLink,
 } from '../data/callDetails';
 import { durationLabel } from '../data/serviceKinds';
 import PriceExample from './PriceExample';
@@ -111,63 +108,6 @@ function PaidPrices({ answers, onChange }) {
   );
 }
 
-// The link people use to join a video call: one room for all their video
-// calls, saved as meetingLink. Says what kind of room it is once it's
-// usable, and what's wrong once they leave the box with a link that isn't.
-// note: the line under the box (what it's for, or that it's shared)
-export function MeetingLinkField({ answers, onChange, note }) {
-  const value = String(answers.meetingLink ?? '');
-  const link = readMeetingLink(value);
-  const [left, setLeft] = useState(false); // they've left the box at least once
-  const showError = left && link.error;
-
-  return (
-    <div className="qinput__field call__link">
-      <label className="qinput__label" htmlFor="call-link">
-        Link people use to join
-      </label>
-      <input
-        id="call-link"
-        type="url"
-        inputMode="url"
-        autoComplete="off"
-        spellCheck={false}
-        className={`qinput__text call__link-input ${showError ? 'qinput__text--error' : ''}`}
-        value={value}
-        placeholder={MEETING_LINK_EXAMPLE}
-        aria-invalid={showError ? true : undefined}
-        aria-describedby="call-link-note"
-        onChange={(e) => onChange(e.target.value, 'meetingLink')}
-        onBlur={() => setLeft(true)}
-      />
-      <span className="call__link-under" id="call-link-note">
-        {showError ? (
-          <span className="qinput__error" role="alert">
-            {link.error}
-          </span>
-        ) : (
-          <>
-            {link.valid && (
-              <span className="call__link-ok">
-                <Check size={14} strokeWidth={3} aria-hidden="true" />
-                {link.provider ? `${link.provider} link` : 'Video link'}
-              </span>
-            )}
-            <span className="qinput__example">{note}</span>
-          </>
-        )}
-      </span>
-    </div>
-  );
-}
-
-// Video or phone: each a card with what it means for the person booking.
-// Video holds its meeting link inside, since the link only exists for video.
-const FORMATS = [
-  { id: 'video', label: 'Video call', line: 'They join your Google Meet, Zoom or Teams room.', Icon: Video },
-  { id: 'phone', label: 'Phone call', line: 'You call them on the number they give when they book.', Icon: Phone },
-];
-
 // A length as a tile: the number big, its unit small. 90 → "90 min", 120 → "2 hr"
 function tileParts(mins) {
   if (mins <= 90) return { value: String(mins), unit: 'min' };
@@ -199,34 +139,44 @@ function Group({ grouped, id, title, sub, children }) {
 // as three questions rather than one long list:
 //   name suggestions  quiet "Try:" chips (shortcuts, not a choice)
 //   length            one track of tiles
-//   video or phone    two choice cards; Video holds the meeting link
+// Every call is a video call (callFormat stays 'video', from CALL_DEFAULTS).
 // showDescription: false leaves out the short description (the edit
 //   screen shows it in its own section instead).
 // grouped: false drops the cards (the edit screen's Basics is one already).
-// linkNote: the line under the meeting link, shown when it's a video call
 export default function CallDetailsInput({
   answers,
   onChange,
   showDescription = true,
   grouped = true,
-  linkNote = 'Everyone who books a video call joins here.',
 }) {
   const valueOf = (id) => answers[id] ?? CALL_DEFAULTS[id] ?? '';
-  const title = String(valueOf('callTitle'));
+  // Setup starts on the first suggestion ("Discovery call"); the edit screen on what's saved
+  const title = String(answers.callTitle ?? (grouped ? TITLE_SUGGESTIONS[0] : ''));
+  const titleRef = useRef(null);
   const pricing = valueOf('callPricing');
   const duration = Number(valueOf('callDuration'));
-  const format = valueOf('callFormat');
 
   // Custom is open when they chose it, or came back with a length that isn't a tile
   const [custom, setCustom] = useState(!DURATIONS.includes(duration));
   const hours = Math.floor(duration / 60);
   const minutes = duration % 60;
 
-  // Save the starting choices (30 min, video, paid) so the next steps see them
+  // Save the starting choices (30 min, video, paid) so the next steps see them,
+  // and on setup the starting name too. Only the first time: a name they
+  // cleared stays cleared when they come back.
   useEffect(() => {
     Object.entries(CALL_DEFAULTS).forEach(([id, v]) => {
       if (answers[id] === undefined) onChange(v, id);
     });
+    if (grouped && answers.callTitle === undefined) onChange(TITLE_SUGGESTIONS[0], 'callTitle');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Setup: the name box starts focused, with the caret after the name
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!grouped || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -239,7 +189,7 @@ export default function CallDetailsInput({
           </label>
           <input
             id="call-title"
-            autoFocus={grouped}
+            ref={titleRef}
             className="qinput__text"
             value={title}
             maxLength={TITLE_MAX}
@@ -274,7 +224,7 @@ export default function CallDetailsInput({
       </Group>
 
       {/* ================= How it works ================= */}
-      <Group grouped={grouped} id="call-g-how" title="How it works" sub="How long it is, and how you’ll talk.">
+      <Group grouped={grouped} id="call-g-how" title="How it works" sub="How long your video call is.">
         {/* ---------- Length: one track of tiles ---------- */}
         <div className="qinput__field">
           <span className="qinput__label" id="call-duration">
@@ -346,45 +296,6 @@ export default function CallDetailsInput({
               <span className="call__custom-total" aria-live="polite">{durationLabel(duration)} call</span>
             </div>
           )}
-        </div>
-
-        {/* ---------- Video or phone: two cards, Video holds the link ---------- */}
-        <div className="qinput__field">
-          <span className="qinput__label" id="call-format">
-            How you’ll talk
-          </span>
-          <div className="call__formats" role="radiogroup" aria-labelledby="call-format">
-            {FORMATS.map(({ id, label, line, Icon }) => {
-              const on = format === id;
-              return (
-                <div key={id} className={`call__format ${on ? 'call__format--on' : ''}`}>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    className="call__format-pick"
-                    onClick={() => onChange(id, 'callFormat')}
-                  >
-                    <span className="call__format-icon" aria-hidden="true">
-                      <Icon size={18} />
-                    </span>
-                    <span className="call__format-text">
-                      <span className="call__format-name">{label}</span>
-                      <span className="call__format-line">{line}</span>
-                    </span>
-                    <span className="call__format-mark" aria-hidden="true" />
-                  </button>
-
-                  {/* Only video needs a room: it opens inside this card */}
-                  {on && id === 'video' && (
-                    <div className="call__format-body">
-                      <MeetingLinkField answers={answers} onChange={onChange} note={linkNote} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       </Group>
 

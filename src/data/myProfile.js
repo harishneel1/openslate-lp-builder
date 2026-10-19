@@ -123,7 +123,7 @@ function callService(c, { id, order, stats = {} }) {
     description: callDescriptionOf(c),
     about: aboutParagraphs(c),
     durationMins: Number(value('callDuration')),
-    format: value('callFormat'),
+    format: 'video', // every call is a video call (older saved 'phone' calls included)
     price: free ? 0 : Number(c.callPrice) || 0,
     // Regular price, crossed out. Ignored for a free call; only shows when it's higher (buildProfileJson)
     comparePrice: free ? null : Number(c.callComparePrice) || null,

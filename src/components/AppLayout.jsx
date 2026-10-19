@@ -22,7 +22,7 @@ const sidebarItems = [
   { id: 'get-started', label: 'Get Started', icon: LayoutGrid },
   { id: 'ai-cofounder', label: 'AI Co-Founder', icon: Sparkles, badge: 'NEW' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'services', label: 'Services', icon: Briefcase },
+  { id: 'services', label: 'Contracts', icon: Briefcase },
   { id: 'products', label: 'Products', icon: ShoppingCart, hasMenu: true },
   { id: 'sales', label: 'Sales', icon: ArrowLeftRight, hasMenu: true },
   // id stays 'page-builder': saved progress (storage.js) restores activeNav by it
@@ -86,10 +86,10 @@ function MyPageCard({ active, onOpen }) {
 
   return (
     <div className={`mypage ${active ? 'mypage--active' : ''}`}>
-      <button type="button" className="mypage__main" onClick={onOpen} title="My offerings page">
+      <button type="button" className="mypage__main" onClick={onOpen} title="My services page">
         <span className="mypage__avatar">{initials(mockAccount.name)}</span>
         <span className="mypage__text">
-          <span className="mypage__label">My offerings page</span>
+          <span className="mypage__label">My services page</span>
           <span className="mypage__link">{link ?? 'Not set up yet'}</span>
         </span>
       </button>

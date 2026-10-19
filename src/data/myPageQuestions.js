@@ -1,5 +1,5 @@
 import { HANDLE_MAX, HANDLE_MIN, isHandleTaken, mockAccount, suggestedHandle } from './myPage';
-import { callAboutOf, callDetailsComplete, callDetailsProblem } from './callDetails';
+import { callAboutOf, callDetailsComplete } from './callDetails';
 
 // ------------------------------------------------------------
 // Questions that set up the creator's page, one per screen.
@@ -88,25 +88,21 @@ export const myPageQuestions = [
   },
   {
     id: 'callDetails',
-    type: 'callDetails', // CallDetailsInput: saves callTitle, callDuration, callFormat, callPricing, callPrice, callDescription, meetingLink
+    type: 'callDetails', // CallDetailsInput: saves callTitle, callDuration, callFormat ('video'), callPricing, callPrice, callDescription
     required: true,
     question: 'Set up your 1:1 call',
     helper: 'Just the basics. You can change any of it later.',
     isComplete: callDetailsComplete,
-    // Says which part is missing: the name and price first, then a video call's link
-    nextHint: (answers) =>
-      callDetailsProblem(answers) === 'link'
-        ? 'Add the link people use to join to continue'
-        : 'Give it a name and a price (or make it free) to continue',
+    nextHint: 'Give it a name and a price (or make it free) to continue',
   },
   {
     id: 'availability',
     type: 'weeklyHours', // WeeklyHoursInput: saves to the Availability store, reports hoursStatus
     required: true,
-    question: 'When can people book you?',
-    helper: 'We’ve filled in some hours to start. Change any day, or click "next" if they suit you.',
+    question: 'Set your working hours, and we’ll create the slots',
+    helper: '',
     isComplete: (answers) => (answers.hoursStatus ?? 'ok') === 'ok',
-    nextHint: 'Switch on at least one day, and fix any hours marked in red',
+    nextHint: 'Add hours to at least one day, and fix any marked in red',
   },
   {
     id: 'callAbout',
@@ -123,10 +119,9 @@ export const myPageQuestions = [
     required: true,
     preview: false, // no example page on this screen
     titleTick: true,
-    question: 'We’ve auto-created your service',
+    question: 'We’ve auto-created your contract page',
     helper:
-      'Based on the details you gave us. A service is the form people fill in, ' +
-      'and pay through, when they book your call.',
+      'The contract page is the checkout page in OpenSlate.',
     isComplete: (answers) => Boolean(answers.serviceId),
     nextHint: 'Setting up your service…',
   },
