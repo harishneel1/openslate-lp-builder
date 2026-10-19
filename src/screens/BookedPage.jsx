@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarPlus, Check, Clock, Copy, Phone, Video } from 'lucide-react';
+import { Check, Clock, Copy, Phone, Video } from 'lucide-react';
 import { buildBookedJson } from '../data/buildBookedJson';
 import { matchZone } from '../data/timeZones';
 import { googleCalendarUrl } from '../utils/calendar';
@@ -9,7 +9,9 @@ import { profileHrefFor } from '../data/myProfile';
 
 // ------------------------------------------------------------
 // Confirmation page, after checkout. Answers three things: you're
-// booked, when it is, and how to join. Opened at ?mock=booked with
+// booked, when it is, and what to do next. The creator's own Google
+// Calendar sends the visitor an invite (with the link to join), so the
+// next steps are: accept it, then join from the event. Opened at ?mock=booked with
 // the details checkout passed on (see main.jsx).
 // Payment details, rescheduling and cancelling are left out for now.
 // ------------------------------------------------------------
@@ -54,14 +56,14 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
   const ordered = [...service.facts].sort((a, b) => Number(b.icon === 'clock') - Number(a.icon === 'clock'));
 
   const title = `${service.title} with ${creator.name}`;
-  // A video call with no link saved: only bookings made before every video
-  // call needed one. The creator sends the link themselves.
+  // A video call with no link saved here (older bookings). The link is
+  // still in the creator's calendar invite; we just can't show it on this page.
   const linkToCome = booking.format === 'video' && !booking.meetingLink;
   const location = booking.meetingLink ?? (linkToCome ? 'Video call' : `${creator.firstName} will call ${phone ?? 'you'}`);
   const details = booking.meetingLink
     ? `Join: ${booking.meetingLink}`
     : linkToCome
-      ? `${creator.firstName} will email you the link to join before the call.`
+      ? `The link to join is in ${creator.firstName}’s calendar invite.`
       : `${creator.firstName} will call you on ${phone}.`;
   const event = { id: booking.id, title, start: booking.start, end: booking.end, details, location };
 
@@ -85,11 +87,16 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
             <Check size={26} strokeWidth={2.5} />
           </span>
           <h1 className="bd__title">{firstName ? `You're booked, ${firstName}` : "You're booked"}</h1>
-          {email && (
-            <p className="bd__lead">
-              We've sent the details to <strong>{email}</strong>.
-            </p>
-          )}
+          {/* The invite comes from the creator's own calendar, so name them as the sender */}
+          <p className="bd__lead">
+            {email ? (
+              <>
+                {creator.firstName} has sent a calendar invite to <strong>{email}</strong>.
+              </>
+            ) : (
+              `${creator.firstName} has sent you a calendar invite by email.`
+            )}
+          </p>
         </header>
 
         {/* ---------- The session ---------- */}
@@ -118,49 +125,62 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
           </div>
         </section>
 
-        {/* ---------- How to join ---------- */}
-        <section className="bd__box" aria-labelledby="bd-join">
-          {/* "How to join on Zoom": the creator's room, named when we know it */}
-          <h2 id="bd-join" className="bd__box-title">
-            {booking.meetingProvider ? `How to join on ${booking.meetingProvider}` : 'How to join'}
+        {/* ---------- What's next: accept the invite, then join from it ---------- */}
+        <section className="bd__box" aria-labelledby="bd-next">
+          <h2 id="bd-next" className="bd__box-title">
+            What’s next
           </h2>
-          {booking.meetingLink ? (
-            <>
-              <div className="bd__link-row">
-                <a className="bd__link" href={booking.meetingLink} target="_blank" rel="noreferrer">
-                  {booking.meetingLink.replace('https://', '')}
-                </a>
-                <button type="button" className="bd__copy" onClick={copyLink}>
-                  {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
-                  {copied ? 'Copied' : 'Copy link'}
-                </button>
-              </div>
-              <p className="bd__note" aria-live="polite">
-                Open it a minute or two before the call. It's in your email too.
-              </p>
-            </>
-          ) : linkToCome ? (
-            <p className="bd__phone">
-              <Video size={16} aria-hidden="true" /> {creator.firstName} will email you the link to join
-              {email ? (
-                <>
-                  {' '}at <strong>{email}</strong>
-                </>
-              ) : null}{' '}
-              before the call.
-            </p>
-          ) : (
-            <p className="bd__phone">
-              <Phone size={16} aria-hidden="true" /> {creator.firstName} will call you on <strong>{phone}</strong> at{' '}
-              {booking.time}.
-            </p>
-          )}
 
-          <div className="bd__calendar">
-            <a className="bd__cal-btn" href={googleCalendarUrl(event)} target="_blank" rel="noreferrer">
-              <CalendarPlus size={16} aria-hidden="true" /> Add to Google Calendar
-            </a>
-          </div>
+          <ol className="bd__steps">
+            <li className="bd__step">
+              <span className="bd__step-num" aria-hidden="true">1</span>
+              <div className="bd__step-body">
+                <p className="bd__step-title">Accept the invite</p>
+                <p className="bd__step-text">
+                  Open the invite from {creator.firstName} and tap <strong>Yes</strong>, so it’s saved in your calendar.
+                </p>
+              </div>
+            </li>
+
+            <li className="bd__step">
+              <span className="bd__step-num" aria-hidden="true">2</span>
+              <div className="bd__step-body">
+                {booking.format === 'phone' ? (
+                  <>
+                    <p className="bd__step-title">Pick up the call</p>
+                    <p className="bd__step-text">
+                      {creator.firstName} will call you on <strong>{phone ?? 'your phone'}</strong> at {booking.time}.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {/* "Join on Zoom": the creator's room, named when we know it */}
+                    <p className="bd__step-title">
+                      {booking.meetingProvider ? `Join on ${booking.meetingProvider}` : 'Join from your calendar'}
+                    </p>
+                    {/* The invite always carries the link; we show it here too when we have it */}
+                    <p className="bd__step-text">
+                      The link is in the invite. Open it from your calendar at {booking.time} on the day.
+                    </p>
+                    {booking.meetingLink && (
+                      <div className="bd__link-row">
+                        <a className="bd__link" href={booking.meetingLink} target="_blank" rel="noreferrer">
+                          {booking.meetingLink.replace('https://', '')}
+                        </a>
+                        <button type="button" className="bd__copy" onClick={copyLink}>
+                          {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+                          {copied ? 'Copied' : 'Copy link'}
+                        </button>
+                        <span className="bd__sr-only" aria-live="polite">
+                          {copied ? 'Link copied' : ''}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </li>
+          </ol>
         </section>
 
       </main>

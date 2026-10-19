@@ -9,7 +9,7 @@ import { durationLabel } from './serviceKinds';
 export const CALL_DEFAULTS = {
   callDuration: 30,
   callFormat: 'video',
-  callPricing: 'paid',
+  callPricing: 'free',
 };
 
 // In minutes. Shown as "60 min", then "1 hr 30 min", "2 hr", "3 hr"

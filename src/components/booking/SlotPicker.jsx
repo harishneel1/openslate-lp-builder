@@ -27,14 +27,28 @@ const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)
 export default function SlotPicker({ availability, creatorName, profileHref, zonePicker, date, slot, onDateChange, onSlotChange }) {
   const { days, firstAvailable } = availability;
   const strip = useRef(null);
+  const pending = useRef(null); // where an arrow click is still scrolling to
   const [edges, setEdges] = useState({ start: true, end: true });
+
+  // Where each day sits, as the scroll position that puts it first in the
+  // strip. Measured on screen, so it matches where the strip's snapping
+  // lands too (its left edge, past the focus-ring padding).
+  const dayStops = () => {
+    const el = strip.current;
+    if (!el) return [];
+    const left = el.getBoundingClientRect().left + el.clientLeft;
+    return [...el.children].map((d) => Math.round(el.scrollLeft + d.getBoundingClientRect().left - left));
+  };
 
   // Which ends the strip is at, so an arrow with nowhere to go is disabled
   useEffect(() => {
     const el = strip.current;
     if (!el) return undefined;
-    const update = () =>
+    const update = () => {
       setEdges({ start: el.scrollLeft <= 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
+      // Arrived (or the visitor scrolled it themselves): arrows go from here
+      if (pending.current !== null && Math.abs(el.scrollLeft - pending.current) < 4) pending.current = null;
+    };
     update();
     el.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
@@ -48,13 +62,30 @@ export default function SlotPicker({ availability, creatorName, profileHref, zon
   useEffect(() => {
     const el = strip.current;
     const chosen = el?.querySelector('[aria-pressed="true"]');
-    if (el && chosen) el.scrollLeft = Math.max(0, chosen.offsetLeft - el.offsetLeft - 8);
+    // Only when it's out of sight, so "Today" stays visible beside "Tomorrow";
+    // lined up on a day, so the arrows step evenly from there
+    if (el && chosen && chosen.getBoundingClientRect().right > el.getBoundingClientRect().right) {
+      el.scrollLeft = dayStops()[[...el.children].indexOf(chosen)] ?? 0;
+    }
     // only on first show: later changes come from the visitor's own clicks
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const move = (dir) =>
-    strip.current?.scrollBy({ left: dir * strip.current.clientWidth * 0.8, behavior: reduceMotion() ? 'auto' : 'smooth' });
+  // One day per click: to the next day's stop past where the strip is (or is
+  // already heading, so quick clicks each count), or the one before it.
+  // The 4px leeway skips the strip's focus-ring padding at the very start.
+  const move = (dir) => {
+    const el = strip.current;
+    if (!el) return;
+    const stops = dayStops();
+    const from = pending.current ?? el.scrollLeft;
+    const max = el.scrollWidth - el.clientWidth;
+    const next = dir > 0 ? stops.find((x) => x > from + 4) : [...stops].reverse().find((x) => x < from - 4);
+    if (next === undefined) return;
+    const left = Math.min(Math.max(0, next), max);
+    pending.current = left;
+    el.scrollTo({ left, behavior: reduceMotion() ? 'auto' : 'smooth' });
+  };
 
   // Nothing bookable in the whole window
   if (!firstAvailable) {

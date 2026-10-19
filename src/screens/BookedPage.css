@@ -143,11 +143,11 @@
   gap: 5px;
 }
 
-/* ---------- How to join ---------- */
+/* ---------- What's next ---------- */
 .bd__box {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   padding: 20px;
   border: 1px solid var(--pf-line);
   border-radius: var(--radius-lg);
@@ -159,10 +159,64 @@
   font-weight: 600;
 }
 
+/* Two steps, numbered because they happen in order */
+.bd__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  list-style: none;
+}
+
+.bd__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.bd__step-num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--pf-panel);
+  color: var(--pf-accent-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Normal text flow, so bold words sit inside the sentence */
+.bd__step-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.bd__step-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--pf-text);
+}
+
+.bd__step-text {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--pf-body);
+}
+
+.bd__step-text strong {
+  color: var(--pf-text);
+  font-weight: 600;
+}
+
 .bd__link-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 10px;
   padding: 10px 10px 10px 14px;
   border: 1px solid var(--pf-line);
   border-radius: var(--radius-md);
@@ -192,55 +246,37 @@
   color: var(--pf-text);
   font-size: 13.5px;
   font-weight: 500;
+  cursor: pointer;
 }
 
 .bd__copy:hover {
   border-color: var(--pf-accent);
 }
 
-.bd__phone {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--pf-body);
-}
-
-.bd__phone svg {
-  flex: none;
-  margin-top: 3px;
-  color: var(--pf-accent-ink);
-}
-
-.bd__phone strong {
-  color: var(--pf-text);
-}
-
-.bd__note {
+/* The quiet backup, under a line */
+.bd__fallback {
+  padding-top: 14px;
+  border-top: 1px solid var(--pf-line);
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--pf-muted);
 }
 
-.bd__calendar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
+.bd__fallback a {
+  color: var(--pf-accent-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 
-.bd__cal-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: var(--radius-pill);
-  background: var(--pf-accent);
-  color: var(--pf-accent-on);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
+.bd__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* ---------- The not-found page ---------- */
