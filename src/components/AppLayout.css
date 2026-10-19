@@ -408,3 +408,34 @@
 .focusbar__status--error svg {
   color: #c0392b;
 }
+/* ---------- Bookings: calls left today ---------- */
+.sidebar__icon-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* On the icon, so it shows while the sidebar is closed */
+.sidebar__dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  transition: opacity 0.15s ease;
+}
+
+/* Open: the number takes over from the dot */
+.sidebar:hover .sidebar__dot {
+  opacity: 0;
+}
+
+.sidebar__badge--count {
+  min-width: 22px;
+  text-align: center;
+  letter-spacing: 0;
+  background: var(--color-primary);
+}

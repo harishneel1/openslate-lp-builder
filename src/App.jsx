@@ -19,6 +19,7 @@ import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
 import MyPageSetup from './screens/MyPageSetup';
+import BookingsPage from './screens/BookingsPage';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
@@ -511,6 +512,8 @@ function App() {
         renderPageBuilder()
       ) : activeNav === 'my-page' ? (
         <MyPageSetup />
+      ) : activeNav === 'bookings' ? (
+        <BookingsPage onNavigate={handleNavigate} />
       ) : (
         <p style={{ color: 'var(--color-text-muted)' }}>
           Dummy page. Click <strong>Funnels</strong> in the sidebar.

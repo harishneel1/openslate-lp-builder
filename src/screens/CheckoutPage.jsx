@@ -271,6 +271,9 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
             durationMins: call.durationMins,
             format: call.format,
             guest: { name: form.name.trim(), email: form.email.trim(), phone: `${form.code} ${form.phone.trim()}` },
+            guestTimeZone: zone, // the clock they picked the time on
+            topic: form.topic, // what they'd like to talk about, for the creator to prepare
+            paid: price.isFree ? 0 : sums.total,
             meetingLink: myMeetingLink(),
           });
           // Couldn't save it (browser storage blocked): the mock carries on without it

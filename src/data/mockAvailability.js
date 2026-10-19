@@ -1,6 +1,6 @@
 import { addDays, toInstant, todayIn, weekdayOf } from '../utils/slots';
 import { loadSchedule } from './availabilityStore';
-import { loadBookings } from './bookingsStore';
+import { activeBookings } from './bookingsStore';
 
 // ------------------------------------------------------------
 // Mock availability for the booking page. Each call has its own
@@ -78,10 +78,14 @@ export function getMockAvailability(state, serviceId, now = Date.now()) {
 // ------------------------------------------------------------
 // The creator's own calls: this call's saved hours, minus the times
 // already booked (bookingsStore.js). One calendar for all their calls,
-// so a booking for one blocks that time for every call.
+// so a booking for one blocks that time for every call. Cancelled
+// bookings don't count: their time is free again.
+// exceptId: leave this booking out, so it can be moved (rescheduling)
 // ------------------------------------------------------------
-export function getMyAvailability(serviceId) {
+export function getMyAvailability(serviceId, { exceptId = null } = {}) {
   const { saved, ...schedule } = loadSchedule(serviceId); // eslint-disable-line no-unused-vars
-  const bookings = loadBookings().map(({ start, end }) => ({ start, end }));
+  const bookings = activeBookings()
+    .filter((b) => b.id !== exceptId)
+    .map(({ start, end }) => ({ start, end }));
   return { schedule, bookings };
 }

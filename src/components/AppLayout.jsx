@@ -4,10 +4,12 @@ import {
   Grid3x3, Bell, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, Filter, User, TrendingUp, SlidersHorizontal,
-  Copy, ExternalLink,
+  Copy, ExternalLink, CalendarCheck,
 } from 'lucide-react';
 import { initials } from '../utils/initials';
 import { PAGE_DOMAIN, SETUP_CHANGED_EVENT, mockAccount, pageUrl, savedHandle } from '../data/myPage';
+import { loadBookings, onBookingsChange } from '../data/bookingsStore';
+import { buildBookingsJson } from '../data/buildBookingsJson';
 import './AppLayout.css';
 
 const topNavItems = [
@@ -21,8 +23,26 @@ const topNavItems = [
 const sidebarItems = [
   { id: 'get-started', label: 'Get Started', icon: LayoutGrid },
   { id: 'services', label: 'Contracts', icon: Briefcase },
-  { id: 'page-builder', label: 'Funnels', icon: Filter }
+  { id: 'page-builder', label: 'Funnels', icon: Filter },
+  { id: 'bookings', label: 'Bookings', icon: CalendarCheck },
 ];
+
+// Calls still to come today, for the Bookings tab's count. Follows new
+// bookings (even from another tab) and the clock, so it drops as calls end.
+function useCallsLeftToday() {
+  const count = () => buildBookingsJson({ bookings: loadBookings() }).upcomingToday;
+  const [left, setLeft] = useState(count);
+  useEffect(() => {
+    const update = () => setLeft(count());
+    const stop = onBookingsChange(update);
+    const timer = setInterval(update, 60_000);
+    return () => {
+      stop();
+      clearInterval(timer);
+    };
+  }, []);
+  return left;
+}
 
 // Focus mode: while a funnel is open, the app's top nav and sidebar step back
 // and one slim bar takes their place: exit on the left, funnel name in the
@@ -108,6 +128,8 @@ function MyPageCard({ active, onOpen }) {
 }
 
 export default function AppLayout({ activeNav, onNavigate, focus = null, children }) {
+  const callsLeftToday = useCallsLeftToday();
+
   if (focus) {
     return (
       <div className="app">
@@ -156,19 +178,34 @@ export default function AppLayout({ activeNav, onNavigate, focus = null, childre
             <MyPageCard active={activeNav === 'my-page'} onOpen={() => onNavigate('my-page')} />
 
             <nav className="sidebar__nav">
-              {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => onNavigate(id)}
-                  className={`sidebar__item ${activeNav === id ? 'sidebar__item--active' : ''}`}
-                >
-                  <Icon size={20} className="sidebar__icon" />
-                  <span className="sidebar__label">{label}</span>
-                  {badge && <span className="sidebar__badge">{badge}</span>}
-                  {hasMenu && <ChevronDown size={16} className="sidebar__chevron" />}
-                </button>
-              ))}
+              {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => {
+                // Bookings shows how many calls are left today: a number when the
+                // sidebar is open, a dot on the icon when it's closed
+                const count = id === 'bookings' && callsLeftToday > 0 ? callsLeftToday : null;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => onNavigate(id)}
+                    className={`sidebar__item ${activeNav === id ? 'sidebar__item--active' : ''}`}
+                    aria-label={count ? `${label}, ${count} ${count === 1 ? 'call' : 'calls'} left today` : undefined}
+                    title={count ? `${count} ${count === 1 ? 'call' : 'calls'} left today` : undefined}
+                  >
+                    <span className="sidebar__icon-wrap">
+                      <Icon size={20} className="sidebar__icon" />
+                      {count && <span className="sidebar__dot" aria-hidden="true" />}
+                    </span>
+                    <span className="sidebar__label">{label}</span>
+                    {badge && <span className="sidebar__badge">{badge}</span>}
+                    {count && (
+                      <span className="sidebar__badge sidebar__badge--count" aria-hidden="true">
+                        {count}
+                      </span>
+                    )}
+                    {hasMenu && <ChevronDown size={16} className="sidebar__chevron" />}
+                  </button>
+                );
+              })}
             </nav>
           </aside>
         </div>

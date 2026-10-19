@@ -1,0 +1,789 @@
+/* The creator's Bookings page (BookingsPage.jsx). Same frame as the
+   other creator pages (OfferingsHome.css). Also holds .bk-btn and
+   .bk-face, which its drawer (BookingDrawer.css) uses too.
+
+   Colour roles, kept strict so each one means something:
+     ink        names, times, anything you read first
+     ink-2      supporting text (still easy to read)
+     ink-3      the quietest labels (hour marks, month)
+     orange     what's yours and what to do: the chosen date, Join, the
+                edge of every booked call, the dots, the now line
+     orange-ink orange text, dark enough to read (Today, labels, initials)
+     tint       soft orange surfaces: calls, initials, the next call
+   A call about to start, or happening, gets the strongest orange.     */
+
+.bk,
+.bkd {
+  --bk-ink: #141414;
+  --bk-ink-2: #45454b;
+  --bk-ink-3: #7a7a80;
+  --bk-line: #ececee;
+  --bk-hour: #ededf0;
+  --bk-face-bg: #fdf1e7;
+  --bk-now: #d4600c;
+  --bk-orange: var(--color-primary);         /* #ef8a3c */
+  --bk-orange-strong: #d0600f;               /* solid fills under white text */
+  --bk-orange-ink: #b4520c;                  /* orange text on white or tint */
+  --bk-tint: var(--color-primary-tint);      /* #fdf1e7 */
+  --bk-tint-line: #f6d6b9;                   /* borders on tinted surfaces */
+}
+
+.bk {
+  max-width: 920px;
+  margin: 0 auto;
+  padding-top: 16px;
+  padding-bottom: 48px;
+  color: var(--bk-ink);
+}
+
+.bk__title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.bk__zone {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--bk-ink-2);
+}
+
+/* ================= Buttons ================= */
+.bk-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.bk-btn:focus-visible {
+  outline: 2px solid var(--bk-orange);
+  outline-offset: 2px;
+}
+
+.bk-btn:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.bk-btn--primary {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.bk-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.bk-btn--secondary {
+  color: var(--bk-ink);
+  background: var(--color-surface);
+  border-color: #dcdce0;
+}
+
+.bk-btn--secondary:hover:not(:disabled) {
+  border-color: #bdbdc3;
+  background: #fafafa;
+}
+
+.bk-btn--danger {
+  color: #fff;
+  background: #c62828;
+}
+
+.bk-btn--danger:hover {
+  background: #a82020;
+}
+
+.bk-btn--danger-text {
+  padding-left: 4px;
+  padding-right: 4px;
+  color: #b42020;
+}
+
+.bk-btn--danger-text:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bk-btn--wide {
+  width: 100%;
+}
+
+/* ================= Guest initials ================= */
+.bk-face {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--bk-orange-ink);
+  background: var(--bk-face-bg);
+  border-radius: 50%;
+}
+
+/* On a tinted surface the circle turns white, so it doesn't vanish into it */
+.bk__next--now .bk-face,
+.bk-call:hover .bk-face,
+.bk-call--soon .bk-face,
+.bk-call--live .bk-face {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--bk-tint-line);
+}
+
+.bk-face--lg {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+/* ================= Next call ================= */
+.bk__next {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-left: 4px solid var(--bk-orange);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* About to start, or happening: the one place the page raises its voice */
+.bk__next--now {
+  background: var(--bk-tint);
+  border-color: var(--bk-tint-line);
+  border-left-color: var(--bk-orange-strong);
+}
+
+.bk__next-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  text-align: left;
+  color: inherit;
+  border-radius: var(--radius-md);
+}
+
+.bk__next-main:focus-visible {
+  outline: 2px solid var(--bk-orange);
+  outline-offset: 4px;
+}
+
+.bk__next-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bk__next-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bk-orange-ink);
+}
+
+.bk__next--now .bk__next-label {
+  color: var(--bk-now);
+}
+
+.bk__next-in {
+  font-weight: 400;
+  color: var(--bk-ink-2);
+}
+
+.bk__next-when {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk__next-who {
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--bk-ink-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ================= Date strip ================= */
+.bk__dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 32px;
+}
+
+.bk__arrow {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--bk-ink);
+  border-radius: 50%;
+}
+
+.bk__arrow:hover:not(:disabled) {
+  background: #ebebed;
+}
+
+.bk__arrow:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+.bk__arrow:focus-visible {
+  outline: 2px solid var(--bk-orange);
+  outline-offset: 1px;
+}
+
+.bk__strip {
+  position: relative;          /* offsetLeft of each day is measured from here */
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  padding: 3px;                /* room for the focus ring */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bk__strip::-webkit-scrollbar {
+  display: none;
+}
+
+.bk__date {
+  display: flex;
+  flex: 0 0 58px;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 7px;
+  color: var(--bk-ink);
+  background: transparent;
+  border-radius: var(--radius-md);
+  transition: background 0.15s, color 0.15s;
+}
+
+.bk__date:hover {
+  background: var(--bk-tint);
+}
+
+.bk__date:focus-visible {
+  outline: 2px solid var(--bk-orange);
+  outline-offset: 2px;
+}
+
+.bk__date-name,
+.bk__date-month {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--bk-ink-2);
+}
+
+.bk__date-month {
+  color: var(--bk-ink-3);
+}
+
+.bk__date-num {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Today: named, in orange */
+.bk__date--today .bk__date-name {
+  font-weight: 700;
+  color: var(--bk-orange-ink);
+}
+
+.bk__date--past .bk__date-num,
+.bk__date--past .bk__date-name {
+  color: var(--bk-ink-3);
+}
+
+.bk__date--past .bk__date-num {
+  font-weight: 500;
+}
+
+/* Chosen: solid orange, the strongest thing in the strip */
+.bk__date[aria-pressed='true'],
+.bk__date[aria-pressed='true']:hover {
+  color: #fff;
+  background: var(--bk-orange-strong);
+  box-shadow: 0 4px 12px rgba(208, 96, 15, 0.25);
+}
+
+.bk__date[aria-pressed='true'] .bk__date-name,
+.bk__date[aria-pressed='true'] .bk__date-month,
+.bk__date[aria-pressed='true'] .bk__date-num {
+  color: #fff;
+}
+
+.bk__date[aria-pressed='true'] .bk__date-month {
+  opacity: 0.8;
+}
+
+/* One dot per call, up to three */
+.bk__date-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 10px;
+  margin-top: 3px;
+}
+
+.bk__dot {
+  width: 6px;
+  height: 6px;
+  background: var(--bk-orange);
+  border-radius: 50%;
+}
+
+.bk__date--past .bk__dot {
+  background: #c4c4c9;
+}
+
+.bk__date[aria-pressed='true'] .bk__dot {
+  background: #fff;
+}
+
+.bk__dot-more {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bk-orange-ink);
+}
+
+.bk__date[aria-pressed='true'] .bk__dot-more {
+  color: #fff;
+}
+
+.bk__today {
+  margin-left: 6px;
+}
+
+/* ================= The chosen day ================= */
+.bk__day {
+  margin-top: 16px;
+  padding: 24px 28px 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.bk__day-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.bk__day-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.bk__day-hours {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--bk-ink-2);
+}
+
+.bk__day-sum {
+  flex-shrink: 0;
+  padding-top: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bk-ink-2);
+}
+
+/* ================= Hour grid =================
+   A column of hour labels, then the day. Everything inside is placed
+   by minute (BookingsPage.jsx), so the grid's height is the day's length. */
+.bk-grid {
+  --bk-labels: 64px;
+  position: relative;
+  margin: 8px 0 4px;
+}
+
+/* Outside working hours: lightly hatched, so the working day reads as the open space */
+.bk-grid__off {
+  position: absolute;
+  left: var(--bk-labels);
+  right: 0;
+  background: repeating-linear-gradient(-45deg, #f7f7f8 0 6px, #f1f1f3 6px 7px);
+}
+
+/* A long empty stretch outside their hours, folded into one band */
+.bk-grid__fold {
+  position: absolute;
+  left: var(--bk-labels);
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 14px;
+  font-size: 12px;
+  color: var(--bk-ink-3);
+  background: repeating-linear-gradient(-45deg, #f7f7f8 0 6px, #f1f1f3 6px 7px);
+  border-top: 1px dashed #d6d6db;
+  border-bottom: 1px dashed #d6d6db;
+}
+
+.bk-grid__hour {
+  position: absolute;
+  left: var(--bk-labels);
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--bk-hour);
+}
+
+.bk-grid__label {
+  position: absolute;
+  left: calc(var(--bk-labels) * -1);
+  width: calc(var(--bk-labels) - 14px);
+  font-size: 12px;
+  line-height: 1;
+  text-align: right;
+  color: var(--bk-ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.bk-grid__calls {
+  position: absolute;
+  inset: 0 0 0 calc(var(--bk-labels) + 8px);
+  list-style: none;
+}
+
+/* ---------- A call ---------- */
+.bk-call {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px 10px 14px;
+  overflow: hidden;
+  background: #fffaf6;
+  border: 1px solid var(--bk-tint-line);
+  border-left: 4px solid var(--bk-orange);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(208, 96, 15, 0.06);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.bk-call:hover {
+  background: var(--bk-tint);
+  border-color: #f0c29b;
+  border-left-color: var(--bk-orange-strong);
+  box-shadow: 0 4px 14px rgba(208, 96, 15, 0.12);
+}
+
+/* About to start or happening: the strongest orange on the page */
+.bk-call--soon,
+.bk-call--live {
+  background: var(--bk-tint);
+  border-color: #f0c29b;
+  border-left-color: var(--bk-orange-strong);
+  box-shadow: 0 0 0 1px #f0c29b, 0 4px 14px rgba(208, 96, 15, 0.14);
+}
+
+/* Over: quieter, still readable */
+.bk-call--ended,
+.bk-call--ended:hover {
+  background: #fafafa;
+  border-color: #e6e6e9;
+  border-left-color: #c9c9ce;
+  box-shadow: none;
+}
+
+.bk-call--ended .bk-call__name,
+.bk-call--ended .bk-call__meta {
+  color: var(--bk-ink-3);
+}
+
+.bk-call--ended .bk-face {
+  color: var(--bk-ink-3);
+  background: #efeff1;
+}
+
+/* The whole block opens the call; Join sits above it */
+.bk-call__open {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  text-align: left;
+  color: inherit;
+}
+
+.bk-call__open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.bk-call__open:focus-visible {
+  outline: none;
+}
+
+.bk-call:has(.bk-call__open:focus-visible) {
+  outline: 2px solid var(--bk-orange-strong);
+  outline-offset: 2px;
+}
+
+.bk-call__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bk-call__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bk-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bk-call__meta {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--bk-ink-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Short calls: name and details on one line */
+.bk-call--compact {
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.bk-call--compact .bk-call__open {
+  align-items: center;
+  align-self: stretch;
+}
+
+.bk-call--compact .bk-call__text {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.bk-call--compact .bk-call__name {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.bk-call__join {
+  position: relative;
+  z-index: var(--z-raised);
+  align-self: center;
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.bk-call__chip {
+  position: relative;
+  flex-shrink: 0;
+  align-self: center;
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bk-ink-2);
+  background: #efeff1;
+  border-radius: var(--radius-pill);
+}
+
+.bk-call__chip--live {
+  color: #fff;
+  background: var(--bk-now);
+}
+
+/* ---------- Now ---------- */
+.bk-grid__now {
+  position: absolute;
+  left: var(--bk-labels);
+  right: 0;
+  z-index: var(--z-raised);
+  height: 2px;
+  margin-top: -1px;
+  background: var(--bk-now);
+  pointer-events: none;
+}
+
+.bk-grid__now::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--bk-now);
+  border-radius: 50%;
+}
+
+.bk-grid__now-time {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  padding: 1px 0 1px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--bk-now);
+  background: var(--color-surface);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transform: translateY(-50%);
+}
+
+/* ================= Cancelled ================= */
+.bk__cancelled {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--bk-line);
+}
+
+.bk__cancelled-title {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bk-ink-2);
+}
+
+.bk__cancelled-list {
+  list-style: none;
+}
+
+.bk__cancelled-row {
+  display: grid;
+  grid-template-columns: 64px auto 1fr;
+  column-gap: 16px;
+  width: 100%;
+  padding: 8px 0;
+  font-size: 14px;
+  text-align: left;
+  color: var(--bk-ink-3);
+  border-radius: var(--radius-sm);
+}
+
+.bk__cancelled-row:hover .bk__cancelled-name {
+  color: var(--bk-ink);
+}
+
+.bk__cancelled-row:focus-visible {
+  outline: 2px solid var(--bk-orange);
+  outline-offset: 2px;
+}
+
+.bk__cancelled-time {
+  text-align: right;
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk__cancelled-name {
+  font-weight: 500;
+  color: var(--bk-ink-2);
+  text-decoration: line-through;
+}
+
+.bk__cancelled-service {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ================= Empty ================= */
+.bk__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.bk__empty .bk-btn {
+  margin-top: 12px;
+}
+
+.bk__empty--page {
+  align-items: center;
+  margin-top: 28px;
+  padding: 56px 24px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+}
+
+.bk__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  color: var(--bk-orange-ink);
+  background: var(--bk-face-bg);
+  border-radius: 50%;
+}
+
+.bk__empty-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bk__empty--page .bk__empty-title {
+  font-size: 18px;
+}
+
+.bk__empty-text {
+  max-width: 44ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--bk-ink-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bk-btn,
+  .bk__date,
+  .bk-call {
+    transition: none;
+  }
+}
