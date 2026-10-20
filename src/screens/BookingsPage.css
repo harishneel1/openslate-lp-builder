@@ -635,6 +635,74 @@
   background: var(--bk-now);
 }
 
+/* Rescheduled: worth noticing, not acting on, so no orange. Shrinks before the name does. */
+.bk-call__chip--moved {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: default;
+  background: #fff;
+  border: 1px solid var(--bk-tint-line);
+}
+
+/* The tag and its hover bubble (look from tooltip.css's .tip) */
+.bk-moved {
+  position: relative;
+  display: flex;
+  flex-shrink: 1;
+  align-self: center;
+  min-width: 0;
+}
+
+.bk-moved__tip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  padding: 10px 12px;
+  /* Hidden until hovered. No delay and no fade: it's there the moment you point at it */
+  visibility: hidden;
+}
+
+.bk-moved:hover .bk-moved__tip {
+  visibility: visible;
+}
+
+/* While its tag is hovered, the call stops clipping and sits above its neighbours,
+   so the bubble isn't cut off by this card or hidden under the one above */
+.bk-call:has(.bk-moved:hover) {
+  z-index: var(--z-tooltip);
+  overflow: visible;
+}
+
+.bk-moved__who {
+  margin-bottom: 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bk-moved__row {
+  display: flex;
+  gap: 10px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-moved__row s {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bk-moved__key {
+  width: 32px;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
 /* ---------- Now ---------- */
 .bk-grid__now {
   position: absolute;
@@ -688,46 +756,75 @@
 }
 
 .bk__cancelled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   list-style: none;
 }
 
+/* A cancelled call: shaped like a call on the grid, in the ended-call grey.
+   No strikethrough: the heading already says these aren't happening. */
 .bk__cancelled-row {
   display: grid;
-  grid-template-columns: 64px auto 1fr;
-  column-gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  row-gap: 6px;
+  column-gap: 12px;
   width: 100%;
-  padding: 8px 0;
-  font-size: 14px;
+  padding: 10px 12px 10px 14px;
   text-align: left;
-  color: var(--bk-ink-3);
-  border-radius: var(--radius-sm);
+  background: #fafafa;
+  border: 1px solid #e6e6e9;
+  border-left: 4px solid #c9c9ce;
+  border-radius: 10px;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.bk__cancelled-row:hover .bk__cancelled-name {
-  color: var(--bk-ink);
+.bk__cancelled-row:hover {
+  background: #f4f4f6;
+  border-color: #dcdce0;
+  border-left-color: #b4b4ba;
 }
 
 .bk__cancelled-row:focus-visible {
-  outline: 2px solid var(--bk-orange);
+  outline: 2px solid var(--bk-orange-strong);
   outline-offset: 2px;
 }
 
-.bk__cancelled-time {
-  text-align: right;
-  text-decoration: line-through;
-  font-variant-numeric: tabular-nums;
+.bk__cancelled-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  min-width: 0;
 }
 
 .bk__cancelled-name {
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--bk-ink-2);
-  text-decoration: line-through;
 }
 
-.bk__cancelled-service {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.bk__cancelled-meta {
+  font-size: 13px;
+  color: var(--bk-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The guest's reason: their own words, full width under the name */
+.bk__cancelled-reason {
+  grid-column: 1 / -1;
+  padding-left: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--bk-ink);
+  border-left: 2px solid #dcdce0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bk__cancelled-row {
+    transition: none;
+  }
 }
 
 /* ================= Empty ================= */

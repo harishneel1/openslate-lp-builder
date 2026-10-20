@@ -9,9 +9,11 @@ import {
   clockLabel,
   dayInSentence,
   describeBooking,
+  exactDay,
   hourLabel,
   lengthLabel,
   longDay,
+  movedFromLabel,
   offHours,
   onDay,
   shortDay,
@@ -58,6 +60,13 @@ const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)
 function daySummary(count, mins) {
   if (!count) return null;
   return `${count} ${count === 1 ? 'call' : 'calls'}, ${lengthLabel(mins)} booked`;
+}
+
+// Who cancelled: 'You cancelled' or 'Tarun cancelled'
+function cancelledBy(booking) {
+  if (booking.cancelledBy !== 'guest') return 'You cancelled';
+  const first = String(booking.guest?.name ?? '').trim().split(/\s+/)[0] || 'Your guest';
+  return `${first} cancelled`;
 }
 
 // Working hours as words: '9:00 am to 1:00 pm, 4:00 pm to 8:00 pm'
@@ -182,10 +191,19 @@ export default function BookingsPage({ onNavigate }) {
             <ul className="bk__cancelled-list">
               {day.cancelled.map((b) => (
                 <li key={b.id}>
+                  {/* Laid out like a call on the grid, in grey: readable, clearly not happening */}
                   <button type="button" className="bk__cancelled-row" onClick={() => open(b.id)}>
-                    <span className="bk__cancelled-time">{b.time}</span>
-                    <span className="bk__cancelled-name">{b.guest?.name || 'Guest'}</span>
-                    <span className="bk__cancelled-service">{b.title}</span>
+                    <span className="bk__cancelled-text">
+                      <span className="bk__cancelled-name">{b.guest?.name || 'Guest'}</span>
+                      <span className="bk__cancelled-meta">
+                        {b.title}, {b.time} to {b.ends}
+                      </span>
+                    </span>
+                    <span className="bk-call__chip">{cancelledBy(b)}</span>
+                    {/* The guest's reason, in their words. The creator's own note is in the drawer. */}
+                    {b.cancelledBy === 'guest' && b.cancelMessage && (
+                      <span className="bk__cancelled-reason">“{b.cancelMessage}”</span>
+                    )}
                   </button>
                 </li>
               ))}
@@ -432,6 +450,9 @@ function HourGrid({ day, onOpen }) {
           const compact = height < COMPACT_BELOW;
           const joinable = (b.state === 'live' || b.state === 'soon') && b.meetingLink;
           const name = b.guest?.name || 'Guest';
+          // A rescheduled call says so until it's over, so a changed day doesn't surprise them
+          const movedFrom = b.state !== 'ended' ? movedFromLabel(b) : null;
+          const movedBy = b.moved?.by === 'guest' ? `Rescheduled by ${name}` : 'You rescheduled this call';
           return (
             <li
               key={b.id}
@@ -447,6 +468,25 @@ function HourGrid({ day, onOpen }) {
                   </span>
                 </span>
               </button>
+              {movedFrom && (
+                // Hover the tag: who rescheduled, and the old and new times, at once
+                <span className="bk-moved">
+                  <span className="bk-call__chip bk-call__chip--moved">Rescheduled from {movedFrom}</span>
+                  <span className="tip bk-moved__tip" role="tooltip">
+                    <span className="bk-moved__who">{movedBy}</span>
+                    <span className="bk-moved__row">
+                      <span className="bk-moved__key">Was</span>
+                      <s>
+                        {exactDay(b.moved.date)}, {b.moved.time}
+                      </s>
+                    </span>
+                    <span className="bk-moved__row">
+                      <span className="bk-moved__key">Now</span>
+                      {exactDay(b.date)}, {b.time}
+                    </span>
+                  </span>
+                </span>
+              )}
               {b.state === 'live' && <span className="bk-call__chip bk-call__chip--live">Now</span>}
               {b.state === 'ended' && <span className="bk-call__chip">Ended</span>}
               {joinable && (

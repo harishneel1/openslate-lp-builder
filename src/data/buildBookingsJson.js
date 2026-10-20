@@ -62,6 +62,13 @@ export function shortDay(date, today) {
   return relativeDay(date, today) ?? `${l.weekday} ${l.day} ${l.month}`;
 }
 
+// Always the date itself, never 'Today': 'Tue 20 Oct'.
+// For the record of what happened (booked, rescheduled, cancelled).
+export function exactDay(date) {
+  const l = dayLabels(date);
+  return `${l.weekday} ${l.day} ${l.month}`;
+}
+
 // Mid-sentence: 'today', 'tomorrow', 'yesterday' or 'Thu 22 Oct'
 export function dayInSentence(date, today) {
   const rel = relativeDay(date, today);
@@ -125,7 +132,25 @@ export function describeBooking(booking, zone, now) {
     ends: formatTime(end, zone),
     lengthMins: Math.round((end - start) / MIN),
     state: statusOf(booking, now),
+    // What changed since it was booked, on the creator's clock (null when nothing did).
+    // by: 'creator' | 'guest'. Older bookings saved no …By: only the creator could change them.
+    moved: booking.previousStart
+      ? {
+          date: onClock(booking.previousStart, zone).date,
+          time: formatTime(Date.parse(booking.previousStart), zone),
+          by: booking.rescheduledBy ?? 'creator',
+        }
+      : null,
+    cancelledBy: isActive(booking) ? null : (booking.cancelledBy ?? 'creator'),
   };
+}
+
+// Where a rescheduled call was before, as short as it can be:
+// '11:00 am' when it was the same day, else 'Mon 19 Oct, 11:00 am'
+export function movedFromLabel(booking) {
+  if (!booking.moved) return null;
+  const { date, time } = booking.moved;
+  return date === booking.date ? time : `${exactDay(date)}, ${time}`;
 }
 
 // The creator's hours on one date: the days-off list wins, else every

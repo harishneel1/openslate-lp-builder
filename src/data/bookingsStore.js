@@ -18,8 +18,11 @@
 //                  confirmation email sent), DEFAULT_MEETING_LINK when they
 //                  had none, or null for a phone call,
 //     status: 'booked' | 'cancelled',
-//     cancelledAt, cancelMessage   once cancelled
-//     rescheduledAt, previousStart once moved
+//     cancelledAt, cancelMessage, cancelledBy   once cancelled
+//     rescheduledAt, previousStart, rescheduledBy once moved
+//       (…By: 'creator' | 'guest'. cancelMessage is the creator's note
+//        to the guest, or the guest's reason when they cancelled.
+//        Bookings saved before …By existed were changed by the creator.)
 //     createdAt }
 //
 // Every change fires BOOKINGS_CHANGED_EVENT, so open screens (the
@@ -126,18 +129,22 @@ function updateBooking(id, change) {
 }
 
 // Cancels a booking, which frees its time for others to book.
-// message: the creator's note to the guest (the real product emails it).
-export function cancelBooking(id, { message = '' } = {}) {
+// by: who cancelled, 'creator' or 'guest'.
+// message: the creator's note to the guest, or the guest's reason
+//          (the real product emails it to the other side).
+export function cancelBooking(id, { message = '', by = 'creator' } = {}) {
   return updateBooking(id, () => ({
     status: 'cancelled',
     cancelledAt: new Date().toISOString(),
     cancelMessage: String(message).trim(),
+    cancelledBy: by,
   }));
 }
 
 // Moves a booking to a new start, keeping its length.
+// by: who moved it, 'creator' or 'guest'.
 // The real product updates the guest's calendar invite too.
-export function rescheduleBooking(id, start) {
+export function rescheduleBooking(id, start, { by = 'creator' } = {}) {
   const startMs = Date.parse(start);
   if (!Number.isFinite(startMs)) return null;
   return updateBooking(id, (b) => ({
@@ -145,6 +152,7 @@ export function rescheduleBooking(id, start) {
     end: new Date(startMs + (Date.parse(b.end) - Date.parse(b.start))).toISOString(),
     previousStart: b.start,
     rescheduledAt: new Date().toISOString(),
+    rescheduledBy: by,
   }));
 }
 

@@ -7,7 +7,7 @@ import { getMyAvailability } from '../data/mockAvailability';
 import { money } from '../data/checkoutRules';
 import { findSlots, formatTime, zoned } from '../utils/slots';
 import { matchZone } from '../data/timeZones';
-import { dayInSentence, lengthLabel, longDay, onDay, shortDay, startsIn, zoneLabel } from '../data/buildBookingsJson';
+import { exactDay, lengthLabel, longDay, onDay, shortDay, startsIn, zoneLabel } from '../data/buildBookingsJson';
 import './BookingDrawer.css';
 
 // ------------------------------------------------------------
@@ -39,8 +39,8 @@ function guestTime(booking, zone, today) {
   return `${formatTime(ms, theirs)} ${onDay(zoned(ms, theirs).date, today)}, ${zoneLabel(theirs)}`;
 }
 
-// A saved instant → 'Thu 22 Oct' on the creator's clock
-const dayOf = (iso, zone, today) => shortDay(zoned(Date.parse(iso), zone).date, today);
+// A saved instant → 'Thu 22 Oct' on the creator's clock, never 'Today'
+const dayOf = (iso, zone) => exactDay(zoned(Date.parse(iso), zone).date);
 
 export default function BookingDrawer({ booking, zone, today, now, notice, onClose, onChanged }) {
   const [view, setView] = useState('details');
@@ -119,11 +119,11 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     if (!picked) return;
     const done = rescheduleBooking(booking.id, picked.start);
     if (!done) {
-      setError("We couldn't move this call. Try again.");
+      setError("We couldn't reschedule this call. Try again.");
       return;
     }
     show('details');
-    onChanged(`Call moved to ${dayInSentence(picked.date, today)}, ${picked.time}.`);
+    onChanged(`Call rescheduled to ${exactDay(picked.date)}, ${picked.time}.`);
   };
 
   // ---------- Footer: changes with the view ----------
@@ -158,7 +158,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
         </button>
         {openDays.length > 0 && (
           <button type="button" className="bk-btn bk-btn--primary" disabled={!picked} onClick={confirmMove}>
-            {picked ? `Move to ${dayInSentence(picked.date, today)}, ${picked.time}` : 'Pick a new time'}
+            {picked ? `Reschedule to ${exactDay(picked.date)}, ${picked.time}` : 'Pick a new time'}
           </button>
         )}
       </>
@@ -170,18 +170,22 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
   // answers: [{ question, answer }]. Older bookings only have `topic`.
   const answers = booking.answers ?? [{ question: TOPIC_QUESTION, answer: booking.topic }];
 
+  // 'by you' or 'by Tarun'
+  const byWhom = (by) => (by === 'guest' ? `by ${name}` : 'by you');
+
   const facts = [
     theirTime && ['Their time', theirTime],
     ['Format', booking.format === 'phone' ? 'Phone call' : 'Video call'],
     typeof booking.paid === 'number' && ['Payment', booking.paid > 0 ? `Paid ${money(booking.paid)}` : 'Free call'],
     booking.guest?.email && ['Email', <a href={`mailto:${booking.guest.email}`}>{booking.guest.email}</a>],
     booking.guest?.phone && ['Phone', <a href={telHref(booking.guest.phone)}>{booking.guest.phone}</a>],
-    ['Booked', dayOf(booking.createdAt, zone, today)],
-    booking.previousStart && [
-      'Moved from',
-      `${dayOf(booking.previousStart, zone, today)}, ${formatTime(Date.parse(booking.previousStart), zone)}`,
+    ['Booked', dayOf(booking.createdAt, zone)],
+    booking.moved && [
+      'Rescheduled from',
+      `${exactDay(booking.moved.date)}, ${booking.moved.time}, ${byWhom(booking.moved.by)}`,
     ],
-    booking.state === 'cancelled' && booking.cancelledAt && ['Cancelled', dayOf(booking.cancelledAt, zone, today)],
+    booking.state === 'cancelled' &&
+      booking.cancelledAt && ['Cancelled', `${dayOf(booking.cancelledAt, zone)}, ${byWhom(booking.cancelledBy)}`],
   ].filter(Boolean);
 
   const status = {
@@ -189,7 +193,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     soon: `Starts ${soon}`,
     upcoming: soon ? `Starts ${soon}` : `${shortDay(booking.date, today)}`,
     ended: 'Ended',
-    cancelled: 'Cancelled',
+    cancelled: booking.cancelledBy === 'guest' ? `${name} cancelled` : 'Cancelled',
   }[booking.state];
 
   return (
@@ -275,11 +279,17 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
                 </div>
               ))}
             </dl>
-            {booking.cancelMessage && (
-              <p className="bkd__sent-note">
-                Your note to {name}: {booking.cancelMessage}
-              </p>
-            )}
+            {booking.cancelMessage &&
+              (booking.cancelledBy === 'guest' ? (
+                <p className="bkd__sent-note bkd__sent-note--theirs">
+                  <span className="bkd__note-label">{name}'s reason for cancelling</span>
+                  {booking.cancelMessage}
+                </p>
+              ) : (
+                <p className="bkd__sent-note">
+                  Your note to {name}: {booking.cancelMessage}
+                </p>
+              ))}
           </section>
         </div>
       )}
@@ -321,16 +331,16 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
         <div className="bkd__step">
           {openDays.length === 0 ? (
             <>
-              <h3 className="bkd__step-title">No open times to move to</h3>
+              <h3 className="bkd__step-title">No open times to reschedule to</h3>
               <p className="bkd__step-text">
                 This call has no free times coming up. Add hours to the call, then try again.
               </p>
             </>
           ) : (
             <>
-              <h3 className="bkd__step-title">Move your call with {name}</h3>
+              <h3 className="bkd__step-title">Reschedule your call with {name}</h3>
               <p className="bkd__step-text">
-                Booked for {dayInSentence(booking.date, today)}, {booking.time}. Pick a new time and {name}'s invite will be
+                Booked for {exactDay(booking.date)}, {booking.time}. Pick a new time and {name}'s invite will be
                 updated.
               </p>
 

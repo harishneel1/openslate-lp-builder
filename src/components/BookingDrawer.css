@@ -190,6 +190,23 @@
   color: var(--bk-ink-2);
 }
 
+/* The guest's own words: set apart, since it's the one thing the creator came to read */
+.bkd__sent-note--theirs {
+  padding: 12px 14px;
+  color: var(--bk-ink);
+  background: #fafafa;
+  border-left: 3px solid #c9c9ce;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.bkd__note-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bk-ink-2);
+}
+
 /* ---------- Cancel and reschedule steps ---------- */
 .bkd__step-title {
   font-size: 18px;
