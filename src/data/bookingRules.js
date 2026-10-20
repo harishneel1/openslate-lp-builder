@@ -7,7 +7,7 @@ export const BOOKING_RULES = [
   {
     key: 'bufferMins',
     label: 'Break between calls',
-    hint: 'Kept free before and after every booking.',
+    hint: 'Applies to every other 1:1 calls',
     options: [0, 5, 10, 15, 30, 45, 60].map((v) => [v, v === 0 ? 'No break' : `${v} minutes`]),
   },
   {
@@ -21,11 +21,5 @@ export const BOOKING_RULES = [
     label: 'How far ahead people can book',
     hint: 'Times further out than this stay hidden.',
     options: [[7, '1 week'], [14, '2 weeks'], [30, '30 days'], [60, '60 days'], [90, '90 days']],
-  },
-  {
-    key: 'startEveryMins',
-    label: 'Start times',
-    hint: 'Every 30 minutes gives 10:00, 10:30, 11:00 and so on.',
-    options: [[15, 'Every 15 minutes'], [30, 'Every 30 minutes'], [60, 'On the hour']],
-  },
+  }
 ];
