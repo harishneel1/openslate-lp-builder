@@ -123,105 +123,131 @@
   box-shadow: none;
 }
 
-/* ---------- A new call's service: made for them, or one of theirs ---------- */
-.es-choice__options {
+/* ---------- The call's contract: shown, with View contract ---------- */
+.es-contract {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* One choice: the whole card is the label */
-.es-choice__option {
-  position: relative;
+.es-contract__card {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 14px;
   padding: 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
 }
 
-.es-choice__option:hover {
-  border-color: #d6d6d6;
-}
-
-.es-choice__option--picked,
-.es-choice__option--picked:hover {
+.es-contract__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--color-primary-hover);
   background: var(--color-primary-tint);
-  border-color: var(--color-primary);
+  border-radius: var(--radius-sm);
 }
 
-/* The real radio stays in place for the keyboard and screen readers, unseen */
-.es-choice__radio {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
+.es-contract__text {
+  flex: 1;
+  min-width: 0;
 }
 
-.es-choice__mark {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  margin-top: 1px;
+.es-contract__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.es-contract__tag {
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: #f0f0f2;
+  border-radius: var(--radius-pill);
+}
+
+/* Price, then the payment type */
+.es-contract__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin-top: 3px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.es-contract__price {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.es-contract__price--free {
+  color: var(--color-success);
+}
+
+.es-contract__view {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
   background: var(--color-surface);
-  border: 2px solid #cfcfcf;
-  border-radius: 50%;
-  transition: border-color 0.15s, border-width 0.15s;
+  border: 1px solid #d6d6d6;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s;
 }
 
-.es-choice__option--picked .es-choice__mark {
-  border: 6px solid var(--color-primary);
+a.es-contract__view:hover {
+  border-color: #b9b9be;
 }
 
-.es-choice__radio:focus-visible + .es-choice__mark {
+.es-contract__view[aria-disabled='true'] {
+  color: var(--color-text-disabled);
+  border-color: var(--color-border);
+  cursor: not-allowed; /* can't open it until the call is added */
+}
+
+.es-contract__view:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-.es-choice__text {
+.es-contract__note {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.es-choice__name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.es-choice__tag {
-  padding: 1px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--color-primary);
-  border-radius: var(--radius-pill);
-}
-
-.es-choice__blurb {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--color-text-muted);
 }
 
-/* Their services, under the choices */
-.es-choice__picker {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-border);
+.es-contract__note svg {
+  flex: none;
+  margin-top: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .es-choice__option,
-  .es-choice__mark {
-    transition: none;
+/* Narrow: View contract goes under the name and price */
+@media (max-width: 560px) {
+  .es-contract__card {
+    flex-wrap: wrap;
+  }
+
+  .es-contract__view {
+    margin-left: 54px;
   }
 }

@@ -14,7 +14,7 @@ const PREVIEW_URL = '?mock=checkout&service=call-discovery&preview=1';
 const EDIT_URL = '?mock=checkout&service=call-discovery&preview=1';
 
 // What people fill in when they book, as on the checkout page
-const FORM_FIELDS = 'Name, email, phone number, and what they’d like to talk about (optional)';
+const FORM_FIELDS = 'Name, email, phone number, and additional details';
 
 // The service (registration form) for their call, made for them from the
 // call's name and price. Made the first time this screen shows; if they've

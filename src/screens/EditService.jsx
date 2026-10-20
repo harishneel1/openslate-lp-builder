@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Clock, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Clock, ExternalLink, FileText, Lock } from 'lucide-react';
 import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
@@ -39,16 +39,16 @@ const FIELDS = [
 // (availabilityStore.js), where the booking page reads them.
 const EDIT_FIELDS = [...FIELDS, 'callHours'];
 
-// A new call also chooses how it gets its service: 'auto' (made for it from
-// its name and price when it's added) or 'pick' (one of theirs). Not saved.
-const NEW_FIELDS = [...EDIT_FIELDS, 'serviceMode'];
+// A new call's fields. Its contract isn't one of them: one is always created
+// for it from its name and price when it's added (see ContractCard).
+const NEW_FIELDS = EDIT_FIELDS;
 
 // Which answers belong to which section, for its "Edited" tag
 const SECTION_FIELDS = {
   basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice', 'meetingLink'],
   descriptions: ['callDescription', 'callAbout'],
   questions: ['callQuestions'],
-  service: ['serviceId', 'serviceMode'],
+  service: ['serviceId'],
   when: ['callHours'],
 };
 
@@ -64,15 +64,19 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 //                         the right (HoursDrawer.jsx)
 //   Invitee form          what checkout asks: name, email and phone, then
 //                         this call's questions (QuestionsInput.jsx, callQuestions.js)
-//   Service               the checkout page people book and pay through,
-//                         picked from their services (the same picker as
-//                         the funnel builder and storefront setup)
+//   Contract              the checkout page people book and pay through.
+//                         Shown, never swapped (ContractCard): a new call's
+//                         is created for it from its name and price when
+//                         it's added; an existing call keeps its own, with
+//                         View contract to edit its title and details. Only
+//                         an existing call whose contract can't be found
+//                         gets the picker, to link one.
 // Changes stay on this screen until Save (see EditFrame.jsx), hours too.
-// The call's price and the service's price are kept separately, as set.
+// The call's price and the contract's price are kept separately, as set.
 //
 // A new call opens with Basics open (the one thing to fill in), its
-// descriptions written from its name, and a service made for it unless
-// they pick one of theirs, and the default hours (weekdays 9–5).
+// descriptions written from its name, a contract made for it (always),
+// and the default hours (weekdays 9–5).
 // "Add to your page" puts it live.
 //
 // serviceId: the offering to edit, or null for a new one
@@ -122,7 +126,6 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
             ...CALL_DEFAULTS,
             handle,
             meetingLink,
-            serviceMode: 'auto',
             serviceId: null,
             callQuestions: structuredClone(DEFAULT_QUESTIONS),
             callHours: structuredClone(DEFAULT_HOURS),
@@ -166,9 +169,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       ? { section: 'descriptions', text: `Add a long description to ${verb}` }
       : questionProblem
         ? { section: 'questions', text: questionProblem.text }
-        : isNew && draft.serviceMode === 'pick' && !getService(draft.serviceId)
-          ? { section: 'service', text: 'Pick one of your services, or let us create one' }
-          : null;
+        : null;
   const problem = blocker?.text ?? null;
 
   // A new problem opens its section, so what needs fixing is in view.
@@ -209,19 +210,17 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       setHoursFailed(true);
       return;
     }
-    let serviceId = draft.serviceId;
-    if (draft.serviceMode === 'auto') {
-      const free = draft.callPricing === 'free';
-      const made = createMockService({
-        title: draft.callTitle.trim(),
-        price: free ? 0 : Number(draft.callPrice) || 0,
-      });
-      if (!made) {
-        setCreateFailed(true);
-        return;
-      }
-      serviceId = made.id;
+    // Its contract: always created for it, from its name and price
+    const free = draft.callPricing === 'free';
+    const made = createMockService({
+      title: draft.callTitle.trim(),
+      price: free ? 0 : Number(draft.callPrice) || 0,
+    });
+    if (!made) {
+      setCreateFailed(true);
+      return;
     }
+    const serviceId = made.id;
     onCreate({
       id: callId,
       createdAt: new Date().toISOString(),
@@ -249,15 +248,8 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
   const shortDescription = callDescriptionOf(draft).trim();
   const aboutWrittenForThem = isNew && draft.callAbout === undefined;
 
-  // The service picked from theirs (or none yet)
-  const chooseService = (mode) => {
-    setCreateFailed(false);
-    handleChange(mode, 'serviceMode');
-    // Back to "create one for me": forget the pick, so there's no doubt which applies
-    if (mode === 'auto') handleChange(null, 'serviceId');
-  };
-
   const bookingHref = isNew ? null : `?mock=book&service=${encodeURIComponent(id)}`;
+  const linkedContract = isNew ? null : getService(saved.serviceId);
   const checkoutHref = isNew ? null : `?mock=checkout&service=${encodeURIComponent(id)}&preview=1`;
 
   return (
@@ -265,11 +257,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       edit={edit}
       title={isNew ? 'New 1:1 call' : saved.callTitle || 'Your call'}
       sub={
-        isNew
-          ? draft.serviceMode === 'auto'
-            ? 'Fill in the basics. We’ll create the service for you.'
-            : 'Fill in the basics, then add it to your page.'
-          : 'Changes show up on your page once you save them.'
+        isNew ? 'Fill in the basics. We’ll create the contract for you.' : 'Changes show up on your page once you save them.'
       }
       onBack={onBack}
       onSave={isNew ? create : save}
@@ -278,7 +266,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
         hoursFailed
           ? 'We couldn’t save your hours just now. Try again.'
           : createFailed
-            ? 'We couldn’t create the service just now. Try again, or pick one of yours.'
+            ? 'We couldn’t create the contract just now. Try again.'
             : null
       }
       viewHref={pageUrl(saved.handle)}
@@ -387,33 +375,18 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
 
       <EditSection
         id="es-service"
-        title="Service"
+        title="Contract"
         sub="The checkout page people fill in, and pay on, when they book this call."
-        summary={
-          blocker?.section === 'service'
-            ? blocker.text
-            : isNew && draft.serviceMode === 'auto'
-              ? 'We’ll create one for you from the name and price'
-              : serviceSummary(draft.serviceId)
-        }
-        warn={blocker?.section === 'service'}
+        summary={isNew ? `${String(draft.callTitle ?? '').trim() || '1:1 call'} · ${priceLabel(draft)}` : serviceSummary(draft.serviceId)}
         edited={edited('service')}
         open={Boolean(open.service)}
         onToggle={() => toggle('service')}
         className="es-service"
       >
-        {isNew ? (
-          <ServiceChoice
-            mode={draft.serviceMode}
-            onMode={chooseService}
-            picker={
-              <ServicePickInput
-                key={`service-${formKey}`}
-                value={draft.serviceId ?? null}
-                onChange={(serviceId) => handleChange(serviceId, 'serviceId')}
-              />
-            }
-          />
+        {/* Shown, not swapped: a new call's is created for it; an existing call keeps its own.
+            The picker shows only for an existing call with no contract it can find. */}
+        {isNew || linkedContract ? (
+          <ContractCard contract={isNew ? null : linkedContract} draft={draft} />
         ) : (
           <ServicePickInput
             key={`service-${formKey}`}
@@ -436,56 +409,88 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
   );
 }
 
-// A new call's service: made for them (the default, as in setup), or one of
-// theirs. The picker shows only while "Use one of my services" is chosen.
-function ServiceChoice({ mode, onMode, picker }) {
-  const options = [
-    {
-      id: 'auto',
-      name: 'Create a service for me',
-      text: 'We’ll make it from this call’s name and price when you add it to your page.',
-      tag: 'Recommended',
-    },
-    {
-      id: 'pick',
-      name: 'Use one of my services',
-      text: 'Pick a checkout page you’ve already made.',
-    },
-  ];
+// Where "View contract" goes: the contract's own page, where its title and
+// details are edited. The mock has no such page yet, so it opens the
+// stand-in Services page with the id. Swap for the real contract page.
+const contractHref = (id) => `?mock=create-service&service=${encodeURIComponent(id)}`;
+
+const PAYMENT_TYPES = { onetime: 'One-time payment', subscription: 'Monthly subscription', free: 'Free' };
+
+// The call's contract: the checkout people book and pay through. Shown,
+// never swapped here: a new call's is created for it when it's added; an
+// existing call keeps the one it's linked to. Its title and details are
+// edited on the contract itself (View contract).
+//
+//   contract: the linked contract (an existing call), or null (a new call:
+//             shows the one that will be created, from Basics as they type)
+function ContractCard({ contract, draft }) {
+  const free = contract ? contract.type === 'free' || contract.price === 0 : draft.callPricing === 'free';
+  const name = contract ? contract.title : String(draft.callTitle ?? '').trim() || '1:1 call';
+  const price = contract ? servicePrice(contract) : priceLabel(draft);
+  const type = contract ? PAYMENT_TYPES[contract.type] ?? 'One-time payment' : free ? 'Free' : 'One-time payment';
 
   return (
-    <div className="es-choice">
-      <div className="es-choice__options" role="radiogroup" aria-label="Service">
-        {options.map((o) => {
-          const picked = mode === o.id;
-          return (
-            <label key={o.id} className={`es-choice__option ${picked ? 'es-choice__option--picked' : ''}`}>
-              <input
-                type="radio"
-                name="service-mode"
-                className="es-choice__radio"
-                value={o.id}
-                checked={picked}
-                onChange={() => onMode(o.id)}
-              />
-              <span className="es-choice__mark" aria-hidden="true" />
-              <span className="es-choice__text">
-                <span className="es-choice__name">
-                  {o.name}
-                  {o.tag && <span className="es-choice__tag">{o.tag}</span>}
-                </span>
-                <span className="es-choice__blurb">{o.text}</span>
-              </span>
-            </label>
-          );
-        })}
+    <div className="es-contract">
+      <div className="es-contract__card">
+        <span className="es-contract__icon" aria-hidden="true">
+          <FileText size={18} />
+        </span>
+        <div className="es-contract__text">
+          <p className="es-contract__name">
+            {name}
+            <span className="es-contract__tag">Default</span>
+          </p>
+          <p className="es-contract__meta">
+            <span className={free ? 'es-contract__price es-contract__price--free' : 'es-contract__price'}>{price}</span>
+            {!free && <span>{type}</span>}
+          </p>
+        </div>
+        {contract ? (
+          <a className="es-contract__view" href={contractHref(contract.id)} target="_blank" rel="noopener">
+            View contract
+            <ExternalLink size={14} aria-hidden="true" />
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        ) : (
+          // Not there yet: looks off and does nothing, with a tooltip saying why.
+          // aria-disabled (not disabled) so it can still be hovered and focused.
+          <button
+            type="button"
+            className="es-contract__view"
+            aria-disabled="true"
+            aria-describedby="es-contract-later"
+            data-tip="Available once you add this offering"
+            data-tip-align="end"
+            onClick={(e) => e.preventDefault()}
+          >
+            View contract
+          </button>
+        )}
       </div>
-      {mode === 'pick' && <div className="es-choice__picker">{picker}</div>}
+      <p className="es-contract__note">
+        <Lock size={14} aria-hidden="true" />
+        <span>
+          {contract
+            ? 'This contract is linked to this 1:1 call and can’t be changed. You can edit its title and details from View contract.'
+            : 'This contract will be linked to this 1:1 call and can’t be changed.'}
+          {!contract && (
+            <span id="es-contract-later" className="es-contract__later">
+              {' '}You can view and edit it once you create this offering.
+            </span>
+          )}
+        </span>
+      </p>
     </div>
   );
 }
 
 // ---------- One-line summaries, shown while a section is closed ----------
+
+// 'Free', '₹1,500', or 'No price yet'
+function priceLabel(draft) {
+  if (draft.callPricing === 'free') return 'Free';
+  return Number(draft.callPrice) > 0 ? `₹${Number(draft.callPrice).toLocaleString('en-IN')}` : 'No price yet';
+}
 
 // "Career clarity call · 60 min · Video call · ₹1,500"
 function basicsSummary(draft) {
