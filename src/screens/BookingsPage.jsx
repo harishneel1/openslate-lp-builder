@@ -46,6 +46,8 @@ import './BookingsPage.css';
 // browser (bookingsStore.js) and refresh when they change anywhere.
 //
 // onNavigate: the app's sidebar navigation, for the empty state's link
+// openRequest: { id, n } from the bell in the top bar: go to that call's
+//              day and open it (a new n opens it again)
 // ------------------------------------------------------------
 
 const TICK_MS = 30_000; // how often "now" moves on
@@ -72,7 +74,7 @@ function cancelledBy(booking) {
 // Working hours as words: '9:00 am to 1:00 pm, 4:00 pm to 8:00 pm'
 const hoursText = (hours) => hours.map(([f, t]) => `${clockLabel(f)} to ${clockLabel(t)}`).join(', ');
 
-export default function BookingsPage({ onNavigate }) {
+export default function BookingsPage({ onNavigate, openRequest = null }) {
   const [bookings, setBookings] = useState(loadBookings);
   const [now, setNow] = useState(() => Date.now());
   const [openId, setOpenId] = useState(null);
@@ -107,6 +109,19 @@ export default function BookingsPage({ onNavigate }) {
   };
 
   // The next day after this one that has a call, for the empty-day link
+  // Opened from the bell: that call's day, with it open
+  useEffect(() => {
+    if (!openRequest) return;
+    const found = loadBookings().find((b) => b.id === openRequest.id);
+    if (!found) return;
+    setBookings(loadBookings());
+    setNotice(null);
+    setOpenId(found.id);
+    setDate(describeBooking(found, page.zone, Date.now()).date);
+    // only when a new request comes in
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRequest?.n]);
+
   const nextCallAfter = page.days.find((d) => d.date > date && d.date >= page.today && d.count > 0)?.date ?? null;
 
   useEffect(() => {

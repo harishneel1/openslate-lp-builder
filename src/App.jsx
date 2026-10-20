@@ -180,6 +180,14 @@ function App() {
     closeFunnel();
   };
 
+  // From the bell: go to Bookings with that call open. n makes a second
+  // click on the same update open it again.
+  const [bookingRequest, setBookingRequest] = useState(null);
+  const openBooking = (id) => {
+    handleNavigate('bookings');
+    setBookingRequest({ id, n: Date.now() });
+  };
+
   // ---------- Saving ----------
   // Save a moment after every change (not on every keystroke)
   const latest = useRef(null);
@@ -502,6 +510,7 @@ function App() {
     <AppLayout
       activeNav={activeNav}
       onNavigate={handleNavigate}
+      onOpenBooking={openBooking}
       focus={
         activeNav === 'page-builder' && funnel
           ? { title: funnelName(current, funnel), onExit: closeFunnel, saveFailed }
@@ -513,7 +522,7 @@ function App() {
       ) : activeNav === 'my-page' ? (
         <MyPageSetup />
       ) : activeNav === 'bookings' ? (
-        <BookingsPage onNavigate={handleNavigate} />
+        <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : (
         <p style={{ color: 'var(--color-text-muted)' }}>
           Dummy page. Click <strong>Funnels</strong> in the sidebar.

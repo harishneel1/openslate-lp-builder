@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Layers, Compass, Video, BookOpen, MessageCircle,
-  Grid3x3, Bell, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
+  Grid3x3, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, Filter, User, TrendingUp, SlidersHorizontal,
   Copy, ExternalLink, CalendarCheck,
@@ -10,6 +10,7 @@ import { initials } from '../utils/initials';
 import { PAGE_DOMAIN, SETUP_CHANGED_EVENT, mockAccount, pageUrl, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildBookingsJson } from '../data/buildBookingsJson';
+import UpdatesBell from './UpdatesBell';
 import './AppLayout.css';
 
 const topNavItems = [
@@ -127,7 +128,8 @@ function MyPageCard({ active, onOpen }) {
   );
 }
 
-export default function AppLayout({ activeNav, onNavigate, focus = null, children }) {
+// onOpenBooking(id): an update in the bell was clicked; open that call on Bookings
+export default function AppLayout({ activeNav, onNavigate, onOpenBooking, focus = null, children }) {
   const callsLeftToday = useCallsLeftToday();
 
   if (focus) {
@@ -162,7 +164,7 @@ export default function AppLayout({ activeNav, onNavigate, focus = null, childre
 
         <div className="topnav__actions">
           <button type="button" className="topnav__icon-btn"><Grid3x3 size={20} /></button>
-          <button type="button" className="topnav__icon-btn"><Bell size={20} /></button>
+          <UpdatesBell onOpenBooking={onOpenBooking} />
           <div className="topnav__avatar">H</div>
         </div>
       </header>
