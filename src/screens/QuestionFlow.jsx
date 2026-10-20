@@ -4,7 +4,7 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair', 'handle', 'offerType', 'callDetails', 'callAbout', 'weeklyHours', 'serviceSummary'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair', 'handle', 'offerType', 'callDetails', 'callAbout', 'weeklyHours', 'serviceSummary', 'calendar'];
 
 // Screens that move on with their own button (Use this and continue), so Next is hidden
 const OWN_NEXT_TYPES = ['ramble'];
@@ -175,7 +175,9 @@ export default function QuestionFlow({
       ? 'Skip'
       : 'Next';
 
-  const showNext = !OWN_NEXT_TYPES.includes(question.type);
+  // hideNextUntilComplete: a screen whose own button is the way on until
+  // it's done (connecting a calendar), so a disabled Next would only compete
+  const showNext = !OWN_NEXT_TYPES.includes(question.type) && !(question.hideNextUntilComplete && !canContinue);
 
   // Only offered while Next is blocked; once the answer is fine, Next is the way on
   const laterButton = question.laterLabel && !canContinue && (

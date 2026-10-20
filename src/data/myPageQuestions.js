@@ -6,13 +6,14 @@ import { callAboutOf, callDetailsComplete } from './callDetails';
 // Each id matches an entry in profileAnnotations.js, which points
 // at the part of the example page that answer fills in.
 //
-// The link, about you, what they offer first, its details, when people
-// can book it, and the service (registration form) made for it.
+// The link, about you, what they offer first, its details, their Google
+// Calendar, when people can book it, and the service (registration form)
+// made for it.
 // After the last one comes the reveal: their page, built.
 // ------------------------------------------------------------
 
-// Shown as "1 of 6"
-export const MY_PAGE_STEPS = 7;
+// Shown as "1 of 8"
+export const MY_PAGE_STEPS = 8;
 
 export const myPageQuestions = [
   {
@@ -94,6 +95,20 @@ export const myPageQuestions = [
     helper: 'Just the basics. You can change any of it later.',
     isComplete: callDetailsComplete,
     nextHint: 'Give it a name and a price (or make it free) to continue',
+  },
+  {
+    // Just before working hours: that's when it's obvious why we need to
+    // know when they're busy. Required, with no skip.
+    id: 'calendar',
+    type: 'calendar', // CalendarConnectInput: connects Google Calendar (calendarStore.js), reports calendarStatus
+    required: true,
+    preview: false, // the step explains itself; no example page beside it
+    question: 'Connect your Google Calendar',
+    helper: 'We check when you’re busy, so no one can book over your other plans.',
+    isComplete: (answers) => answers.calendarStatus === 'connected',
+    // The Google button is the way on; a faded Next beside it only asks
+    // which to press. Next appears once they're connected.
+    hideNextUntilComplete: true,
   },
   {
     id: 'availability',

@@ -102,45 +102,6 @@
   }
 }
 
-/* ---------- Days off: shared by every call, so only a pointer ---------- */
-.hd__days-off {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 24px;
-  padding: 12px 14px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-}
-
-.hd__days-off svg {
-  flex-shrink: 0;
-  margin-top: 3px;
-}
-
-.hd__days-off a {
-  position: relative; /* holds its hidden "(opens in a new tab)" in place */
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-  color: var(--color-primary-hover);
-  text-decoration: none;
-}
-
-.hd__days-off a:hover {
-  text-decoration: underline;
-}
-
-.hd__days-off a:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
 /* ---------- Footer ---------- */
 .hd__status {
   flex: 1 1 200px;

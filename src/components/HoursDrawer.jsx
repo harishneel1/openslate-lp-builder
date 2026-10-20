@@ -1,5 +1,4 @@
 import { useId, useState } from 'react';
-import { CalendarOff, ExternalLink } from 'lucide-react';
 import Drawer from './Drawer';
 import { WeeklyHours } from './WeeklyHoursInput';
 import { BOOKING_RULES } from '../data/bookingRules';
@@ -8,16 +7,14 @@ import { hoursStatus } from '../utils/weeklyHours';
 import '../screens/EditFrame.css'; // the save bar's buttons, reused in the footer
 import './HoursDrawer.css';
 
-// Days off are set once, for every call, on their own screen
-const DAYS_OFF_HREF = '?mock=availability';
-
 // ------------------------------------------------------------
 // One call's hours, edited in a panel from the right, so the edit
 // screen stays one short column of sections.
 //
 //   Weekly hours    the same sheet as setup (WeeklyHoursInput.jsx)
 //   Booking rules   break between calls, notice, how far ahead, start times
-//   Days off        a pointer: they're shared by every call
+// (Days off are shared by every call, so they'll live on the offerings
+// home, not here.)
 //
 // Changes stay in the panel until "Use these hours", which hands them
 // to the edit screen's draft; the screen's own Save saves them with
@@ -86,18 +83,6 @@ export default function HoursDrawer({ value, callName, callLength, onApply, onCl
     >
       <WeeklyHours value={hours} onChange={update} callLength={callLength} />
       <BookingRules value={hours} onChange={update} />
-
-      <p className="hd__days-off">
-        <CalendarOff size={16} aria-hidden="true" />
-        <span>
-          Days off apply to all your calls.{' '}
-          <a href={DAYS_OFF_HREF} target="_blank" rel="noopener">
-            Set days off
-            <ExternalLink size={13} aria-hidden="true" />
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        </span>
-      </p>
     </Drawer>
   );
 }

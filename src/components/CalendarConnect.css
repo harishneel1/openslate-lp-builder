@@ -1,0 +1,465 @@
+/* ------------------------------------------------------------
+   Connecting Google Calendar: the setup step, the offerings home
+   panel and its Manage drawer. Product tokens throughout; only the
+   Google button follows Google's own look, as Google requires.
+   ------------------------------------------------------------ */
+
+/* ---------- Setup step ---------- */
+.cal-step {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* What else connecting does: two quiet lines with a tick */
+.cal-points {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+
+.cal-point {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.cal-point__tick {
+  flex: none;
+  color: var(--color-success);
+}
+
+.cal-step__go {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cal-step__fine {
+  max-width: 56ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Google's button ---------- */
+.cal-google {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px 11px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f1f1f;
+  background: #ffffff;
+  border: 1px solid #747775;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.cal-google:hover:not(:disabled) {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.cal-google:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.cal-google__g {
+  width: 20px;
+  height: 20px;
+}
+
+/* The main action on its screen: bigger, so nothing else competes */
+.cal-google--large {
+  gap: 12px;
+  padding: 14px 26px 14px 20px;
+  font-size: 16px;
+}
+
+/* ---------- Connected (setup) ---------- */
+.cal-connected {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 14px;
+  padding: 16px 20px;
+  background: var(--color-success-tint);
+  border-radius: var(--radius-lg);
+}
+
+.cal-connected__tick {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
+  background: var(--color-success);
+  border-radius: 50%;
+}
+
+.cal-connected__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cal-connected__title {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-connected__sub {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Quiet text action: "Use a different account" */
+.cal-link {
+  padding: 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: none;
+  cursor: pointer;
+}
+
+.cal-link:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cal-link:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+/* ---------- Notes: what happened, what to do ---------- */
+.cal-note {
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.cal-note--warn {
+  color: #7a4f0f;
+  background: #fff6e5;
+}
+
+.cal-note strong {
+  font-weight: 600;
+}
+
+.cal-note__list {
+  margin-top: 6px;
+  padding-left: 18px;
+}
+
+.cal-note__list li + li {
+  margin-top: 4px;
+}
+
+/* ---------- Offerings home panel ---------- */
+/* Same card as the home's other panels (.oh__panel), one slim row */
+.cal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 20px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* Lost or not connected: the edge says something needs fixing */
+.cal-panel--alert {
+  border-color: #f4c7c3;
+  box-shadow: inset 4px 0 0 #b42318, var(--shadow-card);
+}
+
+.cal-panel__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+}
+
+.cal-panel__g {
+  flex: none;
+  align-self: flex-start;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+}
+
+.cal-panel__text {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.cal-panel__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.cal-panel__title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cal-panel__email {
+  margin-top: 4px;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-panel__sub {
+  max-width: 68ch;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.cal-panel--alert .cal-panel__sub {
+  margin-top: 6px;
+}
+
+.cal-panel__sub strong {
+  font-weight: 600;
+  color: #7a1c14;
+}
+
+.cal-panel__action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cal-status {
+  flex: none;
+  padding: 2px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+}
+
+.cal-status--connected {
+  color: var(--color-success);
+  background: var(--color-success-tint);
+}
+
+.cal-status--lost,
+.cal-status--none {
+  color: #b42318;
+  background: #fdecea;
+}
+
+/* Manage: the same neutral outline as "Edit your profile" */
+.cal-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.cal-secondary:hover {
+  border-color: #d6d6d6;
+}
+
+/* Narrow: the button drops under the text, left-aligned with it */
+@media (max-width: 640px) {
+  .cal-panel__action {
+    align-items: flex-start;
+    margin-left: 42px;
+  }
+}
+
+/* ---------- Manage drawer ---------- */
+.cal-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* The account, with Switch account beside it */
+.cal-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 14px 18px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.cal-account__g {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.cal-account__email {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Calendars we check: a plain list of ticks */
+.cal-choice {
+  min-width: 0;
+  padding: 0;
+  border: none;
+}
+
+.cal-choice__title {
+  padding: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cal-choice__sub {
+  margin-top: 2px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+.cal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px -10px 0;
+  list-style: none;
+}
+
+.cal-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  font-size: 14.5px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cal-check:hover {
+  background: var(--color-bg);
+}
+
+.cal-check input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* The last ticked calendar: can't be unticked, says why on hover */
+.cal-check--locked,
+.cal-check--locked input {
+  cursor: default;
+}
+
+.cal-check__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-danger-link {
+  padding: 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b42318;
+  background: none;
+  cursor: pointer;
+}
+
+.cal-danger-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Disconnect: are you sure? ---------- */
+.cal-confirm {
+  width: min(440px, calc(100vw - 32px));
+  margin: auto;
+  padding: 24px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hover);
+}
+
+.cal-confirm::backdrop {
+  background: rgba(17, 17, 17, 0.4);
+}
+
+.cal-confirm__title {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.cal-confirm__text {
+  margin-top: 8px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.cal-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+/* ---------- Focus ---------- */
+.cal-google:focus-visible,
+.cal-link:focus-visible,
+.cal-secondary:focus-visible,
+.cal-danger-link:focus-visible,
+.cal-check:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

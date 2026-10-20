@@ -1,0 +1,252 @@
+/* ------------------------------------------------------------
+   Stand-in for Google's screens. Deliberately in Google's colours,
+   not ours: the point is to feel like leaving for Google and coming
+   back, which is what the real redirect will be.
+   ------------------------------------------------------------ */
+.gc {
+  width: min(448px, calc(100vw - 32px));
+  margin: auto;
+  padding: 0;
+  color: #1f1f1f;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.gc::backdrop {
+  background: rgba(32, 33, 36, 0.45);
+}
+
+.gc__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  font-size: 14px;
+  color: #444746;
+  border-bottom: 1px solid #dadce0;
+}
+
+.gc__g {
+  width: 18px;
+  height: 18px;
+}
+
+/* Says plainly this isn't really Google */
+.gc__stand-in {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #7a4f0f;
+  background: #fff6e5;
+  border-radius: 999px;
+}
+
+.gc__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 28px 28px 20px;
+}
+
+.gc__chip {
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #dadce0;
+  border-radius: 999px;
+}
+
+.gc__chip + .gc__title {
+  margin-top: 16px;
+}
+
+.gc__title {
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.gc__sub {
+  margin-top: 6px;
+  font-size: 15px;
+  color: #444746;
+}
+
+/* ---------- Choose an account ---------- */
+.gc__accounts {
+  width: 100%;
+  margin-top: 20px;
+  list-style: none;
+  border-top: 1px solid #dadce0;
+}
+
+.gc__accounts li {
+  border-bottom: 1px solid #dadce0;
+}
+
+.gc__account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 4px;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+}
+
+.gc__account:hover {
+  background: #f8f9fa;
+}
+
+.gc__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #5f6368;
+  border-radius: 50%;
+}
+
+.gc__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.gc__name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.gc__email {
+  font-size: 13px;
+  color: #444746;
+}
+
+/* ---------- Permissions ---------- */
+.gc__perms {
+  width: 100%;
+  margin-top: 16px;
+  list-style: none;
+  border-top: 1px solid #dadce0;
+}
+
+.gc__perm {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px;
+  font-size: 14px;
+  border-bottom: 1px solid #dadce0;
+  cursor: pointer;
+}
+
+.gc__perm-icon {
+  flex: none;
+  color: #1a73e8;
+}
+
+.gc__perm-text {
+  flex: 1;
+}
+
+.gc__perm input {
+  width: 18px;
+  height: 18px;
+  accent-color: #0b57d0;
+  cursor: pointer;
+}
+
+/* ---------- Buttons ---------- */
+.gc__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.gc__text-btn,
+.gc__continue {
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gc__text-btn {
+  color: #0b57d0;
+  background: none;
+}
+
+.gc__text-btn:hover {
+  background: #f0f4fb;
+}
+
+.gc__continue {
+  color: #ffffff;
+  background: #0b57d0;
+}
+
+.gc__continue:hover {
+  background: #0842a0;
+}
+
+.gc button:focus-visible {
+  outline: 2px solid #0b57d0;
+  outline-offset: 2px;
+}
+
+/* ---------- Connecting… ---------- */
+.gc__waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 56px 28px;
+  font-size: 15px;
+  color: #444746;
+}
+
+.gc__spin {
+  color: #0b57d0;
+  animation: gc-spin 0.9s linear infinite;
+}
+
+@keyframes gc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gc__spin {
+    animation: none;
+  }
+}
+
+/* ---------- Prototype-only failure switch ---------- */
+.gc__test {
+  padding: 10px 20px 14px;
+  font-size: 12.5px;
+  color: #6b6b6b;
+  border-top: 1px dashed #dadce0;
+}
+
+.gc__test button {
+  font-size: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  cursor: pointer;
+}

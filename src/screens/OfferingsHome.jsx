@@ -5,6 +5,8 @@ import { buildProfileJson } from '../data/buildProfileJson';
 import { PAGE_DOMAIN, offeringUrl, pageUrl } from '../data/myPage';
 import { initials } from '../utils/initials';
 import OfferingKindPicker from '../components/OfferingKindPicker';
+import CalendarPanel from '../components/CalendarPanel';
+import { markCalendarLost } from '../data/calendarStore';
 import './OfferingsHome.css';
 
 // Copies text, with a fallback where the Clipboard API isn't allowed
@@ -123,8 +125,10 @@ function OfferingCard({ offering, url, onEdit, isNew = false }) {
 }
 
 // ------------------------------------------------------------
-// Home for a live offerings page: the page's link, and every
-// offering on it, each with its own link. Where creators land once setup is done; from
+// Home for a live offerings page: their profile, the page's link,
+// their Google Calendar, and every offering, each with its own link.
+// Add ?calendar=lost to the address to see the calendar as if Google
+// had stopped letting us in (only when one is connected). Where creators land once setup is done; from
 // here on, no step-by-step questions.
 //
 // onEditProfile: opens the profile editor (photo, name, bio, link)
@@ -139,6 +143,11 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
   const justAdded = offerings.find((o) => o.id === justAddedId) ?? null;
   const link = `${PAGE_DOMAIN}/${answers.handle}`;
   const url = pageUrl(answers.handle);
+
+  // ?calendar=lost: try the "lost access" state of the calendar panel
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('calendar') === 'lost') markCalendarLost();
+  }, []);
 
   const [copy, copyLink] = useCopy();
 
@@ -195,6 +204,9 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
           </div>
         </section>
       </div>
+
+      {/* ---------- Their calendar: belongs to them, not to one offering ---------- */}
+      <CalendarPanel />
 
       {/* ---------- Offerings ---------- */}
       <section className="oh__panel" aria-labelledby="oh-offerings">

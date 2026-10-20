@@ -9,7 +9,6 @@ import BookingPage from './screens/BookingPage.jsx'
 import CheckoutPage from './screens/CheckoutPage.jsx'
 import BookedPage from './screens/BookedPage.jsx'
 import ManageBookingPage from './screens/ManageBookingPage.jsx'
-import AvailabilityPage from './screens/AvailabilityPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
 import { savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
@@ -29,7 +28,6 @@ import { isMyCall } from './data/myProfile'
 //   &booking=<id> for the creator's own calls, the booking checkout saved).
 // ?mock=manage&booking=<id>&action=cancel or reschedule → the student's side, behind the
 //   links in their confirmation email. Leave out action to offer both; &tz=<zone> for another clock.
-// ?mock=availability → the creator's Availability screen (in the app, under Services).
 // /<handle> (e.g. localhost:5173/harishneel) → that creator's page: the one made
 //   in setup (saved in this browser), or Meera's at /meerajoshi. Unknown → not found.
 // /<handle>/<offering id> (e.g. /harishneel/my-call) → that offering's booking page,
@@ -82,7 +80,6 @@ function Root() {
         fail={params.get('fail')}
       />
     )
-  if (mock === 'availability') return <AvailabilityPage />
   if (mock === 'manage')
     return <ManageBookingPage bookingId={params.get('booking')} action={params.get('action')} timeZone={params.get('tz')} />
   if (mock === 'booked')
