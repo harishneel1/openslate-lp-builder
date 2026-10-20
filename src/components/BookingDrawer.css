@@ -95,16 +95,65 @@
   min-height: 44px;
 }
 
-/* Copy link and Email: labelled, side by side under Join */
-.bkd__more {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* Join, with Copy meeting link as a small square beside it */
+.bkd__join-row {
+  display: flex;
   gap: 8px;
-  width: 100%;
 }
 
-.bkd__more .bk-btn {
-  min-width: 0;
+.bkd__join-row .bkd__join {
+  flex: 1;
+  width: auto;
+}
+
+.bkd__copy {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+
+/* ---------- WhatsApp and Email: round icons beside the initials ---------- */
+.bkd__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bkd__who .bk-face {
+  margin-right: 4px;
+}
+
+.bkd__contact {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--bk-ink);
+  background: var(--color-surface);
+  border: 1px solid #dcdce0;
+  border-radius: 50%;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.bkd__contact:hover {
+  color: var(--bk-orange-ink);
+  background: var(--bk-tint);
+  border-color: var(--bk-tint-line);
+}
+
+.bkd__contact:focus-visible,
+.bkd__copy:focus-visible {
+  outline: 2px solid var(--bk-orange-strong);
+  outline-offset: 2px;
+}
+
+.bkd__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* ---------- Sections: spacing does the separating ---------- */

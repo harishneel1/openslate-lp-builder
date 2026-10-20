@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, Mail, Phone, Video } from 'lucide-react';
+import { Check, Copy, Mail, MessageCircle, Phone, Video } from 'lucide-react';
 import Drawer from './Drawer';
 import GuestInitials from './GuestInitials';
 import { cancelBooking, rescheduleBooking } from '../data/bookingsStore';
@@ -7,6 +7,9 @@ import { getMyAvailability } from '../data/mockAvailability';
 import { money } from '../data/checkoutRules';
 import { findSlots, formatTime, zoned } from '../utils/slots';
 import { matchZone } from '../data/timeZones';
+import { getMyProfile } from '../data/myProfile';
+import { mockAccount } from '../data/myPage';
+import { whatsappHref } from '../utils/whatsapp';
 import { exactDay, lengthLabel, longDay, onDay, shortDay, startsIn, zoneLabel } from '../data/buildBookingsJson';
 import './BookingDrawer.css';
 
@@ -37,6 +40,20 @@ function guestTime(booking, zone, today) {
   if (!theirs || theirs === matchZone(zone)) return null;
   const ms = Date.parse(booking.start);
   return `${formatTime(ms, theirs)} ${onDay(zoned(ms, theirs).date, today)}, ${zoneLabel(theirs)}`;
+}
+
+// A WhatsApp message ready to send, written for where the call is.
+// Times on the guest's clock when we know it, since they're reading it.
+function whatsappMessage(booking, zone, guestName) {
+  const me = firstName(getMyProfile().creator.name || mockAccount.name);
+  const clock = matchZone(booking.guestTimeZone) ?? zone;
+  const ms = Date.parse(booking.start);
+  const day = exactDay(zoned(ms, clock).date);
+  const when = `${day} at ${formatTime(ms, clock)}`;
+  const hi = `Hi ${guestName}, this is ${me}`;
+  if (booking.state === 'cancelled') return `${hi}, about the ${booking.title} we had booked for ${when}.`;
+  if (booking.state === 'ended') return `${hi}. Thanks for our ${booking.title} on ${day}.`;
+  return `${hi}, about our ${booking.title} on ${when}.`;
 }
 
 // A saved instant → 'Thu 22 Oct' on the creator's clock, never 'Today'
@@ -86,6 +103,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
   const open = booking.state !== 'ended' && booking.state !== 'cancelled';
   const theirTime = guestTime(booking, zone, today);
   const soon = startsIn(Date.parse(booking.start), now);
+  const whatsapp = whatsappHref(booking.guest?.phone, whatsappMessage(booking, zone, name));
 
   const copyLink = async () => {
     try {
@@ -217,8 +235,33 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
 
           {/* ---------- When: the biggest thing in the panel ---------- */}
           <section className="bkd__hero" aria-label="When">
+            {/* The person, and ways to reach them, beside their initials */}
             <div className="bkd__hero-top">
-              <GuestInitials name={booking.guest?.name} size="lg" />
+              <div className="bkd__who">
+                <GuestInitials name={booking.guest?.name} size="lg" />
+                {whatsapp && (
+                  <a
+                    className="bkd__contact"
+                    href={whatsapp}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`WhatsApp ${name}`}
+                    data-tip={`WhatsApp ${name}`}
+                  >
+                    <MessageCircle size={18} aria-hidden="true" />
+                  </a>
+                )}
+                {booking.guest?.email && (
+                  <a
+                    className="bkd__contact"
+                    href={`mailto:${booking.guest.email}`}
+                    aria-label={`Email ${name}`}
+                    data-tip={`Email ${name}`}
+                  >
+                    <Mail size={18} aria-hidden="true" />
+                  </a>
+                )}
+              </div>
               <span className={`bkd__state bkd__state--${booking.state}`}>{status}</span>
             </div>
             <p className="bkd__clock">
@@ -229,7 +272,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
             </p>
           </section>
 
-          {/* ---------- Join: right under the time ---------- */}
+          {/* ---------- Join: the one big action, while the call is on ---------- */}
           {open && (
             <section className="bkd__actions" aria-label="How to join">
               {booking.format === 'phone' ? (
@@ -237,27 +280,24 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
                   <Phone size={16} aria-hidden="true" /> Call {booking.guest?.phone}
                 </a>
               ) : booking.meetingLink ? (
-                <>
-                  <a
-                    className="bk-btn bk-btn--primary bkd__join"
-                    href={booking.meetingLink}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                <div className="bkd__join-row">
+                  <a className="bk-btn bk-btn--primary bkd__join" href={booking.meetingLink} target="_blank" rel="noreferrer">
                     <Video size={16} aria-hidden="true" /> Join call
                   </a>
-                  <div className="bkd__more">
-                    <button type="button" className="bk-btn bk-btn--secondary" onClick={copyLink}>
-                      {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-                      {copied ? 'Link copied' : 'Copy meeting link'}
-                    </button>
-                    {booking.guest?.email && (
-                      <a className="bk-btn bk-btn--secondary" href={`mailto:${booking.guest.email}`}>
-                        <Mail size={16} aria-hidden="true" /> Email {name}
-                      </a>
-                    )}
-                  </div>
-                </>
+                  <button
+                    type="button"
+                    className="bk-btn bk-btn--secondary bkd__copy"
+                    onClick={copyLink}
+                    aria-label={copied ? 'Link copied' : 'Copy meeting link'}
+                    data-tip={copied ? 'Link copied' : 'Copy meeting link'}
+                    data-tip-align="end"
+                  >
+                    {copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
+                  </button>
+                  <span className="bkd__sr" aria-live="polite">
+                    {copied ? 'Link copied' : ''}
+                  </span>
+                </div>
               ) : null}
             </section>
           )}
