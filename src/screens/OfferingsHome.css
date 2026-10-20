@@ -5,74 +5,196 @@
   padding-top: 16px;
 }
 
+/* ---------- Your page: profile, then a row each for link and calendar ---------- */
+/* The same frame as the Offerings card (.oh__panel), so the page is
+   two matching cards. Every action sits on the card's right edge. */
 .oh__title {
   font-size: 32px;
   font-weight: 700;
   line-height: 1.2;
 }
 
-/* ---------- Panels: profile, link and offerings ---------- */
+.oh__me {
+  margin-top: 28px;
+}
+
+.oh__me-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.oh__avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+.oh__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oh__me-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.oh__name {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* One line of the bio, then … : enough to recognise it */
+.oh__bio {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A row: label | value | actions, with a line above it */
+.oh__row {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr) auto; /* fits "Your offerings page link" on one line */
+  align-items: center;
+  gap: 8px 16px;
+  min-height: 68px;
+  padding: 14px 24px;
+  font-size: 15px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* The last row's tint follows the card's rounded corners */
+.oh__row:last-child {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.oh__row-label {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.oh__row-value {
+  min-width: 0;
+}
+
+.oh__row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.oh__url {
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  user-select: all; /* one click selects it, if copying fails */
+}
+
+/* Edit profile, Copy link, Open and Manage: the same neutral outline */
+.oh__btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  background: var(--color-surface);
+  border: 1px solid #e2e2e4;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+
+.oh__btn:hover {
+  border-color: #c9c9ce;
+}
+
+.oh__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.oh__copy {
+  min-width: 112px; /* "Copy link" ↔ "Copied" doesn't shift the row */
+}
+
+.oh__open {
+  width: 38px;
+  padding: 0;
+}
+
+.oh__row .oh__copy-error {
+  grid-column: 2 / -1;
+}
+
+/* Narrow: each row stacks (label, value, buttons); Edit profile goes under the name */
+@media (max-width: 640px) {
+  .oh__title {
+    font-size: 26px;
+  }
+
+  .oh__me {
+    margin-top: 20px;
+  }
+
+  .oh__me-head {
+    flex-wrap: wrap;
+    padding: 18px 20px;
+  }
+
+  .oh__edit-profile {
+    margin-left: 72px;
+  }
+
+  .oh__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    padding: 14px 20px;
+  }
+
+  .oh__row-label {
+    font-size: 13px;
+  }
+
+  .oh__row-actions {
+    justify-content: flex-start;
+    margin-top: 6px;
+  }
+
+  .oh__row .oh__copy-error {
+    grid-column: 1;
+  }
+}
+
+/* ---------- Panels: offerings ---------- */
 .oh__panel {
   margin-top: 24px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-}
-
-.oh__title + .oh__panel,
-.oh__title + .oh__top {
-  margin-top: 28px;
-}
-
-/* ---------- Profile and link on one row ---------- */
-.oh__top {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  margin-top: 24px;
-}
-
-/* Both cards share the row's height; their content sits centred in the body */
-.oh__top .oh__panel {
-  display: flex;
-  flex-direction: column;
-  margin-top: 0;
-}
-
-.oh__top .oh__panel-head {
-  min-height: 89px; /* same height whether a head has a button or a subtitle */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.oh__top .oh__panel-head--split {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.oh__top .oh__panel-body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.oh__top .oh__link {
-  width: 100%;
-}
-
-/* Narrower screens: back to one card under the other */
-@media (max-width: 860px) {
-  .oh__top {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
-  .oh__top .oh__panel + .oh__panel {
-    margin-top: 24px;
-  }
 }
 
 .oh__panel-head {
@@ -132,78 +254,7 @@
   outline-offset: 2px;
 }
 
-.oh__profile {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.oh__avatar {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  overflow: hidden;
-  font-size: 18px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--color-primary);
-  border-radius: 50%;
-}
-
-.oh__avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.oh__profile-text {
-  min-width: 0;
-}
-
-.oh__name {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-/* A taste of the bio: two lines, then … */
-.oh__bio {
-  display: -webkit-box;
-  overflow: hidden;
-  margin-top: 2px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-/* ---------- The link ---------- */
-.oh__link {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-  padding: 8px 14px 8px 18px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.oh__url {
-  flex: 1;
-  min-width: 140px; /* below this, the buttons drop to their own line */
-  overflow: hidden;
-  font-size: 16px;
-  font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  user-select: all; /* one click selects it, if copying fails */
-}
-
-/* Copy link and Add a new offering: the filled orange buttons */
-.oh__copy,
+/* Add a new offering: the one filled orange button on the page */
 .oh__add {
   display: inline-flex;
   align-items: center;
@@ -218,28 +269,8 @@
   transition: background 0.15s;
 }
 
-.oh__copy:hover,
 .oh__add:hover {
   background: var(--color-primary-hover);
-}
-
-.oh__copy {
-  min-width: 128px; /* "Copy link" ↔ "Copied" doesn't shift the row */
-}
-
-.oh__open {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.oh__open:hover {
-  color: var(--color-primary-hover);
-  text-decoration: underline;
 }
 
 .oh__copy-error {
@@ -427,17 +458,14 @@
 /* Everything you can click on this page says so, without relying on
    browser or global defaults. The cards themselves stay plain. */
 .oh__edit,
-.oh__copy,
+.oh__btn,
 .oh__add,
-.oh__open,
 .oh-card__copy {
   cursor: pointer;
 }
 
 /* ---------- Focus ---------- */
-.oh__copy:focus-visible,
 .oh__add:focus-visible,
-.oh__open:focus-visible,
 .oh-card__copy:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

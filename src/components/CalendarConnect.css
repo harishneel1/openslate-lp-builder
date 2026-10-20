@@ -174,137 +174,110 @@
   margin-top: 4px;
 }
 
-/* ---------- Offerings home panel ---------- */
-/* Same card as the home's other panels (.oh__panel), one slim row */
-.cal-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 24px;
-  padding: 20px 24px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-}
-
-/* Lost or not connected: the edge says something needs fixing */
-.cal-panel--alert {
-  border-color: #f4c7c3;
-  box-shadow: inset 4px 0 0 #b42318, var(--shadow-card);
-}
-
-.cal-panel__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px 18px;
-}
-
-.cal-panel__g {
-  flex: none;
-  align-self: flex-start;
-  width: 28px;
-  height: 28px;
-  margin-top: 2px;
-}
-
-.cal-panel__text {
-  flex: 1 1 320px;
-  min-width: 0;
-}
-
-.cal-panel__title-row {
+/* ---------- Offerings home: the Calendar row of "Your page" ---------- */
+/* Grid, padding and label come from .oh__row (OfferingsHome.css) */
+.cal-row__account {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
 }
 
-.cal-panel__title {
-  font-size: 18px;
-  font-weight: 600;
+.cal-row__g {
+  flex: none;
+  width: 18px;
+  height: 18px;
 }
 
-.cal-panel__email {
-  margin-top: 4px;
-  overflow: hidden;
-  font-size: 15px;
+.cal-row__email {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* A green dot and the word, so it doesn't rely on colour alone */
+.cal-row__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--color-success);
 }
 
-.cal-panel__sub {
-  max-width: 68ch;
-  margin-top: 2px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
+.cal-row__status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+  border-radius: 50%;
 }
 
-.cal-panel--alert .cal-panel__sub {
-  margin-top: 6px;
+/* Lost or not connected: only this row turns red */
+.cal-row--alert {
+  background: #fef3f2;
 }
 
-.cal-panel__sub strong {
+.cal-row--alert .oh__row-label {
+  color: #7a1c14;
+}
+
+.cal-row__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   color: #7a1c14;
 }
 
-.cal-panel__action {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.cal-status {
+.cal-row__title svg {
   flex: none;
-  padding: 2px 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-  border-radius: var(--radius-pill);
-}
-
-.cal-status--connected {
-  color: var(--color-success);
-  background: var(--color-success-tint);
-}
-
-.cal-status--lost,
-.cal-status--none {
   color: #b42318;
-  background: #fdecea;
 }
 
-/* Manage: the same neutral outline as "Edit your profile" */
-.cal-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
+.cal-row__sub {
+  margin-top: 2px;
   font-size: 14px;
+  line-height: 1.5;
+  color: #5c3b38;
+}
+
+.cal-row__other {
+  padding: 0;
+  font: inherit;
   font-weight: 600;
   color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  text-decoration: underline;
+  text-decoration-color: #d9b4b0;
+  text-underline-offset: 3px;
+  background: none;
   cursor: pointer;
-  transition: border-color 0.15s;
 }
 
-.cal-secondary:hover {
-  border-color: #d6d6d6;
+.cal-row__other:hover {
+  text-decoration-color: currentColor;
 }
 
-/* Narrow: the button drops under the text, left-aligned with it */
-@media (max-width: 640px) {
-  .cal-panel__action {
-    align-items: flex-start;
-    margin-left: 42px;
-  }
+.cal-row__other:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Google's button, sized to the row's other buttons */
+.cal-row .cal-google {
+  min-height: 38px;
+  padding: 0 16px 0 12px;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.cal-row .cal-google__g {
+  width: 16px;
+  height: 16px;
+}
+
+/* What went wrong on the last try, under the text, the full width of the row */
+.cal-row__note {
+  grid-column: 2 / -1;
 }
 
 /* ---------- Manage drawer ---------- */
@@ -457,9 +430,13 @@
 /* ---------- Focus ---------- */
 .cal-google:focus-visible,
 .cal-link:focus-visible,
-.cal-secondary:focus-visible,
 .cal-danger-link:focus-visible,
 .cal-check:focus-within {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .cal-row__note {
+    grid-column: 1;
+  }
 }

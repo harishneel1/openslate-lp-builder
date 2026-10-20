@@ -5,7 +5,7 @@ import { buildProfileJson } from '../data/buildProfileJson';
 import { PAGE_DOMAIN, offeringUrl, pageUrl } from '../data/myPage';
 import { initials } from '../utils/initials';
 import OfferingKindPicker from '../components/OfferingKindPicker';
-import CalendarPanel from '../components/CalendarPanel';
+import CalendarRow from '../components/CalendarPanel';
 import { markCalendarLost } from '../data/calendarStore';
 import './OfferingsHome.css';
 
@@ -125,8 +125,16 @@ function OfferingCard({ offering, url, onEdit, isNew = false }) {
 }
 
 // ------------------------------------------------------------
-// Home for a live offerings page: their profile, the page's link,
-// their Google Calendar, and every offering, each with its own link.
+// Home for a live offerings page, as two cards with the same frame:
+//
+//   Your page   ┌ (photo) Name, one line of bio          [Edit profile] ┐
+//               │ Your offerings page link  harishneel.page        [Copy link] [↗]  │
+//               └ Calendar    G harish@…  ● Connected       [Manage]  ┘
+//   Offerings   every offering, each with its own link
+//
+// Every action lines up on the card's right edge. The calendar row stays
+// put in every state; when it's broken, only that row turns red.
+// Add a new offering is the one filled button on the page.
 // Add ?calendar=lost to the address to see the calendar as if Google
 // had stopped letting us in (only when one is connected). Where creators land once setup is done; from
 // here on, no step-by-step questions.
@@ -155,58 +163,58 @@ export default function OfferingsHome({ answers, onEditProfile, onEditOffering, 
     <div className="oh">
       <h1 className="oh__title">Your offerings page</h1>
 
-      {/* ---------- Profile and link, side by side, so offerings stay in view ---------- */}
-      <div className="oh__top">
-        {/* ---------- Their profile: the top of their page ---------- */}
-        <section className="oh__panel" aria-labelledby="oh-profile">
-          <div className="oh__panel-head oh__panel-head--split">
-            <h2 className="oh__panel-title" id="oh-profile">Your profile</h2>
-            <button type="button" className="oh__edit" onClick={onEditProfile}>
-              <Pencil size={15} aria-hidden="true" /> Edit your profile
+      {/* ---------- Your page: who they are, their link, their calendar ---------- */}
+      <section className="oh__panel oh__me" aria-labelledby="oh-name">
+        <div className="oh__me-head">
+          <span className="oh__avatar" aria-hidden="true">
+            {answers.photo ? <img src={answers.photo} alt="" /> : initials(answers.name)}
+          </span>
+          <div className="oh__me-text">
+            <h2 className="oh__name" id="oh-name">
+              {answers.name}
+            </h2>
+            {answers.bio && <p className="oh__bio">{answers.bio}</p>}
+          </div>
+          <button type="button" className="oh__btn oh__edit-profile" onClick={onEditProfile}>
+            <Pencil size={15} aria-hidden="true" /> Edit profile
+          </button>
+        </div>
+
+        {/* Label, value, actions: the same three columns as the Calendar row */}
+        <div className="oh__row">
+          <span className="oh__row-label">Your offerings page link</span>
+          <span className="oh__row-value oh__url" title={url}>
+            {link}
+          </span>
+          <div className="oh__row-actions">
+            <button type="button" className="oh__btn oh__copy" onClick={() => copyLink(url)}>
+              {copy === 'copied' ? <Check size={15} strokeWidth={3} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+              {copy === 'copied' ? 'Copied' : 'Copy link'}
             </button>
+            <a
+              className="oh__btn oh__open"
+              href={url}
+              target="_blank"
+              rel="noopener"
+              aria-label="Open your page (opens in a new tab)"
+              data-tip="Open your page"
+              data-tip-align="end"
+            >
+              <ExternalLink size={15} aria-hidden="true" />
+            </a>
           </div>
-          <div className="oh__panel-body oh__profile">
-            <span className="oh__avatar" aria-hidden="true">
-              {answers.photo ? <img src={answers.photo} alt="" /> : initials(answers.name)}
-            </span>
-            <div className="oh__profile-text">
-              <p className="oh__name">{answers.name}</p>
-              {answers.bio && <p className="oh__bio">{answers.bio}</p>}
-            </div>
-          </div>
-        </section>
+          <span className="oh__sr-only" aria-live="polite">
+            {copy === 'copied' && 'Link copied'}
+          </span>
+          {copy === 'failed' && (
+            <p className="oh__copy-error" role="alert">
+              Couldn’t copy. Select the link and copy it yourself.
+            </p>
+          )}
+        </div>
 
-        {/* ---------- The link ---------- */}
-        <section className="oh__panel" aria-labelledby="oh-link">
-          <div className="oh__panel-head">
-            <div>
-              <h2 className="oh__panel-title" id="oh-link">Your page link</h2>
-              <p className="oh__panel-sub">Your profile with every offering. Changes show up straight away.</p>
-            </div>
-          </div>
-          <div className="oh__panel-body">
-            <div className="oh__link">
-              <span className="oh__url" title={url}>{link}</span>
-              <button type="button" className="oh__copy" onClick={() => copyLink(url)}>
-                {copy === 'copied' ? <Check size={16} strokeWidth={3} /> : <Copy size={16} />}
-                {copy === 'copied' ? 'Copied' : 'Copy link'}
-              </button>
-              <a className="oh__open" href={url} target="_blank" rel="noopener" aria-label="Open your page (opens in a new tab)">
-                <ExternalLink size={16} aria-hidden="true" /> Open
-              </a>
-              <span className="oh__sr-only" aria-live="polite">{copy === 'copied' && 'Link copied'}</span>
-              {copy === 'failed' && (
-                <p className="oh__copy-error" role="alert">
-                  Couldn’t copy. Select the link and copy it yourself.
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* ---------- Their calendar: belongs to them, not to one offering ---------- */}
-      <CalendarPanel />
+        <CalendarRow />
+      </section>
 
       {/* ---------- Offerings ---------- */}
       <section className="oh__panel" aria-labelledby="oh-offerings">
