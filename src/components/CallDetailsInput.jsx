@@ -228,7 +228,7 @@ export default function CallDetailsInput({
         {/* ---------- Length: one track of tiles ---------- */}
         <div className="qinput__field">
           <span className="qinput__label" id="call-duration">
-            {grouped ? 'Length' : 'How long'}
+            {grouped ? 'Length' : 'Duration'}
           </span>
           <div className="call__lengths" role="radiogroup" aria-labelledby="call-duration">
             {DURATIONS.map((mins) => {

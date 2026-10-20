@@ -7,13 +7,14 @@ import '../styles/storeTheme.css';
 import './CheckoutPage.css';
 import { getMyProfile, isMyCall, myMeetingLink, profileHrefFor } from '../data/myProfile';
 import { createBooking } from '../data/bookingsStore';
+import { ANSWER_MAX, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
 
 // ------------------------------------------------------------
 // Mock checkout, laid out like the product's real checkout:
 // what they're buying on the left, their details and the money
 // on the right. For a call, it adds the session (with a hold
-// timer), the time in the order summary, and the creator's
-// question. Courses and other products would show none of those.
+// timer), the time in the order summary, and the call's booking
+// questions (set in Edit service, see callQuestions.js). Courses and other products would show none of those.
 //
 // ?mock=checkout&service=<id>&time=<UTC instant>&tz=<zone>
 //   &taken=1   the time was taken before they got here
@@ -76,6 +77,136 @@ const describe = (id, hasHint, error, required = true) => ({
   'aria-describedby': [hasHint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined,
 });
 
+// One of the call's booking questions (callQuestions.js), in the form
+// that fits its type:
+//   short / long   a line, or a box for a few sentences
+//   choice         one radio per option
+//   multi          one checkbox per option
+//   dropdown       a menu, starting on "Choose one"
+//   phone          a country code and a number, like the phone field above
+// The first input's id is co-q-<id>, so a missed one gets the focus on submit.
+function QuestionField({ q, value, error, onChange }) {
+  const id = `co-q-${q.id}`;
+  const aria = describe(id, false, error, q.required);
+
+  // Single choice and checkboxes: a group of options under the question
+  if (q.type === 'choice' || q.type === 'multi') {
+    const multi = q.type === 'multi';
+    const picked = (option) => (multi ? value.includes(option) : value === option);
+    const toggle = (option) =>
+      multi
+        ? onChange(value.includes(option) ? value.filter((o) => o !== option) : [...value, option])
+        : onChange(option);
+    return (
+      <fieldset
+        className={error ? 'co-field co-field--error co-choice' : 'co-field co-choice'}
+        aria-describedby={error ? `${id}-error` : undefined}
+      >
+        <legend className="co-field__label">
+          {q.text}
+          <Marker required={q.required} />
+        </legend>
+        {multi && <p className="co-field__hint co-choice__hint">Choose all that apply.</p>}
+        <div
+          className="co-choice__list"
+          role={multi ? 'group' : 'radiogroup'}
+          aria-required={!multi && q.required ? true : undefined}
+        >
+          {q.options.map((option, i) => (
+            <label key={option} className={picked(option) ? 'co-choice__option co-choice__option--on' : 'co-choice__option'}>
+              <input
+                type={multi ? 'checkbox' : 'radio'}
+                name={id}
+                id={i === 0 ? id : undefined} // the first gets the focus when it's missed
+                value={option}
+                checked={picked(option)}
+                onChange={() => toggle(option)}
+                aria-invalid={error ? true : undefined}
+              />
+              <span>{option}</span>
+            </label>
+          ))}
+        </div>
+        {error && (
+          <p className="co-field__error" id={`${id}-error`}>
+            {error}
+          </p>
+        )}
+      </fieldset>
+    );
+  }
+
+  return (
+    <Field id={id} label={q.text} required={q.required} optional={!q.required} error={error}>
+      {q.type === 'dropdown' ? (
+        <select id={id} className="co-input co-select" value={value} onChange={(e) => onChange(e.target.value)} {...aria}>
+          <option value="">Choose one</option>
+          {q.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : q.type === 'phone' ? (
+        <div className="co-phone">
+          <select
+            className="co-input co-select co-phone__code"
+            aria-label={`Country code for ${q.text}`}
+            value={value.code}
+            onChange={(e) => onChange({ ...value, code: e.target.value })}
+          >
+            {COUNTRY_CODES.map((c) => (
+              <option key={c.code} value={c.code} title={c.name}>
+                {c.code}
+              </option>
+            ))}
+          </select>
+          <input
+            id={id}
+            className="co-input"
+            type="tel"
+            inputMode="tel"
+            value={value.number}
+            onChange={(e) => onChange({ ...value, number: e.target.value })}
+            {...aria}
+          />
+        </div>
+      ) : q.type === 'long' ? (
+        <textarea
+          id={id}
+          className="co-input co-input--area"
+          rows={3}
+          maxLength={ANSWER_MAX.long}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          {...aria}
+        />
+      ) : (
+        <input
+          id={id}
+          className="co-input"
+          type="text"
+          maxLength={ANSWER_MAX.short}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          {...aria}
+        />
+      )}
+    </Field>
+  );
+}
+
+// After a question's text: a red * when it's required, "(optional)" when it isn't
+function Marker({ required }) {
+  return required ? (
+    <span className="co-field__req" aria-hidden="true">
+      {' '}*
+    </span>
+  ) : (
+    <span className="co-field__opt"> (optional)</span>
+  );
+}
+
 // 600 → '10 minutes', 60 → '1 minute', 20 → '20 seconds'
 function duration(seconds) {
   if (seconds < 60) return `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
@@ -95,9 +226,10 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
     () => buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone, taken: taken === '1', preview: previewing }),
     [serviceId, time, state, slots, zone, taken, previewing],
   );
-  const { status, creator, service, slot } = page;
+  const { status, creator, service, questions = [], slot } = page;
 
-  const [form, setForm] = useState({ name: '', email: '', code: '+91', phone: '', topic: '' });
+  const [form, setForm] = useState({ name: '', email: '', code: '+91', phone: '' });
+  const [replies, setReplies] = useState({}); // their answers to the call's questions, by question id
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [payFailed, setPayFailed] = useState(false); // the last payment attempt didn't go through
@@ -138,6 +270,12 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
     const { value } = e.target;
     setForm((f) => ({ ...f, [key]: value }));
     if (errors[key]) setErrors((errs) => ({ ...errs, [key]: null })); // fixed: the message goes
+  };
+
+  // An answer to one of the call's questions
+  const reply = (id) => (value) => {
+    setReplies((r) => ({ ...r, [id]: value }));
+    if (errors[`q-${id}`]) setErrors((errs) => ({ ...errs, [`q-${id}`]: null }));
   };
 
   const applyCoupon = () => {
@@ -214,7 +352,9 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
   const submit = (e) => {
     e.preventDefault();
     if (busy || previewing) return;
-    const found = check(form);
+    // Their details, then the questions, in the order they're on the page
+    const answerErrors = Object.fromEntries(Object.entries(checkAnswers(questions, replies)).map(([id, e]) => [`q-${id}`, e]));
+    const found = { ...check(form), ...answerErrors };
     setErrors(found);
     const first = Object.keys(found).find((k) => found[k]);
     if (first) {
@@ -272,7 +412,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
             format: call.format,
             guest: { name: form.name.trim(), email: form.email.trim(), phone: `${form.code} ${form.phone.trim()}` },
             guestTimeZone: zone, // the clock they picked the time on
-            topic: form.topic, // what they'd like to talk about, for the creator to prepare
+            answers: answersFor(questions, replies), // the call's questions as asked, with their answers
             paid: price.isFree ? 0 : sums.total,
             meetingLink: myMeetingLink(),
           });
@@ -392,15 +532,10 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
               </div>
             </Field>
 
-            {/* The creator's question for this call */}
-            <Field
-              id="co-topic"
-              label="What would you like to talk about?"
-              optional
-              hint={`A line or two helps ${creator.firstName} prepare.`}
-            >
-              <textarea id="co-topic" className="co-input co-input--area" rows={3} value={form.topic} onChange={set('topic')} {...describe('co-topic', true, null, false)} />
-            </Field>
+            {/* The call's booking questions, as the creator set them */}
+            {questions.map((q) => (
+              <QuestionField key={q.id} q={q} value={replies[q.id] ?? emptyAnswer(q)} error={errors[`q-${q.id}`]} onChange={reply(q.id)} />
+            ))}
           </div>
 
           {/* ---------- Coupon: closed until they need it ---------- */}

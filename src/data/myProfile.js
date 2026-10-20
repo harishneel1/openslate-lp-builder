@@ -1,5 +1,6 @@
 import { SETUP_STORAGE_KEY } from './myPage';
 import { CALL_DEFAULTS, aboutParagraphs, callDescriptionOf, readMeetingLink } from './callDetails';
+import { askedQuestions, questionsOf } from './callQuestions';
 
 // ------------------------------------------------------------
 // The creator's own page, built from their setup answers, in the
@@ -31,7 +32,8 @@ export const isMyCall = (serviceId) =>
 // added ones are kept beside it as answers.addedCalls, newest first.
 // Each uses the same answer ids as the first call, plus its own id:
 //   { id, createdAt, callTitle, callDuration, callFormat, callPricing,
-//     callPrice, callComparePrice, callDescription, callAbout, serviceId }
+//     callPrice, callComparePrice, callDescription, callAbout, serviceId,
+//     callQuestions }
 // so the same fields and page-building work for every call.
 // ------------------------------------------------------------
 export const addedCallsOf = (answers) => (Array.isArray(answers?.addedCalls) ? answers.addedCalls : []);
@@ -132,6 +134,7 @@ function callService(c, { id, order, stats = {} }) {
     ratingCount: stats.ratingCount ?? 0,
     status: 'active',
     order,
+    questions: askedQuestions(questionsOf(c)), // what checkout asks: the ones that are on (callQuestions.js)
   };
 }
 

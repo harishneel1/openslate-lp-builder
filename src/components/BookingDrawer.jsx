@@ -207,8 +207,8 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     );
   }
 
-  // What the guest answered when booking. One question for now; each call
-  // can have its own qualifying questions later, saved with the booking as
+  // What the guest answered when booking: the call's booking questions as
+  // they were asked (callQuestions.js), saved with the booking as
   // answers: [{ question, answer }]. Older bookings only have `topic`.
   const answers = booking.answers ?? [{ question: TOPIC_QUESTION, answer: booking.topic }];
 
@@ -398,6 +398,8 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
             </section>
           )}
 
+          {/* Their answers to the call's booking questions (none when it asked none) */}
+          {answers.length > 0 && (
           <section className="bkd__section">
             <h3 className="bkd__heading">{answers.length === 1 ? 'Their answer' : 'Their answers'}</h3>
             <dl className="bkd__answers">
@@ -408,13 +410,17 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
                 </div>
               ))}
             </dl>
-            {booking.cancelMessage && booking.cancelledBy === 'guest' && (
+          </section>
+          )}
+
+          {booking.cancelMessage && booking.cancelledBy === 'guest' && (
+            <section className="bkd__section">
               <p className="bkd__sent-note bkd__sent-note--theirs">
                 <span className="bkd__note-label">{name}'s reason for cancelling</span>
                 {booking.cancelMessage}
               </p>
-            )}
-          </section>
+            </section>
+          )}
 
           {/* ---------- History: a timeline, oldest at the top ---------- */}
           <section className="bkd__section bkd__history">

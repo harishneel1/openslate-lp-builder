@@ -1,0 +1,472 @@
+/* ---------- Invitee form, inside Edit service (Calendly's layout) ---------- */
+.bq {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.bq__block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bq__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.bq__sub {
+  margin-top: -4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* Name, Email, Phone: looks like a field, can't be changed */
+.bq__fixed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  background: #f6f6f7;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Questions: each one open, with a line down its left ---------- */
+.bq__list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.bq__q {
+  padding-left: 16px;
+  background: var(--color-surface);
+  border-left: 2px solid var(--color-border);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.bq__q:focus-within {
+  border-left-color: var(--color-primary);
+}
+
+/* Held while dragging: lifted off the page */
+.bq__q--dragging {
+  position: relative;
+  z-index: 1;
+  border-left-color: var(--color-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.bq__q-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -8px;
+}
+
+.bq__q-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* A question that's off: still editable, quieter */
+.bq__off-tag {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: #f0f0f2;
+  border-radius: var(--radius-pill);
+}
+
+.bq__q--off .bq__q-body > :not(:last-child) {
+  opacity: 0.6;
+}
+
+.bq__q-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+/* ---------- Fields ---------- */
+.bq__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bq__field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.bq__input {
+  width: 100%;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6d6;
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.bq__input::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.bq__input:hover {
+  border-color: #bdbdc2;
+}
+
+.bq__input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.bq__input--area {
+  min-height: 72px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.bq__input--error,
+.bq__input--error:hover {
+  border-color: #d9480f;
+}
+
+.bq__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b4410f;
+}
+
+.bq__error svg {
+  flex: none;
+}
+
+/* The line under Answer type: what people will see */
+.bq__sub--under {
+  margin-top: 0;
+}
+
+/* Answer type: a native select with our own chevron */
+.bq__select {
+  position: relative;
+}
+
+.bq__select select {
+  padding-right: 42px;
+  cursor: pointer;
+  appearance: none;
+}
+
+.bq__select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  color: var(--color-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Required: a checkbox */
+.bq__check-row {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.bq__check-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bq__check {
+  flex: none;
+  position: relative;
+  width: 20px;
+  height: 20px;
+  background: var(--color-surface);
+  border: 2px solid #c2c2c8;
+  border-radius: 5px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.bq__check-row input:checked + .bq__check {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.bq__check-row input:checked + .bq__check::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.bq__check-row input:focus-visible + .bq__check {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Status: "On" and a switch */
+.bq__switch-row {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 10px;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.bq__switch-text {
+  min-width: 24px;
+  text-align: left;
+}
+
+.bq__switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  background: #c9c9ce;
+  border-radius: var(--radius-pill);
+  transition: background 0.15s;
+}
+
+.bq__switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s;
+}
+
+.bq__switch-row[aria-checked='true'] .bq__switch {
+  background: var(--color-primary);
+}
+
+.bq__switch-row[aria-checked='true'] .bq__switch::after {
+  transform: translateX(18px);
+}
+
+.bq__switch-row .bq__sub {
+  margin-top: 0;
+}
+
+/* ---------- A single choice's options ---------- */
+.bq__options-set {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.bq__options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.bq__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-left: -8px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+}
+
+.bq__option--dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.bq__option-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* What each option will look like: a radio, a checkbox, or (dropdown) a number */
+.bq__option-field {
+  position: relative;
+}
+
+.bq__option--choice .bq__input,
+.bq__option--multi .bq__input {
+  padding-left: 42px;
+}
+
+.bq__option--choice .bq__option-field::before,
+.bq__option--multi .bq__option-field::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #c9c9ce;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.bq__option--multi .bq__option-field::before {
+  border-radius: 4px;
+}
+
+.bq__option .bq__handle,
+.bq__option .bq__icon {
+  margin-top: 5px;
+}
+
+/* ---------- Handles, icons and links ---------- */
+.bq__handle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 34px;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  touch-action: none; /* a finger drags the question, not the page */
+}
+
+.bq__handle:active {
+  cursor: grabbing;
+}
+
+.bq__handle:hover {
+  color: var(--color-text);
+  background: #f0f0f2;
+}
+
+.bq__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.bq__icon--danger:hover:not(:disabled) {
+  color: #b42318;
+  background: #fef3f2;
+}
+
+.bq__icon:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.bq__link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  padding: 6px 2px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.bq__link:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bq__link:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bq__link--small {
+  margin-top: 6px;
+  margin-left: 24px;
+  font-size: 14px;
+}
+
+.bq__handle:focus-visible,
+.bq__icon:focus-visible,
+.bq__link:focus-visible,
+.bq__switch-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.bq__note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bq__q,
+  .bq__input,
+  .bq__icon,
+  .bq__check,
+  .bq__switch,
+  .bq__switch::after {
+    transition: none;
+  }
+}

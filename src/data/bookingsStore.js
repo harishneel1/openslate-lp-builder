@@ -11,6 +11,10 @@
 //     guest: { name, email, phone },
 //     guestTimeZone: the zone they booked in, e.g. 'Europe/London'
 //                    (null on bookings made before it was saved),
+//     answers: [{ question, answer }] the call's booking questions as they
+//              were asked, with what they answered ('' when skipped)
+//              (callQuestions.js). Bookings made before questions could be
+//              set have only topic:
 //     topic: what they'd like to talk about ('' when they left it empty),
 //     paid: the total they paid in rupees, 0 for a free call
 //           (null on bookings made before it was saved),
@@ -92,6 +96,7 @@ export function createBooking({
   format,
   guest,
   guestTimeZone = null,
+  answers = null,
   topic = '',
   paid = null,
   meetingLink = null,
@@ -106,7 +111,7 @@ export function createBooking({
     format,
     guest,
     guestTimeZone,
-    topic: String(topic ?? '').trim(),
+    ...(Array.isArray(answers) ? { answers } : { topic: String(topic ?? '').trim() }),
     paid: Number.isFinite(paid) ? paid : null,
     meetingLink: format === 'video' ? meetingLink || DEFAULT_MEETING_LINK : null,
     status: 'booked',

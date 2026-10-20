@@ -4,6 +4,8 @@ import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFra
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
 import ServicePickInput from '../components/ServicePickInput';
+import QuestionsInput from '../components/QuestionsInput';
+import { DEFAULT_QUESTIONS, cleanQuestions, questionsOf, questionsProblem, questionsSummary, sameQuestions } from '../data/callQuestions';
 import { callAnswersOf, newCallId } from '../data/myProfile';
 import { createMockService, getService, servicePrice } from '../data/mockServices';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
@@ -28,6 +30,7 @@ const FIELDS = [
   'callDescription',
   'callAbout',
   'serviceId',
+  'callQuestions', // what checkout asks after name, email and phone (callQuestions.js)
   'meetingLink', // shared by all their video calls: saved on the setup answers (see myProfile.js)
 ];
 
@@ -44,6 +47,7 @@ const NEW_FIELDS = [...EDIT_FIELDS, 'serviceMode'];
 const SECTION_FIELDS = {
   basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice', 'meetingLink'],
   descriptions: ['callDescription', 'callAbout'],
+  questions: ['callQuestions'],
   service: ['serviceId', 'serviceMode'],
   when: ['callHours'],
 };
@@ -53,11 +57,13 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // ------------------------------------------------------------
 // Editing one offering, opened from its card on the offerings home,
 // or making a new one ("Add a new offering", after picking its kind).
-// Four sections, each closed to a one-line summary until opened:
+// Five sections, each closed to a one-line summary until opened, one open at a time:
 //   Basics                name, length, format, price
 //   Descriptions          short and long
 //   When people can book  this call's own hours, changed in a panel from
 //                         the right (HoursDrawer.jsx)
+//   Invitee form          what checkout asks: name, email and phone, then
+//                         this call's questions (QuestionsInput.jsx, callQuestions.js)
 //   Service               the checkout page people book and pay through,
 //                         picked from their services (the same picker as
 //                         the funnel builder and storefront setup)
@@ -118,6 +124,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
             meetingLink,
             serviceMode: 'auto',
             serviceId: null,
+            callQuestions: structuredClone(DEFAULT_QUESTIONS),
             callHours: structuredClone(DEFAULT_HOURS),
           }
         : {
@@ -126,6 +133,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
             handle,
             meetingLink,
             callDescription: callDescriptionOf(call),
+            callQuestions: questionsOf(call),
             callHours: strip(loadCallHours(id)),
           },
     [isNew, id, call, handle, meetingLink, hoursVersion], // eslint-disable-line react-hooks/exhaustive-deps
@@ -139,30 +147,35 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
   const [hoursFailed, setHoursFailed] = useState(false); // the hours didn't save
   const [hoursOpen, setHoursOpen] = useState(false); // the hours panel
 
-  // Every section starts closed (a new call's Basics opens itself, below);
-  // any number can be open at once
-  const [open, setOpen] = useState({});
-  const toggle = (section) => setOpen((prev) => ({ ...prev, [section]: !prev[section] }));
+  // One section open at a time: opening one closes the other. Every section
+  // starts closed (a new call's Basics opens itself, below). Closing a section
+  // keeps its changes; it shows "Edited" until they're saved or discarded.
+  const [openSection, setOpenSection] = useState(null);
+  const toggle = (section) => setOpenSection((cur) => (cur === section ? null : section));
+  const open = openSection ? { [openSection]: true } : {};
   // Unsaved changes in a section. Not shown on a new call: everything is new.
   const edited = (section) => !isNew && SECTION_FIELDS[section].some((f) => draft[f] !== saved[f]);
 
   // What's stopping a save, if anything, and which section it's in
   const verb = isNew ? 'add it' : 'save';
   const detailsProblem = callDetailsProblem(draft);
+  const questionProblem = questionsProblem(draft.callQuestions);
   const blocker = detailsProblem === 'basics'
     ? { section: 'basics', text: `Add a name and a price (or make it free) to ${verb}` }
     : callAboutOf(draft).trim() === ''
       ? { section: 'descriptions', text: `Add a long description to ${verb}` }
-      : isNew && draft.serviceMode === 'pick' && !getService(draft.serviceId)
-        ? { section: 'service', text: 'Pick one of your services, or let us create one' }
-        : null;
+      : questionProblem
+        ? { section: 'questions', text: questionProblem.text }
+        : isNew && draft.serviceMode === 'pick' && !getService(draft.serviceId)
+          ? { section: 'service', text: 'Pick one of your services, or let us create one' }
+          : null;
   const problem = blocker?.text ?? null;
 
   // A new problem opens its section, so what needs fixing is in view.
   // They can still close it; it opens again only if the problem changes.
   const blockedSection = blocker?.section ?? null;
   useEffect(() => {
-    if (blockedSection) setOpen((prev) => ({ ...prev, [blockedSection]: true }));
+    if (blockedSection) setOpenSection(blockedSection);
   }, [blockedSection]);
 
   const save = () => {
@@ -178,6 +191,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
     if (call.callDescription === undefined && !('callDescription' in changes)) {
       changes.callDescription = saved.callDescription;
     }
+    if (changes.callQuestions) changes.callQuestions = cleanQuestions(changes.callQuestions);
     if (Object.keys(changes).length > 0) onSave(changes);
     if (callHours) setHoursVersion((v) => v + 1);
     edit.saved();
@@ -215,6 +229,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       callTitle: draft.callTitle.trim(),
       callDescription: callDescriptionOf(draft),
       callAbout: callAboutOf(draft),
+      callQuestions: cleanQuestions(draft.callQuestions),
       serviceId,
     });
   };
@@ -228,6 +243,9 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
     setHoursFailed(false);
     setHoursOpen(false);
   };
+  // Questions edited back to what's saved: the saved list itself, so the section isn't marked as edited
+  const changeQuestions = (next) => handleChange(sameQuestions(next, saved.callQuestions) ? saved.callQuestions : next, 'callQuestions');
+
   const shortDescription = callDescriptionOf(draft).trim();
   const aboutWrittenForThem = isNew && draft.callAbout === undefined;
 
@@ -240,6 +258,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
   };
 
   const bookingHref = isNew ? null : `?mock=book&service=${encodeURIComponent(id)}`;
+  const checkoutHref = isNew ? null : `?mock=checkout&service=${encodeURIComponent(id)}&preview=1`;
 
   return (
     <EditFrame
@@ -340,6 +359,30 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
         onToggle={() => toggle('when')}
       >
         <HoursSummary schedule={draft.callHours} warning={hours.warning} onEdit={() => setHoursOpen(true)} />
+      </EditSection>
+
+      <EditSection
+        id="es-questions"
+        title="Invitee form"
+        sub="What people fill in on checkout when they book this call."
+        summary={blocker?.section === 'questions' ? blocker.text : questionsSummary(draft.callQuestions)}
+        warn={blocker?.section === 'questions'}
+        edited={edited('questions')}
+        open={Boolean(open.questions)}
+        onToggle={() => toggle('questions')}
+      >
+        <QuestionsInput
+          key={`questions-${formKey}`}
+          value={draft.callQuestions}
+          onChange={changeQuestions}
+          note={
+            isNew ? (
+              'Shows on checkout when people book this call.'
+            ) : (
+              <WhereItShows text="Shows on" href={checkoutHref} label="checkout" />
+            )
+          }
+        />
       </EditSection>
 
       <EditSection

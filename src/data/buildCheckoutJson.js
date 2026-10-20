@@ -4,7 +4,7 @@ import { formatTime } from '../utils/slots';
 
 // ------------------------------------------------------------
 // Everything the checkout page shows: the call, the coach, the
-// chosen time, and whether that time can still be booked.
+// call's booking questions, the chosen time, and whether that time can still be booked.
 //
 // status:
 //   'ok'       show the form
@@ -19,14 +19,14 @@ import { formatTime } from '../utils/slots';
 // ------------------------------------------------------------
 export function buildCheckoutJson({ serviceId, time, profileState, slotsState, timeZone, taken = false, preview = false, now = Date.now() }) {
   const base = buildBookingJson({ serviceId, profileState, slotsState, timeZone, now });
-  const { creator, service, durationMins, availability } = base;
-  if (!service) return { status: 'missing', creator, service: null, slot: null };
-  if (preview) return { status: 'ok', creator, service, slot: null };
+  const { creator, service, durationMins, questions, availability } = base;
+  if (!service) return { status: 'missing', creator, service: null, questions: [], slot: null };
+  if (preview) return { status: 'ok', creator, service, questions, slot: null };
 
   const ms = Date.parse(time);
   const start = Number.isFinite(ms) ? new Date(ms).toISOString() : null;
   const day = start && availability.days.find((d) => d.slots.some((s) => s.start === start));
-  if (!day || taken) return { status: 'taken', creator, service, slot: null };
+  if (!day || taken) return { status: 'taken', creator, service, questions, slot: null };
 
   const chosen = day.slots.find((s) => s.start === start);
   const zone = zoneOptions(timeZone).find((z) => z.id === timeZone);
@@ -35,6 +35,7 @@ export function buildCheckoutJson({ serviceId, time, profileState, slotsState, t
     status: 'ok',
     creator,
     service,
+    questions, // the call's booking questions (callQuestions.js)
     slot: {
       start,
       weekday: day.weekday,

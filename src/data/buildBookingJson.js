@@ -3,6 +3,7 @@ import { getMockProfile } from './mockProfile';
 import { getMyProfile, isMyCall } from './myProfile';
 import { getMockAvailability, getMyAvailability } from './mockAvailability';
 import { findSlots } from '../utils/slots';
+import { DEFAULT_QUESTIONS } from './callQuestions';
 
 // ------------------------------------------------------------
 // Everything the booking page shows, for one call. Reuses the
@@ -12,7 +13,7 @@ import { findSlots } from '../utils/slots';
 // reads the mocks (mockProfile, mockAvailability), or the creator's own
 // page from their setup answers when it's their call (myProfile).
 //
-// Returns { creator, service, durationMins, reviews, availability }, or with
+// Returns { creator, service, durationMins, questions, reviews, availability }, or with
 // service: null when the id isn't a call this creator offers.
 // ------------------------------------------------------------
 export function buildBookingJson({ serviceId, profileState, slotsState, timeZone, now = Date.now() }) {
@@ -34,12 +35,14 @@ export function buildBookingJson({ serviceId, profileState, slotsState, timeZone
   const service = page.services.find((s) => s.id === serviceId && s.kind === 'call') ?? null;
   if (!service) return { creator, service: null, reviews: [], availability: null };
 
-  const { durationMins } = raw.services.find((s) => s.id === serviceId);
+  const { durationMins, questions } = raw.services.find((s) => s.id === serviceId);
 
   return {
     creator,
     service,
     durationMins,
+    // What checkout asks after name, email and phone. Meera's demo calls ask the default.
+    questions: questions ?? DEFAULT_QUESTIONS,
     reviews: page.testimonials.filter((t) => t.serviceId === serviceId),
     // Their own calls: this call's hours minus their bookings and Google Calendar busy times.
     // &slots=<id> still shows the mock situations, for testing.
