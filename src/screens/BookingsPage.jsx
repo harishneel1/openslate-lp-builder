@@ -151,7 +151,7 @@ export default function BookingsPage({ onNavigate }) {
               {longDay(date)}
             </h2>
             <p className="bk__day-hours">
-              {working ? `Your hours: ${hoursText(day.hours)}` : isPast ? 'No hours set that day' : 'Not taking calls this day'}
+              {working ? `Your available hours: ${hoursText(day.hours)}` : isPast ? 'No hours set that day' : 'Not taking calls this day'}
             </p>
           </div>
           {day.callCount > 0 && <p className="bk__day-sum">{daySummary(day.callCount, day.bookedMins)}</p>}

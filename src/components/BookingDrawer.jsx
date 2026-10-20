@@ -13,8 +13,8 @@ import './BookingDrawer.css';
 // ------------------------------------------------------------
 // One booking, opened from the Bookings page. Three views in the
 // same panel:
-//   details     when (on both clocks), join, what they want to talk
-//               about, contact, payment
+//   details     when (on both clocks), join, then one Details list:
+//               their answers to the booking questions, contact, payment
 //   reschedule  pick a new time from the call's own open times
 //   cancel      confirm, with an optional note to the guest
 // Ended and cancelled calls only show details.
@@ -23,6 +23,9 @@ import './BookingDrawer.css';
 // onChanged(notice): after a reschedule or cancel. The page reloads its
 //                    bookings and passes the notice back to show here.
 // ------------------------------------------------------------
+
+// The question checkout asks (CheckoutPage.jsx), shown with the guest's answer
+const TOPIC_QUESTION = 'What would you like to talk about?';
 
 const firstName = (name) => String(name ?? '').trim().split(/\s+/)[0] || 'your guest';
 const telHref = (phone) => `tel:${String(phone ?? '').replace(/\s/g, '')}`;
@@ -162,6 +165,11 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     );
   }
 
+  // What the guest answered when booking. One question for now; each call
+  // can have its own questions later, saved with the booking as
+  // answers: [{ question, answer }]. Older bookings only have `topic`.
+  const answers = booking.answers ?? [{ question: TOPIC_QUESTION, answer: booking.topic }];
+
   const facts = [
     theirTime && ['Their time', theirTime],
     ['Format', booking.format === 'phone' ? 'Phone call' : 'Video call'],
@@ -234,44 +242,32 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
                   >
                     <Video size={16} aria-hidden="true" /> Join call
                   </a>
-                  <button
-                    type="button"
-                    className="bk-btn bk-btn--secondary bkd__icon-btn"
-                    onClick={copyLink}
-                    aria-label={copied ? 'Link copied' : 'Copy meeting link'}
-                    title={copied ? 'Copied' : 'Copy meeting link'}
-                  >
-                    {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-                  </button>
-                  {booking.guest?.email && (
-                    <a
-                      className="bk-btn bk-btn--secondary bkd__icon-btn"
-                      href={`mailto:${booking.guest.email}`}
-                      aria-label={`Email ${name}`}
-                      title={`Email ${name}`}
-                    >
-                      <Mail size={16} aria-hidden="true" />
-                    </a>
-                  )}
+                  <div className="bkd__more">
+                    <button type="button" className="bk-btn bk-btn--secondary" onClick={copyLink}>
+                      {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                      {copied ? 'Link copied' : 'Copy meeting link'}
+                    </button>
+                    {booking.guest?.email && (
+                      <a className="bk-btn bk-btn--secondary" href={`mailto:${booking.guest.email}`}>
+                        <Mail size={16} aria-hidden="true" /> Email {name}
+                      </a>
+                    )}
+                  </div>
                 </>
               ) : null}
             </section>
           )}
 
-          {/* ---------- What they'd like to talk about ---------- */}
-          <section className="bkd__section">
-            <h3 className="bkd__heading">What {name} wants to talk about</h3>
-            {booking.topic ? (
-              <blockquote className="bkd__topic">{booking.topic}</blockquote>
-            ) : (
-              <p className="bkd__muted">Nothing added when booking.</p>
-            )}
-          </section>
-
           {/* ---------- Everything else, at a glance ---------- */}
           <section className="bkd__section">
             <h3 className="bkd__heading">Details</h3>
             <dl className="bkd__facts">
+              {answers.map(({ question, answer }) => (
+                <div key={question} className="bkd__answer">
+                  <dt>{question}</dt>
+                  <dd className={answer ? '' : 'bkd__no-answer'}>{answer || 'No answer'}</dd>
+                </div>
+              ))}
               {facts.map(([label, value]) => (
                 <div key={label}>
                   <dt>{label}</dt>
@@ -334,7 +330,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
             <>
               <h3 className="bkd__step-title">Move your call with {name}</h3>
               <p className="bkd__step-text">
-                Booked for {dayInSentence(booking.date, today)}, {booking.time}. Pick a new time and {name}'s invite is
+                Booked for {dayInSentence(booking.date, today)}, {booking.time}. Pick a new time and {name}'s invite will be
                 updated.
               </p>
 

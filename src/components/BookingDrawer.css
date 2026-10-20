@@ -85,19 +85,26 @@
 /* ---------- Join, copy, email: one row under the time ---------- */
 .bkd__actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
   margin-top: 20px;
 }
 
 .bkd__join {
-  flex: 1;
+  width: 100%;
   min-height: 44px;
 }
 
-.bkd__icon-btn {
-  width: 44px;
-  min-height: 44px;
-  padding: 0;
+/* Copy link and Email: labelled, side by side under Join */
+.bkd__more {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.bkd__more .bk-btn {
+  min-width: 0;
 }
 
 /* ---------- Sections: spacing does the separating ---------- */
@@ -110,19 +117,6 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--bk-ink);
-}
-
-.bkd__topic {
-  margin: 0;
-  padding: 12px 16px;
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--bk-ink);
-  background: #fffaf6;
-  border-left: 3px solid var(--bk-orange);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 .bkd__muted {
@@ -142,6 +136,30 @@
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid var(--bk-line);
+}
+
+/* An answer to a booking question: the question, with the answer under it */
+.bkd__facts > .bkd__answer {
+  display: block;
+}
+
+.bkd__answer dd {
+  margin-top: 4px;
+  padding: 10px 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  background: #fffaf6;
+  border-left: 3px solid var(--bk-orange);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  white-space: pre-wrap;
+}
+
+.bkd__answer dd.bkd__no-answer {
+  padding: 0;
+  font-size: 14px;
+  color: var(--bk-ink-3);
+  background: none;
+  border: 0;
 }
 
 .bkd__facts dt {
