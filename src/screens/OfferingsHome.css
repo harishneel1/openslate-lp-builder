@@ -126,7 +126,8 @@
   border-color: #d6d6d6;
 }
 
-.oh__edit:focus-visible {
+.oh__edit:focus-visible,
+.oh-card__preview:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -270,18 +271,18 @@
 
 .oh__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* room for Copy link and Edit side by side */
   gap: 20px;
 }
 
-/* ---------- One offering (same look as .saved-card) ---------- */
-/* The card itself is static: no hover lift, no pointer. Only "Open" and
-   "Edit" do anything. */
+/* ---------- One offering ---------- */
+/* What it is at the top, what you can do with it at the bottom. The card
+   itself is static: no hover lift, no pointer. Only its controls act. */
 .oh-card {
-  position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* rounds the panel's top corners */
+  gap: 16px;
+  padding: 20px;
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -289,44 +290,26 @@
   box-shadow: var(--shadow-card);
 }
 
-.oh-card__panel {
-  display: grid;
-  place-items: center;
-  height: 140px;
-  background: #fafafa;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.oh-card__icon {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  color: var(--color-primary);
-  background: var(--color-primary-tint);
-  border-radius: var(--radius-md);
-}
-
-.oh-card__body {
+.oh-card__head {
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  width: 100%;
-  padding: 20px;
+  gap: 4px;
 }
 
-/* "Live", and "Just added" beside it on a new offering */
-.oh-card__tags {
+/* Name on the left, price opposite it, like a price list. A long name
+   wraps before the price; the price lines up with its first line. */
+.oh-card__title-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
 }
 
 .oh-card__new {
-  padding: 3px 10px;
+  margin-bottom: 6px;
+  padding: 2px 10px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-primary-hover);
@@ -356,32 +339,12 @@
   }
 }
 
-/* Solid green "Live", as on a published funnel */
-.oh-card__status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--color-success);
-  border-radius: var(--radius-pill);
-}
-
-.oh-card__live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #fff;
-}
-
 /* Long names: two lines, then … */
 .oh-card__name {
+  min-width: 0;
   display: -webkit-box;
   overflow: hidden;
-  margin-top: 4px;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.35;
   -webkit-line-clamp: 2;
@@ -393,55 +356,71 @@
   color: var(--color-text-muted);
 }
 
-.oh-card__footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  margin-top: auto;
-  padding-top: 16px;
-}
-
 .oh-card__price {
+  flex-shrink: 0;
   font-size: 15px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .oh-card__price--free {
   color: var(--color-success);
 }
 
-/* Edit: the one way into the editor. Orange outline, dashed like the
-   boxes in setup, so it reads as a button rather than a link. */
+/* Copy link (main), Edit, then Preview, all the same height. Pushed to the
+   bottom so the buttons line up across a row of cards whose names wrap
+   differently. */
+.oh-card__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.oh-card__copy,
 .oh-card__edit {
+  justify-content: center;
+  padding: 9px 14px;
+  white-space: nowrap;
+}
+
+/* Preview: icon only, square, named by its tooltip */
+.oh-card__preview {
+  padding: 9px 11px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* Tinted rather than filled: a grid of solid orange buttons would shout,
+   and the page's own Copy link above stays the strongest one */
+.oh-card__copy {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  white-space: nowrap;
-  color: var(--color-primary);
-  background: var(--color-surface);
-  border: 1.5px dashed var(--color-primary);
-  border-radius: var(--radius-sm);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.oh-card__edit:hover {
   color: var(--color-primary-hover);
   background: var(--color-primary-tint);
-  border-color: var(--color-primary-hover);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, border-color 0.15s;
 }
 
-/* Open: the same icon-and-word link as on "Your link" (.oh__open),
-   in the panel's top-right corner */
-.oh-card__preview {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  padding: 4px 2px; /* a bigger target without looking bigger */
+.oh-card__copy:hover {
+  background: #fbe4d1;
+  border-color: var(--color-primary);
+}
+
+/* The link, if copying fails, ready to select by hand */
+.oh-card__error {
+  margin-top: -8px;
+}
+
+.oh-card__url {
+  font-weight: 600;
+  color: var(--color-text);
+  word-break: break-all;
+  user-select: all;
 }
 
 /* ---------- Pointer ---------- */
@@ -451,7 +430,7 @@
 .oh__copy,
 .oh__add,
 .oh__open,
-.oh-card__edit {
+.oh-card__copy {
   cursor: pointer;
 }
 
@@ -459,7 +438,7 @@
 .oh__copy:focus-visible,
 .oh__add:focus-visible,
 .oh__open:focus-visible,
-.oh-card__edit:focus-visible {
+.oh-card__copy:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }

@@ -11,6 +11,13 @@ export const PAGE_DOMAIN = window.location.host;
 // The full web address of a page, to copy or open: http://localhost:5173/harishneel
 export const pageUrl = (handle) => `${window.location.protocol}//${PAGE_DOMAIN}/${handle}`;
 
+// One offering's own link, for creators who share a single call rather than
+// their whole page: http://localhost:5173/harishneel/my-call
+// Built from the offering's id, not its title, so renaming a call never
+// breaks a link that's already been sent. (A creator-chosen slug can
+// replace the id once the real API stores one.)
+export const offeringUrl = (handle, id) => `${pageUrl(handle)}/${encodeURIComponent(id)}`;
+
 // Who's signed in. Stand-in until the real account comes from the API.
 export const mockAccount = { name: 'Harish Neel' };
 
