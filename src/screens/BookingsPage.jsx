@@ -141,7 +141,7 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
           <p className="bk__empty-text">When someone books a call from your page, it shows up here with everything you need for it.</p>
           {onNavigate && (
             <button type="button" className="bk-btn bk-btn--secondary" onClick={() => onNavigate('my-page')}>
-              Go to My services page
+              Go to My offerings page
             </button>
           )}
         </div>

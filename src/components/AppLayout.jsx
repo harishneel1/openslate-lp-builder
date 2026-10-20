@@ -99,10 +99,10 @@ function MyPageCard({ active, onOpen }) {
 
   return (
     <div className={`mypage ${active ? 'mypage--active' : ''}`}>
-      <button type="button" className="mypage__main" onClick={onOpen} title="My services page">
+      <button type="button" className="mypage__main" onClick={onOpen} title="My offerings page">
         <span className="mypage__avatar">{initials(mockAccount.name)}</span>
         <span className="mypage__text">
-          <span className="mypage__label">My services page</span>
+          <span className="mypage__label">My offerings page</span>
           <span className="mypage__link">{link ?? 'Not set up yet'}</span>
         </span>
       </button>
