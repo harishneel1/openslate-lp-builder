@@ -8,6 +8,8 @@ import './SlotPicker.css';
 // the booking page, so Continue can use them. `zonePicker` is shown
 // under the title, so the clock is known before the times are read.
 // On desktop only the list of times scrolls (see SlotPicker.css).
+// currentSlot: when rescheduling, the time they're booked at now. It's
+// marked "Current" and can't be picked again.
 // ------------------------------------------------------------
 
 const PERIODS = [
@@ -24,7 +26,18 @@ function longDate(date, opts = { weekday: 'long', day: 'numeric', month: 'long' 
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-export default function SlotPicker({ availability, creatorName, profileHref, zonePicker, date, slot, onDateChange, onSlotChange }) {
+export default function SlotPicker({
+  availability,
+  creatorName,
+  profileHref,
+  zonePicker,
+  date,
+  slot,
+  onDateChange,
+  onSlotChange,
+  currentSlot = null,
+}) {
+  const currentMs = currentSlot ? Date.parse(currentSlot) : null;
   const { days, firstAvailable } = availability;
   const strip = useRef(null);
   const pending = useRef(null); // where an arrow click is still scrolling to
@@ -168,17 +181,32 @@ export default function SlotPicker({ availability, creatorName, profileHref, zon
             <div key={p.id} className="sp__period" role="group" aria-label={p.label}>
               <p className="sp__period-label" aria-hidden="true">{p.label}</p>
               <div className="sp__grid">
-                {slots.map((s) => (
-                  <button
-                    key={s.start}
-                    type="button"
-                    className="sp__time"
-                    aria-pressed={s.start === slot}
-                    onClick={() => onSlotChange(s.start)}
-                  >
-                    {s.time}
-                  </button>
-                ))}
+                {slots.map((s) =>
+                  Date.parse(s.start) === currentMs ? (
+                    <button
+                      key={s.start}
+                      type="button"
+                      className="sp__time sp__time--current"
+                      disabled
+                      aria-label={`${s.time}, your current time`}
+                    >
+                      {s.time}
+                      <span className="sp__time-note" aria-hidden="true">
+                        Current
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      key={s.start}
+                      type="button"
+                      className="sp__time"
+                      aria-pressed={s.start === slot}
+                      onClick={() => onSlotChange(s.start)}
+                    >
+                      {s.time}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
           );

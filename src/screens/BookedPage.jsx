@@ -13,7 +13,9 @@ import { profileHrefFor } from '../data/myProfile';
 // Calendar sends the visitor an invite (with the link to join), so the
 // next steps are: accept it, then join from the event. Opened at ?mock=booked with
 // the details checkout passed on (see main.jsx).
-// Payment details, rescheduling and cancelling are left out for now.
+// Payment details are left out for now. Rescheduling and cancelling: the
+// links at the bottom stand in for the ones in the confirmation email
+// (ManageBookingPage.jsx), shown only for a booking that was saved.
 // ------------------------------------------------------------
 
 const ICONS = { clock: Clock, phone: Phone, video: Video };
@@ -66,6 +68,12 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
       ? `The link to join is in ${creator.firstName}’s calendar invite.`
       : `${creator.firstName} will call you on ${phone}.`;
   const event = { id: booking.id, title, start: booking.start, end: booking.end, details, location };
+
+  // The student's own page for this booking (cancel, reschedule): only for a saved booking
+  const manageHref =
+    bookingId && booking.id === bookingId
+      ? `?mock=manage&booking=${encodeURIComponent(bookingId)}&tz=${encodeURIComponent(zone)}`
+      : null;
 
   const copyLink = async () => {
     try {
@@ -181,6 +189,14 @@ export default function BookedPage({ serviceId, time, timeZone, state, name, ema
               </div>
             </li>
           </ol>
+
+          {/* In the real product these links are in the confirmation email */}
+          {manageHref && (
+            <p className="bd__fallback">
+              Can't make it? <a href={`${manageHref}&action=reschedule`}>Reschedule</a> or{' '}
+              <a href={`${manageHref}&action=cancel`}>cancel</a>.
+            </p>
+          )}
         </section>
 
       </main>

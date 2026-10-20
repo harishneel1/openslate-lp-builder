@@ -191,6 +191,28 @@
   font-weight: 600;
 }
 
+/* Rescheduling: the time they're booked at now. Shown so they can see
+   what they're moving from, but it can't be picked. */
+.sp__time--current,
+.sp__time--current:hover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 4px;
+  border-style: dashed;
+  border-color: var(--pf-accent);
+  background: var(--pf-panel);
+  color: var(--pf-accent-ink);
+  font-weight: 600;
+  cursor: default;
+}
+
+.sp__time-note {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
 /* ---------- No times at all ---------- */
 .sp__empty {
   margin-top: 16px;

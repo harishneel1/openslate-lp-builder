@@ -1,0 +1,307 @@
+/* ------------------------------------------------------------
+   The student's cancel and reschedule page. Builds on the
+   confirmation page's styles (BookedPage.css: .bd__*), so both
+   look like one product. Colours: styles/storeTheme.css.
+   ------------------------------------------------------------ */
+
+/* A call that isn't happening: the warm card turns grey */
+.mb__session--muted {
+  background: #f1f1f3;
+}
+
+.mb__session--muted .bd__cal-month {
+  background: #c9c9ce;
+  color: var(--pf-text);
+}
+
+.mb__tick--cancel {
+  background: #efeff1;
+  color: var(--pf-body);
+}
+
+/* "Was Mon 19 Oct, 11:00 am", under the new time */
+.mb__was {
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--pf-body);
+}
+
+.mb__was s {
+  margin-left: 4px;
+  color: var(--pf-muted);
+}
+
+/* ---------- Buttons ---------- */
+.mb__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mb__btn--primary {
+  background: var(--pf-accent);
+  color: var(--pf-accent-on);
+}
+
+.mb__btn--primary:hover:not(:disabled) {
+  background: var(--pf-accent-hover);
+}
+
+/* Cancelling can't be undone, so it's red, not the brand orange */
+.mb__btn--danger {
+  background: #c62828;
+  color: #fff;
+}
+
+.mb__btn--danger:hover:not(:disabled) {
+  background: #a82020;
+}
+
+.mb__btn--quiet {
+  border-color: var(--pf-line);
+  background: var(--pf-surface);
+  color: var(--pf-text);
+}
+
+.mb__btn--quiet:hover {
+  border-color: #c9c9ce;
+}
+
+.mb__btn:disabled {
+  background: var(--pf-line);
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+.mb__btn-wide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.mb__choices,
+.mb__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mb__choices .mb__btn {
+  flex: 1 1 180px;
+}
+
+/* ---------- Cancel form ---------- */
+.mb__label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mb__hint {
+  margin-top: 2px;
+  font-size: 13.5px;
+  color: var(--pf-body);
+}
+
+.mb__textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-md);
+  background: var(--pf-surface);
+  color: var(--pf-text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.mb__textarea:focus {
+  border-color: var(--pf-accent);
+  outline: 2px solid var(--pf-panel-line);
+}
+
+.mb__error {
+  font-size: 14px;
+  color: #b42020;
+}
+
+/* ---------- The creator's note, after they cancelled ---------- */
+.mb__note-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--pf-body);
+}
+
+.mb__note {
+  margin-top: -10px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* ---------- Book again ---------- */
+.mb__again {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mb__again .bd__btn {
+  margin-top: 8px;
+}
+
+.mb__again-text {
+  margin-top: 10px;
+  font-size: 13.5px;
+  color: var(--pf-muted);
+}
+
+.mb__live-phone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ---------- Reschedule: laid out like the booking page ---------- */
+.mb__layout {
+  display: grid;
+  /* minmax(0, 1fr): the date strip scrolls inside its card instead of
+     stretching the page wider than a phone */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.mb__head {
+  display: flex;
+  flex-direction: column;
+}
+
+.mb__side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Their current booking: the warm block, like the session card */
+.mb__current {
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--pf-panel);
+}
+
+.mb__current-label {
+  font-size: 13px;
+  color: var(--pf-body);
+}
+
+.mb__current-when {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mb__aside {
+  font-size: 14px;
+  color: var(--pf-body);
+}
+
+.mb__aside a {
+  color: var(--pf-accent-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mb__picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 22px 20px;
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-lg);
+  background: var(--pf-surface);
+}
+
+.mb__go {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--pf-line);
+}
+
+.mb__go-when {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.mb__go-label {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--pf-muted);
+}
+
+.mb__go-when--empty {
+  font-weight: 400;
+  color: var(--pf-muted);
+}
+
+/* Every control: one visible focus style */
+.mb__btn:focus-visible,
+.mb__aside a:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+@media (min-width: 960px) {
+  .mb__layout {
+    grid-template-columns: minmax(0, 480px) 400px;
+    justify-content: space-between;
+    gap: 56px;
+    align-items: start;
+    padding: 64px 40px 80px;
+  }
+
+  .mb__picker {
+    position: sticky;
+    top: 24px;
+  }
+
+  /* Never taller than the screen; the times scroll inside (SlotPicker.css) */
+  .mb__picker-card {
+    max-height: calc(100vh - 48px);
+  }
+
+  .mb__go {
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mb__btn {
+    transition: none;
+  }
+}
