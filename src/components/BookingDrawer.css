@@ -7,10 +7,6 @@
   color: var(--bk-ink);
 }
 
-.bkd .drawer__sub {
-  color: var(--bk-ink-2);
-}
-
 /* Takes focus when the panel opens; no ring, since nobody tabbed here */
 .bkd__focus:focus {
   outline: none;
@@ -35,18 +31,90 @@
   margin-top: 2px;
 }
 
-/* ---------- When: the biggest thing in the panel ---------- */
-.bkd__hero-top {
-  display: flex;
+/* ---------- Head: initials, name, then ways to reach them ---------- */
+.bkd .drawer__head {
   align-items: center;
+  gap: 14px;
+}
+
+.bkd .drawer__close {
+  align-self: flex-start;
+}
+
+.bkd .drawer__title {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+/* The title is a single line beside the initials; the icons sit under it */
+.bkd__reach {
+  display: flex;
+  gap: 8px;
+}
+
+.bkd__contact {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--bk-ink-2);
+  background: var(--color-surface);
+  border: 1px solid #dcdce0;
+  border-radius: 50%;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.bkd__contact:hover {
+  color: var(--bk-orange-ink);
+  background: var(--bk-tint);
+  border-color: var(--bk-tint-line);
+}
+
+.bkd__contact:focus-visible,
+.bkd__copy:focus-visible {
+  outline: 2px solid var(--bk-orange-strong);
+  outline-offset: 2px;
+}
+
+/* ---------- The call they booked: the one boxed thing in the panel ---------- */
+.bkd__call {
+  padding: 18px 20px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-left: 4px solid var(--bk-orange);
+  border-radius: var(--radius-md);
+}
+
+.bkd__call--ended,
+.bkd__call--cancelled {
+  border-left-color: #d4d4d8;
+}
+
+.bkd__call-top {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.bkd__service {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bk-orange-ink);
+}
+
+.bkd__call--ended .bkd__service,
+.bkd__call--cancelled .bkd__service {
+  color: var(--bk-ink-2);
 }
 
 .bkd__state {
+  flex-shrink: 0;
   padding: 4px 12px;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--bk-orange-ink);
   background: var(--bk-tint);
   border-radius: var(--radius-pill);
@@ -68,83 +136,78 @@
   background: #fdecec;
 }
 
+.bkd__date {
+  margin-top: 14px;
+  font-size: 15px;
+  color: var(--bk-ink-2);
+}
+
 .bkd__clock {
-  font-size: 28px;
+  margin-top: 2px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums;
 }
 
-.bkd__date {
-  margin-top: 6px;
-  font-size: 15px;
+.bkd__call--cancelled .bkd__clock {
+  color: var(--bk-ink-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.bkd__their-time {
+  margin-top: 4px;
+  font-size: 14px;
   color: var(--bk-ink-2);
 }
 
-/* ---------- Join, copy, email: one row under the time ---------- */
-.bkd__actions {
+/* Format, length and price: three short facts with icons, one line */
+.bkd__meta {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 20px;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 12px;
+  padding: 0;
+  font-size: 14px;
+  color: var(--bk-ink-2);
+  list-style: none;
+}
+
+.bkd__meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bkd__meta svg {
+  color: var(--bk-ink-3);
 }
 
 .bkd__join {
   width: 100%;
   min-height: 44px;
+  margin-top: 18px;
 }
 
 /* Join, with Copy meeting link as a small square beside it */
 .bkd__join-row {
   display: flex;
   gap: 8px;
+  margin-top: 18px;
 }
 
 .bkd__join-row .bkd__join {
   flex: 1;
   width: auto;
+  margin-top: 0;
 }
 
 .bkd__copy {
   width: 44px;
   min-height: 44px;
   padding: 0;
-}
-
-/* ---------- WhatsApp and Email: round icons beside the initials ---------- */
-.bkd__who {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.bkd__who .bk-face {
-  margin-right: 4px;
-}
-
-.bkd__contact {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  color: var(--bk-ink);
-  background: var(--color-surface);
-  border: 1px solid #dcdce0;
-  border-radius: 50%;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-
-.bkd__contact:hover {
-  color: var(--bk-orange-ink);
-  background: var(--bk-tint);
-  border-color: var(--bk-tint-line);
-}
-
-.bkd__contact:focus-visible,
-.bkd__copy:focus-visible {
-  outline: 2px solid var(--bk-orange-strong);
-  outline-offset: 2px;
 }
 
 .bkd__sr {
@@ -168,12 +231,7 @@
   color: var(--bk-ink);
 }
 
-.bkd__muted {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--bk-ink-3);
-}
-
+/* Contact: label on the left, value on the right */
 .bkd__facts {
   font-size: 14px;
   border-top: 1px solid var(--bk-line);
@@ -181,34 +239,10 @@
 
 .bkd__facts > div {
   display: grid;
-  grid-template-columns: 112px 1fr;
+  grid-template-columns: 96px 1fr;
   gap: 12px;
-  padding: 10px 0;
+  padding: 11px 0;
   border-bottom: 1px solid var(--bk-line);
-}
-
-/* An answer to a booking question: the question, with the answer under it */
-.bkd__facts > .bkd__answer {
-  display: block;
-}
-
-.bkd__answer dd {
-  margin-top: 4px;
-  padding: 10px 12px;
-  font-size: 15px;
-  line-height: 1.6;
-  background: #fffaf6;
-  border-left: 3px solid var(--bk-orange);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  white-space: pre-wrap;
-}
-
-.bkd__answer dd.bkd__no-answer {
-  padding: 0;
-  font-size: 14px;
-  color: var(--bk-ink-3);
-  background: none;
-  border: 0;
 }
 
 .bkd__facts dt {
@@ -230,6 +264,117 @@
 .bkd__facts a:hover {
   color: var(--bk-orange-ink);
   text-decoration-color: var(--bk-orange);
+}
+
+/* Answers: the question small, their words under it in full.
+   Every question looks the same, however many a call asks. */
+.bkd__answers {
+  border-top: 1px solid var(--bk-line);
+}
+
+.bkd__answers > div {
+  padding: 12px 0 13px;
+  border-bottom: 1px solid var(--bk-line);
+}
+
+.bkd__answers dt {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--bk-ink-3);
+}
+
+.bkd__answers dd {
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--bk-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bkd__answers dd.bkd__no-answer {
+  font-size: 14px;
+  color: var(--bk-ink-3);
+}
+
+/* History: a timeline, oldest at the top. A dot per step on one
+   connecting line, so the order reads at a glance. The latest step's
+   dot is filled. */
+.bkd__timeline {
+  padding: 0;
+  list-style: none;
+}
+
+.bkd__event {
+  position: relative;
+  padding: 0 0 16px 22px;
+}
+
+.bkd__event:last-child {
+  padding-bottom: 0;
+}
+
+/* The dot */
+.bkd__event::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--color-surface);
+  border: 2px solid #c9c9ce;
+  border-radius: 50%;
+}
+
+/* The line down to the next dot */
+.bkd__event:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 19px;
+  bottom: 2px;
+  left: 5.5px;
+  width: 2px;
+  background: var(--bk-line);
+}
+
+.bkd__event:last-child::before {
+  background: var(--bk-ink-3);
+  border-color: var(--bk-ink-3);
+}
+
+.bkd__event--cancelled:last-child::before {
+  background: #c43c3c;
+  border-color: #c43c3c;
+}
+
+.bkd__event-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+}
+
+.bkd__event-what {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bk-ink);
+}
+
+.bkd__event-line time {
+  font-size: 13px;
+  color: var(--bk-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.bkd__event-detail {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--bk-ink-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .bkd__sent-note {
@@ -401,7 +546,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bkd__day,
-  .bkd__time {
+  .bkd__time,
+  .bkd__contact {
     transition: none;
   }
 }

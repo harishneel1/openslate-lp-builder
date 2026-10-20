@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, Mail, MessageCircle, Phone, Video } from 'lucide-react';
+import { Check, Clock, Copy, Mail, Phone, Video, Wallet } from 'lucide-react';
 import Drawer from './Drawer';
 import GuestInitials from './GuestInitials';
 import { cancelBooking, rescheduleBooking } from '../data/bookingsStore';
@@ -16,8 +16,11 @@ import './BookingDrawer.css';
 // ------------------------------------------------------------
 // One booking, opened from the Bookings page. Three views in the
 // same panel:
-//   details     when (on both clocks), join, then one Details list:
-//               their answers to the booking questions, contact, payment
+//   details     read top to bottom, in the order the creator asks:
+//               who is this (head: initials, name, WhatsApp, email, phone)
+//               what did they book (the call: name, when, format, join)
+//               about them (contact, then their answers to the questions)
+//               history (booked, rescheduled, cancelled)
 //   reschedule  pick a new time from the call's own open times
 //   cancel      confirm, with an optional note to the guest
 // Ended and cancelled calls only show details.
@@ -54,6 +57,27 @@ function whatsappMessage(booking, zone, guestName) {
   if (booking.state === 'cancelled') return `${hi}, about the ${booking.title} we had booked for ${when}.`;
   if (booking.state === 'ended') return `${hi}. Thanks for our ${booking.title} on ${day}.`;
   return `${hi}, about our ${booking.title} on ${when}.`;
+}
+
+// WhatsApp's mark as a line icon (Tabler's brand-whatsapp, MIT), on the same
+// 24px grid and 2px stroke as lucide, so it sits evenly beside Mail and Phone
+function WhatsAppIcon({ size = 18 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9l-5.05 .9" />
+      <path d="M9 10a.5 .5 0 0 0 1 0V9a.5 .5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0-1h-1a.5 .5 0 0 0 0 1" />
+    </svg>
+  );
 }
 
 // A saved instant → 'Thu 22 Oct' on the creator's clock, never 'Today'
@@ -184,27 +208,54 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
   }
 
   // What the guest answered when booking. One question for now; each call
-  // can have its own questions later, saved with the booking as
+  // can have its own qualifying questions later, saved with the booking as
   // answers: [{ question, answer }]. Older bookings only have `topic`.
   const answers = booking.answers ?? [{ question: TOPIC_QUESTION, answer: booking.topic }];
 
-  // 'by you' or 'by Tarun'
-  const byWhom = (by) => (by === 'guest' ? `by ${name}` : 'by you');
-
-  const facts = [
-    theirTime && ['Their time', theirTime],
-    ['Format', booking.format === 'phone' ? 'Phone call' : 'Video call'],
-    typeof booking.paid === 'number' && ['Payment', booking.paid > 0 ? `Paid ${money(booking.paid)}` : 'Free call'],
+  // About the guest: how to reach them
+  const contact = [
     booking.guest?.email && ['Email', <a href={`mailto:${booking.guest.email}`}>{booking.guest.email}</a>],
     booking.guest?.phone && ['Phone', <a href={telHref(booking.guest.phone)}>{booking.guest.phone}</a>],
-    ['Booked', dayOf(booking.createdAt, zone)],
-    booking.moved && [
-      'Rescheduled from',
-      `${exactDay(booking.moved.date)}, ${booking.moved.time}, ${byWhom(booking.moved.by)}`,
-    ],
-    booking.state === 'cancelled' &&
-      booking.cancelledAt && ['Cancelled', `${dayOf(booking.cancelledAt, zone)}, ${byWhom(booking.cancelledBy)}`],
   ].filter(Boolean);
+
+  // What happened to the booking, as a timeline read top to bottom, oldest
+  // first: each step says who did what, and when they did it.
+  // Only the latest reschedule is saved (previousStart), so a call moved
+  // twice shows one move, from the time before the latest one.
+  const who = (by) => (by === 'guest' ? name : 'You');
+  const at = (iso) => `${dayOf(iso, zone)}, ${formatTime(Date.parse(iso), zone)}`;
+  // 'From 11:00 am to 9:15 am on Wed 21 Oct' when the day stayed the same,
+  // else 'From Wed 21 Oct, 9:15 am to Thu 22 Oct, 10:00 am'
+  const movedLine = (from, to) =>
+    dayOf(from, zone) === dayOf(to, zone)
+      ? `From ${formatTime(Date.parse(from), zone)} to ${formatTime(Date.parse(to), zone)} on ${dayOf(to, zone)}`
+      : `From ${at(from)} to ${at(to)}`;
+  const history = [
+    {
+      key: 'booked',
+      what: `${name} booked`,
+      detail: `For ${at(booking.previousStart ?? booking.start)}`,
+      when: booking.createdAt,
+    },
+    booking.previousStart && {
+      key: 'rescheduled',
+      what: `${who(booking.moved?.by)} rescheduled`,
+      detail: movedLine(booking.previousStart, booking.start),
+      when: booking.rescheduledAt,
+    },
+    booking.state === 'cancelled' && {
+      key: 'cancelled',
+      what: `${who(booking.cancelledBy)} cancelled`,
+      // The creator's note goes with their cancel; a guest's reason is shown
+      // up with their answers, since it's something to read, not a record
+      detail: booking.cancelMessage && booking.cancelledBy !== 'guest' ? `Your note: ${booking.cancelMessage}` : null,
+      when: booking.cancelledAt,
+    },
+  ]
+    .filter(Boolean)
+    // Older bookings may be missing a time; those keep the order above
+    .map((step, i) => ({ ...step, order: Date.parse(step.when) || 0, i }))
+    .sort((x, y) => (x.order && y.order ? x.order - y.order : x.i - y.i));
 
   const status = {
     live: 'Happening now',
@@ -214,10 +265,46 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     cancelled: booking.cancelledBy === 'guest' ? `${name} cancelled` : 'Cancelled',
   }[booking.state];
 
+  const isPhone = booking.format === 'phone';
+  const price = typeof booking.paid === 'number' ? (booking.paid > 0 ? `Paid ${money(booking.paid)}` : 'Free') : null;
+
+  // ---------- Head: the person, and every way to reach them ----------
+  const reach = [
+    whatsapp && { label: `WhatsApp ${name}`, href: whatsapp, external: true, icon: <WhatsAppIcon /> },
+    booking.guest?.email && {
+      label: `Email ${name}`,
+      href: `mailto:${booking.guest.email}`,
+      icon: <Mail size={18} aria-hidden="true" />,
+    },
+    booking.guest?.phone && {
+      label: `Call ${name}`,
+      href: telHref(booking.guest.phone),
+      icon: <Phone size={18} aria-hidden="true" />,
+    },
+  ].filter(Boolean);
+
+  const contactRow = reach.length > 0 && (
+    <div className="bkd__reach">
+      {reach.map((r) => (
+        <a
+          key={r.label}
+          className="bkd__contact"
+          href={r.href}
+          {...(r.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+          aria-label={r.label}
+          data-tip={r.label}
+        >
+          {r.icon}
+        </a>
+      ))}
+    </div>
+  );
+
   return (
     <Drawer
       title={booking.guest?.name || 'Guest'}
-      sub={booking.title}
+      media={<GuestInitials name={booking.guest?.name} size="lg" />}
+      extra={view === 'details' ? contactRow : null}
       onClose={onClose}
       footer={footer}
       className="bkd"
@@ -233,49 +320,44 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
             </p>
           )}
 
-          {/* ---------- When: the biggest thing in the panel ---------- */}
-          <section className="bkd__hero" aria-label="When">
-            {/* The person, and ways to reach them, beside their initials */}
-            <div className="bkd__hero-top">
-              <div className="bkd__who">
-                <GuestInitials name={booking.guest?.name} size="lg" />
-                {whatsapp && (
-                  <a
-                    className="bkd__contact"
-                    href={whatsapp}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`WhatsApp ${name}`}
-                    data-tip={`WhatsApp ${name}`}
-                  >
-                    <MessageCircle size={18} aria-hidden="true" />
-                  </a>
-                )}
-                {booking.guest?.email && (
-                  <a
-                    className="bkd__contact"
-                    href={`mailto:${booking.guest.email}`}
-                    aria-label={`Email ${name}`}
-                    data-tip={`Email ${name}`}
-                  >
-                    <Mail size={18} aria-hidden="true" />
-                  </a>
-                )}
-              </div>
+          {/* ---------- The call they booked ---------- */}
+          <section className={`bkd__call bkd__call--${booking.state}`} aria-label="Their booking">
+            <div className="bkd__call-top">
+              <h3 className="bkd__service">{booking.title}</h3>
               <span className={`bkd__state bkd__state--${booking.state}`}>{status}</span>
             </div>
+
+            <p className="bkd__date">{longDay(booking.date)}</p>
             <p className="bkd__clock">
               {booking.time} to {booking.ends}
             </p>
-            <p className="bkd__date">
-              {longDay(booking.date)}, {lengthLabel(booking.lengthMins)}
-            </p>
-          </section>
+            {/* Only when they booked from another time zone */}
+            {theirTime && (
+              <p className="bkd__their-time">
+                For {name}: {theirTime}
+              </p>
+            )}
 
-          {/* ---------- Join: the one big action, while the call is on ---------- */}
-          {open && (
-            <section className="bkd__actions" aria-label="How to join">
-              {booking.format === 'phone' ? (
+            <ul className="bkd__meta">
+              <li>
+                {isPhone ? <Phone size={15} aria-hidden="true" /> : <Video size={15} aria-hidden="true" />}
+                {isPhone ? 'Phone call' : 'Video call'}
+              </li>
+              <li>
+                <Clock size={15} aria-hidden="true" />
+                {lengthLabel(booking.lengthMins)}
+              </li>
+              {price && (
+                <li>
+                  <Wallet size={15} aria-hidden="true" />
+                  {price}
+                </li>
+              )}
+            </ul>
+
+            {/* Join: the one big action, while the call is on */}
+            {open &&
+              (isPhone ? (
                 <a className="bk-btn bk-btn--primary bkd__join" href={telHref(booking.guest?.phone)}>
                   <Phone size={16} aria-hidden="true" /> Call {booking.guest?.phone}
                 </a>
@@ -298,38 +380,56 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
                     {copied ? 'Link copied' : ''}
                   </span>
                 </div>
-              ) : null}
+              ) : null)}
+          </section>
+
+          {/* ---------- About the guest: contact, then their answers ---------- */}
+          {contact.length > 0 && (
+            <section className="bkd__section">
+              <h3 className="bkd__heading">About {name}</h3>
+              <dl className="bkd__facts">
+                {contact.map(([label, value]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
             </section>
           )}
 
-          {/* ---------- Everything else, at a glance ---------- */}
           <section className="bkd__section">
-            <h3 className="bkd__heading">Details</h3>
-            <dl className="bkd__facts">
+            <h3 className="bkd__heading">{answers.length === 1 ? 'Their answer' : 'Their answers'}</h3>
+            <dl className="bkd__answers">
               {answers.map(({ question, answer }) => (
-                <div key={question} className="bkd__answer">
+                <div key={question}>
                   <dt>{question}</dt>
                   <dd className={answer ? '' : 'bkd__no-answer'}>{answer || 'No answer'}</dd>
                 </div>
               ))}
-              {facts.map(([label, value]) => (
-                <div key={label}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
             </dl>
-            {booking.cancelMessage &&
-              (booking.cancelledBy === 'guest' ? (
-                <p className="bkd__sent-note bkd__sent-note--theirs">
-                  <span className="bkd__note-label">{name}'s reason for cancelling</span>
-                  {booking.cancelMessage}
-                </p>
-              ) : (
-                <p className="bkd__sent-note">
-                  Your note to {name}: {booking.cancelMessage}
-                </p>
+            {booking.cancelMessage && booking.cancelledBy === 'guest' && (
+              <p className="bkd__sent-note bkd__sent-note--theirs">
+                <span className="bkd__note-label">{name}'s reason for cancelling</span>
+                {booking.cancelMessage}
+              </p>
+            )}
+          </section>
+
+          {/* ---------- History: a timeline, oldest at the top ---------- */}
+          <section className="bkd__section bkd__history">
+            <h3 className="bkd__heading">History</h3>
+            <ol className="bkd__timeline">
+              {history.map((step) => (
+                <li key={step.key} className={`bkd__event bkd__event--${step.key}`}>
+                  <div className="bkd__event-line">
+                    <span className="bkd__event-what">{step.what}</span>
+                    {step.when && <time dateTime={step.when}>{at(step.when)}</time>}
+                  </div>
+                  {step.detail && <p className="bkd__event-detail">{step.detail}</p>}
+                </li>
               ))}
+            </ol>
           </section>
         </div>
       )}

@@ -24,8 +24,10 @@ import './Drawer.css';
 // onClose: Escape, ✕ or a click on the dimmed page. The owner
 //          decides whether to close (e.g. asks first about changes).
 // footer:  the panel's own actions
+// media:   optional, left of the title (e.g. a person's initials)
+// extra:   optional, under the title (e.g. buttons to contact them)
 // ------------------------------------------------------------
-export default function Drawer({ title, sub, onClose, footer, className = '', children }) {
+export default function Drawer({ title, sub, media, extra, onClose, footer, className = '', children }) {
   const ref = useRef(null);
   const titleId = useId();
   const subId = useId();
@@ -63,6 +65,7 @@ export default function Drawer({ title, sub, onClose, footer, className = '', ch
     >
       <div className="drawer__panel">
         <header className="drawer__head">
+          {media && <div className="drawer__media">{media}</div>}
           <div className="drawer__heading">
             <h2 className="drawer__title" id={titleId}>
               {title}
@@ -72,6 +75,7 @@ export default function Drawer({ title, sub, onClose, footer, className = '', ch
                 {sub}
               </p>
             )}
+            {extra && <div className="drawer__extra">{extra}</div>}
           </div>
           <button type="button" className="drawer__close" aria-label="Close" onClick={() => close.current()}>
             <X size={18} aria-hidden="true" />
@@ -82,6 +86,6 @@ export default function Drawer({ title, sub, onClose, footer, className = '', ch
 
         {footer && <footer className="drawer__foot">{footer}</footer>}
       </div>
-</dialog>
+    </dialog>
   );
 }

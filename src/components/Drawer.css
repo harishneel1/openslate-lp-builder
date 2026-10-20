@@ -60,7 +60,16 @@
 }
 
 .drawer__heading {
+  flex: 1;
   min-width: 0;
+}
+
+.drawer__media {
+  flex-shrink: 0;
+}
+
+.drawer__extra {
+  margin-top: 10px;
 }
 
 .drawer__title {
