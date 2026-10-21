@@ -250,14 +250,49 @@ export function EditPanel({ id, title, sub, className = '', children }) {
 // with unsaved changes so they're easy to spot while it's closed.
 // The body stays mounted while closed, so nothing in it resets.
 //
+// Design: each section has its own icon, so it can be found by shape
+// without reading. The open section is ringed as one card (head and body
+// together), its icon turns solid, and the closed ones fade back, so it's
+// clear which one you're in. Opening one scrolls it to the top.
+//
+// icon: a lucide icon component for this section (optional)
 // summary: what's set, shown while closed (sub shows while open)
 // warn: something here needs fixing; the summary shows it in amber
 // edited: unsaved changes in this section
-export function EditSection({ id, title, sub, summary, warn = false, edited = false, open, onToggle, className = '', children }) {
+export function EditSection({
+  id,
+  icon: Icon = null,
+  title,
+  sub,
+  summary,
+  warn = false,
+  edited = false,
+  open,
+  onToggle,
+  className = '',
+  children,
+}) {
   const bodyId = `${id}-body`;
   const line = open ? sub : summary;
+
+  // Just opened: bring the whole section to the top, so its fields are in
+  // view and nothing above it (a section that just closed) moves it away
+  const ref = useRef(null);
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      ref.current?.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+    }
+    wasOpen.current = open;
+  }, [open]);
+
   return (
-    <section className={`es__panel es-sec ${open ? 'es-sec--open' : ''}`} aria-label={title}>
+    <section
+      ref={ref}
+      className={`es__panel es-sec ${open ? 'es-sec--open' : ''} ${!open && warn ? 'es-sec--warn' : ''}`}
+      aria-label={title}
+    >
       <h2 className="es-sec__heading">
         <button
           type="button"
@@ -267,6 +302,11 @@ export function EditSection({ id, title, sub, summary, warn = false, edited = fa
           aria-controls={bodyId}
           onClick={onToggle}
         >
+          {Icon && (
+            <span className="es-sec__icon" aria-hidden="true">
+              <Icon size={20} strokeWidth={2} />
+            </span>
+          )}
           <span className="es-sec__text">
             <span className="es-sec__title">
               {title}

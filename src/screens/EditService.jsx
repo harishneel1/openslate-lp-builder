@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Clock, ExternalLink, FileText, Lock } from 'lucide-react';
+import { AlertTriangle, AlignLeft, CalendarClock, ClipboardList, Clock, ExternalLink, FileText, Lock, SlidersHorizontal } from 'lucide-react';
 import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
@@ -274,6 +274,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
     >
       <EditSection
         id="es-basics"
+        icon={SlidersHorizontal}
         title="Basics"
         sub="The name, length and price people see before they book."
         summary={blocker?.section === 'basics' ? blocker.text : basicsSummary(draft)}
@@ -293,6 +294,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
 
       <EditSection
         id="es-descriptions"
+        icon={AlignLeft}
         title="Descriptions"
         sub="What people read about your call before they book."
         summary={
@@ -338,6 +340,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
 
       <EditSection
         id="es-when"
+        icon={CalendarClock}
         title="Availability"
         summary={hours.warning ? hours.short : hours.text}
         warn={Boolean(hours.warning)}
@@ -350,6 +353,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
 
       <EditSection
         id="es-questions"
+        icon={ClipboardList}
         title="Invitee form"
         sub="What people fill in on checkout when they book this call."
         summary={blocker?.section === 'questions' ? blocker.text : questionsSummary(draft.callQuestions)}
@@ -374,6 +378,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
 
       <EditSection
         id="es-service"
+        icon={FileText}
         title="Contract"
         sub="The checkout page people fill in, and pay on, when they book this call."
         summary={isNew ? `${String(draft.callTitle ?? '').trim() || '1:1 call'} · ${priceLabel(draft)}` : serviceSummary(draft.serviceId)}
