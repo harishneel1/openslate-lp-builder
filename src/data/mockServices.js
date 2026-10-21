@@ -19,6 +19,14 @@ const SHOW_SAMPLE_SERVICES = true;
 
 const CREATED_KEY = 'pagebuilder:mock-services';
 
+// Contracts deleted on the Contracts page, kept in this browser so it
+// works for the sample services too:   { [id]: { deleted: true } }
+const CHANGES_KEY = 'pagebuilder:mock-service-changes';
+
+// Where a contract is edited. The real contract page isn't built yet, so
+// this opens the stand-in page with the id. Swap for the real page.
+export const contractEditUrl = (id) => `?mock=create-service&service=${encodeURIComponent(id)}`;
+
 export const mockServices = [
   {
     id: 'svc-vasthu-webinar-nov',
@@ -89,7 +97,7 @@ export const mockServices = [
     price: 199,
     type: 'onetime',
     startDate: '2025-10-18',
-    status: 'inactive',
+    status: 'active',
     createdAt: '2025-10-01',
   },
 ];
@@ -104,8 +112,42 @@ function loadCreated() {
   }
 }
 
+function loadChanges() {
+  try {
+    const changes = JSON.parse(localStorage.getItem(CHANGES_KEY) ?? '{}');
+    return changes && typeof changes === 'object' && !Array.isArray(changes) ? changes : {};
+  } catch {
+    return {};
+  }
+}
+
+// Every service, less the ones deleted in this browser
 function allServices() {
-  return [...(SHOW_SAMPLE_SERVICES ? mockServices : []), ...loadCreated()];
+  const changes = loadChanges();
+  return [...(SHOW_SAMPLE_SERVICES ? mockServices : []), ...loadCreated()].filter((s) => !changes[s.id]?.deleted);
+}
+
+// Saves one service's change. Returns true if it saved.
+function saveChange(id, change) {
+  const changes = loadChanges();
+  changes[id] = { ...changes[id], ...change };
+  try {
+    localStorage.setItem(CHANGES_KEY, JSON.stringify(changes));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Every service, newest first (the Contracts page)
+export function getAllServices() {
+  return allServices().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+
+// Removes a service for good. Returns true if it saved.
+// The Contracts page only does this when no 1:1 call or webinar uses it (see tiedProducts.js).
+export function deleteService(id) {
+  return saveChange(id, { deleted: true });
 }
 
 // Services that can be picked, newest first.

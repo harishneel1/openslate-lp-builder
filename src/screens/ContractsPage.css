@@ -1,0 +1,707 @@
+/* The Contracts page (ContractsPage.jsx). Same frame as the other creator
+   pages (OfferingsHome.css, BookingsPage.css).
+
+   Colour roles:
+     ink      names and prices, what you read first
+     ink-2    supporting text (still easy to read)
+     orange   what to do: Create, the chosen filter, the row's icon
+     green    Free                                                      */
+
+.ct {
+  --ct-ink: #141414;
+  --ct-ink-2: #55555b;
+  --ct-ink-3: #7a7a80;
+  --ct-line: #ececee;
+  --ct-orange-ink: #b4520c; /* orange text, dark enough to read */
+  --ct-tint-line: #f6d6b9;
+  --ct-danger: #c62828;
+
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-top: 16px;
+  padding-bottom: 48px;
+  color: var(--ct-ink);
+}
+
+.ct .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ================= Head ================= */
+.ct__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.ct__head-text {
+  min-width: 0;
+}
+
+.ct__title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ct__sub {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--ct-ink-2);
+}
+
+/* ================= Buttons ================= */
+.ct-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ct-btn--primary {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.ct-btn--primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.ct-btn--quiet {
+  color: var(--ct-ink);
+  background: var(--color-surface);
+  border-color: #d6d6da;
+}
+
+.ct-btn--quiet:hover {
+  border-color: var(--color-primary);
+}
+
+.ct-btn--danger {
+  color: #fff;
+  background: var(--ct-danger);
+}
+
+.ct-btn--danger:hover {
+  background: #a92020;
+}
+
+.ct-btn--small {
+  min-height: 38px;
+  padding: 7px 14px;
+}
+
+.ct-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ================= The card holding the list ================= */
+.ct__panel {
+  margin-top: 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- Search and filters ---------- */
+.ct__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--ct-line);
+}
+
+.ct__search {
+  flex: 1 1 280px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+  color: var(--ct-ink-3);
+  background: var(--color-surface);
+  border: 1px solid #dcdce0;
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ct__search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ct__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ct-ink);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.ct__search input::placeholder {
+  color: var(--ct-ink-3);
+}
+
+.ct__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Same selected look as every other choice in the app: tint with a strong edge */
+.ct__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ct-ink);
+  background: var(--color-surface);
+  border: 1px solid #dcdce0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ct__filter:hover {
+  border-color: #c4c4ca;
+}
+
+.ct__filter--on,
+.ct__filter--on:hover {
+  font-weight: 600;
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.ct__filter-count {
+  min-width: 22px;
+  padding: 1px 7px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ct-ink-2);
+  background: #f2f2f4;
+  border-radius: var(--radius-pill);
+}
+
+.ct__filter--on .ct__filter-count {
+  color: var(--ct-orange-ink);
+  background: var(--color-surface);
+}
+
+.ct__filter:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Columns: one grid for the head and every row ---------- */
+.ct__cols,
+.ct-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 140px auto;
+  align-items: center;
+  gap: 20px;
+  padding: 0 24px;
+}
+
+/* The actions column is as wide as Edit + ⋯, so the head lines up with the rows */
+.ct__cols > :last-child,
+.ct-row__actions {
+  width: 132px;
+}
+
+.ct__cols {
+  padding-top: 14px;
+  padding-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ct-ink-3);
+  border-bottom: 1px solid var(--ct-line);
+}
+
+/* ---------- One contract ---------- */
+.ct__list {
+  list-style: none;
+}
+
+.ct-row {
+  position: relative;
+  min-height: 80px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  transition: background 0.15s;
+}
+
+.ct-row + .ct-row {
+  border-top: 1px solid var(--ct-line);
+}
+
+.ct-row:last-child {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.ct-row:hover {
+  background: #fafafb;
+}
+
+/* The open menu sits above the rows under it */
+.ct-row--menu {
+  z-index: var(--z-dropdown);
+}
+
+.ct-row__main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.ct-row__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: var(--ct-orange-ink);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-md);
+}
+
+.ct-row__title {
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ct-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+/* The whole row opens the contract, through its name */
+.ct-row__title::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.ct-row:hover .ct-row__title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ct-row__title:focus-visible {
+  outline: none;
+}
+
+.ct-row__title:focus-visible::after {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -3px;
+}
+
+/* Price: the amount first, then how it's paid */
+.ct-row__price {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ct-row__amount {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ct-row__amount--free {
+  color: var(--color-success);
+}
+
+.ct-row__type {
+  font-size: 13px;
+  color: var(--ct-ink-2);
+}
+
+.ct-row__date {
+  font-size: 15px;
+  color: var(--ct-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Edit and ⋯ sit above the row's link, so they get their own clicks */
+.ct-row__actions {
+  position: relative;
+  z-index: var(--z-raised);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- ⋯ menu ---------- */
+.ct-menu {
+  position: relative;
+}
+
+.ct-menu__button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: var(--ct-ink);
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ct-menu__button:hover,
+.ct-menu__button[aria-expanded='true'] {
+  border-color: var(--color-primary);
+}
+
+.ct-menu__button[aria-expanded='true'] {
+  background: var(--color-primary-tint);
+}
+
+.ct-menu__button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ct-menu__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: 260px;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--ct-line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.ct-menu__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ct-ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.ct-menu__item svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ct-ink-2);
+}
+
+.ct-menu__item:hover,
+.ct-menu__item:focus-visible {
+  background: #f4f4f6;
+  outline: none;
+}
+
+.ct-menu__item--danger,
+.ct-menu__item--danger svg {
+  color: var(--ct-danger);
+}
+
+.ct-menu__item--danger:hover,
+.ct-menu__item--danger:focus-visible {
+  background: #fdecec;
+}
+
+.ct-menu__divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--ct-line);
+}
+
+/* ---------- Nothing matches / no contracts ---------- */
+.ct__none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 24px;
+  font-size: 15px;
+  color: var(--ct-ink-2);
+  text-align: center;
+}
+
+.ct__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.ct__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  color: var(--ct-orange-ink);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-lg);
+}
+
+.ct__empty-title {
+  margin-top: 18px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ct__empty-text {
+  max-width: 440px;
+  margin: 8px 0 22px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ct-ink-2);
+}
+
+/* ---------- Note after an action ---------- */
+.ct__notice-wrap {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: var(--z-toast);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ct__notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  background: #1f1f22;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.ct__notice svg {
+  color: #6ee7a0;
+}
+
+.ct__notice--error svg {
+  color: #ffb4a8;
+}
+
+/* ---------- Delete pop-up ---------- */
+.ct-dialog {
+  width: min(480px, calc(100vw - 32px));
+  margin: auto;
+  padding: 28px;
+  color: var(--ct-ink);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+/* No browser focus ring around the whole pop-up; its buttons show focus */
+.ct-dialog:focus,
+.ct-dialog:focus-visible {
+  outline: none;
+}
+
+.ct-dialog::backdrop {
+  background: rgba(17, 17, 17, 0.4);
+}
+
+.ct-dialog__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ct-dialog__body {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ct-ink-2);
+}
+
+.ct-dialog__body strong {
+  font-weight: 600;
+  color: var(--ct-ink);
+}
+
+.ct-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* More than one thing holding it: one line each, with a way there */
+.ct-dialog__uses {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 14px;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ct-ink-2);
+}
+
+.ct-dialog__use strong {
+  font-weight: 600;
+  color: var(--ct-ink);
+}
+
+.ct-dialog__go {
+  display: block;
+  margin-top: 2px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ct-orange-ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ct-dialog__go:hover {
+  text-decoration: underline;
+}
+
+.ct-dialog__go:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ================= Narrower screens ================= */
+/* Tablets: the date column goes; it's the least needed */
+@media (max-width: 1020px) {
+  .ct__cols,
+  .ct-row {
+    grid-template-columns: minmax(0, 1fr) 130px auto;
+  }
+
+  .ct__cols > :nth-child(3),
+  .ct-row__date {
+    display: none;
+  }
+}
+
+/* Phones: each contract is a stacked card. Name on top, price under it,
+   Edit and ⋯ at the bottom. */
+@media (max-width: 720px) {
+  .ct__title {
+    font-size: 26px;
+  }
+
+  .ct__head .ct-btn--primary {
+    width: 100%;
+  }
+
+  .ct__tools {
+    padding: 16px;
+  }
+
+  .ct__cols {
+    display: none;
+  }
+
+  .ct-row {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'main'
+      'price'
+      'actions';
+    gap: 14px 12px;
+    padding: 18px 16px;
+  }
+
+  .ct-row__main {
+    grid-area: main;
+  }
+
+  .ct-row__price {
+    grid-area: price;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    padding-left: 56px;
+  }
+
+  .ct-row__actions {
+    grid-area: actions;
+    width: auto;
+    justify-content: flex-start;
+    padding-left: 56px;
+  }
+
+  .ct-row__actions .ct-btn--small {
+    flex: 1;
+  }
+
+  .ct__notice {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ct-btn,
+  .ct__filter,
+  .ct__search,
+  .ct-row,
+  .ct-menu__button {
+    transition: none;
+  }
+}
