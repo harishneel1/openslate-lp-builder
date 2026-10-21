@@ -8,7 +8,8 @@ const MAX_SIDE = 400;  // longest side after shrinking, in px (plenty for avatar
 const QUALITY = 0.85;  // JPEG quality
 
 // Throws an Error with a message that's safe to show the creator.
-export async function readPhoto(file) {
+// maxSide: longest side after shrinking (bigger for a contract's cover)
+export async function readPhoto(file, { maxSide = MAX_SIDE } = {}) {
   if (!file.type.startsWith('image/')) {
     throw new Error('Please choose an image file (JPG or PNG).');
   }
@@ -18,8 +19,8 @@ export async function readPhoto(file) {
 
   const img = await loadImage(file);
 
-  // Scale down so the longest side is MAX_SIDE; never scale up
-  const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  // Scale down so the longest side is maxSide; never scale up
+  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
   const width = Math.round(img.naturalWidth * scale);
   const height = Math.round(img.naturalHeight * scale);
 
@@ -34,6 +35,16 @@ export async function readPhoto(file) {
   ctx.drawImage(img, 0, 0, width, height);
 
   return canvas.toDataURL('image/jpeg', QUALITY);
+}
+
+// The picture's width and height, for checking its shape (a cover should be wide)
+export function photoSize(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
 }
 
 // Loads the file into an <img> so we can draw it on a canvas

@@ -11,13 +11,13 @@ import {
   X,
 } from 'lucide-react';
 import {
-  CREATE_SERVICE_URL,
-  contractEditUrl,
   deleteService,
   getAllServices,
   serviceDate,
 } from '../data/mockServices';
 import { tiedTo } from '../data/tiedProducts';
+import { formatMoney } from '../data/contractPricing';
+import ContractEditor from './ContractEditor';
 import { SETUP_CHANGED_EVENT } from '../data/myPage';
 import './ContractsPage.css';
 
@@ -39,6 +39,9 @@ import './ContractsPage.css';
 //   │ └────────────────────────────────────────────────────┘ │
 //   └────────────────────────────────────────────────────────┘
 //
+// Create new contract, Edit and a click on a row open the contract screen
+// (ContractEditor.jsx) right here, with a back link to this list.
+//
 // One visible action per row (Edit); the rest live in ⋯ with words, not
 // icons. Delete always asks first. When a 1:1 call or webinar is tied to the
 // contract, the pop-up says which one, and that it has to be deleted first.
@@ -58,7 +61,14 @@ const FILTERS = [
 const PAYMENT_TYPES = { onetime: 'One-time', subscription: 'Monthly' };
 
 const isFree = (c) => c.type === 'free' || !(Number(c.price) > 0);
-const amountLabel = (c) => (isFree(c) ? 'Free' : `₹${Number(c.price).toLocaleString('en-IN')}`);
+const amountLabel = (c) => (isFree(c) ? 'Free' : formatMoney(c.price, c.currency ?? 'INR'));
+
+// "One-time", or "One-time · +2 currencies" when it has prices in others too
+function typeLabel(c) {
+  const type = PAYMENT_TYPES[c.type] ?? 'One-time';
+  const more = (Array.isArray(c.prices) ? c.prices.length : 1) - 1;
+  return more > 0 ? `${type} · +${more} ${more === 1 ? 'currency' : 'currencies'}` : type;
+}
 
 // Copies text, with a fallback where the Clipboard API isn't allowed
 async function copyText(text) {
@@ -116,6 +126,8 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
   // The delete pop-up: { contract, tied } (tied: the 1:1 calls and webinars holding it, if any)
   const [deleting, setDeleting] = useState(null);
   const [notice, setNotice] = useState(null); // { text, tone } shown at the bottom for a moment
+  // The contract screen, when it's open: { id } to change one, { id: null } for a new one
+  const [editing, setEditing] = useState(null);
 
   // A short note at the bottom of the screen after an action
   const noticeTimer = useRef(null);
@@ -179,14 +191,37 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
     setFilter('all');
   };
 
+  // The contract screen, in place of the list. Back here re-reads the list.
+  if (editing) {
+    const backToList = () => {
+      setEditing(null);
+      refresh();
+    };
+    return (
+      <>
+        <ContractEditor
+          key={editing.id ?? 'new'}
+          contractId={editing.id}
+          backLabel="Contracts"
+          onBack={backToList}
+          onCreated={(made) => {
+            backToList();
+            tell(`“${made.title}” created`);
+          }}
+        />
+        <Notice notice={notice} />
+      </>
+    );
+  }
+
   return (
     <div className="ct">
       <header className="ct__head">
         <div className="ct__head-text">
           <h1 className="ct__title">Contracts</h1>
-          <p className="ct__sub">Contract pages are the checkout pages customers sign up and pay on. Your 1:1 calls, webinars and courses each use a contract.</p>
+          <p className="ct__sub">The pages people sign up and pay on. Your 1:1 calls, webinars and courses each use a contract.</p>
         </div>
-        {contracts.length > 0 && <CreateButton />}
+        {contracts.length > 0 && <CreateButton onClick={() => setEditing({ id: null })} />}
       </header>
 
       {contracts.length === 0 ? (
@@ -198,7 +233,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
           <p className="ct__empty-text">
             A contract is the page people sign up on, and pay on when it’s paid. Make one, then use it for a 1:1 call, a webinar or a course.
           </p>
-          <CreateButton />
+          <CreateButton onClick={() => setEditing({ id: null })} />
         </section>
       ) : (
         <section className="ct__panel" aria-labelledby="ct-list-title">
@@ -262,6 +297,10 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
                     menuOpen={menuFor === c.id}
                     onMenu={(open) => setMenuFor(open ? c.id : null)}
                     onCopyId={() => copyId(c)}
+                    onEdit={() => {
+                      setMenuFor(null);
+                      setEditing({ id: c.id });
+                    }}
                     onDelete={() => askDelete(c)}
                   />
                 ))}
@@ -288,33 +327,37 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
         />
       )}
 
-      <div className="ct__notice-wrap" aria-live="polite">
-        {notice && (
-          <p className={`ct__notice ${notice.tone === 'error' ? 'ct__notice--error' : ''}`}>
-            {notice.tone === 'error' ? <X size={16} aria-hidden="true" /> : <Check size={16} strokeWidth={3} aria-hidden="true" />}
-            {notice.text}
-          </p>
-        )}
-      </div>
+      <Notice notice={notice} />
     </div>
   );
 }
 
-// Opens the create page in a new tab; the list picks the new one up when they come back
-function CreateButton() {
+// A short note at the bottom of the screen after an action
+function Notice({ notice }) {
   return (
-    <a className="ct-btn ct-btn--primary" href={CREATE_SERVICE_URL} target="_blank" rel="noopener">
+    <div className="ct__notice-wrap" aria-live="polite">
+      {notice && (
+        <p className={`ct__notice ${notice.tone === 'error' ? 'ct__notice--error' : ''}`}>
+          {notice.tone === 'error' ? <X size={16} aria-hidden="true" /> : <Check size={16} strokeWidth={3} aria-hidden="true" />}
+          {notice.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CreateButton({ onClick }) {
+  return (
+    <button type="button" className="ct-btn ct-btn--primary" onClick={onClick}>
       <Plus size={18} aria-hidden="true" />
       Create new contract
-      <span className="sr-only"> (opens in a new tab)</span>
-    </a>
+    </button>
   );
 }
 
 // One contract: name, price, start date, Edit and ⋯
-function ContractRow({ contract, menuOpen, onMenu, onCopyId, onDelete }) {
+function ContractRow({ contract, menuOpen, onMenu, onCopyId, onEdit, onDelete }) {
   const free = isFree(contract);
-  const editHref = contractEditUrl(contract.id);
 
   return (
     <li className={`ct-row ${menuOpen ? 'ct-row--menu' : ''}`}>
@@ -322,17 +365,16 @@ function ContractRow({ contract, menuOpen, onMenu, onCopyId, onDelete }) {
         <span className="ct-row__icon" aria-hidden="true">
           <FileText size={20} />
         </span>
-        {/* The name is the row's link; the whole row is clickable through it */}
-        <a className="ct-row__title" href={editHref} target="_blank" rel="noopener">
+        {/* The name opens it; the whole row is clickable through it */}
+        <button type="button" className="ct-row__title" onClick={onEdit}>
           {contract.title}
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
+        </button>
       </div>
 
       <div className="ct-row__price">
         <span className="sr-only">Price: </span>
         <span className={`ct-row__amount ${free ? 'ct-row__amount--free' : ''}`}>{amountLabel(contract)}</span>
-        {!free && <span className="ct-row__type">{PAYMENT_TYPES[contract.type] ?? 'One-time'}</span>}
+        {!free && <span className="ct-row__type">{typeLabel(contract)}</span>}
       </div>
 
       <div className="ct-row__date">
@@ -341,11 +383,11 @@ function ContractRow({ contract, menuOpen, onMenu, onCopyId, onDelete }) {
       </div>
 
       <div className="ct-row__actions">
-        <a className="ct-btn ct-btn--quiet ct-btn--small" href={editHref} target="_blank" rel="noopener">
+        <button type="button" className="ct-btn ct-btn--quiet ct-btn--small" onClick={onEdit}>
           <Pencil size={15} aria-hidden="true" />
           Edit
-          <span className="sr-only"> {contract.title} (opens in a new tab)</span>
-        </a>
+          <span className="sr-only"> {contract.title}</span>
+        </button>
         <RowMenu
           title={contract.title}
           open={menuOpen}

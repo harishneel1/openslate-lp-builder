@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import PreviewPage from './screens/PreviewPage.jsx'
-import MockCreateService from './screens/MockCreateService.jsx'
+import ContractEditorTab from './screens/ContractEditorTab.jsx'
 import ProfilePage from './screens/ProfilePage.jsx'
 import BookingPage from './screens/BookingPage.jsx'
 import CheckoutPage from './screens/CheckoutPage.jsx'
@@ -16,7 +16,8 @@ import { isMyCall } from './data/myProfile'
 
 // ?preview=<funnelId> → full-screen preview of that funnel's landing page (new tab).
 // Add &page=thank-you for its thank you page.
-// ?mock=create-service → stand-in for the real Create service page (new tab).
+// ?mock=create-service → a new contract, in its own tab (ContractEditorTab).
+//   Add &service=<id> to change that contract instead.
 // ?mock=profile → the creator's public profile page. Add &state=calls-only, new or single,
 //   or &source=mine for the creator's own page from their setup answers.
 // ?mock=book&service=<id> → a call's booking page. Optional: &state= (as above),
@@ -55,7 +56,7 @@ function Root() {
     }
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
-  if (mock === 'create-service') return <MockCreateService />
+  if (mock === 'create-service') return <ContractEditorTab serviceId={params.get('service')} />
   if (mock === 'profile') return <ProfilePage state={params.get('state')} source={params.get('source')} />
   if (mock === 'book')
     return (

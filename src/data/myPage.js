@@ -19,7 +19,9 @@ export const pageUrl = (handle) => `${window.location.protocol}//${PAGE_DOMAIN}/
 export const offeringUrl = (handle, id) => `${pageUrl(handle)}/${encodeURIComponent(id)}`;
 
 // Who's signed in. Stand-in until the real account comes from the API.
-export const mockAccount = { name: 'Harish Neel' };
+// domain: the creator's own site (their academy), where "Login now" goes after
+// someone pays. The real app fills these in from the creator's account.
+export const mockAccount = { name: 'Harish Neel', domain: 'academy.harishneel.com' };
 
 // Where the setup answers are kept in this browser, and the event fired when
 // they change (so the sidebar card can show the new link straight away)

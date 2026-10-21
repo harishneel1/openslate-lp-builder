@@ -42,6 +42,41 @@
   color: var(--color-text-muted);
 }
 
+/* ---------- With a preview beside the form (aside) ----------
+   Wide screens: the form on the left, the preview on the right, staying
+   in view while the form scrolls. Narrower: no preview, the form alone. */
+.es__aside {
+  display: none;
+}
+
+@media (min-width: 1180px) {
+  .es--aside .es__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 40px;
+    align-content: start;
+    max-width: 1160px;
+  }
+
+  .es--aside .es__content > * {
+    grid-column: 1;
+  }
+
+  .es--aside .es__content > .es__aside {
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / span 40;
+    align-self: start;
+    position: sticky;
+    top: 0;
+    padding-top: 36px;
+  }
+
+  .es--aside .es__bar-inner {
+    max-width: 1160px;
+  }
+}
+
 /* ---------- "Leave without saving?" ---------- */
 .es__leave {
   display: flex;

@@ -8,7 +8,6 @@ import {
   QUESTION_TYPES,
   fieldProblems,
   hasOptions,
-  isOn,
   newQuestion,
   withType,
 } from '../data/callQuestions';
@@ -25,7 +24,6 @@ import './QuestionsInput.css';
 //   │ [ What's your current CTC?          ]
 //   │ ☐ Required
 //   │ Answer type  [One line            ▾]
-//   │ Status  On ●
 //   + Add new question
 //
 // Every question stays open. Single choice, Checkboxes and Dropdown show
@@ -138,7 +136,6 @@ export default function QuestionsInput({ value, onChange, note = null }) {
 // One question, always open
 function Question({ q, n, count, autoFocus, dragging, handleProps, onChange, onRemove }) {
   const base = `bq-${q.id}`;
-  const on = isOn(q);
   const [left, setLeft] = useState({}); // fields they've been in and left: their problems show
   const leave = (key) => () => setLeft((l) => ({ ...l, [key]: true }));
   const problems = fieldProblems(q);
@@ -194,7 +191,7 @@ function Question({ q, n, count, autoFocus, dragging, handleProps, onChange, onR
   };
 
   return (
-    <li className={`bq__q ${dragging ? 'bq__q--dragging' : ''} ${on ? '' : 'bq__q--off'}`}>
+    <li className={`bq__q ${dragging ? 'bq__q--dragging' : ''}`}>
       <div className="bq__q-head">
         <button
           type="button"
@@ -207,7 +204,6 @@ function Question({ q, n, count, autoFocus, dragging, handleProps, onChange, onR
         </button>
         <h4 className="bq__q-title" id={`${base}-title`}>
           Question {n}
-          {!on && <span className="bq__off-tag">Off</span>}
         </h4>
         <button
           type="button"
@@ -342,24 +338,6 @@ function Question({ q, n, count, autoFocus, dragging, handleProps, onChange, onR
           </fieldset>
         )}
 
-        {/* Status: off keeps the question but doesn't ask it */}
-        <div className="bq__field">
-          <span className="bq__field-label" id={`${base}-status`}>
-            Status
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={on}
-            aria-labelledby={`${base}-status`}
-            className="bq__switch-row"
-            onClick={() => onChange((cur) => ({ ...cur, enabled: !isOn(cur) }))}
-          >
-            <span className="bq__switch-text">{on ? 'On' : 'Off'}</span>
-            <span className="bq__switch" aria-hidden="true" />
-            {!on && <span className="bq__sub">Not asked on checkout</span>}
-          </button>
-        </div>
       </div>
     </li>
   );

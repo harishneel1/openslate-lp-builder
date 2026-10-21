@@ -3,14 +3,28 @@
 // One service can be used by any number of funnels.
 //
 // Mock data until the real services API is wired up.
-// Services made on the mock "Create service" page (?mock=create-service)
-// are kept in this browser and listed alongside these.
-//   price: in rupees, 0 = free
+import { mockAccount } from './myPage';
+import { formatMoney, payAmount } from './contractPricing';
+
+// Contracts made or edited on the contract screen (ContractEditor.jsx) are
+// kept in this browser and listed alongside these.
+//   price: what people pay in the main currency, 0 = free (the list and pickers show this)
+//   currency: the main price's currency, 'INR' when missing
 //   type: 'onetime' | 'subscription' | 'free'
 //   status: 'active' | 'inactive' (inactive ones can't be picked)
 //   createdAt: used to show the newest first
+// and, from the contract screen (missing on older ones: see contractOf):
+//   cover: the cover image (a data URL for now), or null
+//   description: plain text; a blank line between paragraphs
+//   prices: every price, the main one first, and gst: see contractPricing.js
+//   questions: what checkout asks after name, email and phone (callQuestions.js shape)
+//   success: what happens after they pay
+//     { buttonLabel, buttonUrl, redirectUrl, redirectDelay }
+//     buttonUrl ''  → no button on the success page
+//     redirectUrl '' → they stay on it
+//     redirectDelay: seconds on the success page before the redirect (0 = straight away)
 
-// Where "Create a new service" goes. Swap for the real Services page.
+// Where "Create a new contract" goes from other screens (opens in a new tab).
 export const CREATE_SERVICE_URL = '?mock=create-service';
 
 // Set to false to see the picker with no services at all
@@ -19,12 +33,11 @@ const SHOW_SAMPLE_SERVICES = true;
 
 const CREATED_KEY = 'pagebuilder:mock-services';
 
-// Contracts deleted on the Contracts page, kept in this browser so it
-// works for the sample services too:   { [id]: { deleted: true } }
+// Changes to contracts, kept in this browser so they work for the
+// sample services too: { [id]: { ...edited fields, deleted?: true } }
 const CHANGES_KEY = 'pagebuilder:mock-service-changes';
 
-// Where a contract is edited. The real contract page isn't built yet, so
-// this opens the stand-in page with the id. Swap for the real page.
+// A contract's own screen, in a new tab (from a 1:1 call's "View contract")
 export const contractEditUrl = (id) => `?mock=create-service&service=${encodeURIComponent(id)}`;
 
 export const mockServices = [
@@ -121,10 +134,15 @@ function loadChanges() {
   }
 }
 
-// Every service, less the ones deleted in this browser
+// Every service with this browser's edits on it, less the deleted ones
 function allServices() {
   const changes = loadChanges();
-  return [...(SHOW_SAMPLE_SERVICES ? mockServices : []), ...loadCreated()].filter((s) => !changes[s.id]?.deleted);
+  return [...(SHOW_SAMPLE_SERVICES ? mockServices : []), ...loadCreated()]
+    .filter((s) => !changes[s.id]?.deleted)
+    .map((s) => {
+      const { deleted, ...edits } = changes[s.id] ?? {}; // eslint-disable-line no-unused-vars
+      return { ...s, ...edits };
+    });
 }
 
 // Saves one service's change. Returns true if it saved.
@@ -204,7 +222,7 @@ export function updateMockService(id, { title, price }) {
 // "Free", "₹499" or "₹299/month"
 export function servicePrice(service) {
   if (!service || service.price === 0 || service.type === 'free') return 'Free';
-  const amount = `₹${service.price.toLocaleString('en-IN')}`;
+  const amount = formatMoney(service.price, service.currency ?? 'INR');
   return service.type === 'subscription' ? `${amount}/month` : amount;
 }
 
@@ -213,4 +231,98 @@ export function serviceDate(service) {
   const date = new Date(`${service.startDate}T00:00:00`);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ------------------------------------------------------------
+// The contract screen (ContractEditor.jsx)
+// ------------------------------------------------------------
+
+// Seconds on the success page before the redirect: they pick one
+export const REDIRECT_DELAYS = [0, 1, 2, 3, 5];
+export const DEFAULT_REDIRECT_DELAY = 2;
+
+// The success page's button starts as "Login now", to the creator's own site
+export const creatorSiteUrl = () => `https://${mockAccount.domain}`;
+
+export const DEFAULT_SUCCESS = {
+  buttonLabel: 'Login now',
+  buttonUrl: creatorSiteUrl(),
+  redirectUrl: '',
+  redirectDelay: DEFAULT_REDIRECT_DELAY,
+};
+
+const DEFAULT_BUTTON = { buttonLabel: DEFAULT_SUCCESS.buttonLabel, buttonUrl: DEFAULT_SUCCESS.buttonUrl };
+
+// A contract with every field the contract screen uses, filled in for ones
+// made before it existed
+export function contractOf(service) {
+  const saved = service.success && typeof service.success === 'object' ? service.success : {};
+  // The old default ("Continue" with no link) becomes the new one
+  const success = saved.buttonLabel === 'Continue' && !saved.buttonUrl ? { ...saved, ...DEFAULT_BUTTON } : saved;
+  const prices =
+    Array.isArray(service.prices) && service.prices.length > 0
+      ? service.prices
+      : [{ currency: service.currency ?? 'INR', price: Number(service.price) || 0, discount: null }];
+  return {
+    ...service,
+    prices,
+    gst: { enabled: Boolean(service.gst?.enabled), included: Boolean(service.gst?.included) },
+    cover: typeof service.cover === 'string' && service.cover ? service.cover : null,
+    description: typeof service.description === 'string' ? service.description : '',
+    questions: Array.isArray(service.questions) ? service.questions : [],
+    success: {
+      ...DEFAULT_SUCCESS,
+      ...success,
+      redirectDelay: REDIRECT_DELAYS.includes(success.redirectDelay) ? success.redirectDelay : DEFAULT_REDIRECT_DELAY,
+    },
+  };
+}
+
+// The fields the contract screen saves, tidied
+function contractFields({ title, cover, description, type, prices, gst, questions, success }) {
+  const free = type === 'free';
+  const list = free
+    ? []
+    : (Array.isArray(prices) ? prices : []).map((p) => ({
+        currency: p.currency,
+        price: Math.max(0, Math.round(Number(p.price) || 0)),
+        discount: p.discount != null && Number(p.discount) > 0 ? Math.round(Number(p.discount)) : null,
+      }));
+  const main = list[0];
+  return {
+    title: String(title ?? '').trim(),
+    cover: cover || null,
+    description: String(description ?? '').trim(),
+    // Only one-time and free are made here; a monthly one keeps its type
+    type: free ? 'free' : type === 'subscription' ? 'subscription' : 'onetime',
+    price: main ? payAmount(main) : 0,
+    currency: main?.currency ?? 'INR',
+    prices: list,
+    gst: { enabled: !free && Boolean(gst?.enabled), included: Boolean(gst?.included) },
+    questions: Array.isArray(questions) ? questions : [],
+    success: { ...DEFAULT_SUCCESS, ...success },
+  };
+}
+
+// A new contract from the contract screen. Returns it, or null if storage failed.
+export function createContract(fields) {
+  const now = new Date();
+  const contract = {
+    id: `svc-${now.getTime().toString(36)}`,
+    ...contractFields(fields),
+    startDate: now.toISOString().slice(0, 10),
+    status: 'active',
+    createdAt: now.toISOString(),
+  };
+  try {
+    localStorage.setItem(CREATED_KEY, JSON.stringify([...loadCreated(), contract]));
+    return contract;
+  } catch {
+    return null;
+  }
+}
+
+// Saves an edited contract (sample or made here). Returns true if it saved.
+export function updateContract(id, fields) {
+  return saveChange(id, contractFields(fields));
 }

@@ -4,7 +4,7 @@
 // Set per call in Edit service ("Invitee form"), saved on the
 // call's answers as callQuestions:
 //
-//   [{ id, text, type, required, enabled, options }]
+//   [{ id, text, type, required, options }]
 //   type:
 //     short     one line ("What's your current CTC?")
 //     long      a paragraph ("What's your biggest challenge right now?")
@@ -15,8 +15,6 @@
 //   options  used by choice, multi and dropdown (HAS_OPTIONS); [] for the
 //            others. Every option must be filled in (a new one starts
 //            with three boxes).
-//     enabled  off: kept, but not asked on checkout (missing = on, for
-//              questions saved before it existed)
 //
 // A call that's never had its questions edited asks the one every
 // call used to ask (DEFAULT_QUESTIONS), so older calls work unchanged.
@@ -51,13 +49,11 @@ export const ANSWER_MAX = { short: 200, long: 2000 };
 export const FIRST_CHOICES = 3; // a new choice question starts with this many empty options
 
 export const DEFAULT_QUESTIONS = [
-  { id: 'q-topic', text: 'What would you like to talk about?', type: 'long', required: false, enabled: true, options: [] },
+  { id: 'q-topic', text: 'What would you like to talk about?', type: 'long', required: false, options: [] },
 ];
 
-export const isOn = (q) => q.enabled !== false;
-
-// What checkout asks: the questions that are on
-export const askedQuestions = (list) => list.filter(isOn);
+// What checkout asks: every question (to stop asking one, they delete it)
+export const askedQuestions = (list) => list;
 
 // A call's questions: what it saved, or the default for one that never changed them
 export const questionsOf = (call) => (Array.isArray(call?.callQuestions) ? call.callQuestions : DEFAULT_QUESTIONS);
@@ -65,7 +61,7 @@ export const questionsOf = (call) => (Array.isArray(call?.callQuestions) ? call.
 const newId = () => `q-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 // A blank question, ready to fill in
-export const newQuestion = () => ({ id: newId(), text: '', type: 'short', required: false, enabled: true, options: [] });
+export const newQuestion = () => ({ id: newId(), text: '', type: 'short', required: false, options: [] });
 
 // Changing a question's type. One with options opens with three empty ones to
 // fill in (keeping any it had, so single choice ↔ checkboxes ↔ dropdown keeps
@@ -83,7 +79,6 @@ export function cleanQuestions(list) {
     text: q.text.trim(),
     type: q.type,
     required: Boolean(q.required),
-    enabled: isOn(q),
     options: hasOptions(q.type) ? q.options.map((o) => o.trim()) : [],
   }));
 }
@@ -107,12 +102,11 @@ export function questionsProblem(list) {
   return null;
 }
 
-// While the section's closed: "Name, email, phone and 3 questions (1 off)"
+// While the section's closed: "Name, email, phone and 3 questions"
 export function questionsSummary(list) {
-  const off = list.length - askedQuestions(list).length;
   if (list.length === 0) return 'Name, email and phone. No questions.';
   const count = list.length === 1 ? '1 question' : `${list.length} questions`;
-  return `Name, email, phone and ${count}${off ? ` (${off} off)` : ''}`;
+  return `Name, email, phone and ${count}`;
 }
 
 // One field's problem, shown under it once they've left it (QuestionsInput.jsx)

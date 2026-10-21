@@ -61,6 +61,11 @@ export function useEditDraft(saved, fields) {
 //          then always shows Cancel and this button (disabled while there's
 //          a problem), and leaving asks before dropping what they've filled in.
 // message: a note in the bar that doesn't stop saving (e.g. a failed try).
+// backLabel: the back link's words (where it goes).
+// aside: shown beside the form on wide screens (a live preview), or null.
+// leaveNew: what "Leave without adding it?" says first, when making something new.
+// bar: false for no bar at all (a screen with its own buttons, like the
+//      contract's steps); otherwise the usual Save / Discard / Done.
 export default function EditFrame({
   edit,
   title,
@@ -72,6 +77,10 @@ export default function EditFrame({
   viewHref,
   confirm = null,
   createLabel = null,
+  backLabel = 'Your offerings page',
+  aside = null,
+  leaveNew = 'This isn’t on your page yet.',
+  bar = null,
   children,
 }) {
   const { dirty, justSaved, leaving, setLeaving } = edit;
@@ -91,10 +100,11 @@ export default function EditFrame({
   const back = () => (dirty ? setLeaving(true) : onBack());
 
   return (
-    <div className="es">
+    <div className={`es ${aside ? 'es--aside' : ''}`}>
       <div className="es__content">
+        {aside && <aside className="es__aside">{aside}</aside>}
         <button type="button" className="es__back" onClick={back}>
-          <ArrowLeft size={16} aria-hidden="true" /> Your offerings page
+          <ArrowLeft size={16} aria-hidden="true" /> {backLabel}
         </button>
         <h1 className="es__title">{title}</h1>
         {sub && <p className="es__sub">{sub}</p>}
@@ -105,7 +115,7 @@ export default function EditFrame({
             <p>
               {creating ? (
                 <>
-                  <strong>This isn’t on your page yet.</strong> Leave without adding it?
+                  <strong>{leaveNew}</strong> Leave without adding it?
                 </>
               ) : (
                 <>
@@ -128,6 +138,7 @@ export default function EditFrame({
       </div>
 
       {/* ---------- Save bar: full width, pinned to the bottom of the window ---------- */}
+      {bar !== false && (
       <div className="es__bar">
         <div className="es__bar-inner">
           <p className="es__status" aria-live="polite">
@@ -182,6 +193,7 @@ export default function EditFrame({
           </div>
         </div>
       </div>
+      )}
 
       {confirm && <ConfirmDialog {...confirm} />}
     </div>
@@ -333,12 +345,12 @@ export function EditSection({
 }
 
 // The "Add a new offering" placeholder and any other simple page in the same frame
-export function EditPlaceholder({ title, sub, onBack }) {
+export function EditPlaceholder({ title, sub, onBack, backLabel = 'Your offerings page' }) {
   return (
     <div className="es">
       <div className="es__content">
         <button type="button" className="es__back" onClick={onBack}>
-          <ArrowLeft size={16} aria-hidden="true" /> Your offerings page
+          <ArrowLeft size={16} aria-hidden="true" /> {backLabel}
         </button>
         <h1 className="es__title">{title}</h1>
         <p className="es__sub">{sub}</p>

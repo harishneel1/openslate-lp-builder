@@ -1,0 +1,434 @@
+/* The live preview beside the contract screen (ContractPreview.jsx).
+   A phone-sized picture of the page: nothing in it can be used. */
+
+.cpv {
+  --cpv-ink: #141414;
+  --cpv-ink-2: #55555b;
+  --cpv-ink-3: #8a8a90;
+  --cpv-line: #e6e6ea;
+}
+
+/* ---------- Checkout page / After they pay ---------- */
+.cpv__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.cpv__tab {
+  flex: 1;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cpv-ink-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cpv__tab:hover {
+  color: var(--cpv-ink);
+}
+
+.cpv__tab--on,
+.cpv__tab--on:hover {
+  color: var(--cpv-ink);
+  background: var(--color-primary-tint);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.cpv__tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Visitor from: India / Europe / Elsewhere ---------- */
+.cpv__region {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin-top: 12px;
+}
+
+.cpv__region-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cpv-ink-2);
+}
+
+.cpv__region-options {
+  display: flex;
+  gap: 4px;
+}
+
+.cpv__region-option {
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--cpv-ink-2);
+  background: var(--color-surface);
+  border: 1px solid #dcdce0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.cpv__region-option--on {
+  font-weight: 600;
+  color: var(--cpv-ink);
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.cpv__region-option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- The phone ---------- */
+.cpv__screen {
+  margin-top: 14px;
+  height: min(640px, calc(100vh - 240px));
+  min-height: 420px;
+  overflow: hidden;
+  background: #fff;
+  border: 8px solid #1d1d20;
+  border-radius: 34px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+.cpv__note {
+  margin-top: 10px;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--cpv-ink-3);
+}
+
+/* ================= Checkout page ================= */
+.cpv-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--cpv-ink);
+}
+
+.cpv-page__cover {
+  flex: none;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.cpv-page__cover--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cpv-ink-3);
+  background: #f3f3f5;
+}
+
+.cpv-page__body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px 16px 0;
+  /* Fades out above the buy bar, as if it scrolls on */
+  mask-image: linear-gradient(to bottom, #000 80%, transparent);
+}
+
+.cpv-page__title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.cpv-page__title--empty,
+.cpv-page__placeholder {
+  color: var(--cpv-ink-3);
+}
+
+.cpv-page__by {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--cpv-ink-2);
+}
+
+.cpv-page__about {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--cpv-ink-2);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* The form people fill in */
+.cpv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cpv-line);
+}
+
+.cpv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cpv-field__label {
+  font-size: 11.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cpv-field__box {
+  display: block;
+  height: 30px;
+  background: #fff;
+  border: 1px solid var(--cpv-line);
+  border-radius: 7px;
+}
+
+.cpv-field__box--long {
+  height: 52px;
+}
+
+.cpv-field__box--select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 11.5px;
+  color: var(--cpv-ink-3);
+}
+
+.cpv-field__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cpv-field__choice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--cpv-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.cpv-field__dot,
+.cpv-field__tick {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid #c4c4ca;
+}
+
+.cpv-field__dot {
+  border-radius: 50%;
+}
+
+.cpv-field__tick {
+  border-radius: 3px;
+}
+
+.cpv-field__more {
+  font-size: 11px;
+  color: var(--cpv-ink-3);
+}
+
+/* Price and the button, pinned to the bottom like the real page */
+.cpv-page__buy {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  border-top: 1px solid var(--cpv-line);
+}
+
+.cpv-page__price {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cpv-page__amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cpv-page__amount s {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cpv-ink-3);
+}
+
+.cpv-page__gst {
+  font-size: 11px;
+  color: var(--cpv-ink-2);
+}
+
+.cpv-page__price small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cpv-ink-2);
+}
+
+.cpv-page__price--free {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.cpv-page__cta {
+  flex: 1;
+  max-width: 170px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  background: #141414;
+  border-radius: 9px;
+}
+
+/* ================= After they pay ================= */
+.cpv-done {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--cpv-ink);
+  background: #f6f7f6;
+}
+
+.cpv-done__top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 36px 16px 56px;
+  color: #fff;
+  text-align: center;
+  background: #1f9d55;
+}
+
+.cpv-done__tick {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+}
+
+.cpv-done__title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.cpv-done__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 14px;
+  margin: -32px 14px 0;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.cpv-done__label {
+  font-size: 11.5px;
+  color: var(--cpv-ink-3);
+}
+
+.cpv-done__value small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cpv-ink-3);
+}
+
+.cpv-done__value {
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cpv-done__redirect {
+  margin: 16px 16px 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--cpv-ink-2);
+  text-align: center;
+  background: #fff;
+  border: 1px dashed #cfcfd4;
+  border-radius: 9px;
+  overflow-wrap: anywhere;
+}
+
+.cpv-done__foot {
+  margin-top: auto;
+  padding: 14px;
+}
+
+.cpv-done__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  background: #141414;
+  border-radius: 9px;
+  overflow-wrap: anywhere;
+}
+
+.cpv-done__nobutton {
+  display: block;
+  padding: 11px 12px;
+  font-size: 12px;
+  color: var(--cpv-ink-3);
+  text-align: center;
+  border: 1px dashed #cfcfd4;
+  border-radius: 9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cpv__tab {
+    transition: none;
+  }
+}
