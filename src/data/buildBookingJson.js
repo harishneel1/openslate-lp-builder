@@ -1,6 +1,7 @@
 import { buildProfileJson } from './buildProfileJson';
 import { getMockProfile } from './mockProfile';
-import { getMyProfile, isMyCall } from './myProfile';
+import { getMyProfile, isMyCall, loadAnswers } from './myProfile';
+import { loadCallDraft, withDraftCall } from './callDraft';
 import { getMockAvailability, getMyAvailability } from './mockAvailability';
 import { findSlots } from '../utils/slots';
 import { DEFAULT_QUESTIONS } from './callQuestions';
@@ -15,10 +16,14 @@ import { DEFAULT_QUESTIONS } from './callQuestions';
 //
 // Returns { creator, service, durationMins, questions, reviews, availability }, or with
 // service: null when the id isn't a call this creator offers.
+// draft: true reads the call being made (callDraft.js) as well, for the
+// preview beside "Create a 1:1 call". serviceId is then the draft's id.
 // ------------------------------------------------------------
-export function buildBookingJson({ serviceId, profileState, slotsState, timeZone, now = Date.now() }) {
+export function buildBookingJson({ serviceId, profileState, slotsState, timeZone, draft = false, now = Date.now() }) {
   const mine = isMyCall(serviceId);
-  const raw = mine ? getMyProfile() : getMockProfile(profileState);
+  const raw = mine
+    ? getMyProfile(draft ? withDraftCall(loadAnswers(), loadCallDraft()) : undefined)
+    : getMockProfile(profileState);
   const page = buildProfileJson(raw);
   const { name, initials, photo, headline, stats } = page.creator;
   // Rating and bookings for the coach card (reviews are shown on the page itself)

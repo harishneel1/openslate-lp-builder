@@ -46,7 +46,7 @@ import './ContractsPage.css';
 // icons. Delete always asks first. When a 1:1 call or webinar is tied to the
 // contract, the pop-up says which one, and that it has to be deleted first.
 //
-// onGoToOfferings(): to the offerings page, where their 1:1 calls are
+// onGoToOfferings(): to the 1:1 calls tab, where their calls are made and changed
 // onOpenWebinar(id): opens that webinar's funnel
 // The list reads the data fresh when they come back to the tab (a contract
 // made in the create tab shows straight away), so there's no Refresh button.

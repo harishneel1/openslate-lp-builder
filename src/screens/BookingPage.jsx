@@ -15,6 +15,11 @@ import { profileHrefFor } from '../data/myProfile';
 // Opened at ?mock=book&service=<id> (see main.jsx for the options).
 // Continue goes to ?mock=checkout with the call, the chosen time
 // (as a UTC instant) and the visitor's time zone.
+//
+// draft: the preview beside "Create a 1:1 call" (&draft=1), showing a call
+// that isn't created yet (callDraft.js). It redraws whenever the creator's
+// answers or hours change in the other tab of this browser, the page
+// that has it in a frame.
 // ------------------------------------------------------------
 
 // The visitor's time zone: from &tz= when testing, otherwise their device's
@@ -22,11 +27,19 @@ function visitorZone(fromUrl) {
   return matchZone(fromUrl) ?? matchZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ?? 'Asia/Kolkata';
 }
 
-export default function BookingPage({ serviceId, state, slots, timeZone }) {
+export default function BookingPage({ serviceId, state, slots, timeZone, draft = false }) {
   const [zone, setZone] = useState(() => visitorZone(timeZone));
+  // A draft redraws on every change to what's saved in this browser
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    if (!draft) return undefined;
+    const redraw = () => setVersion((v) => v + 1);
+    window.addEventListener('storage', redraw);
+    return () => window.removeEventListener('storage', redraw);
+  }, [draft]);
   const page = useMemo(
-    () => buildBookingJson({ serviceId, profileState: state, slotsState: slots, timeZone: zone }),
-    [serviceId, state, slots, zone],
+    () => buildBookingJson({ serviceId, profileState: state, slotsState: slots, timeZone: zone, draft }),
+    [serviceId, state, slots, zone, draft, version],
   );
   const { creator, service, durationMins, reviews, availability } = page;
 
@@ -37,6 +50,14 @@ export default function BookingPage({ serviceId, state, slots, timeZone }) {
     setDate(next);
     setSlot(null); // a time belongs to its day
   };
+
+  // A draft's hours changed: back to its first day with times
+  useEffect(() => {
+    if (version === 0 || !availability) return;
+    setSlot(null);
+    setDate(availability.firstAvailable);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version]);
 
   // A new time zone can move a time onto a different day: follow the chosen
   // time to its day there, or go back to the first day with times

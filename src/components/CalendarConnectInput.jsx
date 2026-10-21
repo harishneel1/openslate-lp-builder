@@ -17,7 +17,7 @@ import { ConnectPoints, ConnectProblem, GoogleButton, useCalendar, useConnectGoo
 //            Coming back without a full yes says why, and offers it again.
 //   after    which account, and what we'll check. Which calendars to
 //            check and where bookings go have sensible defaults, so
-//            they're left to Manage on the offerings home.
+//            they're left to Manage in the 1:1 calls tab.
 // ------------------------------------------------------------
 export default function CalendarConnectInput({ onChange }) {
   const connection = useCalendar();
@@ -76,5 +76,6 @@ function checkingLine({ checkIds }) {
       : checkIds.length === 1
         ? '1 calendar'
         : `${checkIds.length} calendars`;
-  return `We’ll check ${what} for times you’re busy. You can add others anytime from your offerings page.`;
+  // Which calendars to check is under Manage in 1:1 calls; not worth a line here
+  return `We’ll check ${what} for times you’re busy.`;
 }

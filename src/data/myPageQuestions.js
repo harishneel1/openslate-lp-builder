@@ -6,14 +6,21 @@ import { callAboutOf, callDetailsComplete } from './callDetails';
 // Each id matches an entry in profileAnnotations.js, which points
 // at the part of the example page that answer fills in.
 //
-// The link, about you, what they offer first, its details, their Google
+// The link, about you, what they offer first, then either which of their
+// existing calls go on the page, or a new call: its details, their Google
 // Calendar, when people can book it, and the service (registration form)
 // made for it.
 // After the last one comes the reveal: their page, built.
 // ------------------------------------------------------------
 
-// Shown as "1 of 8"
-export const MY_PAGE_STEPS = 8;
+// The call questions: for everyone with no calls yet, and for those who
+// chose "Create a new 1:1 call" over their existing ones (callSource)
+const MAKING_A_CALL = { field: 'callSource', in: ['new', undefined] };
+
+// The most screens there can be. The progress counts the ones actually
+// showing, since picking existing calls skips the call questions and a
+// connected calendar skips its screen.
+export const MY_PAGE_STEPS = 9;
 
 export const myPageQuestions = [
   {
@@ -88,7 +95,23 @@ export const myPageQuestions = [
     nextHint: 'Pick one to continue',
   },
   {
+    // Only for someone who made calls in the 1:1 calls tab before setting up
+    // their page (MyPageSetup.jsx leaves it out otherwise). Ticking calls
+    // and Continue skips the call questions; the "Create a new 1:1 call
+    // instead" button goes straight into them.
+    id: 'callSource',
+    type: 'pickCalls', // PickCallsInput: saves callSource ('existing' or 'new') and pickedCalls
+    required: true,
+    onlyWithCalls: true,
+    question: 'Which calls go on your page?',
+    helper: 'You’ve made these already. Tick the ones people should see.',
+    isComplete: (answers) =>
+      answers.callSource === 'new' || (Array.isArray(answers.pickedCalls) && answers.pickedCalls.length > 0),
+    nextHint: 'Tick at least one call to continue',
+  },
+  {
     id: 'callDetails',
+    showIf: MAKING_A_CALL,
     type: 'callDetails', // CallDetailsInput: saves callTitle, callDuration, callFormat ('video'), callPricing, callPrice, callDescription
     required: true,
     question: 'Set up your 1:1 call',
@@ -100,6 +123,7 @@ export const myPageQuestions = [
     // Just before working hours: that's when it's obvious why we need to
     // know when they're busy. Required, with no skip.
     id: 'calendar',
+    showIf: MAKING_A_CALL,
     type: 'calendar', // CalendarConnectInput: connects Google Calendar (calendarStore.js), reports calendarStatus
     required: true,
     preview: false, // the step explains itself; no example page beside it
@@ -112,6 +136,7 @@ export const myPageQuestions = [
   },
   {
     id: 'availability',
+    showIf: MAKING_A_CALL,
     type: 'weeklyHours', // WeeklyHoursInput: saves the first call's hours (availabilityStore.js), reports hoursStatus
     required: true,
     question: 'Set your working hours, and we’ll create the slots',
@@ -121,6 +146,7 @@ export const myPageQuestions = [
   },
   {
     id: 'callAbout',
+    showIf: MAKING_A_CALL,
     type: 'callAbout', // CallAboutInput: saves callAbout, prefilled with a written description
     required: true,
     question: 'Describe your call',
@@ -130,6 +156,7 @@ export const myPageQuestions = [
   },
   {
     id: 'service',
+    showIf: MAKING_A_CALL,
     type: 'serviceSummary', // ServiceSummaryInput: makes the service from the call's details
     required: true,
     preview: false, // no example page on this screen

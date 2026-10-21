@@ -1,0 +1,160 @@
+/* Setup's "Which calls go on your page?" (PickCallsInput.jsx).
+   A checklist of their calls, then a separate button to create one instead.
+   Rows have a firm edge and a soft shadow: the page behind is a light grey,
+   and the usual hairline border (--color-border) disappears against it. */
+
+/* "YOUR CALLS 2": names the list, so the button below reads as something else */
+.pick__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.pick__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--color-text);
+  background: #e8e8eb;
+  border-radius: var(--radius-pill);
+}
+
+.pick__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- One call: the whole row ticks it ---------- */
+.pick__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--color-surface);
+  border: 1px solid #d4d4d8;
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.pick__row:hover {
+  border-color: #a1a1aa;
+}
+
+.pick__row--on,
+.pick__row--on:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  box-shadow: 0 0 0 1px var(--color-primary); /* a 2px edge without moving anything */
+}
+
+/* The real checkbox, hidden but still there for keyboards and screen readers */
+.pick__row input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* Square, like any checklist: tick as many as you like */
+.pick__box {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: #fff;
+  background: var(--color-surface);
+  border: 1.5px solid #a1a1aa;
+  border-radius: 6px;
+}
+
+.pick__row input:checked + .pick__box {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pick__row input:focus-visible + .pick__box {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pick__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pick__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Everything else about the call, on one quiet line */
+.pick__meta {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.pick__free {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.pick__hint {
+  min-height: 20px; /* keeps things from jumping when the hint goes */
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Create instead: a button, not one of the choices ---------- */
+.pick__create {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 11px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d4d4d8;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.pick__create:hover {
+  border-color: #a1a1aa;
+}
+
+.pick__create:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pick__row,
+  .pick__create {
+    transition: none;
+  }
+}

@@ -9,7 +9,7 @@ import { askedQuestions, questionsOf } from './callQuestions';
 // real product it comes from the server.
 // ------------------------------------------------------------
 
-function loadAnswers() {
+export function loadAnswers() {
   try {
     return JSON.parse(localStorage.getItem(SETUP_STORAGE_KEY)) ?? {};
   } catch {
@@ -37,6 +37,19 @@ export const isMyCall = (serviceId) =>
 // so the same fields and page-building work for every call.
 // ------------------------------------------------------------
 export const addedCallsOf = (answers) => (Array.isArray(answers?.addedCalls) ? answers.addedCalls : []);
+
+// The setup call's own answers, saved on the setup answers themselves
+// (plus the bits setup's call screens keep along the way)
+const SETUP_CALL_KEYS = [
+  'callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice',
+  'callDescription', 'callAbout', 'serviceId', 'callQuestions', 'callStats', 'hoursStatus',
+];
+
+// The answers with no setup call: for setup finishing with calls they'd
+// already made, after they'd started making one and gone back
+export function withoutSetupCall(answers) {
+  return Object.fromEntries(Object.entries(answers).filter(([key]) => !SETUP_CALL_KEYS.includes(key)));
+}
 
 // A fresh id for a new call, e.g. 'my-call-mgx3k2a1'
 export const newCallId = () => `${MY_CALL_ID}-${Date.now().toString(36)}`;
@@ -75,10 +88,42 @@ export function withCallChanges(answers, id, changes) {
   };
 }
 
-// The answers with a new call added, at the front
-export function withAddedCall(answers, call) {
+// The answers with a new call added, at the front.
+// onPage: false keeps it off their offerings page (made in the 1:1 calls tab)
+export function withAddedCall(answers, call, { onPage = true } = {}) {
   const { shared, own } = splitShared(call);
-  return { ...answers, ...shared, addedCalls: [own, ...addedCallsOf(answers)] };
+  const added = { ...answers, ...shared, addedCalls: [own, ...addedCallsOf(answers)] };
+  return onPage ? added : withOnPage(added, call.id, false);
+}
+
+// ------------------------------------------------------------
+// On their offerings page, or not. A call lives in the 1:1 calls tab;
+// showing it on the page is a yes/no on that call. Kept as the ids that
+// are NOT on the page (answers.offPage), so every call made before this
+// existed stays on the page, and a call only leaves it when they say so.
+// A call that's off the page still has its own link and can be booked.
+// ------------------------------------------------------------
+export const offPageIdsOf = (answers) => (Array.isArray(answers?.offPage) ? answers.offPage : []);
+
+export const isOnPage = (answers, id) => !offPageIdsOf(answers).includes(id);
+
+// The answers with one call put on, or taken off, the page
+export function withOnPage(answers, id, on) {
+  const rest = offPageIdsOf(answers).filter((x) => x !== id);
+  return { ...answers, offPage: on ? rest : [...rest, id] };
+}
+
+// Their setup call (the first one, saved on the setup answers) only counts
+// once setup is finished. Before that it's half-filled answers, not a call.
+// And only if setup made one: someone who picked calls they'd already
+// made in 1:1 calls finished setup without a setup call.
+export const hasSetupCall = (answers) =>
+  Boolean(answers?.publishedAt) && String(answers?.callTitle ?? '').trim() !== '';
+
+// The ids of every call they have, newest first: added calls, then the setup call
+export function myCallIds(answers) {
+  const ids = addedCallsOf(answers).map((c) => c.id);
+  return hasSetupCall(answers) ? [...ids, MY_CALL_ID] : ids;
 }
 
 // The link people use to join their video calls, ready to use, or null
@@ -159,6 +204,23 @@ export function getMyProfile(answers = loadAnswers()) {
   // Added calls start with no ratings of their own.
   const added = addedCallsOf(answers).map((c, i) => callService(c, { id: c.id, order: i }));
   const first = callService(answers, { id: MY_CALL_ID, order: added.length, stats });
+  // No setup call when setup put calls they'd already made on the page instead
+  const hasFirst = String(answers.callTitle ?? '').trim() !== '';
 
-  return { creator, services: [...added, first], testimonials: [] };
+  return { creator, services: hasFirst ? [...added, first] : added, testimonials: [] };
+}
+
+// Their offerings page: the same, with only the calls that are on it.
+// Booking and checkout use getMyProfile, so a call that's off the page
+// can still be booked from its own link.
+// While setup is picking from calls they'd already made (not live yet, and
+// not making a new one), the page is what it will be: just the ticked calls.
+// That's what the preview beside that screen shows. Half-made setup call
+// answers, from going into the call screens and back, don't count.
+export function getMyPage(answers = loadAnswers()) {
+  const profile = getMyProfile(answers);
+  const picking = !answers.publishedAt && answers.callSource !== 'new' && addedCallsOf(answers).length > 0;
+  const picked = Array.isArray(answers.pickedCalls) ? answers.pickedCalls : [];
+  const shows = (id) => (picking ? picked.includes(id) : isOnPage(answers, id));
+  return { ...profile, services: profile.services.filter((s) => shows(s.id)) };
 }

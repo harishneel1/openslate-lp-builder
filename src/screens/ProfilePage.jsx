@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMockProfile } from '../data/mockProfile';
-import { getMyProfile } from '../data/myProfile';
+import { getMyPage } from '../data/myProfile';
 import { buildProfileJson } from '../data/buildProfileJson';
 import CreatorPanel from '../components/profile/CreatorPanel';
 import ServiceCard from '../components/profile/ServiceCard';
@@ -12,13 +12,23 @@ import './ProfilePage.css';
 // ------------------------------------------------------------
 // The creator's public profile, opened at ?mock=profile (see main.jsx).
 // Add &state=calls-only, &state=new or &state=single for other situations (mockProfile.js).
-// Add &source=mine for the creator's own page, built from their setup answers (myProfile.js).
+// Add &source=mine for the creator's own page, built from their setup answers, with
+// only the calls they've put on it (getMyPage in myProfile.js).
+// Add &live=1 (with &source=mine) to redraw whenever their answers change in
+// this browser: the preview beside setup's "Which calls go on your page?"
 // Renders only from the page JSON (buildProfileJson), never raw data.
 // ------------------------------------------------------------
-export default function ProfilePage({ state, source }) {
+export default function ProfilePage({ state, source, live = false }) {
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    if (!live) return undefined;
+    const redraw = () => setVersion((v) => v + 1);
+    window.addEventListener('storage', redraw);
+    return () => window.removeEventListener('storage', redraw);
+  }, [live]);
   const page = useMemo(
-    () => buildProfileJson(source === 'mine' ? getMyProfile() : getMockProfile(state)),
-    [state, source]
+    () => buildProfileJson(source === 'mine' ? getMyPage() : getMockProfile(state)),
+    [state, source, version] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const { creator, services, kinds, testimonials } = page;
   const firstName = creator.name.split(' ')[0] || 'This coach';

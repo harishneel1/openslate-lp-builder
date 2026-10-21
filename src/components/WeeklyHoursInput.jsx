@@ -11,7 +11,8 @@ import './WeeklyHoursInput.css';
 const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-vars
 
 // ------------------------------------------------------------
-// Setup's weekly hours step, for their first call.
+// The weekly hours step, in setup (their first call) and in
+// "Create a 1:1 call" (the call being made: answers.callId).
 //
 // Starts from the hours already saved for it (or the defaults), so
 // most people can just carry on. Every valid change is saved as that
@@ -20,13 +21,14 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // or 'fix'.
 // ------------------------------------------------------------
 export default function WeeklyHoursInput({ answers = {}, onChange }) {
-  const [hours, setHours] = useState(() => strip(loadCallHours(MY_CALL_ID)));
+  const callId = answers.callId ?? MY_CALL_ID;
+  const [hours, setHours] = useState(() => strip(loadCallHours(callId)));
   const callLength = durationLabel(Number(answers.callDuration ?? CALL_DEFAULTS.callDuration));
 
   // Save whenever it's valid, and tell the flow whether Next can unlock
   useEffect(() => {
     const status = hoursStatus(hours.weekly);
-    if (status === 'ok') saveCallHours(MY_CALL_ID, hours);
+    if (status === 'ok') saveCallHours(callId, hours);
     onChange(status, 'hoursStatus');
   }, [hours]); // eslint-disable-line react-hooks/exhaustive-deps
 

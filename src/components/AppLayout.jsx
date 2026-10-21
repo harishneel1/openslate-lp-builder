@@ -4,7 +4,7 @@ import {
   Grid3x3, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, Filter, User, TrendingUp, SlidersHorizontal,
-  Copy, ExternalLink, CalendarCheck,
+  Copy, ExternalLink, CalendarCheck, Users,
 } from 'lucide-react';
 import { initials } from '../utils/initials';
 import { PAGE_DOMAIN, SETUP_CHANGED_EVENT, mockAccount, pageUrl, savedHandle } from '../data/myPage';
@@ -23,6 +23,9 @@ const topNavItems = [
 
 const sidebarItems = [
   { id: 'get-started', label: 'Get Started', icon: LayoutGrid },
+  // Where 1:1 calls are made and managed. My offerings only shows them.
+  // Users, not Video: Video is Workshops in the top nav.
+  { id: 'calls', label: '1:1 calls', icon: Users },
   { id: 'services', label: 'Contracts', icon: Briefcase },
   { id: 'page-builder', label: 'Funnels', icon: Filter },
   { id: 'bookings', label: 'Bookings', icon: CalendarCheck },

@@ -1,0 +1,246 @@
+/* "Add to your page" (AddToPagePicker.jsx). The frame, title and close
+   button come from OfferingKindPicker.css (.okp). */
+
+.atp {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.atp__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 0;
+  list-style: none;
+}
+
+/* One call: picked ones get the orange edge, like a chosen tile */
+.atp__call {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.atp__call--on {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+/* ---------- Tick + what it is: the whole top of the row ticks it ---------- */
+.atp__pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 16px 10px;
+  cursor: pointer;
+}
+
+/* The real checkbox, hidden but still there for keyboards and screen readers */
+.atp__pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.atp__box {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  color: #fff;
+  background: var(--color-surface);
+  border: 1.5px solid #c9c9ce;
+  border-radius: 6px;
+}
+
+.atp__pick input:checked + .atp__box {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.atp__pick input:focus-visible + .atp__box {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.atp__what {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.atp__title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.atp__name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.atp__price {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.atp__price--free {
+  color: var(--color-success);
+}
+
+.atp__detail {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- The card line, under it, lined up with the name ---------- */
+.atp__line,
+.atp__line-edit {
+  padding: 0 16px 16px 48px;
+}
+
+.atp__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.atp__line-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.atp__line-text--empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.atp__line-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.atp__line-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.atp__optional {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.atp__line-box {
+  width: 100%;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.atp__line-under {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Edit card text / Done: quiet text buttons */
+.atp__text-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 2px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---------- Bottom: make a new one, or add what's ticked ---------- */
+.atp__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.atp__create,
+.atp__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.atp__create {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.atp__create:hover {
+  border-color: #c9c9ce;
+}
+
+.atp__add {
+  margin-left: auto;
+  color: #fff;
+  background: var(--color-primary);
+  border: 0;
+}
+
+.atp__add:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.atp__add:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-bg);
+  cursor: not-allowed;
+}
+
+.atp__create:focus-visible,
+.atp__add:focus-visible,
+.atp__text-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .atp__line {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .atp__add {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atp__call {
+    transition: none;
+  }
+}

@@ -21,6 +21,7 @@ import ExamplePreview from './components/ExamplePreview';
 import MyPageSetup from './screens/MyPageSetup';
 import BookingsPage from './screens/BookingsPage';
 import ContractsPage from './screens/ContractsPage';
+import CallsPage from './screens/CallsPage';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
@@ -531,8 +532,10 @@ function App() {
         renderPageBuilder()
       ) : activeNav === 'my-page' ? (
         <MyPageSetup />
+      ) : activeNav === 'calls' ? (
+        <CallsPage />
       ) : activeNav === 'services' ? (
-        <ContractsPage onGoToOfferings={() => handleNavigate('my-page')} onOpenWebinar={openFunnelFrom} />
+        <ContractsPage onGoToOfferings={() => handleNavigate('calls')} onOpenWebinar={openFunnelFrom} />
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : (

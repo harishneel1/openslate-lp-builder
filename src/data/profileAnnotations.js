@@ -53,6 +53,13 @@ export const profileAnnotations = {
     label: 'This is your call’s description',
     labelAt: 'top', // the bubble and a pill beside the box would cover the call's details
   },
+  // Shown on their own page (not Meera's), filling in as they pick: see
+  // MyPageSetup.jsx. The whole calls section, so it's there even before
+  // anything is picked. No bubble: the cards appearing say enough.
+  callSource: {
+    target: 'section[aria-labelledby="pf-services"]',
+    label: 'Your calls show here',
+  },
   callDetails: {
     target: '.pf__services > li[data-kind="call"]',
     label: 'This is your call',

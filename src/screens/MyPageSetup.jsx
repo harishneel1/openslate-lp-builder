@@ -1,53 +1,80 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import QuestionFlow from './QuestionFlow';
 import ProfileExample from '../components/ProfileExample';
 import MyPageIntro from './MyPageIntro';
 import MyPageReveal from './MyPageReveal';
 import OfferingsHome from './OfferingsHome';
 import EditService from './EditService';
+import CreateCallFlow from './CreateCallFlow';
 import EditProfile from './EditProfile';
-import { MY_PAGE_STEPS, myPageQuestions } from '../data/myPageQuestions';
-import { SETUP_CHANGED_EVENT, SETUP_STORAGE_KEY } from '../data/myPage';
-import { withAddedCall, withCallChanges } from '../data/myProfile';
+import { myPageQuestions } from '../data/myPageQuestions';
+import { SHARED_CALL_KEYS, addedCallsOf, withAddedCall, withCallChanges, withOnPage, withoutSetupCall } from '../data/myProfile';
+import { isCalendarConnected, loadCalendar } from '../data/calendarStore';
+import { PAGE_DOMAIN } from '../data/myPage';
+import { useSetupAnswers } from '../utils/useSetupAnswers';
 
-function loadAnswers() {
-  try {
-    return JSON.parse(localStorage.getItem(SETUP_STORAGE_KEY)) ?? {};
-  } catch {
-    return {};
-  }
+// Answers the 1:1 calls tab saves (its calls, which are on the page, and
+// the meeting link they share). Having only these doesn't mean they've
+// started setting up their page, so they still get the intro.
+const CALLS_TAB_KEYS = ['addedCalls', 'offPage', ...SHARED_CALL_KEYS];
+const hasStartedSetup = (answers) => Object.keys(answers).some((key) => !CALLS_TAB_KEYS.includes(key));
+
+// Setup's screens for this creator, decided once when it opens:
+// "Which of your 1:1 calls…" only if they've made calls already, and the
+// calendar screen only if it isn't connected (so connecting on it
+// doesn't make it vanish mid-setup).
+// With calls to pick from, the call questions wait until they choose
+// "Create a new 1:1 call", so the progress doesn't count screens they
+// may never see.
+function questionsFor(answers) {
+  const hasCalls = addedCallsOf(answers).length > 0;
+  const calendarDone = isCalendarConnected(loadCalendar());
+  return myPageQuestions
+    .filter((q) => (q.onlyWithCalls ? hasCalls : q.id === 'calendar' ? !calendarDone : true))
+    .map((q) => (hasCalls && q.showIf?.field === 'callSource' ? { ...q, showIf: { field: 'callSource', equals: 'new' } } : q));
 }
+
+// Finishing setup with calls they'd already made: those go on the page.
+// The picking answers aren't kept, and nor is a setup call they'd started
+// (gone into "Create a new 1:1 call", then come back and ticked calls).
+function withPickedCalls(answers) {
+  const { pickedCalls = [], pickedLines, ...rest } = answers; // eslint-disable-line no-unused-vars
+  return pickedCalls.reduce((acc, id) => withOnPage(acc, id, true), withoutSetupCall(rest));
+}
+
+// Beside "Which calls go on your page?": their own page, not Meera's,
+// showing just the calls they've ticked as they tick them (?live=1)
+const ownPagePreview = (handle) => ({
+  src: `${window.location.pathname}?mock=profile&source=mine&live=1`,
+  link: `${PAGE_DOMAIN}/${handle ?? ''}`,
+  caption: 'Your offerings page',
+  byline: 'Your calls show up as you pick them',
+});
 
 // ------------------------------------------------------------
 // The offerings page, the first time: an intro to what a page is, then
 // questions on the left with a popular creator's page on the right,
 // the part each answer fills in highlighted, then their page, live.
-// After that, the offerings home: no more questions, just their page
-// and services to change directly.
+// After that, the offerings home: no more questions, just their page and
+// the calls on it. Calls are made in the 1:1 calls tab; here they're put
+// on the page (or a new one is made with the same guided flow, and lands
+// on the page). Edit opens the same call editor as 1:1 calls.
 // Answers are kept in this browser for now.
 // ------------------------------------------------------------
 export default function MyPageSetup() {
-  const [answers, setAnswers] = useState(loadAnswers);
+  const [answers, setAnswers] = useSetupAnswers();
   // Setup: 'intro' → 'questions' → 'done' (the page, live, shown once).
-  // Then: 'home' (the offerings home) ↔ 'editService' (one offering, or a new one
-  //                                      of the kind picked on the home)
+  // Then: 'home' (the offerings home) ↔ 'editService' (one offering)
+  //                                    ↔ 'createCall' (a new 1:1 call, guided)
   //                                    ↔ 'editProfile' (photo, name, bio, link).
   // Finished before? The home. Started before? Straight to the questions.
   const [step, setStep] = useState(() =>
-    answers.publishedAt ? 'home' : Object.keys(answers).length > 0 ? 'questions' : 'intro'
+    answers.publishedAt ? 'home' : hasStartedSetup(answers) ? 'questions' : 'intro'
   );
-  const [editingId, setEditingId] = useState(null); // the offering open in 'editService'; null = a new one
-  const [addingKind, setAddingKind] = useState(null); // a new one's kind ('call', ...), picked on the home
-  const [justAddedId, setJustAddedId] = useState(null); // marked on the home after adding it
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(SETUP_STORAGE_KEY, JSON.stringify(answers));
-      window.dispatchEvent(new Event(SETUP_CHANGED_EVENT));
-    } catch {
-      // Storage full or blocked: answers still work for this visit
-    }
-  }, [answers]);
+  const [editingId, setEditingId] = useState(null); // the offering open in 'editService'
+  const [justAddedIds, setJustAddedIds] = useState([]); // marked on the home after adding them
+  const [questions] = useState(() => questionsFor(answers));
+  const ownPage = useMemo(() => ownPagePreview(answers.handle), [answers.handle]);
 
   const handleAnswer = (id, value) => setAnswers((prev) => ({ ...prev, [id]: value }));
 
@@ -65,17 +92,48 @@ export default function MyPageSetup() {
       <OfferingsHome
         answers={answers}
         onEditProfile={() => setStep('editProfile')}
-        justAddedId={justAddedId}
+        justAddedIds={justAddedIds}
         onEditOffering={(id) => {
           setEditingId(id);
-          setJustAddedId(null);
+          setJustAddedIds([]);
           setStep('editService');
         }}
-        onAddOffering={(kind) => {
-          setEditingId(null);
-          setAddingKind(kind);
-          setJustAddedId(null);
-          setStep('editService');
+        // Picked in "Add to your page": on the page, with any card lines they changed
+        onAddCalls={({ ids, descriptions }) => {
+          setAnswers((prev) => {
+            const withLines = Object.entries(descriptions).reduce(
+              (acc, [id, text]) => withCallChanges(acc, id, { callDescription: text }),
+              prev,
+            );
+            return ids.reduce((acc, id) => withOnPage(acc, id, true), withLines);
+          });
+          setJustAddedIds(ids);
+        }}
+        onCreateCall={() => {
+          setJustAddedIds([]);
+          setStep('createCall');
+        }}
+        onSetOnPage={(id, on) => {
+          setAnswers((prev) => withOnPage(prev, id, on));
+          setJustAddedIds([]);
+        }}
+      />
+    );
+  }
+
+  // A new 1:1 call, made the same way as in 1:1 calls. Started from here,
+  // it goes on the page as soon as it's made.
+  if (step === 'createCall') {
+    return (
+      <CreateCallFlow
+        handle={answers.handle ?? null}
+        hasLinks={Boolean(answers.handle)}
+        onExit={() => setStep('home')}
+        onCreate={(call) => setAnswers((prev) => withAddedCall(prev, call))}
+        doneLabel="Back to your offerings page"
+        onDone={(id) => {
+          setJustAddedIds([id]);
+          setStep('home');
         }}
       />
     );
@@ -95,19 +153,13 @@ export default function MyPageSetup() {
   if (step === 'editService') {
     return (
       <EditService
-        key={editingId ?? `new-${addingKind}`}
+        key={editingId}
         answers={answers}
         serviceId={editingId}
-        kind={addingKind}
+        kind="call"
         onBack={() => setStep('home')}
         // Saved changes go straight onto the live page (and into this browser)
         onSave={(changes) => setAnswers((prev) => withCallChanges(prev, editingId, changes))}
-        // A new one goes on the page straight away, and the home marks it
-        onCreate={(call) => {
-          setAnswers((prev) => withAddedCall(prev, call));
-          setJustAddedId(call.id);
-          setStep('home');
-        }}
       />
     );
   }
@@ -116,33 +168,42 @@ export default function MyPageSetup() {
     <QuestionFlow
       key="my-page"
       backAtTop
-      questions={myPageQuestions}
+      questions={questions}
       answers={answers}
       onAnswer={handleAnswer}
       finishLabel={answers.publishedAt ? 'Save changes' : 'Continue'}
       onExit={() => setStep('intro')}
       // Finishing puts the page live straight away: no separate publish step
+      // Picked calls they'd already made: those go on it (no setup call is made)
       onComplete={() => {
-        setAnswers((prev) => ({ ...prev, publishedAt: prev.publishedAt ?? new Date().toISOString() }));
+        setAnswers((prev) => {
+          const live = { ...prev, publishedAt: prev.publishedAt ?? new Date().toISOString() };
+          if (prev.callSource === 'existing') return withPickedCalls(live);
+          const { pickedCalls, pickedLines, ...rest } = live; // eslint-disable-line no-unused-vars
+          return rest;
+        });
         setStep('done');
       }}
       asideWidth="half"
-      renderProgress={({ index }) => (
+      // Counts the screens actually showing: picking existing calls skips the call questions
+      renderProgress={({ index, visible }) => (
         <div className="flow__progress">
           <div className="flow__progress-label">
             <span>Setting up your offerings page</span>
-            <span>{index + 1} of {MY_PAGE_STEPS}</span>
+            <span>{index + 1} of {visible.length}</span>
           </div>
           <div className="flow__progress-track">
             <div
               className="flow__progress-fill"
-              style={{ width: `${((index + 1) / MY_PAGE_STEPS) * 100}%` }}
+              style={{ width: `${((index + 1) / visible.length) * 100}%` }}
             />
           </div>
         </div>
       )}
       renderAside={({ question }) =>
-        question.preview === false ? null : (
+        question.preview === false ? null : question.id === 'callSource' ? (
+          <ProfileExample questionId="callSource" page={ownPage} />
+        ) : (
           <ProfileExample questionId={question.id} answer={answers[question.id] ?? question.default} />
         )
       }

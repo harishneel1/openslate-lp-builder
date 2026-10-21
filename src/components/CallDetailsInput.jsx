@@ -141,12 +141,15 @@ function Group({ grouped, id, title, sub, children }) {
 //   length            one track of tiles
 // Every call is a video call (callFormat stays 'video', from CALL_DEFAULTS).
 // showDescription: false leaves out the short description (the edit
-//   screen shows it in its own section instead).
+//   screen shows it in its own section instead). A question can set it
+//   too (question.showDescription): "Create a 1:1 call" leaves it out,
+//   since it's the offerings card's line and that flow makes a call, not a card.
 // grouped: false drops the cards (the edit screen's Basics is one already).
 export default function CallDetailsInput({
   answers,
   onChange,
-  showDescription = true,
+  question = null,
+  showDescription = question?.showDescription ?? true,
   grouped = true,
 }) {
   const valueOf = (id) => answers[id] ?? CALL_DEFAULTS[id] ?? '';

@@ -39,6 +39,9 @@ const prefersLessMotion = () => window.matchMedia?.('(prefers-reduced-motion: re
 // answer: this question's answer, for annotations that depend on it.
 // pageWidth: the width it's laid out at (narrower → bigger on screen).
 // tall: use nearly the full window height (the intro).
+// page: show another page instead, the same way, with its own marks:
+//   { src, link, caption, byline, annotations }. "Create a 1:1 call" uses it
+//   for the call's own booking page, filling in as they answer.
 export default function ProfileExample({
   questionId = null,
   answer,
@@ -46,12 +49,14 @@ export default function ProfileExample({
   link = null,
   pageWidth = PAGE_W,
   tall = false,
+  page = null,
 }) {
+  const annotations = page?.annotations ?? profileAnnotations;
   // Kept stable between renders, so the marks only move when this changes
   const note = useMemo(() => {
-    const entry = questionId ? profileAnnotations[questionId] : null;
+    const entry = questionId ? annotations[questionId] : null;
     return typeof entry === 'function' ? entry(answer) : entry;
-  }, [questionId, answer]);
+  }, [questionId, answer, annotations]);
   const explore = !questionId;
   const frameRef = useRef(null);
   const viewRef = useRef(null);
@@ -61,10 +66,10 @@ export default function ProfileExample({
   const [size, setSize] = useState({ w: 0, h: 0 }); // the page area, below the bar
   const [loaded, setLoaded] = useState(false);
 
-  // Which page to show: theirs, Meera's booking page, or her offerings page
-  const booking = !mine && note?.page === 'book';
-  const src = mine ? MINE_SRC : booking ? BOOK_SRC : EXAMPLE_SRC;
-  const shownLink = mine ? link : booking ? BOOK_LINK : EXAMPLE_LINK;
+  // Which page to show: one passed in, theirs, Meera's booking page, or her offerings page
+  const booking = !page && !mine && note?.page === 'book';
+  const src = page ? page.src : mine ? MINE_SRC : booking ? BOOK_SRC : EXAMPLE_SRC;
+  const shownLink = page ? page.link : mine ? link : booking ? BOOK_LINK : EXAMPLE_LINK;
 
   // A different page loads afresh: no marks until it has
   useEffect(() => setLoaded(false), [src]);
@@ -247,8 +252,10 @@ export default function ProfileExample({
       {note && (
         <>
           <div className="pex__whose">
-            <p className="pex__caption">A popular creator’s offerings page</p>
-            <p className="pex__creator">{EXAMPLE_CREATOR.name}, {EXAMPLE_CREATOR.headline.toLowerCase()}</p>
+            <p className="pex__caption">{page ? page.caption : 'A popular creator’s offerings page'}</p>
+            <p className="pex__creator">
+              {page ? page.byline : `${EXAMPLE_CREATOR.name}, ${EXAMPLE_CREATOR.headline.toLowerCase()}`}
+            </p>
           </div>
           <p className="pex__note">
             <Info size={14} /> Your answer goes in the highlighted spot.
@@ -271,7 +278,7 @@ export default function ProfileExample({
               ref={iframeRef}
               className={`pex__page ${explore ? 'pex__page--explore' : ''}`}
               src={src}
-              title={mine ? 'Your offerings page' : `${EXAMPLE_CREATOR.name}’s page`}
+              title={page ? page.caption : mine ? 'Your offerings page' : `${EXAMPLE_CREATOR.name}’s page`}
               tabIndex={explore ? 0 : -1}
               onLoad={handleLoad}
               style={{ width: pageWidth, height: pageH, transform: `scale(${scale})` }}

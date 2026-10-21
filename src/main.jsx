@@ -57,7 +57,8 @@ function Root() {
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
   if (mock === 'create-service') return <ContractEditorTab serviceId={params.get('service')} />
-  if (mock === 'profile') return <ProfilePage state={params.get('state')} source={params.get('source')} />
+  if (mock === 'profile')
+    return <ProfilePage state={params.get('state')} source={params.get('source')} live={params.get('live') === '1'} />
   if (mock === 'book')
     return (
       <BookingPage
@@ -65,6 +66,7 @@ function Root() {
         state={params.get('state')}
         slots={params.get('slots')}
         timeZone={params.get('tz')}
+        draft={params.get('draft') === '1'}
       />
     )
   if (mock === 'checkout')

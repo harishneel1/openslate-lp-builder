@@ -1,0 +1,24 @@
+/* "Create a 1:1 call": the ready screen borrows setup's "It's live" look
+   (MyPageReveal.css). Only the quieter Preview button is new here: Copy link
+   is the one thing to do with the link, Preview is for checking it. */
+.mpr__open.ccf__quiet {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.mpr__open.ccf__quiet:hover {
+  background: var(--color-surface);
+  border-color: #c9c9ce;
+}
+
+/* No link yet: Preview sits on its own, under the line above it */
+.ccf__open-alone {
+  margin-top: 24px;
+}
+
+/* Done goes on its own line under whichever came before */
+.mpr__main > .mpr__done {
+  display: flex;
+  width: fit-content;
+}

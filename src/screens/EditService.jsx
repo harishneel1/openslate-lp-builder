@@ -83,18 +83,46 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // kind: a new one's kind (only 'call' can be made so far)
 // onSave(changes): merges an edited offering's changed answers into the saved ones
 // onCreate(call): adds a new call (its answers, with its id and service)
+// from: where it was opened. 'offerings' (My offerings: a new call goes on
+//   the page) or 'calls' (the 1:1 calls tab: a new call is just created,
+//   and they choose there whether it's on the page). Changes the wording only.
 // ------------------------------------------------------------
-export default function EditService({ answers, serviceId, kind, onBack, onSave, onCreate }) {
+const FROM = {
+  offerings: {
+    back: 'Your offerings page',
+    create: 'Add to your page',
+    saved: 'Changes show up on your page once you save them.',
+    gone: 'It may have been removed. Go back to see what’s on your page.',
+  },
+  calls: {
+    back: '1:1 calls',
+    create: 'Create call',
+    saved: 'Changes show up wherever people book this call once you save them.',
+    gone: 'It may have been removed. Go back to see your calls.',
+  },
+};
+
+export default function EditService({ answers, serviceId, kind, onBack, onSave, onCreate, from = 'offerings' }) {
+  const words = FROM[from] ?? FROM.offerings;
   if (!serviceId) {
     if (kind === 'call') {
-      return <EditCall handle={answers.handle} meetingLink={answers.meetingLink} onBack={onBack} onCreate={onCreate} />;
+      return (
+        <EditCall handle={answers.handle} meetingLink={answers.meetingLink} words={words} onBack={onBack} onCreate={onCreate} />
+      );
     }
-    return <EditPlaceholder title="Add a new offering" sub="Adding this kind of offering is on its way." onBack={onBack} />;
+    return (
+      <EditPlaceholder
+        title="Add a new offering"
+        sub="Adding this kind of offering is on its way."
+        backLabel={words.back}
+        onBack={onBack}
+      />
+    );
   }
 
   const call = callAnswersOf(answers, serviceId);
   if (!call) {
-    return <EditPlaceholder title="This offering isn’t here" sub="It may have been removed. Go back to see what’s on your page." onBack={onBack} />;
+    return <EditPlaceholder title="This offering isn’t here" sub={words.gone} backLabel={words.back} onBack={onBack} />;
   }
   return (
     <EditCall
@@ -102,6 +130,7 @@ export default function EditService({ answers, serviceId, kind, onBack, onSave, 
       call={call}
       handle={answers.handle}
       meetingLink={answers.meetingLink}
+      words={words}
       onBack={onBack}
       onSave={onSave}
     />
@@ -110,7 +139,8 @@ export default function EditService({ answers, serviceId, kind, onBack, onSave, 
 
 // id/call: the call being edited and its answers. No call: a new one.
 // meetingLink: the link all their video calls share (from the setup answers)
-function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave, onCreate }) {
+// words: the back link, Create button and subtitle for where it was opened (FROM)
+function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.offerings, onBack, onSave, onCreate }) {
   const isNew = call === null;
 
   // What's saved, with the starting choices filled in, so the form opens unchanged.
@@ -257,8 +287,9 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
       edit={edit}
       title={isNew ? 'New 1:1 call' : saved.callTitle || 'Your call'}
       sub={
-        isNew ? 'Fill in the basics. We’ll create the contract for you.' : 'Changes show up on your page once you save them.'
+        isNew ? 'Fill in the basics. We’ll create the contract for you.' : words.saved
       }
+      backLabel={words.back}
       onBack={onBack}
       onSave={isNew ? create : save}
       problem={problem}
@@ -269,8 +300,8 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
             ? 'We couldn’t create the contract just now. Try again.'
             : null
       }
-      viewHref={pageUrl(saved.handle)}
-      createLabel={isNew ? 'Add to your page' : null}
+      viewHref={saved.handle ? pageUrl(saved.handle) : null}
+      createLabel={isNew ? words.create : null}
     >
       <EditSection
         id="es-basics"
@@ -315,7 +346,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, onBack, onSave,
           answers={draft}
           onChange={handleChange}
           note={
-            isNew ? (
+            isNew || !saved.handle ? (
               'Shows on your call’s card on your page.'
             ) : (
               <WhereItShows
