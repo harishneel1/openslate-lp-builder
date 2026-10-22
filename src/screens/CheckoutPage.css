@@ -254,6 +254,12 @@
   min-width: 0;
 }
 
+.co__questions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* as between the other fields in the box (.co__box) */
+}
+
 .co__box {
   display: flex;
   flex-direction: column;

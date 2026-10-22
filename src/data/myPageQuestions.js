@@ -1,5 +1,6 @@
 import { HANDLE_MAX, HANDLE_MIN, isHandleTaken, mockAccount, suggestedHandle } from './myPage';
 import { callAboutOf, callDetailsComplete } from './callDetails';
+import { questionsOf, questionsProblem } from './callQuestions';
 
 // ------------------------------------------------------------
 // Questions that set up the creator's page, one per screen.
@@ -8,8 +9,8 @@ import { callAboutOf, callDetailsComplete } from './callDetails';
 //
 // The link, about you, what they offer first, then either which of their
 // existing calls go on the page, or a new call: its details, their Google
-// Calendar, when people can book it, and the service (registration form)
-// made for it.
+// Calendar, when people can book it, its description, what checkout asks,
+// and the service (registration form) made for it.
 // After the last one comes the reveal: their page, built.
 // ------------------------------------------------------------
 
@@ -20,7 +21,7 @@ const MAKING_A_CALL = { field: 'callSource', in: ['new', undefined] };
 // The most screens there can be. The progress counts the ones actually
 // showing, since picking existing calls skips the call questions and a
 // connected calendar skips its screen.
-export const MY_PAGE_STEPS = 9;
+export const MY_PAGE_STEPS = 10;
 
 export const myPageQuestions = [
   {
@@ -155,6 +156,21 @@ export const myPageQuestions = [
     nextHint: 'Add a description to continue',
   },
   {
+    // What checkout asks besides name, email and phone. Starts with the one
+    // question every call asks (DEFAULT_QUESTIONS); keeping, changing or
+    // removing it are all fine. Only a half-written question stops them.
+    // The preview beside it is an example checkout, not theirs
+    // (profileAnnotations.js, and CreateCallFlow.jsx).
+    id: 'callQuestions',
+    showIf: MAKING_A_CALL,
+    type: 'callQuestions', // QuestionsInput: saves callQuestions (callQuestions.js)
+    required: true, // always complete when nothing's half-written, so it says Next, not Skip
+    question: 'Ask additional questions during checkout',
+    helper: 'Name, email and phone are always asked by default.',
+    isComplete: (answers) => questionsProblem(questionsOf(answers)) === null,
+    nextHint: (answers) => questionsProblem(questionsOf(answers))?.text ?? 'Finish your questions to continue',
+  },
+  {
     id: 'service',
     showIf: MAKING_A_CALL,
     type: 'serviceSummary', // ServiceSummaryInput: makes the service from the call's details
@@ -163,7 +179,7 @@ export const myPageQuestions = [
     titleTick: true,
     question: 'We’ve auto-created your contract page',
     helper:
-      'The checkout pages are called "contracts" in OpenSlate',
+      'The contract page is the checkout page in OpenSlate.',
     isComplete: (answers) => Boolean(answers.serviceId),
     nextHint: 'Setting up your service…',
   },

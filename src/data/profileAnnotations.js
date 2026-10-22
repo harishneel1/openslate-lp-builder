@@ -7,15 +7,20 @@
 //
 // target: a selector inside the example page, or 'link' for the
 //         address in the browser bar above it.
-// page:   which of Meera's pages to show: 'profile' (default) or 'book',
-//         the booking page for her Discovery call.
+// page:   which of Meera's pages to show: 'profile' (default), 'book',
+//         the booking page for her Discovery call, or 'checkout', its
+//         checkout with the example questions.
 // label:  names the part (the orange pill).
 // labelAt: optional, for parts surrounded by things that shouldn't be covered.
 //         'top' pins the pill to the top of the page, with an arrow down
 //         the left edge to the box. 'under' puts it in the empty space
 //         below the page's content (the bottom of `under`, a selector, or
 //         the lowest of a list of them), with an arrow up the left edge.
-//         Falls back to beside the box when there isn't room.
+//         'left' puts it level with the box, in the space to its left,
+//         with a short arrow across. Each falls back to beside the box
+//         when there isn't room.
+// stayAtTop: optional. Don't scroll the example to bring the part into view.
+// header: optional. false hides the caption and note above the example.
 // tip:    optional. Why it matters (the white bubble), one or two short lines.
 // Keys match question ids in myPageQuestions.js. An entry can also be a
 // function of that question's answer, to point at something that depends
@@ -56,6 +61,16 @@ export const profileAnnotations = {
     label: 'This is your 1:1 call event’s description',
     labelAt: 'under', // in the space below the page: beside the box it would cover the call's details
     under: '.bk__details, .bk__picker-card',
+  },
+  // An example checkout (Meera's call, with EXAMPLE_QUESTIONS), the same
+  // whatever they type: it shows what questions look like to people booking
+  callQuestions: {
+    page: 'checkout',
+    target: '.co__questions',
+    label: 'Your questions show here',
+    labelAt: 'left', // in the empty space left of the form: above or below it would cover fields
+    stayAtTop: true, // the top of checkout always in view, so it reads as checkout
+    header: false, // no caption or note above the frame: the page speaks for itself
   },
   // Shown on their own page (not Meera's), filling in as they pick: see
   // MyPageSetup.jsx. The whole calls section, so it's there even before

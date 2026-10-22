@@ -7,7 +7,7 @@ import '../styles/storeTheme.css';
 import './CheckoutPage.css';
 import { getMyProfile, isMyCall, myMeetingLink, profileHrefFor } from '../data/myProfile';
 import { createBooking } from '../data/bookingsStore';
-import { ANSWER_MAX, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
+import { ANSWER_MAX, EXAMPLE_QUESTIONS, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
 
 // ------------------------------------------------------------
 // Mock checkout, laid out like the product's real checkout:
@@ -219,14 +219,17 @@ const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 // preview=1: the creator previewing their service. No time, no session box,
 // no hold, and nothing can be booked from it.
-export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold, fail, preview }) {
+// exampleQuestions: show EXAMPLE_QUESTIONS instead of the call's own
+// (&questions=example), for the preview beside the questions step.
+export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold, fail, preview, exampleQuestions = false }) {
   const previewing = preview === '1';
   const zone = matchZone(timeZone) ?? matchZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ?? 'Asia/Kolkata';
   const page = useMemo(
     () => buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone, taken: taken === '1', preview: previewing }),
     [serviceId, time, state, slots, zone, taken, previewing],
   );
-  const { status, creator, service, questions = [], slot } = page;
+  const { status, creator, service, slot } = page;
+  const questions = exampleQuestions ? EXAMPLE_QUESTIONS : (page.questions ?? []);
 
   const [form, setForm] = useState({ name: '', email: '', code: '+91', phone: '' });
   const [replies, setReplies] = useState({}); // their answers to the call's questions, by question id
@@ -432,7 +435,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
     <div className="co store-theme">
       {previewing && (
         <p className="co__preview">
-          <Eye size={16} aria-hidden="true" /> This is a preview of your contract. Nobody can book from it.
+          <Eye size={16} aria-hidden="true" /> This is a preview of your service. Nobody can book from it.
         </p>
       )}
       <div className="co__layout">
@@ -532,10 +535,15 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
               </div>
             </Field>
 
-            {/* The call's booking questions, as the creator set them */}
-            {questions.map((q) => (
-              <QuestionField key={q.id} q={q} value={replies[q.id] ?? emptyAnswer(q)} error={errors[`q-${q.id}`]} onChange={reply(q.id)} />
-            ))}
+            {/* The call's booking questions, as the creator set them. One box
+                around them, so the questions step's preview can point at them. */}
+            {questions.length > 0 && (
+              <div className="co__questions">
+                {questions.map((q) => (
+                  <QuestionField key={q.id} q={q} value={replies[q.id] ?? emptyAnswer(q)} error={errors[`q-${q.id}`]} onChange={reply(q.id)} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ---------- Coupon: closed until they need it ---------- */}

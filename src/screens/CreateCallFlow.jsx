@@ -9,7 +9,7 @@ import { PAGE_DOMAIN, offeringUrl } from '../data/myPage';
 import { clearCallDraft, saveCallDraft } from '../data/callDraft';
 import { DEFAULT_HOURS, loadCallHours, saveCallHours } from '../data/availabilityStore';
 import { isCalendarConnected, loadCalendar } from '../data/calendarStore';
-import { DEFAULT_QUESTIONS } from '../data/callQuestions';
+import { cleanQuestions, questionsOf } from '../data/callQuestions';
 import { TITLE_SUGGESTIONS, callAboutOf, callDescriptionOf } from '../data/callDetails';
 import './MyPageReveal.css'; // the "It's ready" moment looks like setup's "It's live"
 import './CreateCallFlow.css';
@@ -24,10 +24,13 @@ import './CreateCallFlow.css';
 //   2 Connect your Google Calendar  only if it isn't connected
 //   3 Set your working hours      starts from their newest call's hours
 //   4 Describe your call
-//   5 We've auto-created your contract page
+//   5 Ask additional questions during checkout  starts with the default
+//                                  question; beside it, an example checkout
+//                                  (fixed questions), not their own
+//   6 We've auto-created your contract page
 //   then: Your 1:1 call is ready  (its link, Copy link, Preview, Go to my 1:1 calls)
 //
-// Beside the questions: the call's own booking page, filling in as they
+// Beside the screens (but the questions one): the call's own booking page, filling in as they
 // answer, with the part each screen sets highlighted. It's the real
 // booking page in a frame (?mock=book&draft=1), reading the answers so
 // far from this browser (callDraft.js). Same frame and marks as setup's
@@ -46,7 +49,7 @@ import './CreateCallFlow.css';
 //   "Back to your offerings page" when they started from there)
 // ------------------------------------------------------------
 
-const STEP_IDS = ['callDetails', 'calendar', 'availability', 'callAbout', 'service'];
+const STEP_IDS = ['callDetails', 'calendar', 'availability', 'callAbout', 'callQuestions', 'service'];
 const ALL_STEPS = STEP_IDS.map((id) => myPageQuestions.find((q) => q.id === id)).map((q) =>
   q.id === 'callDetails' ? { ...q, showDescription: false } : q,
 );
@@ -67,7 +70,6 @@ const CALL_PAGE_NOTES = {
   availability: {
     target: '.bk__picker-card',
     label: 'This is where people pick a time',
-    tip: 'The times they see come from the hours you set here.',
   },
   callAbout: {
     target: '.cd__about',
@@ -145,7 +147,7 @@ export default function CreateCallFlow({
       // goes on the offerings page. Fixed now, so it no longer follows the name.
       callDescription: callDescriptionOf(draft),
       callAbout: callAboutOf(draft),
-      callQuestions: structuredClone(DEFAULT_QUESTIONS),
+      callQuestions: cleanQuestions(questionsOf(draft)), // what they set on the questions step
       serviceId: draft.serviceId,
     });
     setReady(true);
@@ -176,7 +178,10 @@ export default function CreateCallFlow({
       onComplete={finish}
       asideWidth="half"
       renderAside={({ question }) =>
-        question.preview === false ? null : (
+        question.preview === false ? null : question.id === 'callQuestions' ? (
+          // An example checkout, not theirs: the same for every call (profileAnnotations.js)
+          <ProfileExample questionId="callQuestions" />
+        ) : (
           <ProfileExample questionId={question.id} answer={draft[question.id]} page={preview} />
         )
       }

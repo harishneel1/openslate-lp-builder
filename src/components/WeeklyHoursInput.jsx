@@ -124,10 +124,6 @@ export function WeeklyHours({ value, onChange, callLength, className = '', child
             <Repeat size={18} aria-hidden="true" />
             Weekly hours
           </h2>
-          <p className="wh__sub">
-            The hours you’re usually free, every week. We’ll split them into slots for your{' '}
-            <strong>{callLength}</strong> call.
-          </p>
         </header>
 
         <ul className="wh__days">

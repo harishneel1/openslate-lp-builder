@@ -13,6 +13,8 @@ const PAGE_W = 1280; // default laptop width; the intro passes a narrower one to
 const EXAMPLE_SRC = `${window.location.pathname}?mock=profile`;
 const MINE_SRC = `${window.location.pathname}?mock=profile&source=mine`;
 const BOOK_SRC = `${window.location.pathname}?mock=book&service=call-discovery`;
+// Her checkout, as a preview, with the example questions (callQuestions.js)
+const CHECKOUT_SRC = `${window.location.pathname}?mock=checkout&service=call-discovery&preview=1&questions=example`;
 const EXAMPLE_CREATOR = getMockProfile().creator;
 const EXAMPLE_LINK = `${PAGE_DOMAIN}/${EXAMPLE_CREATOR.handle}`;
 const BOOK_LINK = `${EXAMPLE_LINK}/discovery-call`;
@@ -42,7 +44,8 @@ const prefersLessMotion = () => window.matchMedia?.('(prefers-reduced-motion: re
 // tall: use nearly the full window height (the intro).
 // page: show another page instead, the same way, with its own marks:
 //   { src, link, caption, byline, annotations }. "Create a 1:1 call" uses it
-//   for the call's own booking page, filling in as they answer.
+//   for the call's own booking page, filling in as they answer, and for an
+//   example checkout on its questions step.
 export default function ProfileExample({
   questionId = null,
   answer,
@@ -67,10 +70,12 @@ export default function ProfileExample({
   const [size, setSize] = useState({ w: 0, h: 0 }); // the page area, below the bar
   const [loaded, setLoaded] = useState(false);
 
-  // Which page to show: one passed in, theirs, Meera's booking page, or her offerings page
+  // Which page to show: one passed in, theirs, Meera's booking page, her
+  // checkout (with example questions), or her offerings page
   const booking = !page && !mine && note?.page === 'book';
-  const src = page ? page.src : mine ? MINE_SRC : booking ? BOOK_SRC : EXAMPLE_SRC;
-  const shownLink = page ? page.link : mine ? link : booking ? BOOK_LINK : EXAMPLE_LINK;
+  const checkout = !page && !mine && note?.page === 'checkout';
+  const src = page ? page.src : mine ? MINE_SRC : booking ? BOOK_SRC : checkout ? CHECKOUT_SRC : EXAMPLE_SRC;
+  const shownLink = page ? page.link : mine ? link : booking ? BOOK_LINK : checkout ? `${BOOK_LINK}/checkout` : EXAMPLE_LINK;
 
   // A different page loads afresh: no marks until it has
   useEffect(() => setLoaded(false), [src]);
@@ -126,7 +131,9 @@ export default function ProfileExample({
   // A new question: bring its part into view if it's off screen, then measure
   useEffect(() => {
     const win = loaded ? iframeRef.current?.contentWindow : null;
-    if (win && note && pageH) {
+    if (win && note && pageH && note.stayAtTop) {
+      win.scrollTo({ top: 0 });
+    } else if (win && note && pageH) {
       const behavior = prefersLessMotion() ? 'auto' : 'smooth';
       const el = note.target === 'link' ? null : win.document.querySelector(note.target);
       if (!el) {
@@ -214,9 +221,15 @@ export default function ProfileExample({
     const underTop = rect.underBottom != null ? Math.max(rect.underBottom, boxBottom) + LABEL_GAP : null;
     const pinUnder = !pinTop && underTop != null && underTop + LABEL_H <= frameH - EDGE;
 
+    // Level with the box, in the space to its left, when the note asks for it
+    // and there's room for the pill there. Placed by its right edge.
+    const pinLeft = !pinTop && !pinUnder && note.labelAt === 'left' && box.left - LABEL_GAP - LABEL_W >= EDGE;
+
     // Otherwise above the box when there's room (there isn't for the link, at the very top)
-    const labelAbove = !pinTop && !pinUnder && box.top - LABEL_GAP - LABEL_H >= EDGE;
-    const label = pinTop
+    const labelAbove = !pinTop && !pinUnder && !pinLeft && box.top - LABEL_GAP - LABEL_H >= EDGE;
+    const label = pinLeft
+      ? { right: frameW - (box.left - LABEL_GAP), top: box.top + Math.min(box.height / 2, 60) - LABEL_H / 2 }
+      : pinTop
       ? { left: EDGE, top: viewTop + EDGE }
       : pinUnder
         ? // Starts in the margin left of the box, so its arrow can run up beside the page
@@ -249,6 +262,10 @@ export default function ProfileExample({
       const a = { x: label.left + 14, y: label.top + LABEL_H + 2 };
       const b = { x: box.left - 3, y: box.top + 22 };
       labelArrow = `M ${a.x} ${a.y} C ${a.x} ${a.y + (b.y - a.y) * 0.7}, ${b.x - 18} ${b.y}, ${b.x} ${b.y}`;
+    } else if (pinLeft) {
+      // Straight across, from the pill's right end into the box's side
+      const y = label.top + LABEL_H / 2;
+      labelArrow = `M ${box.left - LABEL_GAP + 2} ${y} L ${box.left - 4} ${y}`;
     } else if (pinUnder) {
       // Up the margin beside the page, then a hook into the box's side,
       // near its bottom, so it crosses nothing on the page
@@ -271,11 +288,13 @@ export default function ProfileExample({
 
   return (
     <div className="pex">
-      {/* The intro introduces Meera on its left side instead */}
-      {note && (
+      {/* The intro introduces Meera on its left side instead. A note can do without (header: false). */}
+      {note && note.header !== false && (
         <>
           <div className="pex__whose">
-            <p className="pex__caption">{page ? page.caption : 'A popular creator’s offerings page'}</p>
+            <p className="pex__caption">
+              {page ? page.caption : 'A popular creator’s offerings page'}
+            </p>
             <p className="pex__creator">
               {page ? page.byline : `${EXAMPLE_CREATOR.name}, ${EXAMPLE_CREATOR.headline.toLowerCase()}`}
             </p>
@@ -344,7 +363,10 @@ export default function ProfileExample({
                 )}
               </svg>
 
-              <p className="pex__label" style={{ left: marks.label.left, top: marks.label.top }}>
+              <p
+                className="pex__label"
+                style={marks.label.right != null ? { right: marks.label.right, top: marks.label.top } : { left: marks.label.left, top: marks.label.top }}
+              >
                 {note.label}
               </p>
               {marks.tip && (

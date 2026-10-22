@@ -52,6 +52,23 @@ export const DEFAULT_QUESTIONS = [
   { id: 'q-topic', text: 'What would you like to talk about?', type: 'long', required: false, options: [] },
 ];
 
+// The example on the right of "Ask additional questions during checkout"
+// (setup and Create a 1:1 call): fixed, so it shows what's possible rather
+// than what they've typed. One of most kinds. Only ever shown, never asked.
+// Two, so the whole checkout (call, name, email, phone, questions) fits in
+// the preview without scrolling: the question every call starts with
+// (a paragraph), then a dropdown, to show a question with options.
+export const EXAMPLE_QUESTIONS = [
+  { id: 'ex-topic', text: 'What would you like to talk about?', type: 'long', required: false, options: [] },
+  {
+    id: 'ex-designation',
+    text: 'What is your designation?',
+    type: 'dropdown',
+    required: true,
+    options: ['Software engineer', 'Product manager', 'Designer', 'Other'],
+  },
+];
+
 // What checkout asks: every question (to stop asking one, they delete it)
 export const askedQuestions = (list) => list;
 

@@ -16,6 +16,8 @@ import WeeklyHoursInput from './WeeklyHoursInput';
 import ServiceSummaryInput from './ServiceSummaryInput';
 import CalendarConnectInput from './CalendarConnectInput';
 import PickCallsInput from './PickCallsInput';
+import QuestionsInput from './QuestionsInput';
+import { questionsOf } from '../data/callQuestions';
 
 const CTA_MAX = 25;
 
@@ -525,6 +527,10 @@ export default function QuestionInput(props) {
       return <CalendarConnectInput {...props} />;
     case 'pickCalls':
       return <PickCallsInput {...props} />;
+    case 'callQuestions':
+      // The same builder as the call editor's Invitee form, starting from
+      // the call's questions (the default one until they change it)
+      return <QuestionsInput cards value={questionsOf(props.answers)} onChange={(list) => props.onChange(list)} />;
     default:
       return (
         <p className="qinput__todo">
