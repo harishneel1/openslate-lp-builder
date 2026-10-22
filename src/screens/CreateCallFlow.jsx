@@ -5,8 +5,7 @@ import ProfileExample from '../components/ProfileExample';
 import { useCopy } from './OfferingsHome';
 import { myPageQuestions } from '../data/myPageQuestions';
 import { addedCallsOf, hasSetupCall, loadAnswers, myCallIds, newCallId } from '../data/myProfile';
-import { PAGE_DOMAIN, offeringUrl } from '../data/myPage';
-import { clearCallDraft, saveCallDraft } from '../data/callDraft';
+import { offeringUrl } from '../data/myPage';
 import { DEFAULT_HOURS, loadCallHours, saveCallHours } from '../data/availabilityStore';
 import { isCalendarConnected, loadCalendar } from '../data/calendarStore';
 import { cleanQuestions, questionsOf } from '../data/callQuestions';
@@ -30,11 +29,12 @@ import './CreateCallFlow.css';
 //   6 We've auto-created your contract page
 //   then: Your 1:1 call is ready  (its link, Copy link, Preview, Go to my 1:1 calls)
 //
-// Beside the screens (but the questions one): the call's own booking page, filling in as they
-// answer, with the part each screen sets highlighted. It's the real
-// booking page in a frame (?mock=book&draft=1), reading the answers so
-// far from this browser (callDraft.js). Same frame and marks as setup's
-// example page (ProfileExample.jsx).
+// Beside the screens: Meera Joshi's example pages, fixed, the same for
+// every call, with the part each screen sets highlighted. Her booking page
+// for the call's name, hours and description; her checkout, with example
+// questions, for the questions screen (profileAnnotations.js). Nothing on
+// them changes as they type. Same frame and marks as setup's (ProfileExample.jsx).
+// Their own booking page first shows on "Your 1:1 call is ready".
 //
 // The call only exists once they finish. Leaving before that keeps
 // nothing, except hours saved under an id no call uses and, if they got
@@ -54,24 +54,29 @@ const ALL_STEPS = STEP_IDS.map((id) => myPageQuestions.find((q) => q.id === id))
   q.id === 'callDetails' ? { ...q, showDescription: false } : q,
 );
 
-// What each screen fills in on the booking page (see profileAnnotations.js
-// for the shape). The calendar and contract screens have no preview.
+// What each screen fills in, pointed out on Meera's booking page (see
+// profileAnnotations.js for the shape). The calendar and contract screens
+// have no preview; the questions screen uses setup's note (her checkout).
 // The name and description pills sit in the empty space under the page
 // (labelAt 'under'), so they never cover the details around what they point at
 const UNDER_THE_PAGE = '.bk__details, .bk__picker-card';
 
 const CALL_PAGE_NOTES = {
   callDetails: {
+    page: 'book',
     target: '.cd__title',
     label: 'Title of your 1:1 call event',
     labelAt: 'under',
     under: UNDER_THE_PAGE,
   },
   availability: {
+    page: 'book',
     target: '.bk__picker-card',
     label: 'This is where people pick a time',
+    tip: 'The times they see come from the hours you set here.',
   },
   callAbout: {
+    page: 'book',
     target: '.cd__about',
     label: 'This is your 1:1 call event’s description',
     labelAt: 'under',
@@ -115,21 +120,6 @@ export default function CreateCallFlow({
     const newest = myCallIds(loadAnswers())[0];
     saveCallHours(callId, newest ? strip(loadCallHours(newest)) : structuredClone(DEFAULT_HOURS));
   }, [callId]);
-
-  // The preview reads the draft from this browser; gone once they leave
-  useEffect(() => saveCallDraft(draft), [draft]);
-  useEffect(() => clearCallDraft, []);
-
-  const preview = useMemo(
-    () => ({
-      src: `${window.location.pathname}?mock=book&service=${encodeURIComponent(callId)}&draft=1`,
-      link: handle ? `${PAGE_DOMAIN}/${handle}/${callId}` : 'Your call’s booking page',
-      caption: 'Your call’s booking page',
-      byline: 'It fills in as you answer',
-      annotations: CALL_PAGE_NOTES,
-    }),
-    [callId, handle],
-  );
 
   const handleAnswer = (id, value) => setDraft((prev) => ({ ...prev, [id]: value }));
 
@@ -179,10 +169,11 @@ export default function CreateCallFlow({
       asideWidth="half"
       renderAside={({ question }) =>
         question.preview === false ? null : question.id === 'callQuestions' ? (
-          // An example checkout, not theirs: the same for every call (profileAnnotations.js)
+          // Her checkout, with example questions (profileAnnotations.js)
           <ProfileExample questionId="callQuestions" />
         ) : (
-          <ProfileExample questionId={question.id} answer={draft[question.id]} page={preview} />
+          // Her booking page, with this screen's part highlighted
+          <ProfileExample questionId={question.id} notes={CALL_PAGE_NOTES} />
         )
       }
     />

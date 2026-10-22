@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Info, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { getMockProfile } from '../data/mockProfile';
 import { PAGE_DOMAIN } from '../data/myPage';
 import { profileAnnotations } from '../data/profileAnnotations';
@@ -44,8 +44,9 @@ const prefersLessMotion = () => window.matchMedia?.('(prefers-reduced-motion: re
 // tall: use nearly the full window height (the intro).
 // page: show another page instead, the same way, with its own marks:
 //   { src, link, caption, byline, annotations }. "Create a 1:1 call" uses it
-//   for the call's own booking page, filling in as they answer, and for an
-//   example checkout on its questions step.
+//   for the call's booking page on "Your 1:1 call is ready".
+// notes: annotations to use instead of setup's (profileAnnotations.js), keyed
+//   by question id. "Create a 1:1 call" passes its own, on Meera's pages.
 export default function ProfileExample({
   questionId = null,
   answer,
@@ -54,8 +55,9 @@ export default function ProfileExample({
   pageWidth = PAGE_W,
   tall = false,
   page = null,
+  notes = null,
 }) {
-  const annotations = page?.annotations ?? profileAnnotations;
+  const annotations = page?.annotations ?? notes ?? profileAnnotations;
   // Kept stable between renders, so the marks only move when this changes
   const note = useMemo(() => {
     const entry = questionId ? annotations[questionId] : null;
@@ -288,23 +290,7 @@ export default function ProfileExample({
 
   return (
     <div className="pex">
-      {/* The intro introduces Meera on its left side instead. A note can do without (header: false). */}
-      {note && note.header !== false && (
-        <>
-          <div className="pex__whose">
-            <p className="pex__caption">
-              {page ? page.caption : 'A popular creator’s offerings page'}
-            </p>
-            <p className="pex__creator">
-              {page ? page.byline : `${EXAMPLE_CREATOR.name}, ${EXAMPLE_CREATOR.headline.toLowerCase()}`}
-            </p>
-          </div>
-          <p className="pex__note">
-            <Info size={14} /> Your answer goes in the highlighted spot.
-          </p>
-        </>
-      )}
-
+      {/* No caption or note above the frame: the page, boxed and named, says enough */}
       <div className={`pex__frame ${tall ? 'pex__frame--tall' : ''}`} ref={frameRef}>
         <div className="pex__bar" aria-hidden="true">
           <span className="pex__dots"><span /><span /><span /></span>
