@@ -326,3 +326,38 @@ export function createContract(fields) {
 export function updateContract(id, fields) {
   return saveChange(id, contractFields(fields));
 }
+// ------------------------------------------------------------
+// A webinar's sign-up page. Every webinar makes its own contract from
+// its event details and price; the coach never picks one. The contract
+// remembers which webinar made it (webinarId), so only that webinar
+// ever changes it, and a contract picked by hand on an older webinar is
+// left as it was.
+//
+// fields: title, description, type ('free' | 'onetime'), prices (see contractPricing.js)
+// startDate: the webinar's date, YYYY-MM-DD
+// Returns the contract's id, or null if storage failed.
+// ------------------------------------------------------------
+export function saveWebinarContract({ webinarId, contractId, fields, startDate }) {
+  const existing = contractId ? getService(contractId) : null;
+  if (existing && existing.webinarId === webinarId) {
+    // Keep what the coach set on the contract screen (cover, questions,
+    // GST, after payment); the webinar only owns what it asks about
+    const merged = contractFields({ ...contractOf(existing), ...fields });
+    return saveChange(contractId, { ...merged, startDate: startDate || existing.startDate }) ? contractId : null;
+  }
+  const now = new Date();
+  const contract = {
+    id: `svc-${now.getTime().toString(36)}`,
+    ...contractFields({ ...fields, success: DEFAULT_SUCCESS }),
+    webinarId,
+    startDate: startDate || now.toISOString().slice(0, 10),
+    status: 'active',
+    createdAt: now.toISOString(),
+  };
+  try {
+    localStorage.setItem(CREATED_KEY, JSON.stringify([...loadCreated(), contract]));
+    return contract.id;
+  } catch {
+    return null;
+  }
+}

@@ -1,0 +1,211 @@
+/* Sign-up page: the landing page's build-then-reveal (BuildingStep.css),
+   with a sketch of the sign-up page in place of a page picture. Only
+   what's different is here. */
+
+/* The sketch, centred in the frame, narrower than the landing picture */
+.signup__shot {
+  display: flex;
+  justify-content: center;
+  padding: 28px 20px;
+  background: var(--color-bg);
+}
+
+/* Blurred while it builds, sharp at the reveal (as .building__shot .thumb) */
+.signup__sheet {
+  width: 100%;
+  max-width: 360px;
+  padding: 20px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  filter: blur(calc((1 - var(--building-progress)) * 8px)) grayscale(calc(1 - var(--building-progress)));
+  opacity: calc(0.35 + 0.65 * var(--building-progress));
+  transition: filter 0.4s ease, opacity 0.4s ease;
+}
+
+.building--ready .signup__sheet {
+  filter: none;
+  opacity: 1;
+}
+
+.signup__sheet-head {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* The date as a little calendar page, as on checkout */
+.signup__tile {
+  flex: none;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 48px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.signup__tile-month {
+  width: 100%;
+  padding: 2px 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.signup__tile-day {
+  padding: 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.signup__sheet-text {
+  min-width: 0;
+}
+
+.signup__sheet-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.signup__sheet-meta,
+.signup__sheet-host {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.signup__sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.signup__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signup__field-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.signup__field-box {
+  height: 36px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.signup__pay {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.signup__pay-was {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.signup__secure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Where to find it ---------- */
+.signup__saved {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  animation: flow-in 0.3s ease;
+}
+
+.signup__saved svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--color-primary-hover);
+}
+
+.signup__saved strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signup__sheet {
+    transition: none;
+  }
+  .signup__saved {
+    animation: none;
+  }
+}
+
+/* ---------- Compact, so the whole screen fits without scrolling ---------- */
+.signup.building {
+  padding-top: 4vh;
+}
+
+/* A thumbnail: the top of the page, scaled down and cut off softly */
+.signup__shot {
+  position: relative;
+  height: 230px;
+  margin-top: 20px;
+  padding: 20px 20px 0;
+  overflow: hidden;
+  align-items: flex-start;
+}
+
+.signup__shot .signup__sheet {
+  flex: none;
+  width: 360px;
+  transform: scale(0.78);
+  transform-origin: top center;
+}
+
+/* The thumbnail as a link: darker on hover with "Open preview" in the
+   middle, from BuildingStep.css (.building__shot--link, .building__overlay).
+   Only its layout differs here. */
+.building__shot--link.signup__shot {
+  display: flex;
+}
+
+.signup .building__actions {
+  margin-top: 20px;
+}

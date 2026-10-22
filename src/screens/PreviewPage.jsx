@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, Monitor, Smartphone, X } from 'lucide-react';
 import SimpleDesign from '../components/designs/SimpleDesign';
 import ThankYouDesign from '../components/designs/ThankYouDesign';
+import SignupDesign from '../components/designs/SignupDesign';
 import { buildPageJson } from '../data/buildPageJson';
 import { getTheme, recommendedThemeId } from '../data/themes';
 import { funnelTypes } from '../data/funnelTypes';
@@ -58,43 +59,47 @@ function Message({ title, text }) {
         <h1 className="preview__message-title">{title}</h1>
         <p className="preview__message-text">{text}</p>
         <a className="preview__home" href={builderUrl()}>
-          Go to Funnels <ArrowRight size={18} />
+          Go to Webinars <ArrowRight size={18} />
         </a>
       </div>
     </div>
   );
 }
 
-// page: 'landing' (default) or 'thank-you'
+// The three pages: which donePages entry each needs, and what the bar says
+const PAGE_INFO = {
+  landing: { done: 'landing', label: 'Preview', name: 'landing page' },
+  signup: { done: 'registration', label: 'Preview: Sign-up page', name: 'sign-up page' },
+  'thank-you': { done: 'thank-you', label: 'Preview: Thank you page', name: 'thank you page' },
+};
+
+// page: 'landing' (default), 'signup' or 'thank-you'
 export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
   const isThankYou = pageId === 'thank-you';
+  const info = PAGE_INFO[pageId] ?? PAGE_INFO.landing;
   const [funnel] = useState(() => readFunnel(funnelId));
   const [mode, setMode] = useState('desktop');
 
   // Tab title: "Preview: <their headline>"
   useEffect(() => {
     if (!funnel) document.title = 'Preview';
-    else document.title = isThankYou ? `Preview: Thank you page · ${funnel.name}` : `Preview: ${funnel.name}`;
-  }, [funnel, isThankYou]);
+    else document.title = pageId === 'landing' ? `Preview: ${funnel.name}` : `${info.label} · ${funnel.name}`;
+  }, [funnel, pageId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!funnel) {
     return (
       <Message
-        title="This funnel isn't here anymore"
-        text="It may have been deleted. You'll find your other funnels under Funnels."
+        title="This webinar isn't here anymore"
+        text="It may have been deleted. You'll find your other webinars under Webinars."
       />
     );
   }
 
-  if (!funnel.donePages.includes(pageId)) {
+  if (!funnel.donePages.includes(info.done)) {
     return (
       <Message
-        title={isThankYou ? "This thank you page isn't finished yet" : "This landing page isn't finished yet"}
-        text={
-          isThankYou
-            ? 'Finish it in Funnels, then you can preview it here.'
-            : 'Pick a design for it in Funnels, then you can preview it here.'
-        }
+        title={`This ${info.name} isn't finished yet`}
+        text="Finish it in Webinars, then you can preview it here."
       />
     );
   }
@@ -107,7 +112,7 @@ export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
   return (
     <div className={`preview preview--${mode}`}>
       <div className="preview__bar">
-        <span className="preview__label">{isThankYou ? 'Preview: Thank you page' : 'Preview'}</span>
+        <span className="preview__label">{info.label}</span>
         <p className="preview__name">{funnel.name}</p>
 
         <div className="preview__toggle" role="group" aria-label="Preview size">
@@ -133,6 +138,8 @@ export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
         <div className="preview__page">
           {isThankYou ? (
             <ThankYouDesign answers={funnel.answers} theme={getTheme(resolvedId)} />
+          ) : pageId === 'signup' ? (
+            <SignupDesign answers={funnel.answers} />
           ) : (
             <SimpleDesign page={page} theme={getTheme(resolvedId)} />
           )}

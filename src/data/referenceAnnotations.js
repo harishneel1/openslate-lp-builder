@@ -8,6 +8,10 @@
 //      any resolution as long as it's the same capture.
 // label: names the part (the orange pill).
 // tip:   why it matters (the white bubble), one or two short lines.
+// tipY:  optional. Where the bubble's top goes, as % of the height. Used
+//        for parts of the hero, so the bubble sits below the hero (at the
+//        start of "What you'll learn") instead of covering it. Without
+//        it, the bubble sits just under the box.
 // Keys match question ids in webinarQuestions.js.
 // finalCta is auto, so it has no entry.
 // ------------------------------------------------------------
@@ -23,16 +27,19 @@ export const referenceAnnotations = {
   headline: {
     box: { x: 19.99, y: 3.0, w: 59.96, h: 3.25 },
     label: 'This is your headline',
+    tipY: 11.9, // below the hero, so it doesn't cover the page around the headline
     tip: 'The big line grabs attention. The line under it gives a reason to believe it. Most visitors decide right here.',
   },
   eventDetails: {
     box: { x: 28.78, y: 6.48, w: 42.37, h: 0.96 },
     label: 'These are your event details',
+    tipY: 11.9,
     tip: 'When, how long, and in what language. Clear details make it easy to say yes.',
   },
   pricing: {
     box: { x: 35.11, y: 7.62, w: 29.85, h: 1.1 },
     label: 'This is your sign-up button',
+    tipY: 11.9,
     tip: 'The one thing you want every visitor to click. Free or paid changes what it says.',
   },
   priceDetails: {

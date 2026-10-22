@@ -1,0 +1,48 @@
+/* A webinar's sign-up page (SignupDesign.jsx). The look is the checkout's
+   (CheckoutPage.css); this only makes it size itself to the preview frame,
+   so the phone preview shows the phone layout. */
+.signup-design {
+  container-type: inline-size;
+  min-height: 100%;
+}
+
+.signup-design.co {
+  --co-gutter: 20px;
+}
+
+.signup-design .co__layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  padding-top: 28px;
+}
+
+.signup-design .co__title {
+  font-size: 26px;
+}
+
+.signup-design .co__what {
+  position: static;
+}
+
+@container (min-width: 900px) {
+  .signup-design .co__layout {
+    grid-template-columns: minmax(0, 1fr) 440px;
+    gap: 64px;
+    padding: 56px 40px 64px;
+  }
+
+  .signup-design .co__title {
+    font-size: 32px;
+  }
+
+  .signup-design .co__what {
+    position: sticky;
+  }
+}
+
+.signup-design__note {
+  margin-top: 10px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--pf-muted, #6b6b6b);
+}

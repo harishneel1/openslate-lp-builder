@@ -9,7 +9,7 @@ import RambleInput from './RambleInput';
 import HeadlinePicker from './HeadlinePicker';
 import HandleInput from './HandleInput';
 import OfferTypeInput from './OfferTypeInput';
-import CallDetailsInput from './CallDetailsInput';
+import CallDetailsInput, { PriceWithDiscount } from './CallDetailsInput';
 import CallAboutInput from './CallAboutInput';
 import PriceExample from './PriceExample';
 import WeeklyHoursInput from './WeeklyHoursInput';
@@ -515,6 +515,20 @@ export default function QuestionInput(props) {
       return <HandleInput {...props} />;
     case 'offerType':
       return <OfferTypeInput {...props} />;
+    // A price, with a discount only when it's ticked (webinar "Set your price")
+    case 'priceDiscount':
+      return (
+        // In a white card, like the other webinar screens with fields
+        <section className="qinput__card qinput__card--prices">
+          <PriceWithDiscount
+            answers={props.answers}
+            onChange={props.onChange}
+            ids={props.question.ids}
+            label={props.question.priceLabel}
+            example="999"
+          />
+        </section>
+      );
     case 'callDetails':
       return <CallDetailsInput {...props} />;
     case 'callAbout':

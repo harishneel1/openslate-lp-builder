@@ -151,7 +151,7 @@ export const webinarQuestions = [
     section: 'hero',
     type: 'headlinePair',
     question: "Let's write your headline",
-    helper: 'Pick one to start, then make it yours.',
+    helper: 'Pick an AI suggestion from below or type your own',
     nextHint: 'Add a headline and the line under it to continue',
     fields: [
       {
@@ -259,24 +259,36 @@ export const webinarQuestions = [
     buttonText: true,
     required: true,
   },
-    // Price and regular price on one screen. Each still saves under its
-  // own id (price, oldPrice), like the other group fields.
+    // The price, and a discount only if they tick it, as in Contracts and
+  // the 1:1 call (PriceWithDiscount in CallDetailsInput.jsx). Saved as before:
+  //   no discount   price = the price, oldPrice = ''
+  //   discount      oldPrice = the price (shown crossed out),
+  //                 price = the discounted price (what they pay)
+  // `fields` describes what's saved, for buildPageJson and the review rows.
   {
     id: 'priceDetails',
     reviewLabel: 'Price',
     section: 'cta',
-    type: 'group',
+    type: 'priceDiscount',
+    ids: { price: 'price', compare: 'oldPrice' },
+    priceLabel: 'Price',
     question: 'Set your price',
     helper: 'You can change it any time.',
-    nextHint: 'Add your price to continue',
+    nextHint: (answers) =>
+      String(answers.oldPrice ?? '').trim() !== '' ? 'Add a discounted price lower than your price, or untick it' : 'Add your price to continue',
     showIf: { field: 'pricing', equals: 'Paid' },
-    pricePreview: true,
+    // A price, and a discount (if ticked) lower than it
+    isComplete: (answers) => {
+      const pay = Number(answers.price) || 0;
+      const regular = Number(answers.oldPrice) || 0;
+      return pay > 0 && (regular === 0 || pay < regular);
+    },
     fields: [
       {
         id: 'price',
         target: 'pricing.price',
         type: 'number',
-        label: 'Discounted price',
+        label: 'What people pay',
         example: '499',
         required: true,
       },
@@ -284,9 +296,7 @@ export const webinarQuestions = [
         id: 'oldPrice',
         target: 'pricing.oldPrice',
         type: 'number',
-        label: 'Regular price',
-        helper: 'Shown crossed out next to your discounted price.',
-        mustExceed: 'price', // must be more than the price to make sense
+        label: 'Price before the discount (shown crossed out)',
         required: false,
       },
     ],

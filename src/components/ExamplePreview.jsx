@@ -13,7 +13,6 @@ const TIP_GAP = 34;        // room for the arrow between the box and the bubble
 const EDGE = 12;           // keep bubbles this far from the panel edges
 
 const ABOVE = LABEL_H + LABEL_GAP;  // everything that sits above the box
-const BELOW = TIP_GAP + TIP_H;      // everything that sits below it
 
 const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
 
@@ -53,13 +52,19 @@ export default function ExamplePreview({ questionId }) {
   const boxRight = box.left + box.width;
   const boxBottom = box.top + box.height;
 
+  // Where the bubble's top goes: just under the box, or further down when
+  // the annotation says (tipY: hero parts, so the bubble sits below the
+  // hero instead of covering it)
+  const tipTop = note.tipY != null ? Math.max(boxBottom + TIP_GAP, (note.tipY / 100) * stageH) : boxBottom + TIP_GAP;
+  const below = tipTop - boxBottom + TIP_H; // everything under the box
+
   // Short boxes: pill above, bubble below, all three centred in the panel.
   // Tall boxes (long lists): pill above, box starts near the top, and the
   // bubble sits over the bottom of the panel, inside the box.
-  const fits = ABOVE + box.height + BELOW + EDGE * 2 <= h;
+  const fits = ABOVE + box.height + below + EDGE * 2 <= h;
   const blockTop = box.top - ABOVE;
   const offset = fits
-    ? blockTop - (h - (ABOVE + box.height + BELOW)) / 2
+    ? blockTop - (h - (ABOVE + box.height + below)) / 2
     : blockTop - EDGE;
   const scroll = clamp(offset, 0, Math.max(0, stageH - h));
 
@@ -71,8 +76,12 @@ export default function ExamplePreview({ questionId }) {
 
   // Bubble: below the box, lined up with its right edge
   const tipLeft = clamp(boxRight - TIP_W, EDGE, w - EDGE - TIP_W);
+  // A hero part on a short screen: the hero is too tall for the bubble to
+  // fit below it, and inside the frame it would cover the hero again. It
+  // goes under the frame instead, with no arrow.
+  const outside = note.tipY != null && !fits;
   const tip = fits
-    ? { left: tipLeft, top: boxBottom + TIP_GAP }
+    ? { left: tipLeft, top: tipTop }
     : { left: tipLeft, top: scroll + h - EDGE, inside: true }; // anchored by its bottom
 
   // Arrows: gentle curves from each bubble to the box edge
@@ -90,7 +99,7 @@ export default function ExamplePreview({ questionId }) {
         <Info size={14} /> Your answer goes in the highlighted spot. You'll pick your own design later.
       </p>
 
-      <div className="ex__frame">
+      <div className={`ex__frame ${outside ? 'ex__frame--short' : ''}`}>
         <div className="ex__browserbar" aria-hidden="true">
           <span className="ex__dots"><span /><span /><span /></span>
         </div>
@@ -144,7 +153,7 @@ export default function ExamplePreview({ questionId }) {
                     rx="12"
                   />
                   <path className="ex__arrow" d={curve(labelFrom, labelTo, 14)} markerEnd="url(#ex-arrowhead)" />
-                  {!tip.inside && (
+                  {!tip.inside && !outside && (
                     <path className="ex__arrow" d={curve(tipFrom, tipTo, -18)} markerEnd="url(#ex-arrowhead)" />
                   )}
                 </svg>
@@ -152,17 +161,25 @@ export default function ExamplePreview({ questionId }) {
                 <p className="ex__label" style={{ left: label.left, top: label.top }}>
                   {note.label}
                 </p>
-                <p
-                  className={`ex__tip ${tip.inside ? 'ex__tip--inside' : ''}`}
-                  style={{ left: tip.left, top: tip.top, width: TIP_W }}
-                >
-                  {note.tip}
-                </p>
+                {!outside && (
+                  <p
+                    className={`ex__tip ${tip.inside ? 'ex__tip--inside' : ''}`}
+                    style={{ left: tip.left, top: tip.top, width: TIP_W }}
+                  >
+                    {note.tip}
+                  </p>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {outside && (
+        <p className="ex__tip ex__tip--below" key={questionId}>
+          {note.tip}
+        </p>
+      )}
     </div>
   );
 }

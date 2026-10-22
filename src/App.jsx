@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import AppLayout from './components/AppLayout';
-import FunnelTypePicker from './screens/FunnelTypePicker';
+import WebinarsPage from './screens/WebinarsPage';
 import FunnelOverview from './screens/FunnelOverview';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
@@ -12,9 +12,11 @@ import Transition from './screens/Transition';
 import DesignStep from './screens/DesignStep';
 import BuildingStep from './screens/BuildingStep';
 import LandingEditor from './screens/LandingEditor';
-import ServicePicker from './screens/ServicePicker';
-import { getService } from './data/mockServices';
-import { thankYouQuestions, groupLinkMissing } from './data/thankYouQuestions';
+import SignupStep from './screens/SignupStep';
+import { deleteService, getService, saveWebinarContract } from './data/mockServices';
+import { thankYouQuestions, firstMissing } from './data/thankYouQuestions';
+import { contractKey, ownContract, sessionOf, webinarContractFields } from './data/webinar';
+import RunAgainDialog from './components/RunAgainDialog';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
@@ -71,6 +73,8 @@ function restoreFunnel(f) {
     // Saves from before publishing existed have neither: not live yet
     publishedAt: Number.isFinite(f.publishedAt) ? f.publishedAt : null,
     slug: typeof f.slug === 'string' && f.slug ? f.slug : null,
+    // Earlier runs of this webinar (Run it again); older saves have none
+    sessions: Array.isArray(f.sessions) ? f.sessions.filter(isObject) : [],
   };
 }
 
@@ -169,10 +173,76 @@ function App() {
     setOpenId(id);
   };
 
-  // Delete from the "Your funnels" cards (only on the picker, so never the open funnel)
+  // Delete from the Webinars list (so never the open one). Its sign-up
+  // page was made for it alone, so that contract goes too; one picked by
+  // hand on an older webinar stays in Contracts.
   const deleteFunnel = (id) => {
+    const gone = funnels.find((f) => f.id === id);
+    const own = gone ? ownContract(gone) : null;
+    if (own) deleteService(own.id);
     setFunnels((prev) => prev.filter((f) => f.id !== id));
   };
+
+  // ---------- The sign-up page (its contract) ----------
+  // Made from the event details and price, never picked. Confirming the
+  // sign-up page makes it (or swaps an older webinar's hand-picked one for it).
+  const saveContract = (f) =>
+    saveWebinarContract({
+      webinarId: f.id,
+      contractId: ownContract(f)?.id ?? null,
+      fields: webinarContractFields(f.answers),
+      startDate: f.answers.date,
+    });
+
+  // Makes (or updates) the webinar's own contract and links it. Called as
+  // the sign-up page's build starts; returns false if it couldn't save.
+  const createSignup = () => {
+    const id = saveContract(current);
+    if (!id) {
+      setSaveFailed(true);
+      return false;
+    }
+    updateOpen({ serviceId: id });
+    return true;
+  };
+
+  // At the reveal: the sign-up page counts as done
+  const markSignupDone = () =>
+    updateOpen((f) => ({
+      donePages: f.donePages.includes('registration') ? f.donePages : [...f.donePages, 'registration'],
+    }));
+
+  // ---------- Run it again ----------
+  // Same pages, same link, new date. The session that's over is kept in
+  // `sessions`; the answers become the new one. Asked in a pop-up, from
+  // the list or the webinar's overview.
+  const [runAgainId, setRunAgainId] = useState(null);
+  const runningAgain = funnels.find((f) => f.id === runAgainId) ?? null;
+
+  const runAgain = ({ date, time, meetingLink }) => {
+    const f = runningAgain;
+    if (!f) return;
+    const next = {
+      ...f,
+      sessions: [sessionOf(f.answers), ...(f.sessions ?? [])],
+      answers: { ...f.answers, date, time, meetingLink },
+      updatedAt: Date.now(),
+    };
+    setFunnels((prev) => prev.map((item) => (item.id === f.id ? next : item)));
+    // Its sign-up page shows the new date straight away, whether or not it's open
+    if (ownContract(next)) saveContract(next);
+    setRunAgainId(null);
+  };
+
+  // After that it follows the landing page: a new headline, date or price
+  // updates the contract a moment later. Only the webinar's own contract.
+  const syncKey =
+    current && current.donePages.includes('registration') ? `${current.id}|${contractKey(current.answers)}` : null;
+  useEffect(() => {
+    if (!syncKey || !current || !ownContract(current)) return undefined;
+    const timer = setTimeout(() => saveContract(current), 400);
+    return () => clearTimeout(timer);
+  }, [syncKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 
@@ -229,10 +299,11 @@ function App() {
   const renderPageBuilder = () => {
     if (!funnel) {
       return (
-        <FunnelTypePicker
-          onSelect={startFunnel}
-          savedFunnels={funnels}
+        <WebinarsPage
+          webinars={funnels.filter((f) => f.type === 'webinar')}
+          onCreate={() => startFunnel('webinar')}
           onOpen={setOpenId}
+          onRunAgain={setRunAgainId}
           onDelete={deleteFunnel}
         />
       );
@@ -242,6 +313,9 @@ function App() {
       return (
         <FunnelOverview
           funnel={funnel}
+          webinarId={openId}
+          sessions={current.sessions ?? []}
+          onRunAgain={() => setRunAgainId(openId)}
           done={donePages}
           answers={answers}
           themeId={themeId}
@@ -249,8 +323,9 @@ function App() {
           onPublish={publishFunnel}
           previewHref={`?preview=${encodeURIComponent(openId)}`}
           onPreview={saveNow}
-          onEdit={() => updateOpen({ step: 'review' }, { touch: false })}
+          onEdit={() => updateOpen({ step: 'review', returnTo: undefined }, { touch: false })}
           service={getService(serviceId)}
+          serviceIsOwn={Boolean(ownContract(current))}
           onChangeService={() => updateOpen({ step: 'registration' }, { touch: false })}
           onEditThankYou={() => updateOpen({ step: 'thank-you' }, { touch: false })}
           /* pageId: the card they clicked (always the next page to build) */
@@ -307,7 +382,8 @@ function App() {
             // Remember the current style, so Back can undo what they tried
             updateOpen((f) => ({ themeBefore: f.themeId, step: 'review-design' }), { touch: false })
           }
-          onDone={() => updateOpen({ step: 'overview' }, { touch: false })}
+          // Back to where they came from: the sign-up page when they opened it there
+          onDone={() => updateOpen((f) => ({ step: f.returnTo ?? 'overview', returnTo: undefined }), { touch: false })}
         />
       );
     }
@@ -386,26 +462,31 @@ function App() {
           themeId={themeId}
           previewHref={`?preview=${encodeURIComponent(openId)}`}
           onPreview={saveNow}
+          /* "Next: Sign-up page" goes back to the overview (the three page cards),
+             where the sign-up page card is next */
+          nextLabel={donePages.includes('registration') ? 'Back to overview' : undefined}
           onContinue={() => setStep('overview')}
         />
       );
     }
 
-    // Registration page: pick one of their services. Picking one marks the
-    // page done and goes back to the overview; Back changes nothing.
+    // Sign-up page: nothing to fill in or change. It's made from the event
+    // details (a short build), shown, and Done goes back to the overview.
+    // Coming back via Review: already made, so it's shown straight away.
     if (step === 'registration') {
+      const own = ownContract(current);
+      const picked = getService(serviceId);
       return (
-        <ServicePicker
-          key={serviceId ?? 'none'}
-          selectedId={serviceId}
-          onBack={() => updateOpen({ step: 'overview' }, { touch: false })}
-          onUse={(id) =>
-            updateOpen((f) => ({
-              serviceId: id,
-              donePages: f.donePages.includes('registration') ? f.donePages : [...f.donePages, 'registration'],
-              step: 'overview',
-            }))
-          }
+        <SignupStep
+          key={openId}
+          answers={answers}
+          made={Boolean(own) && donePages.includes('registration')}
+          legacy={picked && !own ? picked : null}
+          previewHref={`?preview=${encodeURIComponent(openId)}&page=signup`}
+          onPreview={saveNow}
+          onCreate={createSignup}
+          onReady={markSignupDone}
+          onDone={() => updateOpen({ step: 'overview' }, { touch: false })}
         />
       );
     }
@@ -418,8 +499,8 @@ function App() {
           key="thank-you"
           backAtTop
           pageName="Thank you page"
-          /* "Add link" on the overview opens straight on the link screen */
-          startAt={donePages.includes('thank-you') && groupLinkMissing(answers) ? 'groupLink' : null}
+          /* "Add meeting link" / "Add community link" on the overview opens straight on that screen */
+          startAt={donePages.includes('thank-you') ? firstMissing(answers) : null}
           questions={thankYouQuestions}
           answers={answers}
           onAnswer={handleAnswer}
@@ -540,8 +621,18 @@ function App() {
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : (
         <p style={{ color: 'var(--color-text-muted)' }}>
-          Dummy page. Click <strong>Funnels</strong> in the sidebar.
+          Dummy page. Click <strong>Webinars</strong> in the sidebar.
         </p>
+      )}
+
+      {runningAgain && (
+        <RunAgainDialog
+          key={runningAgain.id}
+          name={funnelName(runningAgain, funnelTypes.find((t) => t.id === runningAgain.type))}
+          answers={runningAgain.answers}
+          onCancel={() => setRunAgainId(null)}
+          onSchedule={runAgain}
+        />
       )}
 
       {saveFailed && (

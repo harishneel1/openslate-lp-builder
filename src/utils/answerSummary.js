@@ -35,6 +35,7 @@ export function editGroup(questionId, questions = landingQuestions) {
 // Same rules as the question screen's Next button (QuestionFlow).
 export function needsAnswer(question, answers) {
   if (!question.required) return false;
+  if (question.isComplete) return !question.isComplete(answers);
   if (question.type === 'items') {
     return filledCount(answers[question.id], question.mainField) < (question.minItems ?? 0);
   }

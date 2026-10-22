@@ -566,3 +566,151 @@
     transform: rotate(90deg);
   }
 }
+/* ---------- The session: when and how much ---------- */
+.overview__when {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.overview__when svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.overview__when-price {
+  font-weight: 600;
+}
+
+.overview__when-free {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+
+/* Two summary rows on one card (meeting link, then group) */
+.overview__service + .overview__service {
+  margin-top: 6px;
+}
+
+/* A label with its link beside it (WhatsApp group  chat.whatsapp.com/…):
+   the label keeps its words, the link takes what's left */
+.overview__service-name:has(+ .overview__service-link) {
+  flex: none;
+}
+
+.overview__service-name + .overview__service-link {
+  flex: 1;
+  max-width: none;
+  text-align: right;
+}
+
+/* ---------- Earlier sessions (Run it again) ---------- */
+.overview__earlier {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- About to start, or on now ---------- */
+.overview__start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  max-width: 720px;
+  margin-top: 20px;
+  padding: 10px 10px 10px 18px;
+  background: var(--color-primary-tint);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+}
+
+.overview__start-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Orange means "act now" (as on Bookings) */
+.overview__start-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  animation: overview-now 1.6s ease-in-out infinite;
+}
+
+@keyframes overview-now {
+  50% { opacity: 0.35; }
+}
+
+.overview__start .overview__launch-primary {
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview__start-dot {
+    animation: none;
+  }
+}
+
+/* ---------- Pages first, then what to do with them ----------
+   The cards sit straight under the progress, and the actions (Publish,
+   the live link, Start, Run it again) come after them, so the whole
+   screen fits without scrolling. */
+.overview .overview__flow {
+  margin-top: 24px;
+}
+
+.overview__actions > :first-child {
+  margin-top: 24px;
+}
+
+/* Publish under the cards: room for its glow, but no extra gap after it */
+.overview__actions {
+  padding-bottom: 24px;
+}
+
+/* Tighter, so the cards and the actions under them fit in one screen */
+.overview .overview__title {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.overview .overview__subtitle {
+  max-width: 640px;
+}
+
+.overview .overview__progress {
+  margin-top: 12px;
+}
+
+.overview .overview__flow {
+  margin-top: 20px;
+}
+
+/* Shorter page pictures on the cards (the sketches match, so cards line up) */
+.overview__page .thumb,
+.overview__page .sketch {
+  height: 100px;
+}
+
+.overview__page .overview__page-body {
+  padding: 16px 20px;
+}
+
+.overview__actions > :first-child {
+  margin-top: 20px;
+}
+
+.overview.overview {
+  padding-top: 0;
+}

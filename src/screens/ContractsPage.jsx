@@ -3,6 +3,7 @@ import {
   Check,
   Copy,
   FileText,
+  MonitorPlay,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -16,6 +17,7 @@ import {
   serviceDate,
 } from '../data/mockServices';
 import { tiedTo } from '../data/tiedProducts';
+import { loadSaved } from '../utils/storage';
 import { formatMoney } from '../data/contractPricing';
 import ContractEditor from './ContractEditor';
 import { SETUP_CHANGED_EVENT } from '../data/myPage';
@@ -96,6 +98,13 @@ async function copyText(text) {
 
 // The contracts, read again whenever they might have changed: back on this
 // tab, a change in another tab, or the offerings setup saving.
+// Webinars that still exist, by id, so a contract a webinar made for
+// itself can say so (and point to it) instead of offering Edit
+function webinarIds() {
+  const { funnels } = loadSaved();
+  return new Set((Array.isArray(funnels) ? funnels : []).filter((f) => f?.type === 'webinar').map((f) => f.id));
+}
+
 function useContracts() {
   const read = () => getAllServices();
   const [data, setData] = useState(read);
@@ -141,6 +150,9 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
   useEffect(() => {
     document.title = 'Contracts';
   }, []);
+
+  // Read with the list, so it's as fresh as the contracts are
+  const webinars = useMemo(() => webinarIds(), [contracts]);
 
   const counts = useMemo(
     () => Object.fromEntries(FILTERS.map((f) => [f.id, contracts.filter(f.test).length])),
@@ -294,6 +306,8 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
                   <ContractRow
                     key={c.id}
                     contract={c}
+                    managed={Boolean(c.webinarId) && webinars.has(c.webinarId)}
+                    onOpenWebinar={() => onOpenWebinar?.(c.webinarId)}
                     menuOpen={menuFor === c.id}
                     onMenu={(open) => setMenuFor(open ? c.id : null)}
                     onCopyId={() => copyId(c)}
@@ -355,9 +369,13 @@ function CreateButton({ onClick }) {
   );
 }
 
-// One contract: name, price, start date, Edit and ⋯
-function ContractRow({ contract, menuOpen, onMenu, onCopyId, onEdit, onDelete }) {
+// One contract: name, price, start date, Edit and ⋯.
+// managed: a webinar made it from its event details and keeps it up to
+// date, so changing it here would be undone. It says so, and opens the
+// webinar instead of the contract screen.
+function ContractRow({ contract, managed = false, onOpenWebinar, menuOpen, onMenu, onCopyId, onEdit, onDelete }) {
   const free = isFree(contract);
+  const open = managed ? onOpenWebinar : onEdit;
 
   return (
     <li className={`ct-row ${menuOpen ? 'ct-row--menu' : ''}`}>
@@ -366,9 +384,12 @@ function ContractRow({ contract, menuOpen, onMenu, onCopyId, onEdit, onDelete })
           <FileText size={20} />
         </span>
         {/* The name opens it; the whole row is clickable through it */}
-        <button type="button" className="ct-row__title" onClick={onEdit}>
-          {contract.title}
-        </button>
+        <span className="ct-row__name">
+          <button type="button" className="ct-row__title" onClick={open}>
+            {contract.title}
+          </button>
+          {managed && <span className="ct-row__managed">Managed by your webinar</span>}
+        </span>
       </div>
 
       <div className="ct-row__price">
@@ -383,11 +404,19 @@ function ContractRow({ contract, menuOpen, onMenu, onCopyId, onEdit, onDelete })
       </div>
 
       <div className="ct-row__actions">
-        <button type="button" className="ct-btn ct-btn--quiet ct-btn--small" onClick={onEdit}>
-          <Pencil size={15} aria-hidden="true" />
-          Edit
-          <span className="sr-only"> {contract.title}</span>
-        </button>
+        {managed ? (
+          <button type="button" className="ct-btn ct-btn--quiet ct-btn--small" onClick={onOpenWebinar}>
+            <MonitorPlay size={15} aria-hidden="true" />
+            Open webinar
+            <span className="sr-only"> for {contract.title}</span>
+          </button>
+        ) : (
+          <button type="button" className="ct-btn ct-btn--quiet ct-btn--small" onClick={onEdit}>
+            <Pencil size={15} aria-hidden="true" />
+            Edit
+            <span className="sr-only"> {contract.title}</span>
+          </button>
+        )}
         <RowMenu
           title={contract.title}
           open={menuOpen}

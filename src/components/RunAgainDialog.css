@@ -1,0 +1,60 @@
+/* "Run it again" (RunAgainDialog.jsx): a small form inside the pop-up */
+.run-again__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.run-again__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.run-again__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #141414;
+}
+
+.run-again__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: #141414;
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+}
+
+.run-again__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.run-again__hint {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.run-again__error {
+  min-height: 1em;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b45309;
+}
+
+.run-again__error:empty {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .run-again__row {
+    grid-template-columns: 1fr;
+  }
+}

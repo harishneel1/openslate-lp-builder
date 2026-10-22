@@ -38,7 +38,8 @@ import { isMyCall } from './data/myProfile'
 // Anything else → the Page Builder.
 const params = new URLSearchParams(window.location.search)
 const previewId = params.get('preview')
-const previewPage = params.get('page') === 'thank-you' ? 'thank-you' : 'landing'
+// &page=signup for its sign-up page, &page=thank-you for its thank you page
+const previewPage = ['thank-you', 'signup'].includes(params.get('page')) ? params.get('page') : 'landing'
 const mock = params.get('mock')
 // The parts of the address after the domain: 'harishneel' and 'my-call' in /harishneel/my-call
 const segments = window.location.pathname.split('/').filter(Boolean)

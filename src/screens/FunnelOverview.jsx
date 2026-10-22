@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Plus, Radio, Rocket } from 'lucide-react';import PageThumbnail from '../components/PageThumbnail';
+import { ArrowRight, Eye, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Play, Plus, RefreshCw, Rocket } from 'lucide-react';
+import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
-import { joinSummary } from '../data/thankYouQuestions';
+import { joinSummary, meetingSummary } from '../data/thankYouQuestions';
+import { canStart, isOnNow, lengthLabel, webinarEnd, webinarPrice, webinarWhen } from '../data/webinar';
 import { liveHref, liveSince } from '../utils/publish';
 import './FunnelOverview.css';
 
@@ -98,7 +100,7 @@ function LiveLink({ href, onOpen, copyRef }) {
         target="_blank"
         rel="noopener"
         onClick={onOpen}
-        aria-label="Open your live funnel (opens in a new tab)"
+        aria-label="Open your live webinar page (opens in a new tab)"
       >
         <ExternalLink size={16} /> Open
       </a>
@@ -115,10 +117,23 @@ function LiveLink({ href, onOpen, copyRef }) {
   );
 }
 
+// "24 Oct, 10 Oct and 2 more"
+function earlierList(sessions) {
+  const dates = sessions.map((x) => {
+    const d = new Date(`${x.date}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }).filter(Boolean);
+  const shown = dates.slice(0, 3).join(', ');
+  return dates.length > 3 ? `${shown} and ${dates.length - 3} more` : shown;
+}
+
 // done: ids of the pages they've finished, e.g. ['landing'].
 // Empty on the first visit, so the screen looks as it always did.
 export default function FunnelOverview({
   funnel,
+  webinarId,          // this webinar's id, for its live link
+  sessions = [],      // its earlier sessions, newest first (Run it again)
+  onRunAgain,         // opens the Run it again pop-up
   onStart,
   done = [],
   answers = {},
@@ -126,8 +141,9 @@ export default function FunnelOverview({
   previewHref = null, // address of the full-screen preview (opens in a new tab)
   onPreview,          // called just before it opens
   onEdit,
-  service = null,     // the service picked as the registration page
-  onChangeService,    // reopens the service picker
+  service = null,     // the sign-up page's contract (made from the event details)
+  serviceIsOwn = true, // false: a contract picked by hand on an older webinar
+  onChangeService,    // reopens the sign-up page step
   onEditThankYou,     // reopens the thank you page questions
   publishedAt = null, // when it went live; null = not published
   onPublish,          // publishes it (once all pages are done)
@@ -140,11 +156,20 @@ export default function FunnelOverview({
   const lastDone = [...pages].reverse().find((p) => done.includes(p.id));
   const nextPage = pages.find((p) => !done.includes(p.id));
   const join = joinSummary(answers); // the group people join after signing up
+  const meeting = meetingSummary(answers); // the link they join the session on
+  const when = webinarWhen(answers);
+  const length = lengthLabel(answers);
+  const price = webinarPrice(answers);
+  // Its session is over (and not run again yet), or about to start / on now
+  const end = webinarEnd(answers);
+  const ended = Boolean(publishedAt) && end !== null && end <= Date.now();
+  const startable = Boolean(publishedAt) && canStart(answers);
   const published = Boolean(publishedAt);
   // Every page done: they can publish. A missing group link doesn't block it
   // (visitors are told the link comes by email instead; see ThankYouDesign).
   const ready = pagesLeft === 0;
-  const liveLink = published ? liveHref(funnel) : null;
+  // `funnel` is the type (its pages); the link needs this webinar's own id
+  const liveLink = published ? liveHref({ id: webinarId }) : null;
 
   // Publish removes the button they just pressed, so move keyboard focus
   // to Copy link (the next thing they'll want), not back to the top of the page
@@ -156,10 +181,11 @@ export default function FunnelOverview({
   }, [published]);
 
   let title;
-  if (published) title = 'Your funnel is live';
-  else if (ready) title = 'Your funnel is ready to go live';
+  if (ended) title = 'This session has ended';
+  else if (published) title = 'Your webinar is live';
+  else if (ready) title = 'Your webinar is ready to go live';
   else if (started) title = `Your ${lastDone.name.toLowerCase()} is done`;
-  else title = `Your webinar funnel has ${pages.length} pages`;
+  else title = `Your webinar has ${pages.length} pages`;
 
   // The design they chose (falls back to the one recommended for their topic)
   const resolvedThemeId =
@@ -173,14 +199,32 @@ export default function FunnelOverview({
         {!started &&
           "Your customers go through them in this order. We'll fill them in together, one page at a time."}
         {!published && started && pagesLeft > 0 &&
-          `${pagesLeft} more ${pagesLeft === 1 ? 'page' : 'pages'} and your funnel is ready.`}
+          `${pagesLeft} more ${pagesLeft === 1 ? 'page' : 'pages'} and your webinar is ready.`}
         {!published && ready &&
-          'Publish it to get a link you can share with your audience. You can still change anything afterwards.'}
-        {published &&
-          'Share this link with your audience. Any change you make shows up on it straight away.'}
+          'Publish it to get a link you can share. You can still change anything afterwards.'}
+        {published && !ended &&
+          'Share this link with your audience. Changes show up on it straight away.'}
+        {ended &&
+          'Run it again with a new date. Your pages and your link stay the same, so your ads keep working.'}
       </p>
 
-            {published && <LiveLink href={liveLink} onOpen={onPreview} copyRef={copyRef} />}
+      {/* The session itself, once the landing page has its details */}
+      {when && done.includes('landing') && (
+        <p className="overview__when">
+          <CalendarClock size={16} aria-hidden="true" />
+          <span>
+            {when.line}
+            {length ? ` · ${length}` : ''} ·{' '}
+            <span className={price.isFree ? 'overview__when-free' : 'overview__when-price'}>{price.label}</span>
+          </span>
+        </p>
+      )}
+
+      {sessions.length > 0 && (
+        <p className="overview__earlier">
+          Earlier sessions: {earlierList(sessions)}
+        </p>
+      )}
 
       {published ? null : started ? (
         <div className="overview__progress">
@@ -195,26 +239,6 @@ export default function FunnelOverview({
         <p className="overview__meta">
           <Clock size={16} /> About 10 minutes. You can change anything later.
         </p>
-      )}
-
-      {!published && ready && (
-        <div className="overview__launch">
-          <button type="button" className="overview__launch-primary" onClick={onPublish}>
-            <Rocket size={16} /> Publish funnel
-          </button>
-          {previewHref && (
-            <a
-              className="overview__launch-secondary"
-              href={previewHref}
-              target="_blank"
-              rel="noopener"
-              onClick={onPreview}
-              aria-label="Try your funnel as a visitor (opens in a new tab)"
-            >
-              <ExternalLink size={16} /> Try it as a visitor
-            </a>
-          )}
-        </div>
       )}
 
       <div className="overview__flow">
@@ -274,16 +298,35 @@ export default function FunnelOverview({
                   )}
                   {isDone && page.id === 'registration' && (
                     <>
-                      {service && (
+                      {serviceIsOwn || !service ? (
+                        <div className="overview__service">
+                          <span className="overview__service-name">From your event details</span>
+                          <span className="overview__service-price">{price.label}</span>
+                        </div>
+                      ) : (
+                        // An older webinar's hand-picked contract, until they confirm the new page
                         <div className="overview__service">
                           <span className="overview__service-name">{service.title}</span>
                           <span className="overview__service-price">{servicePrice(service)}</span>
                         </div>
                       )}
                       <div className="overview__page-actions">
+                        {/* Nothing to change on it, so it's looked at, not edited */}
                         <button type="button" className="overview__page-action" onClick={onChangeService}>
-                          <Pencil size={16} /> Change service
+                          <Eye size={16} /> Review
                         </button>
+                        {previewHref && (
+                          <a
+                            className="overview__page-action overview__page-action--preview"
+                            href={`${previewHref}&page=signup`}
+                            target="_blank"
+                            rel="noopener"
+                            onClick={onPreview}
+                            aria-label="Preview your sign-up page (opens in a new tab)"
+                          >
+                            <ExternalLink size={16} /> Preview
+                          </a>
+                        )}
                       </div>
                     </>
                   )}
@@ -350,6 +393,61 @@ export default function FunnelOverview({
             </Fragment>
           );
         })}
+      </div>
+
+      {/* What to do with it, under the pages: publish, or once it's live the
+          link, start it or run it again. Below the cards so the pages read first. */}
+      <div className="overview__actions">
+        {/* Ended: the one thing to do next */}
+        {ended && (
+          <div className="overview__launch">
+            <button type="button" className="overview__launch-primary" onClick={onRunAgain}>
+              <RefreshCw size={16} aria-hidden="true" /> Run it again
+            </button>
+          </div>
+        )}
+
+        {/* About to start, or on now: start it from here */}
+        {startable && !meeting.missing && (
+          <div className="overview__start">
+            <span className="overview__start-text">
+              <span className="overview__start-dot" aria-hidden="true" />
+              {isOnNow(answers) ? 'Your webinar is on now' : `Your webinar starts at ${when.line.split(', ')[1]}`}
+            </span>
+            <a
+              className="overview__launch-primary"
+              href={meeting.link.startsWith('http') ? meeting.link : `https://${meeting.link}`}
+              target="_blank"
+              rel="noopener"
+              aria-label={`Start webinar in ${meeting.app ?? 'your meeting app'} (opens in a new tab)`}
+            >
+              <Play size={16} aria-hidden="true" /> Start webinar
+            </a>
+          </div>
+        )}
+
+              {published && <LiveLink href={liveLink} onOpen={onPreview} copyRef={copyRef} />}
+
+        {!published && ready && (
+          <div className="overview__launch">
+            <button type="button" className="overview__launch-primary" onClick={onPublish}>
+              <Rocket size={16} /> Publish webinar
+            </button>
+            {previewHref && (
+              <a
+                className="overview__launch-secondary"
+                href={previewHref}
+                target="_blank"
+                rel="noopener"
+                onClick={onPreview}
+                aria-label="Try your webinar's pages as a visitor (opens in a new tab)"
+              >
+                <ExternalLink size={16} /> Try it as a visitor
+              </a>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   );

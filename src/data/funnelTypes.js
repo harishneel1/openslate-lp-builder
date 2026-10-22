@@ -9,7 +9,8 @@ export const funnelTypes = [
     available: true,
     pages: [
       { id: 'landing', name: 'Landing page', job: 'Convinces visitors your webinar is worth their time.' },
-      { id: 'registration', name: 'Registration page', job: "Collects their details, and payment if it's paid." },
+      // Still 'registration' inside, so saved webinars keep their progress
+      { id: 'registration', name: 'Sign-up page', job: "Takes their details, and payment if it's paid. Made from your event details." },
       { id: 'thank-you', name: 'Thank you page', job: 'Confirms their spot and tells them what happens next.' },
     ],
   }

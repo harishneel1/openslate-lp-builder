@@ -101,3 +101,8 @@
     transition: none;
   }
 }
+/* Not possible yet: faded, and the click does nothing */
+.confirm-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

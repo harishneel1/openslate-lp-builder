@@ -8,7 +8,8 @@
 //   funnels: [         // newest first
 //     { id, type, createdAt, updatedAt, step, answers,
 //       themeId, serviceId, donePages, resumeAtEnd, landingAtEnd,
-//       publishedAt, slug }
+//       publishedAt, slug, sessions }
+//     sessions: earlier runs of the same webinar, newest first (data/webinar.js)
 //     serviceId: the service picked as the registration page, or null
 //     publishedAt: when they published it, or null (not live yet)
 //     slug: its address name, e.g. 'fix-the-vasthu-mistakes'; set once on
@@ -40,6 +41,7 @@ export function createFunnel(type) {
     landingAtEnd: false,
     publishedAt: null,
     slug: null,
+    sessions: [], // earlier sessions, newest first (Run it again; see data/webinar.js)
   };
 }
 

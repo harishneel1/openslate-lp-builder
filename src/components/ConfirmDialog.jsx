@@ -12,7 +12,8 @@ import './ConfirmDialog.css';
 // danger: the action's button in red (for what can't be undone)
 // onCancel(), onConfirm()
 // ------------------------------------------------------------
-export default function ConfirmDialog({ title, children, confirmLabel, danger = false, onCancel, onConfirm }) {
+// confirmDisabled: the action can't happen yet (e.g. a date still to fix); the button says so and does nothing
+export default function ConfirmDialog({ title, children, confirmLabel, danger = false, confirmDisabled = false, onCancel, onConfirm }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -43,7 +44,12 @@ export default function ConfirmDialog({ title, children, confirmLabel, danger = 
         <button type="button" className="confirm-btn confirm-btn--quiet" onClick={onCancel} autoFocus>
           Cancel
         </button>
-        <button type="button" className={`confirm-btn ${danger ? 'confirm-btn--danger' : 'confirm-btn--primary'}`} onClick={onConfirm}>
+        <button
+          type="button"
+          className={`confirm-btn ${danger ? 'confirm-btn--danger' : 'confirm-btn--primary'}`}
+          aria-disabled={confirmDisabled || undefined}
+          onClick={() => !confirmDisabled && onConfirm()}
+        >
           {confirmLabel}
         </button>
       </div>

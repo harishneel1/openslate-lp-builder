@@ -1,0 +1,134 @@
+/* The Webinars tab. Panels, rows and buttons come from OfferingsHome.css,
+   like 1:1 calls; only what's new is here: the date on each row, and
+   where each webinar is at. */
+
+.webinars__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.webinars__empty-text {
+  max-width: 46ch;
+}
+
+/* Date on the left, then what it is, then the actions */
+.wb-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.wb-row--past .wb-tile,
+.wb-row--past .oh-row__name {
+  opacity: 0.7;
+}
+
+/* ---------- The date, as a little calendar page ---------- */
+.wb-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: start;
+  width: 56px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.wb-tile__month {
+  width: 100%;
+  padding: 3px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.wb-tile__day {
+  padding: 6px 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* No date yet */
+.wb-tile--none {
+  display: grid;
+  place-items: center;
+  height: 60px;
+  color: var(--color-text-disabled);
+  background: var(--color-bg);
+  border-style: dashed;
+}
+
+/* ---------- Where it's at ---------- */
+.wb-row__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.wb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: #f0f0f2;
+  border-radius: var(--radius-pill);
+}
+
+.wb-badge--live {
+  color: var(--color-success);
+  background: var(--color-success-tint);
+}
+
+.wb-badge__dot {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+
+.wb-row__continue {
+  cursor: pointer;
+}
+
+/* Narrow: the date stays beside the name, the actions go under both */
+@media (max-width: 720px) {
+  .wb-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .wb-row .oh-row__actions {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Run it again: the next thing to do on a session that's over */
+.wb-row__again {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary);
+}
+
+.wb-row__again:hover {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+/* Start webinar: the one orange button on the row, on the day */
+.wb-row__start {
+  padding: 10px 16px;
+  font-size: 14px;
+  text-decoration: none;
+}

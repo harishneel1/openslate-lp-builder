@@ -7,7 +7,9 @@ import './BuildingStep.css';
 
 // Shown once, right after the last question of a page: their page "comes
 // together" (a short checklist ticks off while the thumbnail sharpens),
-// then it's revealed with Preview (new tab) and Continue (to the overview).
+// then it's revealed. The page itself opens the preview (new tab), with a
+// quiet Preview button for those who look for one; the filled button names
+// the next step ("Next: Sign-up page") and goes back to the overview.
 // page: 'landing' (default) or 'thank-you'.
 // Landing: the style was picked for them from their category; the reveal
 // says which one and why. Thank you: it uses the landing page's style.
@@ -15,6 +17,7 @@ import './BuildingStep.css';
 const PAGES = {
   landing: {
     name: 'landing page',
+    next: 'Next: Sign-up page',
     steps: () => [
       'Picking the best style for your topic',
       'Laying out your sections',
@@ -24,6 +27,7 @@ const PAGES = {
   },
   'thank-you': {
     name: 'thank you page',
+    next: 'Next: Publish',
     steps: (answers) => [
       'Matching your landing page style',
       'Adding your webinar details',
@@ -47,8 +51,9 @@ export default function BuildingStep({
   previewHref,
   onPreview,
   onContinue,
+  nextLabel, // overrides the button's words (e.g. when the next page is already done)
 }) {
-  const { name } = PAGES[page] ?? PAGES.landing;
+  const { name, next } = PAGES[page] ?? PAGES.landing;
   // Fixed once it starts, so the list doesn't change mid-animation
   const [STEPS] = useState(() => (PAGES[page] ?? PAGES.landing).steps(answers));
   const isLanding = page === 'landing';
@@ -79,13 +84,33 @@ export default function BuildingStep({
       </h1>
       <p className="building__text">
         {!ready && 'This only takes a few seconds.'}
-        {ready && 'Take a look at it before you move on. It opens in a new tab.'}
+        {ready && 'Click it to see the full page in a new tab.'}
       </p>
 
-      {/* Their real page, blurred at first and sharpening with each tick */}
-      <div className="building__shot">
-        <PageThumbnail answers={answers} themeId={themeId} page={page} />
-      </div>
+      {/* Their real page, blurred at first and sharpening with each tick.
+          Once it's ready, the page itself is the way to preview it. */}
+      {ready ? (
+        <a
+          className="building__shot building__shot--link"
+          href={previewHref}
+          target="_blank"
+          rel="noopener"
+          onClick={onPreview}
+          aria-label={`Open your ${name} (opens in a new tab)`}
+        >
+          <PageThumbnail answers={answers} themeId={themeId} page={page} />
+          {/* On hover (or keyboard focus) the page darkens and this shows in the middle */}
+          <span className="building__overlay" aria-hidden="true">
+            <span className="building__overlay-btn">
+              <ExternalLink size={16} /> Open preview
+            </span>
+          </span>
+        </a>
+      ) : (
+        <div className="building__shot">
+          <PageThumbnail answers={answers} themeId={themeId} page={page} />
+        </div>
+      )}
 
       {ready && isLanding && (
         <div className="building__style">
@@ -103,18 +128,20 @@ export default function BuildingStep({
 
       {ready ? (
         <div className="building__actions">
+          {/* Quiet: the page above is the main way to preview it */}
           <a
-            className="flow__next building__preview"
+            className="building__preview"
             href={previewHref}
             target="_blank"
             rel="noopener"
             onClick={onPreview}
             aria-label={`Preview your ${name} (opens in a new tab)`}
           >
-            <ExternalLink size={18} /> Preview your page
+            <ExternalLink size={17} aria-hidden="true" /> Preview
           </a>
-          <button type="button" className="building__continue" onClick={onContinue}>
-            Continue <ArrowRight size={16} />
+          {/* The way forward, named, like Next on every other screen */}
+          <button type="button" className="flow__next building__continue" onClick={onContinue}>
+            {nextLabel ?? next} <ArrowRight size={17} aria-hidden="true" />
           </button>
         </div>
       ) : (

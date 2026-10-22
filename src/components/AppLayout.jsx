@@ -3,7 +3,7 @@ import {
   Layers, Compass, Video, BookOpen, MessageCircle,
   Grid3x3, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
-  ArrowLeftRight, Filter, User, TrendingUp, SlidersHorizontal,
+  ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
   Copy, ExternalLink, CalendarCheck, Users,
 } from 'lucide-react';
 import { initials } from '../utils/initials';
@@ -26,8 +26,11 @@ const sidebarItems = [
   // Where 1:1 calls are made and managed. My offerings only shows them.
   // Users, not Video: Video is Workshops in the top nav.
   { id: 'calls', label: '1:1 calls', icon: Users },
+  // Webinars, each with its pages (landing, sign-up, thank you). The id is
+  // still 'page-builder' so saves made when this was Funnels open here.
+  // MonitorPlay, not Video: Video is Workshops in the top nav.
+  { id: 'page-builder', label: 'Webinars', icon: MonitorPlay },
   { id: 'services', label: 'Contracts', icon: Briefcase },
-  { id: 'page-builder', label: 'Funnels', icon: Filter },
   { id: 'bookings', label: 'Bookings', icon: CalendarCheck },
 ];
 
@@ -48,7 +51,7 @@ function useCallsLeftToday() {
   return left;
 }
 
-// Focus mode: while a funnel is open, the app's top nav and sidebar step back
+// Focus mode: while a webinar is open, the app's top nav and sidebar step back
 // and one slim bar takes their place: exit on the left, funnel name in the
 // middle, save status on the right.
 // focus: null for the normal shell, or { title, onExit, saveFailed }
@@ -56,7 +59,7 @@ function FocusBar({ title, onExit, saveFailed }) {
   return (
     <header className="focusbar">
       <button type="button" className="focusbar__exit" onClick={onExit}>
-        <ArrowLeft size={16} /> All funnels
+        <ArrowLeft size={16} /> All webinars
       </button>
 
       <p className="focusbar__title" title={title}>{title}</p>

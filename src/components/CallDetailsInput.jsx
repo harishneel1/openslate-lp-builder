@@ -61,10 +61,15 @@ const rupees = (text) => text.replace(/\D/g, '').replace(/^0+/, '');
 // It can only be ticked once there's a price, and clearing the price unticks it.
 // A ticked discount that's empty or not lower than the price stops them
 // going on (callDetailsProblem in callDetails.js).
-function PaidPrices({ answers, onChange }) {
-  const [hasDiscount, setHasDiscount] = useState(() => String(answers.callComparePrice ?? '').trim() !== '');
-  const price = (hasDiscount ? answers.callComparePrice : answers.callPrice) ?? '';
-  const discount = hasDiscount ? (answers.callPrice ?? '') : '';
+//
+// Also the webinar's "Set your price" screen (question type 'priceDiscount'),
+// which saves under its own ids: ids = { price: 'price', compare: 'oldPrice' }.
+// label: the first box's name ("Amount" here, "Price" on the webinar)
+export function PriceWithDiscount({ answers, onChange, ids = { price: 'callPrice', compare: 'callComparePrice' }, label = 'Amount', example = '1500' }) {
+  const { price: PRICE, compare: COMPARE } = ids;
+  const [hasDiscount, setHasDiscount] = useState(() => String(answers[COMPARE] ?? '').trim() !== '');
+  const price = (hasDiscount ? answers[COMPARE] : answers[PRICE]) ?? '';
+  const discount = hasDiscount ? (answers[PRICE] ?? '') : '';
   const priceNum = Number(price) || 0;
   const discountNum = Number(discount) || 0;
   const tooHigh = hasDiscount && priceNum > 0 && discountNum > 0 && discountNum >= priceNum;
@@ -79,12 +84,12 @@ function PaidPrices({ answers, onChange }) {
 
   const toggle = (on) => {
     if (on) {
-      onChange(answers.callPrice ?? '', 'callComparePrice');
-      onChange('', 'callPrice');
+      onChange(answers[PRICE] ?? '', COMPARE);
+      onChange('', PRICE);
       ticked.current = true;
     } else {
-      onChange(answers.callComparePrice ?? '', 'callPrice');
-      onChange('', 'callComparePrice');
+      onChange(answers[COMPARE] ?? '', PRICE);
+      onChange('', COMPARE);
     }
     setHasDiscount(on);
   };
@@ -92,11 +97,11 @@ function PaidPrices({ answers, onChange }) {
   // A discount needs a price to come off: clearing the price unticks it
   const changePrice = (value) => {
     if (hasDiscount && value === '') {
-      onChange('', 'callComparePrice');
-      onChange('', 'callPrice');
+      onChange('', COMPARE);
+      onChange('', PRICE);
       setHasDiscount(false);
     } else {
-      onChange(value, hasDiscount ? 'callComparePrice' : 'callPrice');
+      onChange(value, hasDiscount ? COMPARE : PRICE);
     }
   };
 
@@ -104,7 +109,7 @@ function PaidPrices({ answers, onChange }) {
     <div className="call__prices">
       <div className="call__price-fields">
         <label className="qinput__field">
-          <span className="qinput__label">Amount</span>
+          <span className="qinput__label">{label}</span>
           <span className="qinput__money">
             <span className="qinput__currency" aria-hidden="true">₹</span>
             <input
@@ -112,7 +117,7 @@ function PaidPrices({ answers, onChange }) {
               className="qinput__text qinput__money-input"
               value={price}
               maxLength={6}
-              placeholder="e.g. 1500"
+              placeholder={`e.g. ${example}`}
               onChange={(e) => changePrice(rupees(e.target.value))}
             />
           </span>
@@ -138,12 +143,12 @@ function PaidPrices({ answers, onChange }) {
               maxLength={6}
               disabled={!hasDiscount}
               aria-label="Discounted price"
-              onChange={(e) => onChange(rupees(e.target.value), 'callPrice')}
+              onChange={(e) => onChange(rupees(e.target.value), PRICE)}
             />
           </span>
           {tooHigh ? (
             <span className="qinput__error" role="alert">
-              This needs to be lower than the amount (₹{priceNum.toLocaleString('en-IN')}).
+              This needs to be lower than the {label.toLowerCase()} (₹{priceNum.toLocaleString('en-IN')}).
             </span>
           ) : hasDiscount && discountNum === 0 ? (
             <span className="qinput__example">Add the discounted price, or untick it.</span>
@@ -154,6 +159,11 @@ function PaidPrices({ answers, onChange }) {
       <PriceExample price={hasDiscount ? discount : price} oldPrice={hasDiscount ? price : ''} />
     </div>
   );
+}
+
+// The 1:1 call's prices
+function PaidPrices({ answers, onChange }) {
+  return <PriceWithDiscount answers={answers} onChange={onChange} />;
 }
 
 // A length as a tile: the number big, its unit small. 90 → "90 min", 120 → "2 hr"

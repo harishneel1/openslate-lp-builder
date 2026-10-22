@@ -297,3 +297,32 @@
     transition: none;
   }
 }
+/* Nothing typed yet (setup only): an orange ring pulses out from the
+   first suggestion, to show the chips can be tapped. Stops once there's a name.
+   (Moved here from ExamplePreview.css, where an old copy of this file had landed.) */
+.call__try-chip--pulse {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  animation: call-try-pulse 1.8s ease-out infinite;
+}
+
+@keyframes call-try-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 138, 60, 0.55); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 138, 60, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 138, 60, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .call__try-chip--pulse {
+    animation: none;
+  }
+}
+
+/* The webinar's "Set your price" card: the price fields start at the top */
+.qinput__card--prices .call__prices {
+  margin-top: 0;
+}
+
+.qinput__card--prices {
+  margin-top: 28px;
+}
