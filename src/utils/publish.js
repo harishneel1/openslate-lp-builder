@@ -41,5 +41,5 @@ export function liveHref(funnel) {
 
 // "Live since 14 Oct"
 export function liveSince(timestamp) {
-  return `Live since ${new Date(timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
+  return `Link since ${new Date(timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
 }

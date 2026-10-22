@@ -195,7 +195,7 @@ function DateTile({ when }) {
 function draftProgress(webinar) {
   const pages = TYPE.pages;
   const done = pages.filter((p) => webinar.donePages.includes(p.id)).length;
-  if (done === pages.length) return 'Ready to publish';
+  if (done === pages.length) return 'All pages done';
   return `${done} of ${pages.length} pages done`;
 }
 
@@ -259,7 +259,7 @@ function WebinarRow({ webinar, session, menuOpen, onMenu, onOpen, onDelete, onRu
           {status === 'upcoming' && (
             <>
               <span className="wb-badge wb-badge--live">
-                <span className="wb-badge__dot" aria-hidden="true" /> Live
+                <span className="wb-badge__dot" aria-hidden="true" /> Link ready
               </span>
               <span>{startsIn(answers)}</span>
             </>

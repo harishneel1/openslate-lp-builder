@@ -714,3 +714,147 @@
 .overview.overview {
   padding-top: 0;
 }
+
+/* Beside "Get my link": nothing goes out until they share it.
+   Wraps under the buttons when there isn't room. */
+.overview__launch-note {
+  flex: 1 1 320px;
+  max-width: 440px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Your webinar link (once they've got it) ----------
+   What it's for on the left, the link and Copy link on the right,
+   on one white card as wide as the page cards above it. */
+.share {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  align-items: center;
+  gap: 16px 32px;
+  padding: 18px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.share__text {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.share__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--color-success);
+  background: var(--color-success-tint);
+  border-radius: var(--radius-md);
+}
+
+.share__title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.share__help {
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* The link as a field, with Copy link inside its right end */
+.share__link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.share__url {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 14px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  user-select: all;
+}
+
+.share__copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.share__copy:hover {
+  background: var(--color-primary-hover);
+}
+
+.share__open {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+
+.share__open:hover {
+  border-color: #d6d6d6;
+}
+
+.share__copy:focus-visible,
+.share__open:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.share__error {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-warning-text);
+}
+
+/* Narrow: the link goes under what it's for */
+@media (max-width: 860px) {
+  .share {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.share {
+  padding: 14px 18px;
+}
+
+.overview__actions > .share:first-child {
+  margin-top: 16px;
+}

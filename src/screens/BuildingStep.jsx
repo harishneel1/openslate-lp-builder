@@ -27,7 +27,7 @@ const PAGES = {
   },
   'thank-you': {
     name: 'thank you page',
-    next: 'Next: Publish',
+    next: 'Finish',
     steps: (answers) => [
       'Matching your landing page style',
       'Adding your webinar details',

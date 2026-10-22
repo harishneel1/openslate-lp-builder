@@ -93,7 +93,7 @@ export default function SignupStep({ answers, made = false, legacy: legacyNow = 
       <h1 className="building__title">{ready ? 'Your sign-up page is ready' : 'Creating your sign-up page'}</h1>
       <p className="building__text">
         {ready
-          ? 'We automatically created it from your event details. People provide their information and sign up on this page.'
+          ? 'We automatically created it from your event details. Your customers provide their information and sign up on this page.'
           : 'This only takes a moment.'}
       </p>
 

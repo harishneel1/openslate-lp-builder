@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { ArrowRight, Eye, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Play, Plus, RefreshCw, Rocket } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Link2, Play, Plus, RefreshCw } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
@@ -66,7 +66,12 @@ async function copyText(text) {
   }
 }
 
-// The live link, with Copy and Open. Shown once the funnel is published.
+// The webinar's link, once they've got it: what it's for (ads, bios,
+// groups), then the link itself with Copy link and Open.
+//
+//   (🔗) Your webinar link                 [ openslate…/fix-the-vasthu ] [Copy link] [Open ↗]
+//        Put it in your Meta ads, Instagram
+//        bio or WhatsApp groups…
 function LiveLink({ href, onOpen, copyRef }) {
   const [state, setState] = useState('idle'); // 'idle' | 'copied' | 'failed'
   const timer = useRef(null);
@@ -81,39 +86,52 @@ function LiveLink({ href, onOpen, copyRef }) {
   };
 
   return (
-    <div className="overview__live">
-      <span className="overview__live-url" title={href}>
-        {href.replace(/^https?:\/\//i, '')}
-      </span>
-      <button
-        ref={copyRef}
-        type="button"
-        className="overview__launch-primary overview__live-copy"
-        onClick={handleCopy}
-      >
-        {state === 'copied' ? <Check size={16} strokeWidth={3} /> : <Copy size={16} />}
-        {state === 'copied' ? 'Copied' : 'Copy link'}
-      </button>
-      <a
-        className="overview__launch-secondary"
-        href={href}
-        target="_blank"
-        rel="noopener"
-        onClick={onOpen}
-        aria-label="Open your live webinar page (opens in a new tab)"
-      >
-        <ExternalLink size={16} /> Open
-      </a>
+    <section className="share" aria-labelledby="share-title">
+      <div className="share__text">
+        <span className="share__icon" aria-hidden="true">
+          <Link2 size={20} />
+        </span>
+        <div>
+          <h2 className="share__title" id="share-title">
+            Your webinar link
+          </h2>
+          <p className="share__help">
+            Put it in your Meta ads, Instagram bio or WhatsApp groups. The link stays the same, even if you change the date later.
+          </p>
+        </div>
+      </div>
+
+      <div className="share__link">
+        <span className="share__url" title={href}>
+          {href.replace(/^https?:\/\//i, '')}
+        </span>
+        <button ref={copyRef} type="button" className="share__copy" onClick={handleCopy}>
+          {state === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+          {state === 'copied' ? 'Copied' : 'Copy link'}
+        </button>
+        <a
+          className="share__open"
+          href={href}
+          target="_blank"
+          rel="noopener"
+          onClick={onOpen}
+          aria-label="Open your webinar page (opens in a new tab)"
+          title="Open"
+        >
+          <ExternalLink size={17} aria-hidden="true" />
+        </a>
+      </div>
+
       {/* Read out by screen readers; the button label already shows it visually */}
       <span className="overview__sr-only" aria-live="polite">
         {state === 'copied' && 'Link copied'}
       </span>
       {state === 'failed' && (
-        <p className="overview__live-error" role="alert">
-          Couldn't copy. Select the link above and copy it yourself.
+        <p className="share__error" role="alert">
+          Couldn't copy. Select the link and copy it yourself.
         </p>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -182,8 +200,10 @@ export default function FunnelOverview({
 
   let title;
   if (ended) title = 'This session has ended';
-  else if (published) title = 'Your webinar is live';
-  else if (ready) title = 'Your webinar is ready to go live';
+  // "Live" and "publish" sound like it's announced to the world. It isn't:
+  // they just get a link, and nobody sees anything until they share it.
+  else if (published) title = 'Your link is ready';
+  else if (ready) title = 'Your pages are ready';
   else if (started) title = `Your ${lastDone.name.toLowerCase()} is done`;
   else title = `Your webinar has ${pages.length} pages`;
 
@@ -201,9 +221,9 @@ export default function FunnelOverview({
         {!published && started && pagesLeft > 0 &&
           `${pagesLeft} more ${pagesLeft === 1 ? 'page' : 'pages'} and your webinar is ready.`}
         {!published && ready &&
-          'Publish it to get a link you can share. You can still change anything afterwards.'}
+          'Get a link you can share with your audience.'}
         {published && !ended &&
-          'Share this link with your audience. Changes show up on it straight away.'}
+          'Any change you make shows up on your link straight away.'}
         {ended &&
           'Run it again with a new date. Your pages and your link stay the same, so your ads keep working.'}
       </p>
@@ -269,19 +289,12 @@ export default function FunnelOverview({
                   </span>
                 )}
 
-                {isDone && (
-                  <span className="overview__badge overview__badge--done">
-                    {published ? (
-                      <>
-                        <span className="overview__badge-dot" aria-hidden="true" /> Live
-                      </>
-                    ) : (
-                      <>
-                        <Check size={14} strokeWidth={3} aria-hidden="true" /> Done
-                      </>
-                    )}
-                  </span>
-                )}
+{/* Each page is just done; the link belongs to the whole webinar (the card under them) */}
+{isDone && (
+  <span className="overview__badge overview__badge--done">
+    <Check size={14} strokeWidth={3} aria-hidden="true" /> Done
+  </span>
+)}
 
                 <div className="overview__page-body">
                   <span className="overview__step">
@@ -311,10 +324,6 @@ export default function FunnelOverview({
                         </div>
                       )}
                       <div className="overview__page-actions">
-                        {/* Nothing to change on it, so it's looked at, not edited */}
-                        <button type="button" className="overview__page-action" onClick={onChangeService}>
-                          <Eye size={16} /> Review
-                        </button>
                         {previewHref && (
                           <a
                             className="overview__page-action overview__page-action--preview"
@@ -431,7 +440,7 @@ export default function FunnelOverview({
         {!published && ready && (
           <div className="overview__launch">
             <button type="button" className="overview__launch-primary" onClick={onPublish}>
-              <Rocket size={16} /> Publish webinar
+              <Link2 size={16} aria-hidden="true" /> Get my link
             </button>
             {previewHref && (
               <a
@@ -445,6 +454,11 @@ export default function FunnelOverview({
                 <ExternalLink size={16} /> Try it as a visitor
               </a>
             )}
+            {/* The worry is "it'll be out in the world before the time is settled".
+                Beside the buttons, so it's read at the moment of deciding. */}
+            <p className="overview__launch-note">
+              Nobody sees it until you share the link. You can still change the date, time or anything else.
+            </p>
           </div>
         )}
 
