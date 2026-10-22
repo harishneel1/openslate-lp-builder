@@ -130,6 +130,13 @@
   padding: 24px;
 }
 
+/* Setup's inputs bring a gap above them, for sitting under a screen's
+   title. Inside a panel the panel's own padding is that gap, so drop
+   theirs: otherwise there's twice the space under the panel's heading. */
+.es__panel-body > .qinput {
+  margin-top: 0;
+}
+
 /* ---------- Collapsible section (EditSection) ----------
    Closed: a row with its own icon, title, summary and an Edit button.
    Open: the whole card is ringed, its head tinted, its icon solid, and

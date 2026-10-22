@@ -8,7 +8,7 @@ import EditService from './EditService';
 import CreateCallFlow from './CreateCallFlow';
 import EditProfile from './EditProfile';
 import { myPageQuestions } from '../data/myPageQuestions';
-import { SHARED_CALL_KEYS, addedCallsOf, withAddedCall, withCallChanges, withOnPage, withoutSetupCall } from '../data/myProfile';
+import { SHARED_CALL_KEYS, addedCallsOf, withAddedCall, withCallChanges, withHiddenOnPage, withOnPage, withoutSetupCall } from '../data/myProfile';
 import { isCalendarConnected, loadCalendar } from '../data/calendarStore';
 import { PAGE_DOMAIN } from '../data/myPage';
 import { useSetupAnswers } from '../utils/useSetupAnswers';
@@ -16,7 +16,7 @@ import { useSetupAnswers } from '../utils/useSetupAnswers';
 // Answers the 1:1 calls tab saves (its calls, which are on the page, and
 // the meeting link they share). Having only these doesn't mean they've
 // started setting up their page, so they still get the intro.
-const CALLS_TAB_KEYS = ['addedCalls', 'offPage', ...SHARED_CALL_KEYS];
+const CALLS_TAB_KEYS = ['addedCalls', 'offPage', 'hiddenOnPage', ...SHARED_CALL_KEYS];
 const hasStartedSetup = (answers) => Object.keys(answers).some((key) => !CALLS_TAB_KEYS.includes(key));
 
 // Setup's screens for this creator, decided once when it opens:
@@ -117,6 +117,8 @@ export default function MyPageSetup() {
           setAnswers((prev) => withOnPage(prev, id, on));
           setJustAddedIds([]);
         }}
+        // Visible / Hidden: stays on the list either way
+        onSetHidden={(id, hidden) => setAnswers((prev) => withHiddenOnPage(prev, id, hidden))}
       />
     );
   }

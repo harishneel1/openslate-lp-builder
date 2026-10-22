@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, ExternalLink, EyeOff, Link2, Pencil, Plus } from 'lucide-react';
-import { getMyPage, getMyProfile, isOnPage, myCallIds } from '../data/myProfile';
+import { Check, Copy, ExternalLink, Link2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { getListedOnPage, getMyProfile, isHiddenOnPage, isOnPage, myCallIds } from '../data/myProfile';
 import { buildProfileJson } from '../data/buildProfileJson';
 import { PAGE_DOMAIN, offeringUrl, pageUrl } from '../data/myPage';
 import { initials } from '../utils/initials';
 import AddToPagePicker from '../components/AddToPagePicker';
+import RowMenu from '../components/RowMenu';
+import ConfirmDialog from '../components/ConfirmDialog';
 import './OfferingsHome.css';
 
 // Copies text, with a fallback where the Clipboard API isn't allowed
@@ -49,52 +51,63 @@ export function useCopy() {
   return [state, copy];
 }
 
-// One offering, in two parts: what it is (name with its price opposite,
-// details under) and what you can do with it (one row of buttons). Everything
-// shares the card's left edge. There's no kind icon: every offering is a
-// call, and the details already say "Video call". When other kinds arrive,
-// a small icon can go in the details line. Creators often
-// share a single call rather than their whole page, so "Copy link" is the
-// main button, "Edit" sits beside it, then two small icon buttons: Preview,
-// for checking the page before sending it, and Remove from page.
-// There's no "Live" tag: every offering listed here is on the page.
-// Removing only takes it off the page; it stays in 1:1 calls.
+// One offering, as a full-width row (the same rows as 1:1 calls): what it
+// is on the left, then what you can do with it:
+//
+//   Discovery call  [Hidden]          [● Visible] [Copy link] [Edit] [↗] [⋯]
+//   Video call · 30 min · Free
+//
+// Visible: a switch. Off, it stays in this list (faded, tagged Hidden) but
+// visitors don't see it on the page; on, it's back. Its own link works
+// either way. ⋯ holds Remove from page, which asks first and takes it off
+// this list only: it stays in 1:1 calls, where it can be deleted for good.
+// There's no kind icon: every offering is a call, and the details already
+// say "Video call".
 // url: this offering's own link (offeringUrl)
 // isNew: just added, so it's marked and lit up briefly
-// onRemove(): take it off the page (the home offers Undo)
-function OfferingCard({ offering, url, onEdit, onRemove, isNew = false }) {
+// hidden: on the list but not shown to visitors
+function OfferingRow({ offering, url, hidden, isNew = false, menuOpen, onMenu, onEdit, onSetHidden, onRemove }) {
   const details = offering.facts.map((f) => f.text).join(' · ');
   const [copy, copyLink] = useCopy();
 
   return (
-    <article className={`oh-card ${isNew ? 'oh-card--new' : ''}`}>
-      <div className="oh-card__head">
+    <li className={`oh-row ${isNew ? 'oh-row--new' : ''} ${menuOpen ? 'oh-row--menu' : ''} ${hidden ? 'oh-row--hidden' : ''}`}>
+      <div className="oh-row__text">
         {isNew && <span className="oh-card__new">Just added</span>}
-        <div className="oh-card__title-row">
-          <h3 className="oh-card__name">{offering.title}</h3>
-          <span className={`oh-card__price ${offering.price.isFree ? 'oh-card__price--free' : ''}`}>
+        <h3 className="oh-row__name">
+          {offering.title}
+          {hidden && <span className="oh-row__tag">Hidden</span>}
+        </h3>
+        <p className="oh-row__detail">
+          {details} ·{' '}
+          <span className={offering.price.isFree ? 'oh-row__price oh-row__price--free' : 'oh-row__price'}>
             {offering.price.label}
           </span>
-        </div>
-        <p className="oh-card__detail">{details}</p>
+        </p>
       </div>
 
-      <div className="oh-card__actions">
+      <div className="oh-row__actions">
+        {/* Shown on the page, or not: a switch, as it flips straight away */}
         <button
           type="button"
-          className="oh-card__copy"
-          onClick={() => copyLink(url)}
-          aria-label={`Copy link to ${offering.title}`}
+          role="switch"
+          aria-checked={!hidden}
+          aria-label={`Show ${offering.title} on your page`}
+          className="oh-switch"
+          onClick={() => onSetHidden(!hidden)}
         >
+          <span className="oh-switch__track" aria-hidden="true">
+            <span className="oh-switch__thumb" />
+          </span>
+          <span className="oh-switch__label" aria-hidden="true">
+            {hidden ? 'Hidden' : 'Visible'}
+          </span>
+        </button>
+        <button type="button" className="oh-card__copy" onClick={() => copyLink(url)} aria-label={`Copy link to ${offering.title}`}>
           {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
           {copy === 'copied' ? 'Copied' : 'Copy link'}
         </button>
-        <button
-          type="button"
-          className="oh__edit oh-card__edit"
-          onClick={() => onEdit(offering.id)}
-          aria-label={`Edit ${offering.title}`}
-        >
+        <button type="button" className="oh__edit oh-card__edit" onClick={() => onEdit(offering.id)} aria-label={`Edit ${offering.title}`}>
           <Pencil size={15} aria-hidden="true" /> Edit
         </button>
         <a
@@ -108,28 +121,23 @@ function OfferingCard({ offering, url, onEdit, onRemove, isNew = false }) {
         >
           <ExternalLink size={16} aria-hidden="true" />
         </a>
-        <button
-          type="button"
-          className="oh__edit oh-card__preview"
-          onClick={onRemove}
-          aria-label={`Remove ${offering.title} from your page`}
-          data-tip="Remove from page"
-          data-tip-align="end"
-        >
-          <EyeOff size={16} aria-hidden="true" />
-        </button>
+        <RowMenu
+          title={offering.title}
+          open={menuOpen}
+          onOpenChange={onMenu}
+          items={[{ label: 'Remove from page', icon: Trash2, danger: true, onSelect: onRemove }]}
+        />
       </div>
 
       <span className="oh__sr-only" aria-live="polite">
         {copy === 'copied' && `Link to ${offering.title} copied`}
       </span>
       {copy === 'failed' && (
-        <p className="oh__copy-error oh-card__error" role="alert">
-          Couldn’t copy. Select the link and copy it yourself:{' '}
-          <span className="oh-card__url">{url}</span>
+        <p className="oh__copy-error oh-row__error" role="alert">
+          Couldn’t copy. Select the link and copy it yourself: <span className="oh-card__url">{url}</span>
         </p>
       )}
-    </article>
+    </li>
   );
 }
 
@@ -140,7 +148,8 @@ function OfferingCard({ offering, url, onEdit, onRemove, isNew = false }) {
 //               └ Your offerings page link  harishneel.page  [Copy link] [↗] ┘
 //   Offerings   the calls that are on their page, each with its own link
 //
-// Every action lines up on the card's right edge.
+// Every action lines up on the card's right edge. Each offering is a
+// full-width row (OfferingRow), with a Visible switch and ⋯ → Remove from page.
 // Add to your page is the one filled button on the page.
 // This page only shows calls: they're made and changed in the 1:1 calls
 // tab (CallsPage.jsx), with the calendar. "Add to your page" picks from
@@ -152,6 +161,7 @@ function OfferingCard({ offering, url, onEdit, onRemove, isNew = false }) {
 // onAddCalls({ ids, descriptions }): put these calls on the page, with any card lines changed
 // onCreateCall(): make a new call (the guided flow); it lands on the page
 // onSetOnPage(id, on): take one off the page, or put it back (Undo)
+// onSetHidden(id, hidden): hide one from visitors, or show it again
 // justAddedIds: the offerings just added, if they've come back from adding them
 // ------------------------------------------------------------
 const UNDO_MS = 6000;
@@ -163,10 +173,13 @@ export default function OfferingsHome({
   onAddCalls,
   onCreateCall,
   onSetOnPage,
+  onSetHidden,
   justAddedIds = [],
 }) {
-  // Only the calls that are on their page (the rest are in the 1:1 calls tab)
-  const offerings = useMemo(() => buildProfileJson(getMyPage(answers)).services, [answers]);
+  // The calls on their page, hidden ones too (the rest are in the 1:1 calls tab)
+  const offerings = useMemo(() => buildProfileJson(getListedOnPage(answers)).services, [answers]);
+  const [menuFor, setMenuFor] = useState(null); // the row whose ⋯ menu is open
+  const [removing, setRemoving] = useState(null); // { id, title } while the pop-up asks
   // The calls that aren't, newest first: what "Add to your page" offers
   const offPage = useMemo(() => {
     const all = buildProfileJson(getMyProfile(answers)).services;
@@ -277,18 +290,25 @@ export default function OfferingsHome({
               <p className="oh__none-text">Add a 1:1 call so people have something to book.</p>
             </div>
           ) : (
-            <div className="oh__grid">
+            <ul className="oh__rows">
               {offerings.map((o) => (
-                <OfferingCard
+                <OfferingRow
                   key={o.id}
                   offering={o}
                   url={offeringUrl(answers.handle, o.id)}
-                  onEdit={onEditOffering}
-                  onRemove={() => remove(o)}
+                  hidden={isHiddenOnPage(answers, o.id)}
                   isNew={justAddedIds.includes(o.id)}
+                  menuOpen={menuFor === o.id}
+                  onMenu={(open) => setMenuFor(open ? o.id : null)}
+                  onEdit={onEditOffering}
+                  onSetHidden={(hide) => onSetHidden(o.id, hide)}
+                  onRemove={() => {
+                    setMenuFor(null);
+                    setRemoving({ id: o.id, title: o.title });
+                  }}
                 />
               ))}
-            </div>
+            </ul>
           )}
           {/* Tells screen readers what's just been added */}
           <p className="oh__sr-only" aria-live="polite">
@@ -312,6 +332,26 @@ export default function OfferingsHome({
           </p>
         )}
       </div>
+
+      {/* Remove from page: asked first. Only this page: deleting for good is in 1:1 calls */}
+      {removing && (
+        <ConfirmDialog
+          title="Remove from your page?"
+          confirmLabel="Remove from page"
+          onCancel={() => setRemoving(null)}
+          onConfirm={() => {
+            remove(removing);
+            setRemoving(null);
+          }}
+        >
+          <p>
+            <strong>“{removing.title}”</strong> will be removed from your offerings page only. 
+          </p>
+          <p>
+            To delete it permantly, go to <strong>1:1 calls</strong> in the sidebar.
+          </p>
+        </ConfirmDialog>
+      )}
 
       {choosing && (
         <AddToPagePicker

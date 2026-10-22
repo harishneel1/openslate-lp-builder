@@ -1,0 +1,88 @@
+/* ⋯ menu on a row (RowMenu.jsx): as in Contracts */
+.row-menu {
+  position: relative;
+}
+
+.row-menu__button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: #141414;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.row-menu__button:hover,
+.row-menu__button[aria-expanded='true'] {
+  border-color: var(--color-primary);
+}
+
+.row-menu__button[aria-expanded='true'] {
+  background: var(--color-primary-tint);
+}
+
+.row-menu__button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.row-menu__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: 220px;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 1px solid #ececee;
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.row-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #141414;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.row-menu__item svg {
+  flex: none;
+  color: #55555b;
+}
+
+.row-menu__item:hover,
+.row-menu__item:focus-visible {
+  background: #f4f4f6;
+  outline: none;
+}
+
+.row-menu__item--danger,
+.row-menu__item--danger svg {
+  color: #c62828;
+}
+
+.row-menu__item--danger:hover,
+.row-menu__item--danger:focus-visible {
+  background: #fdecec;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-menu__button {
+    transition: none;
+  }
+}

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ExternalLink, Link2, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, ExternalLink, Link2, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import EditService from './EditService';
 import CreateCallFlow from './CreateCallFlow';
 import { useCopy } from './OfferingsHome';
 import CalendarRow from '../components/CalendarPanel';
+import RowMenu from '../components/RowMenu';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { markCalendarLost } from '../data/calendarStore';
 import { buildProfileJson } from '../data/buildProfileJson';
 import { getMyProfile, isOnPage, myCallIds, withAddedCall, withCallChanges, withoutCall } from '../data/myProfile';
@@ -26,7 +28,7 @@ import './CallsPage.css';
 //   │ Mon–Fri, 9 am – 5 pm                                           │
 //   └ (one full-width row per call, like Calendly's event types)     ┘
 //
-// ⋯ holds Delete, which always asks first (DeleteDialog).
+// ⋯ holds Delete, which always asks first (ConfirmDialog).
 //
 // Create a 1:1 call is guided, every time (CreateCallFlow.jsx): one
 // question per screen beside its booking page, then "It's ready". Edit
@@ -148,7 +150,7 @@ export default function CallsPage() {
               </button>
             </div>
           ) : (
-            <ul className="calls__list">
+            <ul className="oh__rows">
               {calls.map((c) => (
                 <CallRow
                   key={c.id}
@@ -177,7 +179,24 @@ export default function CallsPage() {
         </div>
       </section>
 
-      {deleting && <DeleteDialog call={deleting} onCancel={() => setDeleting(null)} onConfirm={confirmDelete} />}
+      {/* Delete: always asked first. Says what deleting does: its link stops
+          working, it comes off the offerings page (when it's on a live one),
+          bookings already made stay. */}
+      {deleting && (
+        <ConfirmDialog
+          title="Delete this call?"
+          confirmLabel="Delete call"
+          danger
+          onCancel={() => setDeleting(null)}
+          onConfirm={confirmDelete}
+        >
+          <p>
+            <strong>“{deleting.title}”</strong> will be deleted and its link will stop working
+            {deleting.onPage ? ', and it will come off your offerings page' : ''}. Calls already booked aren’t affected.
+            This can’t be undone.
+          </p>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }
@@ -201,20 +220,20 @@ function CallRow({ call, url, isNew, menuOpen, onMenu, onEdit, onDelete }) {
   const hours = useMemo(() => hoursLine(call.id), [call.id]);
 
   return (
-    <li className={`calls-row ${isNew ? 'calls-row--new' : ''} ${menuOpen ? 'calls-row--menu' : ''}`}>
-      <div className="calls-row__text">
+    <li className={`oh-row ${isNew ? 'oh-row--new' : ''} ${menuOpen ? 'oh-row--menu' : ''}`}>
+      <div className="oh-row__text">
         {isNew && <span className="oh-card__new">Just created</span>}
-        <h3 className="calls-row__name">{call.title}</h3>
-        <p className="calls-row__detail">
+        <h3 className="oh-row__name">{call.title}</h3>
+        <p className="oh-row__detail">
           {details} ·{' '}
-          <span className={call.price.isFree ? 'calls-row__price calls-row__price--free' : 'calls-row__price'}>
+          <span className={call.price.isFree ? 'oh-row__price oh-row__price--free' : 'oh-row__price'}>
             {call.price.label}
           </span>
         </p>
-        <p className="calls-row__hours">{hours}</p>
+        <p className="oh-row__hours">{hours}</p>
       </div>
 
-      <div className="calls-row__actions">
+      <div className="oh-row__actions">
         <button type="button" className="oh-card__copy" onClick={() => copyLink(url)} aria-label={`Copy link to ${call.title}`}>
           {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
           {copy === 'copied' ? 'Copied' : 'Copy link'}
@@ -233,116 +252,22 @@ function CallRow({ call, url, isNew, menuOpen, onMenu, onEdit, onDelete }) {
         >
           <ExternalLink size={16} aria-hidden="true" />
         </a>
-        <RowMenu title={call.title} open={menuOpen} onOpenChange={onMenu} onDelete={onDelete} />
+        <RowMenu
+          title={call.title}
+          open={menuOpen}
+          onOpenChange={onMenu}
+          items={[{ label: 'Delete', icon: Trash2, danger: true, onSelect: onDelete }]}
+        />
       </div>
 
       <span className="oh__sr-only" aria-live="polite">
         {copy === 'copied' && `Link to ${call.title} copied`}
       </span>
       {copy === 'failed' && (
-        <p className="oh__copy-error calls-row__error" role="alert">
+        <p className="oh__copy-error oh-row__error" role="alert">
           Couldn’t copy. Select the link and copy it yourself: <span className="oh-card__url">{url}</span>
         </p>
       )}
     </li>
-  );
-}
-
-// ⋯ : Delete, for now. Closes on a click outside or Escape; the keyboard
-// lands on the first item. The same menu as Contracts (ContractsPage.jsx).
-function RowMenu({ title, open, onOpenChange, onDelete }) {
-  const wrap = useRef(null);
-  const button = useRef(null);
-  const menuId = useRef(`calls-menu-${Math.random().toString(36).slice(2)}`).current;
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (e) => {
-      if (!wrap.current?.contains(e.target)) onOpenChange(false);
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
-        onOpenChange(false);
-        button.current?.focus();
-      }
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    wrap.current?.querySelector('[role="menuitem"]')?.focus();
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div className="calls-menu" ref={wrap}>
-      <button
-        ref={button}
-        type="button"
-        className="calls-menu__button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={() => onOpenChange(!open)}
-      >
-        <MoreHorizontal size={18} aria-hidden="true" />
-        <span className="oh__sr-only">More for {title}</span>
-      </button>
-
-      {open && (
-        <div className="calls-menu__list" id={menuId} role="menu" aria-label={`More for ${title}`}>
-          <button type="button" role="menuitem" className="calls-menu__item calls-menu__item--danger" onClick={onDelete}>
-            <Trash2 size={16} aria-hidden="true" />
-            Delete
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// "Delete this call?" The browser's own <dialog>: dims the page, keeps the
-// keyboard inside, Escape closes. Cancel has focus first, so Enter by habit
-// deletes nothing. Says what deleting does: its link stops working, it comes
-// off the offerings page (when it's on a live one), bookings already made stay.
-function DeleteDialog({ call, onCancel, onConfirm }) {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => dialog?.open && dialog.close();
-  }, []);
-
-  return (
-    <dialog
-      ref={ref}
-      className="calls-dialog"
-      aria-labelledby="calls-dialog-title"
-      aria-describedby="calls-dialog-body"
-      onCancel={(e) => {
-        e.preventDefault();
-        onCancel();
-      }}
-      onClick={(e) => e.target === ref.current && onCancel()}
-    >
-      <h2 className="calls-dialog__title" id="calls-dialog-title">
-        Delete this call?
-      </h2>
-      <p className="calls-dialog__body" id="calls-dialog-body">
-        <strong>“{call.title}”</strong> will be deleted and its link will stop working
-        {call.onPage ? ', and it will come off your offerings page' : ''}. Calls already booked aren’t affected. This
-        can’t be undone.
-      </p>
-      <div className="calls-dialog__actions">
-        <button type="button" className="calls-btn calls-btn--quiet" onClick={onCancel} autoFocus>
-          Cancel
-        </button>
-        <button type="button" className="calls-btn calls-btn--danger" onClick={onConfirm}>
-          Delete call
-        </button>
-      </div>
-    </dialog>
   );
 }

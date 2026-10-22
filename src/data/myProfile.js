@@ -107,10 +107,27 @@ export const offPageIdsOf = (answers) => (Array.isArray(answers?.offPage) ? answ
 
 export const isOnPage = (answers, id) => !offPageIdsOf(answers).includes(id);
 
-// The answers with one call put on, or taken off, the page
+// The answers with one call put on, or taken off, the page.
+// Taken off, it's no longer hidden either: put back, it shows.
 export function withOnPage(answers, id, on) {
   const rest = offPageIdsOf(answers).filter((x) => x !== id);
-  return { ...answers, offPage: on ? rest : [...rest, id] };
+  const hidden = on ? hiddenIdsOf(answers) : hiddenIdsOf(answers).filter((x) => x !== id);
+  return { ...answers, offPage: on ? rest : [...rest, id], hiddenOnPage: hidden };
+}
+
+// ------------------------------------------------------------
+// Hidden: on the offerings page's list (My offerings), but not shown to
+// visitors, until it's made visible again. Kept as answers.hiddenOnPage
+// (ids). Unlike taking it off the page, it stays in the list, so it can be
+// switched back on in one tap. Its own link still works, like any call's.
+// ------------------------------------------------------------
+export const hiddenIdsOf = (answers) => (Array.isArray(answers?.hiddenOnPage) ? answers.hiddenOnPage : []);
+
+export const isHiddenOnPage = (answers, id) => hiddenIdsOf(answers).includes(id);
+
+export function withHiddenOnPage(answers, id, hidden) {
+  const rest = hiddenIdsOf(answers).filter((x) => x !== id);
+  return { ...answers, hiddenOnPage: hidden ? [...rest, id] : rest };
 }
 
 // The answers with one call deleted: gone from 1:1 calls, from the
@@ -120,7 +137,11 @@ export function withOnPage(answers, id, on) {
 // own copy of its name and time (bookingsStore.js), so they're untouched.
 export function withoutCall(answers, id) {
   const rest = id === MY_CALL_ID ? withoutSetupCall(answers) : { ...answers, addedCalls: addedCallsOf(answers).filter((c) => c.id !== id) };
-  return { ...rest, offPage: offPageIdsOf(rest).filter((x) => x !== id) };
+  return {
+    ...rest,
+    offPage: offPageIdsOf(rest).filter((x) => x !== id),
+    hiddenOnPage: hiddenIdsOf(rest).filter((x) => x !== id),
+  };
 }
 
 // Their setup call (the first one, saved on the setup answers) only counts
@@ -231,7 +252,8 @@ export function getMyProfile(answers = loadAnswers()) {
   return { creator, services: hasFirst ? [...added, first] : added, testimonials: [] };
 }
 
-// Their offerings page: the same, with only the calls that are on it.
+// Their offerings page: the same, with only the calls that are on it and
+// not hidden.
 // Booking and checkout use getMyProfile, so a call that's off the page
 // can still be booked from its own link.
 // While setup is picking from calls they'd already made (not live yet, and
@@ -242,6 +264,13 @@ export function getMyPage(answers = loadAnswers()) {
   const profile = getMyProfile(answers);
   const picking = !answers.publishedAt && answers.callSource !== 'new' && addedCallsOf(answers).length > 0;
   const picked = Array.isArray(answers.pickedCalls) ? answers.pickedCalls : [];
-  const shows = (id) => (picking ? picked.includes(id) : isOnPage(answers, id));
+  const shows = (id) => (picking ? picked.includes(id) : isOnPage(answers, id) && !isHiddenOnPage(answers, id));
   return { ...profile, services: profile.services.filter((s) => shows(s.id)) };
+}
+
+// The calls listed on My offerings: everything on the page, hidden ones too
+// (getMyPage leaves those out: it's what visitors see)
+export function getListedOnPage(answers = loadAnswers()) {
+  const profile = getMyProfile(answers);
+  return { ...profile, services: profile.services.filter((s) => isOnPage(answers, s.id)) };
 }
