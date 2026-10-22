@@ -18,14 +18,15 @@ const DESCRIPTION_MAX = 200;
 // The short description: a line or two on the offering card.
 // Its own piece so the edit screen can show it with the long description.
 // note: shown under the box, beside the count (in place of the suggestion hint)
-export function ShortDescriptionField({ answers, onChange, note = null }) {
+// label: the field's name (the call editor calls it the line on the page's card)
+export function ShortDescriptionField({ answers, onChange, note = null, label = 'Short description' }) {
   const description = callDescriptionOf(answers);
   const suggested = answers.callDescription === undefined && description !== '';
 
   return (
     <div className="qinput__field">
       <label className="qinput__label" htmlFor="call-description">
-        Short description
+        {label}
         <span className="qinput__optional"> · Optional</span>
       </label>
       <textarea
@@ -50,21 +51,60 @@ export function ShortDescriptionField({ answers, onChange, note = null }) {
 // Rupee amount: digits only, no leading zeros
 const rupees = (text) => text.replace(/\D/g, '').replace(/^0+/, '');
 
-// Discounted price (callPrice) and an optional regular price (callComparePrice),
-// shown crossed out. Same fields, wording and rules as the webinar flow's
-// "Set your price": a regular price that isn't higher gets a note, and simply
-// doesn't show on the page.
+// What people pay, and an optional discount, the same way as the contracts
+// flow: one Amount box (the card is already headed "Price"), then a "Discounted price" box that stays off until
+// it's ticked. Saved as before, so nothing else changes:
+//   no discount   callPrice = the price, callComparePrice = ''
+//   discount      callComparePrice = the price (shown crossed out),
+//                 callPrice = the discounted price (what they pay)
+// Ticking moves the price into callComparePrice; unticking moves it back.
+// It can only be ticked once there's a price, and clearing the price unticks it.
+// A ticked discount that's empty or not lower than the price stops them
+// going on (callDetailsProblem in callDetails.js).
 function PaidPrices({ answers, onChange }) {
-  const price = answers.callPrice ?? '';
-  const regular = answers.callComparePrice ?? '';
-  const floor = Number(price) || 0;
-  const tooLow = floor > 0 && String(regular).trim() !== '' && Number(regular) <= floor;
+  const [hasDiscount, setHasDiscount] = useState(() => String(answers.callComparePrice ?? '').trim() !== '');
+  const price = (hasDiscount ? answers.callComparePrice : answers.callPrice) ?? '';
+  const discount = hasDiscount ? (answers.callPrice ?? '') : '';
+  const priceNum = Number(price) || 0;
+  const discountNum = Number(discount) || 0;
+  const tooHigh = hasDiscount && priceNum > 0 && discountNum > 0 && discountNum >= priceNum;
+
+  // Ticked: straight into the discount box
+  const discountRef = useRef(null);
+  const ticked = useRef(false);
+  useEffect(() => {
+    if (ticked.current && hasDiscount) discountRef.current?.focus();
+    ticked.current = false;
+  }, [hasDiscount]);
+
+  const toggle = (on) => {
+    if (on) {
+      onChange(answers.callPrice ?? '', 'callComparePrice');
+      onChange('', 'callPrice');
+      ticked.current = true;
+    } else {
+      onChange(answers.callComparePrice ?? '', 'callPrice');
+      onChange('', 'callComparePrice');
+    }
+    setHasDiscount(on);
+  };
+
+  // A discount needs a price to come off: clearing the price unticks it
+  const changePrice = (value) => {
+    if (hasDiscount && value === '') {
+      onChange('', 'callComparePrice');
+      onChange('', 'callPrice');
+      setHasDiscount(false);
+    } else {
+      onChange(value, hasDiscount ? 'callComparePrice' : 'callPrice');
+    }
+  };
 
   return (
     <div className="call__prices">
       <div className="call__price-fields">
         <label className="qinput__field">
-          <span className="qinput__label">Discounted price</span>
+          <span className="qinput__label">Amount</span>
           <span className="qinput__money">
             <span className="qinput__currency" aria-hidden="true">₹</span>
             <input
@@ -72,38 +112,46 @@ function PaidPrices({ answers, onChange }) {
               className="qinput__text qinput__money-input"
               value={price}
               maxLength={6}
+              placeholder="e.g. 1500"
+              onChange={(e) => changePrice(rupees(e.target.value))}
+            />
+          </span>
+        </label>
+
+        <div className="qinput__field">
+          <label className={`call__check ${!hasDiscount && priceNum === 0 ? 'call__check--off' : ''}`}>
+            <input
+              type="checkbox"
+              checked={hasDiscount}
+              disabled={!hasDiscount && priceNum === 0} // add the price first
+              onChange={(e) => toggle(e.target.checked)}
+            />
+            <span className="qinput__label">Discounted price</span>
+          </label>
+          <span className={`qinput__money ${hasDiscount ? '' : 'call__money--off'}`}>
+            <span className="qinput__currency" aria-hidden="true">₹</span>
+            <input
+              ref={discountRef}
+              inputMode="numeric"
+              className="qinput__text qinput__money-input"
+              value={discount}
+              maxLength={6}
+              disabled={!hasDiscount}
+              aria-label="Discounted price"
               onChange={(e) => onChange(rupees(e.target.value), 'callPrice')}
             />
           </span>
-          <span className="qinput__example">e.g. ₹1500</span>
-        </label>
-
-        <label className="qinput__field">
-          <span className="qinput__label">
-            Regular price
-            <span className="qinput__optional"> · Optional</span>
-          </span>
-          <span className="qinput__money">
-            <span className="qinput__currency" aria-hidden="true">₹</span>
-            <input
-              inputMode="numeric"
-              className="qinput__text qinput__money-input"
-              value={regular}
-              maxLength={6}
-              onChange={(e) => onChange(rupees(e.target.value), 'callComparePrice')}
-            />
-          </span>
-          {tooLow ? (
+          {tooHigh ? (
             <span className="qinput__error" role="alert">
-              This needs to be more than your discounted price (₹{floor}) to show crossed out.
+              This needs to be lower than the amount (₹{priceNum.toLocaleString('en-IN')}).
             </span>
-          ) : (
-            <span className="qinput__example">Shown crossed out next to your discounted price.</span>
-          )}
-        </label>
+          ) : hasDiscount && discountNum === 0 ? (
+            <span className="qinput__example">Add the discounted price, or untick it.</span>
+          ) : null}
+        </div>
       </div>
 
-      <PriceExample price={price} oldPrice={regular} />
+      <PriceExample price={hasDiscount ? discount : price} oldPrice={hasDiscount ? price : ''} />
     </div>
   );
 }
@@ -114,19 +162,18 @@ function tileParts(mins) {
   return { value: String(mins / 60), unit: 'hr' };
 }
 
-// One group of fields on the setup screen: a white card with a heading and
-// what the group is for. On the edit screen (grouped off) the fields sit
-// straight in its Basics panel instead, which is already a card.
-function Group({ grouped, id, title, sub, children }) {
+// One group of fields on the setup screen: a white card whose heading names
+// the field in it ("Name of the call"), so the field has no label of its own;
+// it points at the heading instead (aria-labelledby). On the edit screen
+// (grouped off) the fields sit straight in its Basics panel, which is already
+// a card, with their own labels.
+function Group({ grouped, id, title, children }) {
   if (!grouped) return children;
   return (
     <section className="qinput__card call__group" aria-labelledby={id}>
-      <div className="call__group-head">
-        <h2 className="call__group-title" id={id}>
-          {title}
-        </h2>
-        <p className="call__group-sub">{sub}</p>
-      </div>
+      <h2 className="call__group-title" id={id}>
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -151,6 +198,7 @@ export default function CallDetailsInput({
   question = null,
   showDescription = question?.showDescription ?? true,
   grouped = true,
+  afterName = null, // shown right under the name (the call editor puts the description there)
 }) {
   const valueOf = (id) => answers[id] ?? CALL_DEFAULTS[id] ?? '';
   // Setup starts on the first suggestion ("Discovery call"); the edit screen on what's saved
@@ -185,13 +233,16 @@ export default function CallDetailsInput({
   return (
     <div className={`qinput call ${grouped ? 'call--grouped' : ''}`}>
       {/* ================= Name ================= */}
-      <Group grouped={grouped} id="call-g-name" title="What it’s called" sub="The first thing people read about your call.">
+      <Group grouped={grouped} id="call-g-name" title="Name of the call">
         <div className="qinput__field">
-          <label className="qinput__label" htmlFor="call-title">
-            {grouped ? 'Name' : 'Name of the call'}
-          </label>
+          {!grouped && (
+            <label className="qinput__label" htmlFor="call-title">
+              Name of the call
+            </label>
+          )}
           <input
             id="call-title"
+            aria-labelledby={grouped ? 'call-g-name' : undefined}
             ref={titleRef}
             className="qinput__text"
             value={title}
@@ -223,17 +274,19 @@ export default function CallDetailsInput({
           </div>
         </div>
 
+        {afterName}
         {showDescription && <ShortDescriptionField answers={answers} onChange={onChange} />}
       </Group>
 
-      {/* ================= How it works ================= */}
-      <Group grouped={grouped} id="call-g-how" title="How it works" sub="How long your video call is.">
-        {/* ---------- Length: one track of tiles ---------- */}
+      {/* ================= Duration: one track of tiles ================= */}
+      <Group grouped={grouped} id="call-g-duration" title="Duration of the call">
         <div className="qinput__field">
-          <span className="qinput__label" id="call-duration">
-            {grouped ? 'Length' : 'Duration'}
-          </span>
-          <div className="call__lengths" role="radiogroup" aria-labelledby="call-duration">
+          {!grouped && (
+            <span className="qinput__label" id="call-duration">
+              Duration of the call
+            </span>
+          )}
+          <div className="call__lengths" role="radiogroup" aria-labelledby={grouped ? 'call-g-duration' : 'call-duration'}>
             {DURATIONS.map((mins) => {
               const on = !custom && duration === mins;
               const { value, unit } = tileParts(mins);
@@ -303,7 +356,7 @@ export default function CallDetailsInput({
       </Group>
 
       {/* ================= Price ================= */}
-      <Group grouped={grouped} id="call-g-price" title="Price" sub="Free, or what people pay to book.">
+      <Group grouped={grouped} id="call-g-price" title="Price">
         <div className="qinput__field">
           {/* On the setup screen the card's heading names it */}
           {!grouped && (

@@ -37,6 +37,21 @@ export function savedHandle() {
   }
 }
 
+// The link their 1:1 calls are shared under: /<this>/<call>. Like a
+// Calendly username, it belongs to the account, not to the offerings page,
+// so a call has a working link even if they never set up a page. It's the
+// link they picked in setup, or, until they do, their name squashed into
+// one ("harishneel"): the same link setup offers them first, so accepting
+// it there keeps every call link they've already sent working.
+export function accountHandle() {
+  return savedHandle() || defaultHandle();
+}
+
+function defaultHandle() {
+  const fromName = suggestedHandle(mockAccount.name);
+  return fromName.length >= HANDLE_MIN && !isHandleTaken(fromName) ? fromName : handleSuggestions(fromName)[0];
+}
+
 export const HANDLE_MIN = 3;
 export const HANDLE_MAX = 30;
 

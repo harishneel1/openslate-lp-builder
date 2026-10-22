@@ -8,7 +8,7 @@ import SlotPicker from '../components/booking/SlotPicker';
 import TimeZonePicker from '../components/booking/TimeZonePicker';
 import '../styles/storeTheme.css';
 import './BookingPage.css';
-import { profileHrefFor } from '../data/myProfile';
+import { hasPageFor, profileHrefFor } from '../data/myProfile';
 
 // ------------------------------------------------------------
 // One call's booking page: what the call is, and when to have it.
@@ -75,14 +75,16 @@ export default function BookingPage({ serviceId, state, slots, timeZone, draft =
 
   // Back to the same version of the profile they came from
   const stateParam = state ? `&state=${encodeURIComponent(state)}` : '';
-  const profileHref = profileHrefFor(serviceId, stateParam); // their own page, or Meera's
+  // Their own page, or Meera's. A call shared on its own, by a creator with
+  // no services page, has nowhere to go back to: no "All services" links.
+  const profileHref = hasPageFor(serviceId) ? profileHrefFor(serviceId, stateParam) : null;
 
   useEffect(() => {
     document.title = service ? `${service.title} with ${creator.name}` : creator.name;
   }, [service, creator.name]);
 
   // Plain on purpose: the coach card below is where her name and photo appear
-  const back = (
+  const back = profileHref && (
     <a className="bk__back" href={profileHref}>
       <ChevronLeft size={18} aria-hidden="true" />
       All services
@@ -96,9 +98,11 @@ export default function BookingPage({ serviceId, state, slots, timeZone, draft =
         <main className="bk__missing">
           <h1 className="bk__missing-title">This call isn't available</h1>
           <p className="bk__missing-text">It may have been removed, or the link may be wrong.</p>
-          <a className="bk__missing-link" href={profileHref}>
-            See {creator.firstName}'s other services
-          </a>
+          {profileHref && (
+            <a className="bk__missing-link" href={profileHref}>
+              See {creator.firstName}'s other services
+            </a>
+          )}
         </main>
       </div>
     );

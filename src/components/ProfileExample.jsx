@@ -26,6 +26,7 @@ const TIP_W = 260;     // width of the teaching bubble
 const TIP_H = 84;      // its rough height (2–3 lines), for fitting only
 const TIP_GAP = 30;    // room for the arrow between the box and the bubble
 const EDGE = 12;       // keep bubbles this far from the frame edges
+const UNDER_INSET = 34; // labelAt 'under': how far left of the box the pill starts (its arrow runs up there)
 
 const clamp = (v, min, max) => Math.max(min, Math.min(v, max));
 const prefersLessMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -102,15 +103,23 @@ export default function ProfileExample({
       return setRect(r ? { left: r.left - ox, top: r.top - oy, width: r.width, height: r.height } : null);
     }
 
-    const el = loaded && iframeRef.current?.contentDocument?.querySelector(note.target);
+    const doc = loaded ? iframeRef.current?.contentDocument : null;
+    const el = doc?.querySelector(note.target);
     if (!el || !scale) return setRect(null);
     const r = el.getBoundingClientRect(); // inside the example, before scaling
     const top = viewRef.current.offsetTop;
+    // labelAt 'under': where the page's content ends, so the pill goes below it
+    let underBottom = null;
+    if (note.labelAt === 'under' && note.under) {
+      const bottoms = [...doc.querySelectorAll(note.under)].map((u) => u.getBoundingClientRect().bottom);
+      if (bottoms.length) underBottom = top + Math.max(...bottoms) * scale;
+    }
     return setRect({
       left: r.left * scale,
       top: top + r.top * scale,
       width: r.width * scale,
       height: r.height * scale,
+      underBottom,
     });
   }, [note, loaded, scale]);
 
@@ -200,20 +209,28 @@ export default function ProfileExample({
     // sits far enough down to leave room for the arrow
     const pinTop = note.labelAt === 'top' && box.top - (viewTop + EDGE + LABEL_H) >= LABEL_GAP;
 
+    // Under the page's content, in the empty space there, when the note asks
+    // for it and the pill fits above the frame's bottom edge
+    const underTop = rect.underBottom != null ? Math.max(rect.underBottom, boxBottom) + LABEL_GAP : null;
+    const pinUnder = !pinTop && underTop != null && underTop + LABEL_H <= frameH - EDGE;
+
     // Otherwise above the box when there's room (there isn't for the link, at the very top)
-    const labelAbove = !pinTop && box.top - LABEL_GAP - LABEL_H >= EDGE;
+    const labelAbove = !pinTop && !pinUnder && box.top - LABEL_GAP - LABEL_H >= EDGE;
     const label = pinTop
       ? { left: EDGE, top: viewTop + EDGE }
-      : {
-          left: clamp(box.left, EDGE, frameW - EDGE - LABEL_W),
-          top: labelAbove ? box.top - LABEL_GAP - LABEL_H : boxBottom + LABEL_GAP,
-        };
+      : pinUnder
+        ? // Starts in the margin left of the box, so its arrow can run up beside the page
+          { left: Math.max(EDGE, box.left - UNDER_INSET), top: underTop }
+        : {
+            left: clamp(box.left, EDGE, frameW - EDGE - LABEL_W),
+            top: labelAbove ? box.top - LABEL_GAP - LABEL_H : boxBottom + LABEL_GAP,
+          };
 
     // Bubble below everything, lined up with the box's right edge.
     // No room below: it sits at the bottom of the frame, over the box.
     let tip = null;
     if (note.tip) {
-      const below = (pinTop || labelAbove ? boxBottom : label.top + LABEL_H) + TIP_GAP;
+      const below = (pinTop || labelAbove ? boxBottom : label.top + LABEL_H) + TIP_GAP; // under: below the pill
       const inside = below + TIP_H > frameH - EDGE;
       tip = {
         left: clamp(boxRight - TIP_W, EDGE, frameW - EDGE - TIP_W),
@@ -232,6 +249,12 @@ export default function ProfileExample({
       const a = { x: label.left + 14, y: label.top + LABEL_H + 2 };
       const b = { x: box.left - 3, y: box.top + 22 };
       labelArrow = `M ${a.x} ${a.y} C ${a.x} ${a.y + (b.y - a.y) * 0.7}, ${b.x - 18} ${b.y}, ${b.x} ${b.y}`;
+    } else if (pinUnder) {
+      // Up the margin beside the page, then a hook into the box's side,
+      // near its bottom, so it crosses nothing on the page
+      const a = { x: label.left + 14, y: label.top - 2 };
+      const b = { x: box.left - 3, y: boxBottom - Math.min(22, box.height / 2) };
+      labelArrow = `M ${a.x} ${a.y} C ${a.x} ${a.y - (a.y - b.y) * 0.7}, ${b.x - 18} ${b.y}, ${b.x} ${b.y}`;
     } else if (labelAbove) {
       labelArrow = curve({ x: label.left + 22, y: label.top + LABEL_H + 2 }, { x: label.left + 46, y: box.top - 4 }, 14);
     } else {

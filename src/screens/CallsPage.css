@@ -1,6 +1,13 @@
 /* The 1:1 calls tab. Panels, cards and buttons come from OfferingsHome.css,
    so the two pages look like one product; only what's new is here. */
 
+.calls {
+  --calls-ink: #141414;
+  --calls-ink-2: #55555b;
+  --calls-line: #ececee;
+  --calls-danger: #c62828; /* the same red as Contracts' Delete */
+}
+
 .calls__lead {
   margin-top: 6px;
   font-size: 15px;
@@ -49,8 +56,255 @@
   color: var(--color-text-muted);
 }
 
-/* No link yet: Edit is the only action, at its own width */
-.calls-card__actions--edit-only {
-  grid-template-columns: auto;
-  justify-content: start;
+/* ---------- Your calls: one full-width row each, like Calendly ---------- */
+.calls__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* What it is on the left, what you can do on the right */
+.calls-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 20px 24px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* Just created: lit up, as on the cards before */
+.calls-row--new {
+  border-color: var(--color-primary);
+}
+
+/* Its open menu sits above the rows under it */
+.calls-row--menu {
+  z-index: var(--z-dropdown);
+}
+
+.calls-row__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.calls-row__name {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.calls-row__detail,
+.calls-row__hours {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.calls-row__price {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.calls-row__price--free {
+  color: var(--color-success);
+}
+
+.calls-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The link, if copying fails, across the whole row */
+.calls-row__error {
+  grid-column: 1 / -1;
+}
+
+/* Narrow: the actions go under what it is, Copy link taking the room */
+@media (max-width: 720px) {
+  .calls-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+
+  .calls-row__actions .oh-card__copy {
+    flex: 1;
+  }
+}
+
+/* ---------- ⋯ menu (as in Contracts) ---------- */
+.calls-menu {
+  position: relative;
+}
+
+.calls-menu__button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--calls-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.calls-menu__button:hover,
+.calls-menu__button[aria-expanded='true'] {
+  border-color: var(--color-primary);
+}
+
+.calls-menu__button[aria-expanded='true'] {
+  background: var(--color-primary-tint);
+}
+
+.calls-menu__button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.calls-menu__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: 200px;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--calls-line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.calls-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--calls-ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.calls-menu__item--danger,
+.calls-menu__item--danger svg {
+  color: var(--calls-danger);
+}
+
+.calls-menu__item--danger:hover,
+.calls-menu__item--danger:focus-visible {
+  background: #fdecec;
+  outline: none;
+}
+
+/* ---------- Delete pop-up (as in Contracts) ---------- */
+.calls-dialog {
+  width: min(460px, calc(100vw - 32px));
+  margin: auto;
+  padding: 28px;
+  color: var(--calls-ink);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.calls-dialog:focus,
+.calls-dialog:focus-visible {
+  outline: none;
+}
+
+.calls-dialog::backdrop {
+  background: rgba(17, 17, 17, 0.4);
+}
+
+.calls-dialog__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.calls-dialog__body {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--calls-ink-2);
+}
+
+.calls-dialog__body strong {
+  font-weight: 600;
+  color: var(--calls-ink);
+}
+
+.calls-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.calls-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.calls-btn--quiet {
+  color: var(--calls-ink);
+  background: var(--color-surface);
+  border-color: #d6d6da;
+}
+
+.calls-btn--quiet:hover {
+  border-color: var(--color-primary);
+}
+
+.calls-btn--danger {
+  color: #fff;
+  background: var(--calls-danger);
+}
+
+.calls-btn--danger:hover {
+  background: #a92020;
+}
+
+.calls-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calls-menu__button,
+  .calls-btn {
+    transition: none;
+  }
 }

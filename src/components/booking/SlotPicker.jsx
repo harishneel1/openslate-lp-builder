@@ -110,9 +110,11 @@ export default function SlotPicker({
           <p className="sp__empty-text">
             {creatorName} hasn't opened any times in the next {days.length} days. Check back soon.
           </p>
-          <a className="sp__empty-link" href={profileHref}>
-            See {creatorName}'s other services
-          </a>
+          {profileHref && (
+            <a className="sp__empty-link" href={profileHref}>
+              See {creatorName}'s other services
+            </a>
+          )}
         </div>
       </div>
     );

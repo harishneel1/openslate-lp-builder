@@ -61,7 +61,7 @@
   transition: border-color 0.15s ease;
 }
 
-.cd__coach:hover {
+a.cd__coach:hover {
   border-color: var(--pf-accent);
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, AlignLeft, CalendarClock, ClipboardList, Clock, ExternalLink, FileText, Lock, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, CalendarClock, ClipboardList, Clock, ExternalLink, FileText, Lock, SlidersHorizontal } from 'lucide-react';
 import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
@@ -45,8 +45,10 @@ const NEW_FIELDS = EDIT_FIELDS;
 
 // Which answers belong to which section, for its "Edited" tag
 const SECTION_FIELDS = {
-  basics: ['callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice', 'meetingLink'],
-  descriptions: ['callDescription', 'callAbout'],
+  basics: [
+    'callTitle', 'callAbout', 'callDescription', 'callDuration', 'callFormat',
+    'callPricing', 'callPrice', 'callComparePrice', 'meetingLink',
+  ],
   questions: ['callQuestions'],
   service: ['serviceId'],
   when: ['callHours'],
@@ -57,9 +59,13 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // ------------------------------------------------------------
 // Editing one offering, opened from its card on the offerings home,
 // or making a new one ("Add a new offering", after picking its kind).
-// Five sections, each closed to a one-line summary until opened, one open at a time:
-//   Basics                name, length, format, price
-//   Descriptions          short and long
+// Four sections, each closed to a one-line summary until opened, one open at a time:
+//   Basics                name, then its description (what the booking page
+//                         shows under the name), length, format, price.
+//                         Opened from the offerings page, also the line on
+//                         the call's card there (callDescription): that card
+//                         is the only place it shows, so from the 1:1 calls
+//                         tab it isn't asked for.
 //   When people can book  this call's own hours, changed in a panel from
 //                         the right (HoursDrawer.jsx)
 //   Invitee form          what checkout asks: name, email and phone, then
@@ -89,12 +95,14 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // ------------------------------------------------------------
 const FROM = {
   offerings: {
+    cardLine: true,
     back: 'Your offerings page',
     create: 'Add to your page',
     saved: 'Changes show up on your page once you save them.',
     gone: 'It may have been removed. Go back to see what’s on your page.',
   },
   calls: {
+    cardLine: false, // the card line is the offerings page's: not asked for here
     back: '1:1 calls',
     create: 'Create call',
     saved: 'Changes show up wherever people book this call once you save them.',
@@ -196,7 +204,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
   const blocker = detailsProblem === 'basics'
     ? { section: 'basics', text: `Add a name and a price (or make it free) to ${verb}` }
     : callAboutOf(draft).trim() === ''
-      ? { section: 'descriptions', text: `Add a long description to ${verb}` }
+      ? { section: 'basics', text: `Add a description to ${verb}` }
       : questionProblem
         ? { section: 'questions', text: questionProblem.text }
         : null;
@@ -275,9 +283,6 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
   // Questions edited back to what's saved: the saved list itself, so the section isn't marked as edited
   const changeQuestions = (next) => handleChange(sameQuestions(next, saved.callQuestions) ? saved.callQuestions : next, 'callQuestions');
 
-  const shortDescription = callDescriptionOf(draft).trim();
-  const aboutWrittenForThem = isNew && draft.callAbout === undefined;
-
   const bookingHref = isNew ? null : `?mock=book&service=${encodeURIComponent(id)}`;
   const linkedContract = isNew ? null : getService(saved.serviceId);
   const checkoutHref = isNew ? null : `?mock=checkout&service=${encodeURIComponent(id)}&preview=1`;
@@ -307,7 +312,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
         id="es-basics"
         icon={SlidersHorizontal}
         title="Basics"
-        sub="The name, length and price people see before they book."
+        sub="The name, description, length and price people see before they book."
         summary={blocker?.section === 'basics' ? blocker.text : basicsSummary(draft)}
         warn={blocker?.section === 'basics'}
         edited={edited('basics')}
@@ -320,51 +325,39 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
           onChange={handleChange}
           showDescription={false}
           grouped={false}
-        />
-      </EditSection>
-
-      <EditSection
-        id="es-descriptions"
-        icon={AlignLeft}
-        title="Descriptions"
-        sub="What people read about your call before they book."
-        summary={
-          blocker?.section === 'descriptions'
-            ? blocker.text
-            : aboutWrittenForThem
-              ? 'Written for you from the name. Open to make it yours.'
-              : shortDescription || 'No short description'
-        }
-        warn={blocker?.section === 'descriptions'}
-        edited={edited('descriptions')}
-        open={Boolean(open.descriptions)}
-        onToggle={() => toggle('descriptions')}
-        className="es__fields"
-      >
-        <ShortDescriptionField
-          key={`short-${formKey}`}
-          answers={draft}
-          onChange={handleChange}
-          note={
-            isNew || !saved.handle ? (
-              'Shows on your call’s card on your page.'
-            ) : (
-              <WhereItShows
-                text="Shows on your call’s card at"
-                href={pageUrl(saved.handle)}
-                label={`${PAGE_DOMAIN}/${saved.handle}`}
+          // Under the name, as on the booking page
+          afterName={
+            <>
+              <CallAboutInput
+                key={`about-${formKey}`}
+                answers={draft}
+                onChange={handleChange}
+                label="Description"
+                showNote={isNew}
+                note={
+                  isNew ? 'Shows on its booking page.' : <WhereItShows text="Shows on" href={bookingHref} label="its booking page" />
+                }
               />
-            )
-          }
-        />
-        <CallAboutInput
-          key={`about-${formKey}`}
-          answers={draft}
-          onChange={handleChange}
-          label="Long description"
-          showNote={isNew}
-          note={
-            isNew ? 'Shows on its booking page.' : <WhereItShows text="Shows on" href={bookingHref} label="its booking page" />
+              {words.cardLine && (
+                <ShortDescriptionField
+                  key={`short-${formKey}`}
+                  answers={draft}
+                  onChange={handleChange}
+                  label="Line on your page’s card"
+                  note={
+                    isNew || !saved.handle ? (
+                      'Shows under its name on your offerings page.'
+                    ) : (
+                      <WhereItShows
+                        text="Shows under its name at"
+                        href={pageUrl(saved.handle)}
+                        label={`${PAGE_DOMAIN}/${saved.handle}`}
+                      />
+                    )
+                  }
+                />
+              )}
+            </>
           }
         />
       </EditSection>
@@ -421,7 +414,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
         {/* Shown, not swapped: a new call's is created for it; an existing call keeps its own.
             The picker shows only for an existing call with no contract it can find. */}
         {isNew || linkedContract ? (
-          <ContractCard contract={isNew ? null : linkedContract} draft={draft} />
+          <ContractCard contract={isNew ? null : linkedContract} draft={draft} liveHref={checkoutHref} />
         ) : (
           <ServicePickInput
             key={`service-${formKey}`}
@@ -444,21 +437,17 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
   );
 }
 
-// Where "View contract" goes: the contract's own page, where its title and
-// details are edited. The mock has no such page yet, so it opens the
-// stand-in Services page with the id. Swap for the real contract page.
-const contractHref = (id) => `?mock=create-service&service=${encodeURIComponent(id)}`;
-
 const PAYMENT_TYPES = { onetime: 'One-time payment', subscription: 'Monthly subscription', free: 'Free' };
 
 // The call's contract: the checkout people book and pay through. Shown,
 // never swapped here: a new call's is created for it when it's added; an
 // existing call keeps the one it's linked to. Its title and details are
-// edited on the contract itself (View contract).
+// edited in Sidebar → Contracts. View contract opens it live, as people see
+// it: this call's checkout page, in preview (liveHref), not the editor.
 //
 //   contract: the linked contract (an existing call), or null (a new call:
 //             shows the one that will be created, from Basics as they type)
-function ContractCard({ contract, draft }) {
+function ContractCard({ contract, draft, liveHref = null }) {
   const free = contract ? contract.type === 'free' || contract.price === 0 : draft.callPricing === 'free';
   const name = contract ? contract.title : String(draft.callTitle ?? '').trim() || '1:1 call';
   const price = contract ? servicePrice(contract) : priceLabel(draft);
@@ -480,8 +469,8 @@ function ContractCard({ contract, draft }) {
             {!free && <span>{type}</span>}
           </p>
         </div>
-        {contract ? (
-          <a className="es-contract__view" href={contractHref(contract.id)} target="_blank" rel="noopener">
+        {contract && liveHref ? (
+          <a className="es-contract__view" href={liveHref} target="_blank" rel="noopener">
             View contract
             <ExternalLink size={14} aria-hidden="true" />
             <span className="sr-only"> (opens in a new tab)</span>

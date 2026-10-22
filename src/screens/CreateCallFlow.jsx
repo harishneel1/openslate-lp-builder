@@ -53,10 +53,16 @@ const ALL_STEPS = STEP_IDS.map((id) => myPageQuestions.find((q) => q.id === id))
 
 // What each screen fills in on the booking page (see profileAnnotations.js
 // for the shape). The calendar and contract screens have no preview.
+// The name and description pills sit in the empty space under the page
+// (labelAt 'under'), so they never cover the details around what they point at
+const UNDER_THE_PAGE = '.bk__details, .bk__picker-card';
+
 const CALL_PAGE_NOTES = {
   callDetails: {
     target: '.cd__title',
-    label: 'This is your call',
+    label: 'Title of your 1:1 call event',
+    labelAt: 'under',
+    under: UNDER_THE_PAGE,
   },
   availability: {
     target: '.bk__picker-card',
@@ -65,8 +71,9 @@ const CALL_PAGE_NOTES = {
   },
   callAbout: {
     target: '.cd__about',
-    label: 'This is your call’s description',
-    labelAt: 'top', // a pill beside the box would cover the call's details
+    label: 'This is your 1:1 call event’s description',
+    labelAt: 'under',
+    under: UNDER_THE_PAGE,
   },
 };
 
@@ -193,13 +200,14 @@ function CallReady({ callId, title, url, doneLabel, onDone }) {
   // A real link, so cmd/middle-click and popup blockers behave normally
   const previewLink = (alone) => (
     <a
-      className={`mpr__open ccf__quiet ${alone ? 'ccf__open-alone' : ''}`}
+      className={`mpr__open ccf__btn ccf__quiet ${alone ? 'ccf__open-alone' : ''}`}
       href={url ?? bookingSrc}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label="Preview the booking page (opens in a new tab)"
     >
-      <ExternalLink size={16} aria-hidden="true" />
-      Preview booking page
+      <ExternalLink size={15} aria-hidden="true" />
+      Preview
     </a>
   );
 
@@ -213,13 +221,16 @@ function CallReady({ callId, title, url, doneLabel, onDone }) {
         <p className="mpr__sub">“{title || 'Your 1:1 call'}” has been created.</p>
 
         {url ? (
-          <div className="mpr__link">
-            <span className="mpr__url">{shown}</span>
-            <button type="button" className="mpr__open" onClick={() => copyLink(url)}>
-              {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-              {copy === 'copied' ? 'Copied' : 'Copy link'}
-            </button>
-            {previewLink(false)}
+          // The whole link on its own line (a call's link is long), buttons under it
+          <div className="mpr__link ccf__link">
+            <span className="mpr__url ccf__url">{shown}</span>
+            <div className="ccf__link-actions">
+              <button type="button" className="mpr__open ccf__btn" onClick={() => copyLink(url)}>
+                {copy === 'copied' ? <Check size={15} strokeWidth={3} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+                {copy === 'copied' ? 'Copied' : 'Copy link'}
+              </button>
+              {previewLink(false)}
+            </div>
           </div>
         ) : (
           previewLink(true)

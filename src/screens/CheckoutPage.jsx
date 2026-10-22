@@ -432,7 +432,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
     <div className="co store-theme">
       {previewing && (
         <p className="co__preview">
-          <Eye size={16} aria-hidden="true" /> This is a preview of your service. Nobody can book from it.
+          <Eye size={16} aria-hidden="true" /> This is a preview of your contract. Nobody can book from it.
         </p>
       )}
       <div className="co__layout">

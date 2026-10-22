@@ -10,9 +10,12 @@
 // page:   which of Meera's pages to show: 'profile' (default) or 'book',
 //         the booking page for her Discovery call.
 // label:  names the part (the orange pill).
-// labelAt: optional. 'top' pins the pill to the top of the page, with
-//         an arrow down the left edge to the box, for parts surrounded by
-//         things that shouldn't be covered.
+// labelAt: optional, for parts surrounded by things that shouldn't be covered.
+//         'top' pins the pill to the top of the page, with an arrow down
+//         the left edge to the box. 'under' puts it in the empty space
+//         below the page's content (the bottom of `under`, a selector, or
+//         the lowest of a list of them), with an arrow up the left edge.
+//         Falls back to beside the box when there isn't room.
 // tip:    optional. Why it matters (the white bubble), one or two short lines.
 // Keys match question ids in myPageQuestions.js. An entry can also be a
 // function of that question's answer, to point at something that depends
@@ -50,8 +53,9 @@ export const profileAnnotations = {
   callAbout: {
     page: 'book',
     target: '.cd__about',
-    label: 'This is your call’s description',
-    labelAt: 'top', // the bubble and a pill beside the box would cover the call's details
+    label: 'This is your 1:1 call event’s description',
+    labelAt: 'under', // in the space below the page: beside the box it would cover the call's details
+    under: '.bk__details, .bk__picker-card',
   },
   // Shown on their own page (not Meera's), filling in as they pick: see
   // MyPageSetup.jsx. The whole calls section, so it's there even before

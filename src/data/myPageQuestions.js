@@ -163,7 +163,7 @@ export const myPageQuestions = [
     titleTick: true,
     question: 'We’ve auto-created your contract page',
     helper:
-      'The contract page is the checkout page in OpenSlate.',
+      'The checkout pages are called "contracts" in OpenSlate',
     isComplete: (answers) => Boolean(answers.serviceId),
     nextHint: 'Setting up your service…',
   },

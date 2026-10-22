@@ -34,7 +34,7 @@ export default function WeeklyHoursInput({ answers = {}, onChange }) {
 
   return (
     <WeeklyHours value={hours} onChange={setHours} callLength={callLength} className="qinput">
-      <p className="wh__note">You can change these anytime when you edit this call.</p>
+      <p className="wh__note">You can change these anytime when you edit this call later.</p>
     </WeeklyHours>
   );
 }

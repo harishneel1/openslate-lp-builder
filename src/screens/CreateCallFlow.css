@@ -1,6 +1,37 @@
 /* "Create a 1:1 call": the ready screen borrows setup's "It's live" look
-   (MyPageReveal.css). Only the quieter Preview button is new here: Copy link
-   is the one thing to do with the link, Preview is for checking it. */
+   (MyPageReveal.css). What's different here: a call's link is long, so it
+   gets its own line, shown in full, with smaller buttons under it. Copy link
+   is the one thing to do with the link; the quieter Preview is for checking it. */
+
+.mpr__link.ccf__link {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+/* All of it, wrapping at any character if it has to, never cut off */
+.mpr__url.ccf__url {
+  width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.ccf__link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mpr__open.ccf__btn {
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
 .mpr__open.ccf__quiet {
   color: var(--color-text);
   background: var(--color-surface);

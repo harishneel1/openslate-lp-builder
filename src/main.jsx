@@ -10,7 +10,7 @@ import CheckoutPage from './screens/CheckoutPage.jsx'
 import BookedPage from './screens/BookedPage.jsx'
 import ManageBookingPage from './screens/ManageBookingPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
-import { savedHandle } from './data/myPage'
+import { accountHandle, savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
 
@@ -32,7 +32,8 @@ import { isMyCall } from './data/myProfile'
 // /<handle> (e.g. localhost:5173/harishneel) → that creator's page: the one made
 //   in setup (saved in this browser), or Meera's at /meerajoshi. Unknown → not found.
 // /<handle>/<offering id> (e.g. /harishneel/my-call) → that offering's booking page,
-//   the link "Copy link" gives on each offering card. Add &tz= as for ?mock=book.
+//   the link "Copy link" gives on each call card. Works before there's a page too,
+//   under the account's link (accountHandle in myPage.js). Add &tz= as for ?mock=book.
 // Anything else → the Page Builder.
 const params = new URLSearchParams(window.location.search)
 const previewId = params.get('preview')
@@ -46,14 +47,18 @@ const offeringId = segments[1] ? decodeURIComponent(segments[1]) : null
 function Root() {
   // A creator's page address, unless a ?mock= screen was asked for
   if (handle && !mock && previewId === null) {
-    const mine = handle === savedHandle()
+    // Their account's link: the one picked in setup, or their name until then
+    const mine = handle === accountHandle()
     if (!mine && handle !== getMockProfile().creator.handle) return <PageNotFound handle={handle} />
     // One offering's own link. It only opens under the handle it belongs to,
-    // so /someoneelse/my-call doesn't show this creator's call.
+    // so /someoneelse/my-call doesn't show this creator's call. Their calls
+    // work on their own, like Calendly events, page or no page.
     if (offeringId) {
       if (mine !== isMyCall(offeringId)) return <PageNotFound handle={handle} />
       return <BookingPage serviceId={offeringId} timeZone={params.get('tz')} />
     }
+    // The page itself only exists once they've picked its link in setup
+    if (mine && !savedHandle()) return <PageNotFound handle={handle} />
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
   if (mock === 'create-service') return <ContractEditorTab serviceId={params.get('service')} />

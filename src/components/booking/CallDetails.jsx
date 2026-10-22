@@ -30,7 +30,8 @@ export default function CallDetails({ service, creator, profileHref, reviews }) 
       <h1 className="cd__title">{title}</h1>
 
       {/* Who it's with: the reason many people trust the page enough to book */}
-      <a className="cd__coach" href={profileHref}>
+      {/* A link to their page, or just who it's with when the call stands alone */}
+      <Coach className="cd__coach" href={profileHref}>
         <span className="cd__coach-photo" aria-hidden="true">
           {creator.photo ? <img src={creator.photo} alt="" /> : creator.initials}
         </span>
@@ -54,7 +55,7 @@ export default function CallDetails({ service, creator, profileHref, reviews }) 
         </span>
         <ChevronRight className="cd__coach-go" size={18} aria-hidden="true" />
         <span className="sr-only">See {creator.firstName}'s profile</span>
-      </a>
+      </Coach>
 
       {/* Length and format. The price is shown on the profile and at checkout, not here. */}
       <dl className="cd__facts">
@@ -83,5 +84,16 @@ export default function CallDetails({ service, creator, profileHref, reviews }) 
         </section>
       )}
     </article>
+  );
+}
+
+// The coach card: a link when there's a page to open, otherwise plain
+function Coach({ href, children, ...rest }) {
+  return href ? (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ) : (
+    <div {...rest}>{children}</div>
   );
 }

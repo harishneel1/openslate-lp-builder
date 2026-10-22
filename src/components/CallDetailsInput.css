@@ -11,21 +11,15 @@
 }
 
 /* ---------- A group's heading (setup screen) ---------- */
-.call__group-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* Just the heading: it names the field under it, so they sit close */
+.call__group {
+  gap: 14px;
 }
 
 .call__group-title {
   font-size: 17px;
   font-weight: 600;
   line-height: 1.35;
-}
-
-.call__group-sub {
-  font-size: 14px;
-  color: var(--color-text-muted);
 }
 
 /* ---------- Name suggestions: quiet "Try:" chips ---------- */
@@ -251,6 +245,43 @@
   grid-template-columns: repeat(2, minmax(0, 220px));
   gap: 16px;
   align-items: start;
+}
+
+/* "Discounted price" with its tick, as in the contracts flow */
+.call__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.call__check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* No price yet: nothing to take a discount off */
+.call__check--off,
+.call__check--off input {
+  cursor: not-allowed;
+}
+
+.call__check--off .qinput__label {
+  color: var(--color-text-muted);
+}
+
+/* The discount box before it's ticked */
+.call__money--off .qinput__text {
+  color: var(--color-text-muted);
+  background: #f2f2f4;
+  cursor: not-allowed;
+}
+
+.call__money--off .qinput__currency {
+  opacity: 0.5;
 }
 
 /* ---------- Description ---------- */

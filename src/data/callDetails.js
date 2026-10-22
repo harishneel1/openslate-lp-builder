@@ -102,14 +102,18 @@ export function needsMeetingLink(answers) {
 }
 
 // What's stopping the call's details from being ready, if anything:
-//   'basics'  no name, length, or price (unless it's free)
+//   'basics'  no name, length, or price (unless it's free), or a discount
+//             that's missing or not lower than the price
 //   'link'    a video call with no usable meeting link
 //   null      ready
 export function callDetailsProblem(answers) {
   const titled = String(answers.callTitle ?? '').trim() !== '';
   const timed = Number(answers.callDuration ?? CALL_DEFAULTS.callDuration) > 0;
   const pricing = answers.callPricing ?? CALL_DEFAULTS.callPricing;
-  const priced = pricing === 'free' || Number(answers.callPrice) > 0;
+  // Paid: a price, and a discount (if there is one) lower than it
+  const compare = Number(answers.callComparePrice) || 0;
+  const priced =
+    pricing === 'free' || (Number(answers.callPrice) > 0 && (compare === 0 || Number(answers.callPrice) < compare));
   if (!(titled && timed && priced)) return 'basics';
   return null;
 }

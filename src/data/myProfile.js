@@ -1,4 +1,4 @@
-import { SETUP_STORAGE_KEY } from './myPage';
+import { SETUP_STORAGE_KEY, accountHandle, mockAccount } from './myPage';
 import { CALL_DEFAULTS, aboutParagraphs, callDescriptionOf, readMeetingLink } from './callDetails';
 import { askedQuestions, questionsOf } from './callQuestions';
 
@@ -113,6 +113,16 @@ export function withOnPage(answers, id, on) {
   return { ...answers, offPage: on ? rest : [...rest, id] };
 }
 
+// The answers with one call deleted: gone from 1:1 calls, from the
+// offerings page, and its link stops working (main.jsx finds no such call).
+// The setup call lives on the answers themselves, so its fields are cleared;
+// an added call is dropped from addedCalls. Bookings already made keep their
+// own copy of its name and time (bookingsStore.js), so they're untouched.
+export function withoutCall(answers, id) {
+  const rest = id === MY_CALL_ID ? withoutSetupCall(answers) : { ...answers, addedCalls: addedCallsOf(answers).filter((c) => c.id !== id) };
+  return { ...rest, offPage: offPageIdsOf(rest).filter((x) => x !== id) };
+}
+
 // Their setup call (the first one, saved on the setup answers) only counts
 // once setup is finished. Before that it's half-filled answers, not a call.
 // And only if setup made one: someone who picked calls they'd already
@@ -132,11 +142,20 @@ export function myMeetingLink(answers = loadAnswers()) {
   return link.valid ? link.url : null;
 }
 
-// Back to the page the call is on: theirs at /<handle>, or Meera's
+// Whether a call has a services page to go back to. Their calls work on
+// their own links, like Calendly events, so there may be no page at all:
+// it exists once they've picked its link in setup. Meera's always has one.
+export function hasPageFor(serviceId) {
+  return !isMyCall(serviceId) || Boolean(loadAnswers().handle);
+}
+
+// Back to the page the call is on: theirs at /<handle>, or Meera's.
+// With no page, the call's own booking page, so "Book again" and the like
+// still lead somewhere that works.
 export function profileHrefFor(serviceId, stateParam = '') {
   if (isMyCall(serviceId)) {
     const { handle } = loadAnswers();
-    return handle ? `/${handle}` : '/';
+    return handle ? `/${handle}` : `/${accountHandle()}/${encodeURIComponent(serviceId)}`;
   }
   return `?mock=profile${stateParam}`;
 }
@@ -189,8 +208,10 @@ export function getMyProfile(answers = loadAnswers()) {
 
   const creator = {
     id: 'me',
-    name: answers.name ?? '',
-    handle: answers.handle ?? '',
+    // Their account's name and link until setup gives the page its own,
+    // so a call booked before there's a page still says who it's with
+    name: answers.name ?? mockAccount.name,
+    handle: answers.handle || accountHandle(),
     photo: answers.photo || null,
     headline: '',
     bio: answers.bio ?? '',
