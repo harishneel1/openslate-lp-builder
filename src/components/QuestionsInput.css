@@ -252,10 +252,58 @@
   border-radius: var(--radius-md);
 }
 
-.bq__option--dragging {
+/* ---------- Dragging a choice: the same as dragging a question card ---------- */
+.bq__options {
+  position: relative; /* for the slot */
+}
+
+/* While one is held, the others slide out of its way */
+.bq__options--dragging .bq__option:not(.bq__option--lifted) {
   position: relative;
   z-index: 1;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease;
+}
+
+/* The held choice: under the pointer, above the rest */
+.bq__option--lifted {
+  position: relative;
+  z-index: 3;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+  cursor: grabbing;
+  transition: none;
+}
+
+.bq__option--lifted .bq__handle {
+  cursor: grabbing;
+}
+
+/* Its slot lines up with the choices (they sit 8px to the left) */
+.bq__slot--option {
+  left: -8px;
+  border-radius: var(--radius-md);
+}
+
+/* Just moved: a short glow so the eye can follow it */
+.bq__option--moved {
+  animation: bq-option-moved 0.9s ease-out;
+}
+
+@keyframes bq-option-moved {
+  0% {
+    box-shadow: 0 0 0 3px var(--color-primary-tint), 0 0 0 4px var(--color-primary);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent, 0 0 0 4px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bq__options--dragging .bq__option:not(.bq__option--lifted) {
+    transition: none;
+  }
+  .bq__option--moved {
+    animation: none;
+  }
 }
 
 .bq__option-field {

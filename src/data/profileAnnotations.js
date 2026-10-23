@@ -67,7 +67,7 @@ export const profileAnnotations = {
   callQuestions: {
     page: 'checkout',
     target: '.co__questions',
-    label: 'Your questions show here',
+    label: 'People answer these when they book',
     labelAt: 'left', // in the empty space left of the form: above or below it would cover fields
     stayAtTop: true, // the top of checkout always in view, so it reads as checkout
     header: false, // no caption or note above the frame: the page speaks for itself

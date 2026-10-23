@@ -250,7 +250,40 @@ function Question({ q, n, count, cards, autoFocus, dragging, lifted, dragStyle, 
       return { ...cur, options };
     });
   };
-  const optionSort = useDragSort(optionsRef, moveOption);
+  // Drag a choice by its handle, the same way as a question card: it follows
+  // the pointer, the others slide out of its way, a dashed slot shows where
+  // it lands, and letting go glides it in and glows for a moment
+  const [movedOption, setMovedOption] = useState(null); // index just moved, glowing
+  const [settleOption, setSettleOption] = useState(null); // { index, offset }: glide it from where it was let go
+  const optionDrag = useCardDrag(
+    optionsRef,
+    ({ from, to, offset }) => {
+      if (to !== from) {
+        moveOption(from, to);
+        setMovedOption(to);
+      }
+      setSettleOption({ index: to, offset });
+    },
+    ':scope > [data-oid]',
+  );
+
+  useLayoutEffect(() => {
+    if (!settleOption) return;
+    const el = optionsRef.current?.querySelector(`:scope > [data-oid="${settleOption.index}"]`);
+    if (el && settleOption.offset && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      el.animate([{ transform: `translateY(${settleOption.offset}px)` }, { transform: 'none' }], {
+        duration: 200,
+        easing: 'ease-out',
+      });
+    }
+    setSettleOption(null);
+  }, [settleOption]);
+
+  useEffect(() => {
+    if (movedOption === null) return undefined;
+    const t = setTimeout(() => setMovedOption(null), 900);
+    return () => clearTimeout(t);
+  }, [movedOption]);
 
   // Focus: the newest option box once it's there, or a handle that moved by keyboard
   useEffect(() => {
@@ -403,23 +436,29 @@ function Question({ q, n, count, cards, autoFocus, dragging, lifted, dragStyle, 
         {hasOptions(q.type) && (
           <fieldset className="bq__options-set">
             <legend className="bq__sr-only">Choices for question {n}</legend>
-            <ol className="bq__options" ref={optionsRef}>
+            <ol className={`bq__options ${optionDrag.drag ? 'bq__options--dragging' : ''}`} ref={optionsRef}>
               {q.options.map((o, k) => {
                 const problem = left[`option${k}`] ? problems.options[k] : null;
                 return (
-                  <li key={k} className={`bq__option bq__option--${q.type} ${optionSort.dragging === k ? 'bq__option--dragging' : ''}`}>
+                  <li
+                    key={k}
+                    data-oid={k}
+                    style={optionDrag.styleFor(k)}
+                    className={`bq__option bq__option--${q.type} ${optionDrag.drag?.from === k ? 'bq__option--lifted' : ''} ${movedOption === k ? 'bq__option--moved' : ''}`}
+                  >
                     <button
                       type="button"
                       className="bq__handle bq__handle--small"
                       data-option-handle
                       aria-label={`Reorder choice ${k + 1} of ${q.options.length}. Drag, or use the up and down arrow keys.`}
-                      {...optionSort.handleProps(k)}
+                      {...optionDrag.rowProps(k)}
                       onKeyDown={(e) => {
                         const to = e.key === 'ArrowUp' ? k - 1 : e.key === 'ArrowDown' ? k + 1 : null;
                         if (to === null || to < 0 || to >= q.options.length) return;
                         e.preventDefault();
                         refocusOption.current = to;
                         moveOption(k, to);
+                        setMovedOption(to);
                       }}
                     >
                       <GripVertical size={16} aria-hidden="true" />
@@ -454,6 +493,8 @@ function Question({ q, n, count, cards, autoFocus, dragging, lifted, dragStyle, 
                   </li>
                 );
               })}
+              {/* Where the dragged choice will land: a dashed slot its size */}
+              {optionDrag.slot && <li className="bq__slot bq__slot--option" aria-hidden="true" style={optionDrag.slot} />}
             </ol>
             {q.options.length < MAX_OPTIONS ? (
               <button type="button" className="bq__link bq__link--small" onClick={addOption}>
@@ -493,14 +534,18 @@ function FieldError({ id, children }) {
 // Positions are taken once, when it's picked up, in page pixels (so
 // scrolling while dragging doesn't throw them off).
 // ------------------------------------------------------------
-function useCardDrag(listRef, onDrop) {
+// itemSelector: the list's items (question cards by default; choices pass their own).
+// Pressing starts a drag from the element given rowProps: a whole header row
+// (its buttons still click, except the handle), or just a handle.
+function useCardDrag(listRef, onDrop, itemSelector = ':scope > [data-qid]') {
   const [drag, setDrag] = useState(null); // { from, over, dy }
   const start = useRef(null); // { y, from, boxes: [{ top, height }], gap, listTop }
 
-  const items = () => [...(listRef.current?.querySelectorAll(':scope > [data-qid]') ?? [])];
+  const items = () => [...(listRef.current?.querySelectorAll(itemSelector) ?? [])];
 
   // Where the held card's middle is now → the place it would go
   const placeFor = (dy) => {
+    if (!start.current) return 0;
     const { from, boxes } = start.current;
     const middle = boxes[from].top + boxes[from].height / 2 + dy;
     let to = from;
@@ -538,7 +583,8 @@ function useCardDrag(listRef, onDrop) {
     onPointerDown: (e) => {
       if (e.button !== 0) return;
       const button = e.target.closest?.('button');
-      if (button && !button.hasAttribute('data-handle')) return; // ↑ ↓ and delete still click
+      // ↑ ↓ and delete still click (unless the press is on the element that drags: a handle)
+      if (button && button !== e.currentTarget && !button.hasAttribute('data-handle')) return;
       const els = items();
       if (els.length < 2) return;
       e.preventDefault();
@@ -554,8 +600,11 @@ function useCardDrag(listRef, onDrop) {
     },
     onPointerMove: (e) => {
       if (!start.current) return;
+      // Worked out now, while the drag is surely on: React runs the updater
+      // later, and a quick let-go in between would have cleared start.current
       const dy = e.pageY - start.current.y;
-      setDrag((d) => (d ? { ...d, dy, over: placeFor(dy) } : d));
+      const over = placeFor(dy);
+      setDrag((d) => (d ? { ...d, dy, over } : d));
     },
     onPointerUp: () => finish(true),
     onPointerCancel: () => finish(false),

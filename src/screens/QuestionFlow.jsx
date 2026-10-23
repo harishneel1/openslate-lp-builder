@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, Info } from 'lucide-react';
 import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
@@ -124,6 +124,22 @@ export default function QuestionFlow({
     isLast ? onComplete() : goTo(index + 1);
   };
 
+  // skipLabel ("Skip for now"): an optional screen that's never empty (it
+  // starts filled in) moves on with skipValue saved as its answer, whatever
+  // is on screen, so a half-written answer never blocks skipping.
+  // showSkip(answers): hides it when Next already means the same.
+  const goSkip = () => {
+    onAnswer(question.id, question.skipValue);
+    isLast ? onComplete() : goTo(index + 1);
+  };
+  const skipButton = question.skipLabel && (!question.showSkip || question.showSkip(answers)) && (
+    <span className="flow__skip-wrap" data-tip={question.skipHint} data-tip-align="end">
+      <button type="button" className="flow__later" onClick={goSkip}>
+        {question.skipLabel}
+      </button>
+    </span>
+  );
+
   // The first screen only has Back when there's somewhere to go back to
   const canGoBack = index > 0 || Boolean(onExit);
 
@@ -225,7 +241,10 @@ export default function QuestionFlow({
           {question.titleTick && (
             <span className="flow__tick" aria-hidden="true"><Check size={22} strokeWidth={3} /></span>
           )}
-          <h1 className="flow__title">{question.question}</h1>
+          <h1 className="flow__title">
+            {question.question}
+            {question.info && <InfoTip info={question.info} />}
+          </h1>
           {question.helper && <p className="flow__helper">{question.helper}</p>}
           <QuestionInput
             question={question}
@@ -243,6 +262,7 @@ export default function QuestionFlow({
           showNext && (
             <div className="flow__nav flow__nav--end">
               {laterButton}
+              {skipButton}
               {nextButton}
             </div>
           )
@@ -251,6 +271,7 @@ export default function QuestionFlow({
             {canGoBack ? backButton : <span />}
             <div className="flow__nav-end">
               {laterButton}
+              {skipButton}
               {nextButton}
             </div>
           </div>
@@ -259,5 +280,58 @@ export default function QuestionFlow({
 
       {aside && <aside className="flow__aside">{aside}</aside>}
     </div>
+  );
+}
+
+// ------------------------------------------------------------
+// The (i) beside a screen's title: a few examples and a line under them.
+// Shows on hover, and stays open on a click until they click elsewhere,
+// click it again or press Escape.
+// info: { label (for screen readers), title, examples: [[who, example]], footer }
+// ------------------------------------------------------------
+function InfoTip({ info }) {
+  const [pinned, setPinned] = useState(false);
+  const ref = useRef(null);
+  const tipId = useId();
+
+  useEffect(() => {
+    if (!pinned) return undefined;
+    const onDown = (e) => !ref.current?.contains(e.target) && setPinned(false);
+    const onKey = (e) => e.key === 'Escape' && setPinned(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [pinned]);
+
+  return (
+    <span ref={ref} className={`flow-info ${pinned ? 'flow-info--open' : ''}`}>
+      <button
+        type="button"
+        className="flow-info__btn"
+        aria-label={info.label}
+        aria-expanded={pinned}
+        aria-controls={tipId}
+        onClick={() => setPinned((p) => !p)}
+      >
+        <Info size={18} aria-hidden="true" />
+      </button>
+      <span className="tip flow-info__tip" id={tipId} role="tooltip">
+        {info.title && <span className="flow-info__title">{info.title}</span>}
+        {info.examples?.length > 0 && (
+          <span className="flow-info__list">
+            {info.examples.map(([who, example]) => (
+              <span key={who} className="flow-info__row">
+                <span className="flow-info__who">{who}</span>
+                <span className="flow-info__example">“{example}”</span>
+              </span>
+            ))}
+          </span>
+        )}
+        {info.footer && <span className="flow-info__footer">{info.footer}</span>}
+      </span>
+    </span>
   );
 }

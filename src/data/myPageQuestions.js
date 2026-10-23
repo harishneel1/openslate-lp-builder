@@ -158,15 +158,36 @@ export const myPageQuestions = [
   {
     // What checkout asks besides name, email and phone. Starts with the one
     // question every call asks (DEFAULT_QUESTIONS); keeping, changing or
-    // removing it are all fine. Only a half-written question stops them.
+    // removing it are all fine. Only a half-written question stops Next.
     // The preview beside it is an example checkout, not theirs
     // (profileAnnotations.js, and CreateCallFlow.jsx).
+    // Optional: "Skip for now" moves on asking nothing extra (no questions
+    // at all, not even the default), whatever is on the screen.
     id: 'callQuestions',
     showIf: MAKING_A_CALL,
     type: 'callQuestions', // QuestionsInput: saves callQuestions (callQuestions.js)
-    required: true, // always complete when nothing's half-written, so it says Next, not Skip
-    question: 'Ask additional questions during checkout',
-    helper: 'Name, email and phone are always asked by default.',
+    // Kept "required" only so the main button always says Next (the screen is
+    // never empty: it starts with the default question). Skipping is "Skip for now".
+    required: true,
+    question: 'What would you like to know about your clients?',
+    helper: 'Their answers help you prepare before the call. Name, email and phone are already asked.',
+    // The (i) beside the title: examples teach faster than explanations
+    info: {
+      label: 'Examples of questions to ask',
+      title: 'For example',
+      examples: [
+        ['Career coach', 'What’s your current role?'],
+        ['Fitness coach', 'Any injuries or health conditions?'],
+        ['Astrologer', 'Your date, time and place of birth'],
+        ['Business coach', 'What’s your monthly revenue?'],
+      ],
+      footer: 'You’ll see their answers in Bookings, before the call.',
+    },
+    skipLabel: 'Skip for now',
+    skipValue: [], // nothing extra: only name, email and phone
+    skipHint: 'You can add questions later, in the call’s settings under Booking questions.',
+    // Not when there are no questions left: then Next already means the same
+    showSkip: (answers) => questionsOf(answers).length > 0,
     isComplete: (answers) => questionsProblem(questionsOf(answers)) === null,
     nextHint: (answers) => questionsProblem(questionsOf(answers))?.text ?? 'Finish your questions to continue',
   },
