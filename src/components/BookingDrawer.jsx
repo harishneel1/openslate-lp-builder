@@ -173,7 +173,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
   if (view === 'details' && open) {
     footer = (
       <>
-        <button type="button" className="bk-btn bk-btn--danger-text" onClick={() => show('cancel')}>
+        <button type="button" className="bk-btn bk-btn--danger-outline" onClick={() => show('cancel')}>
           Cancel call
         </button>
         <button type="button" className="bk-btn bk-btn--secondary" onClick={() => show('reschedule')}>
@@ -185,7 +185,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     footer = (
       <>
         <button type="button" className="bk-btn bk-btn--secondary" onClick={() => show('details')}>
-          Keep call
+          Go back
         </button>
         <button type="button" className="bk-btn bk-btn--danger" onClick={confirmCancel}>
           Cancel call

@@ -106,15 +106,22 @@
   background: #a82020;
 }
 
-.bk-btn--danger-text {
-  padding-left: 4px;
-  padding-right: 4px;
+/* Starts a destructive action (Cancel call in the drawer's footer):
+   a real button, outlined in red, the same size as the one beside it.
+   The solid red .bk-btn--danger is kept for confirming it. */
+.bk-btn--danger-outline {
   color: #b42020;
+  background: var(--color-surface);
+  border-color: #e8b4b4;
 }
 
-.bk-btn--danger-text:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.bk-btn--danger-outline:hover:not(:disabled) {
+  background: #fdf2f2;
+  border-color: #b42020;
+}
+
+.bk-btn--danger-outline:focus-visible {
+  outline-color: #b42020;
 }
 
 .bk-btn--wide {

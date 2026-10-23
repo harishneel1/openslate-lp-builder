@@ -26,7 +26,7 @@ export default function CalendarDrawer({ connection, onClose }) {
 
   const footer = (
     <>
-      <button type="button" className="cal-danger-link" onClick={() => setConfirming(true)}>
+      <button type="button" className="cal-danger-btn" onClick={() => setConfirming(true)}>
         Disconnect
       </button>
       <button type="button" className="es__btn es__btn--primary" onClick={onClose}>

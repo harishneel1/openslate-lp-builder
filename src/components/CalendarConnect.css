@@ -378,18 +378,24 @@
   white-space: nowrap;
 }
 
-.cal-danger-link {
-  padding: 4px 0;
+/* Disconnect, in the drawer's footer: a real button, outlined in red,
+   the same size as Done beside it (es__btn: 11px 18px, less the border).
+   The solid red button in the "are you sure?" dialog confirms it. */
+.cal-danger-btn {
+  padding: 10px 17px;
   font-size: 14px;
   font-weight: 600;
   color: #b42318;
-  background: none;
+  background: var(--color-surface);
+  border: 1px solid #e8b4b4;
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.cal-danger-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.cal-danger-btn:hover {
+  background: #fdf2f2;
+  border-color: #b42318;
 }
 
 /* ---------- Disconnect: are you sure? ---------- */
@@ -430,9 +436,13 @@
 /* ---------- Focus ---------- */
 .cal-google:focus-visible,
 .cal-link:focus-visible,
-.cal-danger-link:focus-visible,
 .cal-check:focus-within {
   outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cal-danger-btn:focus-visible {
+  outline: 2px solid #b42318;
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
