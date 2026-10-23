@@ -497,7 +497,7 @@ function ContractCard({ contract, draft, liveHref = null }) {
         <Lock size={14} aria-hidden="true" />
         <span>
           {contract
-            ? 'This contract is linked to this 1:1 call and can’t be changed. You can edit its title and details from Sidebar -> contract.'
+            ? 'This contract is linked to this 1:1 call and can’t be changed. You can find this in Sidebar -> contracts.'
             : 'This contract will be linked to this 1:1 call and can’t be changed.'}
           {!contract && (
             <span id="es-contract-later" className="es-contract__later">
