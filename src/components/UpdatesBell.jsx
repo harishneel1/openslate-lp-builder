@@ -8,7 +8,9 @@ import './UpdatesBell.css';
 // ------------------------------------------------------------
 // The bell in the top bar: what students did with the creator's calls.
 //
-//   (bell)•2   an orange count while there's something they haven't seen
+//   (bell)•2   an orange count while there's something they haven't seen.
+//              A plain icon at rest, a grey circle on hover, tinted orange
+//              while open; one small wiggle when something new comes in.
 //   ┌─────────────────────────────────────────┐
 //   │ Updates                                 │
 //   │ Today                                   │
@@ -46,6 +48,21 @@ export default function UpdatesBell({ onOpenBooking }) {
 
   const updates = useMemo(() => buildUpdates({ bookings, lastSeen, now }), [bookings, lastSeen, now]);
   const unread = updates.filter((u) => u.unread).length;
+
+  // Something new came in while they're here: one small wiggle, then still.
+  // Not on load, only when the count goes up.
+  const [ringing, setRinging] = useState(false);
+  const lastUnread = useRef(unread);
+  useEffect(() => {
+    if (unread > lastUnread.current) {
+      setRinging(true);
+      const id = setTimeout(() => setRinging(false), 700);
+      lastUnread.current = unread;
+      return () => clearTimeout(id);
+    }
+    lastUnread.current = unread;
+    return undefined;
+  }, [unread]);
 
   const show = () => {
     setSeenBefore(lastSeen);
@@ -90,13 +107,16 @@ export default function UpdatesBell({ onOpenBooking }) {
       <button
         ref={button}
         type="button"
-        className="topnav__icon-btn upd__bell"
+        className={`upd__bell ${open ? 'upd__bell--open' : ''} ${ringing ? 'upd__bell--ring' : ''}`}
         aria-expanded={open}
+        // Its name on hover, except while its own list is open
+        data-tip={open ? undefined : 'Updates'}
+        data-tip-align="end"
         aria-haspopup="dialog"
         aria-label={unread ? `Updates, ${unread} new` : 'Updates'}
         onClick={() => (open ? close() : show())}
       >
-        <Bell size={20} />
+        <Bell size={20} strokeWidth={1.8} className="upd__bell-icon" aria-hidden="true" />
         {unread > 0 && (
           <span className="upd__count" aria-hidden="true">
             {unread > 9 ? '9+' : unread}

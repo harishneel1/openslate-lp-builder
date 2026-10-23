@@ -18,6 +18,55 @@
 
 .upd__bell {
   position: relative;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--bk-ink-2);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.upd__bell:hover {
+  color: var(--bk-ink);
+  background: #f2f2f3;
+}
+
+/* Its name on hover: below it, since the bell sits at the top of the screen */
+.upd__bell[data-tip]::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+  transform: translateY(-4px);
+}
+
+.upd__bell[data-tip]:hover::after,
+.upd__bell[data-tip]:focus-within::after {
+  transform: none;
+}
+
+/* Its list is open: tinted, so the list clearly belongs to it */
+.upd__bell--open,
+.upd__bell--open:hover {
+  color: var(--bk-orange-strong);
+  background: var(--color-primary-tint);
+}
+
+/* Something new: one small wiggle, from the top of the bell */
+.upd__bell--ring .upd__bell-icon {
+  transform-origin: 50% 2px;
+  animation: upd-ring 0.7s ease;
+}
+
+@keyframes upd-ring {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(7deg); }
+  80% { transform: rotate(-4deg); }
 }
 
 .upd__bell:focus-visible {
@@ -25,22 +74,22 @@
   outline-offset: 2px;
 }
 
-/* Something new: a solid orange count on the bell's corner */
+/* Something new: a small orange count on the bell's top-right corner */
 .upd__count {
   position: absolute;
-  top: -5px;
-  right: -7px;
+  top: 3px;
+  right: 2px;
   box-sizing: border-box;
-  min-width: 22px;            /* one digit: a circle; '9+': a short pill */
-  height: 22px;
-  padding: 0 5px;
-  font-size: 11px;
+  min-width: 18px;            /* one digit: a circle; '9+': a short pill */
+  height: 18px;
+  padding: 0 4px;
+  font-size: 10px;
   font-weight: 700;
-  line-height: 18px;
+  line-height: 14px;
   text-align: center;
   color: #fff;
   background: var(--bk-orange-strong);
-  border: 2px solid #fff;      /* a white ring, so it lifts off the grey bell */
+  border: 2px solid #fff;      /* a white ring, so it stands clear of the icon */
   border-radius: var(--radius-pill);
 }
 
@@ -201,8 +250,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .upd__item {
+  .upd__item,
+  .upd__bell {
     transition: none;
+  }
+  .upd__bell--ring .upd__bell-icon {
+    animation: none;
   }
 }
 

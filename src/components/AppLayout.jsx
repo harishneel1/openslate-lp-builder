@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Layers, Compass, Video, BookOpen, MessageCircle,
-  Grid3x3, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
+  Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
   CalendarCheck, Users, Store,
@@ -11,14 +10,6 @@ import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildBookingsJson, shortDay } from '../data/buildBookingsJson';
 import UpdatesBell from './UpdatesBell';
 import './AppLayout.css';
-
-const topNavItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Layers },
-  { id: 'feed', label: 'Feed', icon: Compass },
-  { id: 'workshops', label: 'Workshops', icon: Video },
-  { id: 'courses', label: 'Courses', icon: BookOpen },
-  { id: 'messages', label: 'Messages', icon: MessageCircle },
-];
 
 const sidebarItems = [
   { id: 'get-started', label: 'Get Started', icon: LayoutGrid },
@@ -161,26 +152,13 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, focus 
   return (
     <div className="app">
       <header className="topnav">
+        {/* The coach's own brand: what their students see too */}
         <div className="topnav__logo">HN</div>
 
-        <nav className="topnav__links">
-          {topNavItems.map(({ id, label, icon: Icon }) => (
-            <a
-              key={id}
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              className={`topnav__link ${activeNav === id ? 'topnav__link--active' : ''}`}
-            >
-              <Icon size={22} />
-              <span>{label}</span>
-            </a>
-          ))}
-        </nav>
-
+        {/* Updates, then their profile */}
         <div className="topnav__actions">
-          <button type="button" className="topnav__icon-btn"><Grid3x3 size={20} /></button>
           <UpdatesBell onOpenBooking={onOpenBooking} />
-          <div className="topnav__avatar">H</div>
+          <div className="topnav__avatar" title="Your profile">H</div>
         </div>
       </header>
 

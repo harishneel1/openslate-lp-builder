@@ -4,86 +4,48 @@
   flex-direction: column;
 }
 
-/* ---------- Top nav ---------- */
+/* ---------- Top bar ----------
+   Just the coach's brand on the left and Updates + their profile on the
+   right. The logo sits on the sidebar's centre line (72px rail). */
 .topnav {
-  height: 72px;
+  height: 60px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px 0 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
 .topnav__logo {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   border-radius: var(--radius-sm);
   background: #111;
   color: #fff;
+  font-size: 15px;
   font-weight: 700;
-}
-
-.topnav__links {
-  display: flex;
-  height: 100%;
-}
-
-.topnav__link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 0 24px;
-  height: 100%;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--color-text-muted);
-  border-bottom: 3px solid transparent;
-  transition: color 0.15s;
-}
-
-.topnav__link:hover {
-  color: var(--color-text);
-}
-
-.topnav__link--active {
-  color: var(--color-text);
-  font-weight: 600;
-  border-bottom-color: var(--color-text);
 }
 
 .topnav__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.topnav__icon-btn {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #f3f3f3;
-  color: var(--color-text);
-}
-
+/* Their profile: the same size as the bell's area, so the two read as a pair */
 .topnav__avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
+  font-size: 15px;
   font-weight: 600;
 }
 

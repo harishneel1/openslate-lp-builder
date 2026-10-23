@@ -51,7 +51,7 @@ import './BookingsPage.css';
 
 const TICK_MS = 30_000; // how often "now" moves on
 const PX_PER_MIN = 72 / 60; // an hour is 72px tall
-const FOLD_AFTER_MINS = 120; // empty time between calls longer than this is folded
+const FOLD_AFTER_MINS = 120; // empty time between calls longer than this is folded (never the padding around a short day)
 const FOLD_PX = 36; // how tall a folded stretch is
 const COMPACT_BELOW = 60; // calls shorter than this (px) fit on one line
 
@@ -386,20 +386,22 @@ function DateStrip({ days, date, today, onChange }) {
 // shaded. Calls sit at their real time, as tall as they are long.
 // ------------------------------------------------------------
 function HourGrid({ day, onOpen }) {
-  const { range, calls, nowMins } = day;
+  const { range, core, calls, nowMins } = day;
   if (!range) return null;
 
   // Long empty stretches between calls fold into one slim band, so a late
-  // call doesn't stretch the day into hours of nothing
-  // The empty pieces of the day: no call in them
-  let start = range.from;
+  // call doesn't stretch the day into hours of nothing. Only inside the
+  // calls' own span (core): the hours added around them to fill a short day
+  // are there to be seen, so they never fold.
+  // The empty pieces of that span: no call in them
+  let start = core.from;
   const pieces = [];
   for (const c of calls) {
     if (c.to <= start) continue;
     if (c.from > start) pieces.push([start, c.from]);
     start = Math.max(start, c.to);
   }
-  if (start < range.to) pieces.push([start, range.to]);
+  if (start < core.to) pieces.push([start, core.to]);
   // Folded on whole hours, so the labels either side stay round
   const folds = [];
   for (const [a, b] of pieces) {

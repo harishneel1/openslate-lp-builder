@@ -236,8 +236,9 @@ export function buildBookingsJson({ bookings, now = Date.now() }) {
 // creator works, the calls placed on them, and where "now" is.
 //
 // Returns {
-//   range:     { from, to } whole hours to draw, covering every call (and
-//              now, on today); null when there are no calls to draw
+//   range:     { from, to } whole hours to draw: every call (and now, on
+//              today), widened to at least eight hours; null with no calls
+//   core:      { from, to } just the calls (and now), before widening
 //   calls:     the day's calls in time order (see describeBooking)
 //   cancelled: the day's cancelled calls, shown apart so they don't
 //              take up the time they no longer hold
@@ -245,6 +246,8 @@ export function buildBookingsJson({ bookings, now = Date.now() }) {
 //   callCount, bookedMins
 // }
 // ------------------------------------------------------------
+const MIN_WINDOW_MINS = 8 * 60; // the shortest day the grid draws
+
 export function buildDayTimeline({ date, bookings, now = Date.now() }) {
   const zone = coachZone();
   const today = todayIn(zone, now);
@@ -261,12 +264,24 @@ export function buildDayTimeline({ date, bookings, now = Date.now() }) {
   // so one shared calendar can't say what they are.
   const edges = calls.flatMap((c) => [c.from, Math.min(c.to, 1440)]);
   if (edges.length && nowMins !== null) edges.push(nowMins);
-  const range = edges.length
+  // The calls (and now): the part of the day that matters
+  const core = edges.length
     ? { from: Math.floor(Math.min(...edges) / 60) * 60, to: Math.ceil(Math.max(...edges) / 60) * 60 }
     : null;
+  // At least eight hours, so a day with one short call doesn’t look squashed:
+  // widened evenly around the calls (a 10 am call shows 6 am to 2 pm),
+  // shifted to stay within the day
+  let range = core;
+  if (core && core.to - core.from < MIN_WINDOW_MINS) {
+    const mid = (core.from + core.to) / 2;
+    let from = Math.floor((mid - MIN_WINDOW_MINS / 2) / 60) * 60;
+    from = Math.min(Math.max(0, from), 1440 - MIN_WINDOW_MINS);
+    range = { from, to: Math.max(from + MIN_WINDOW_MINS, core.to) };
+  }
 
   return {
     range,
+    core,
     calls,
     cancelled,
     nowMins,
