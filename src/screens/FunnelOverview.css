@@ -346,6 +346,49 @@
   color: var(--color-text-muted);
 }
 
+/* "+ Add link" on the right of the group row, when its link is missing */
+.overview__service-add {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: none;
+  cursor: pointer;
+}
+
+.overview__service-add:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.overview__service-add:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Under the row: why the link matters. Amber, not red: nothing is broken yet */
+.overview__service-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  align-self: stretch;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-warning-text);
+}
+
+.overview__service-warn svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .overview__service-price {
   flex-shrink: 0;
   font-size: 14px;

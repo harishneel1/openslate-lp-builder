@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { ArrowRight, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Link2, Lock, Play, Plus, RefreshCw } from 'lucide-react';
+import { AlertCircle, ArrowRight, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Link2, Lock, Play, Plus, RefreshCw } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
@@ -282,7 +282,8 @@ export default function FunnelOverview({
               <div
                 className={`overview__page ${isDone ? 'overview__page--done' : ''} ${isNext ? 'overview__page--next' : ''}`}
               >
-                {isDone && (page.id === 'landing' || page.id === 'thank-you') ? (
+                {/* A done page shows itself; one still to do, a grey sketch */}
+                {isDone && ['landing', 'registration', 'thank-you'].includes(page.id) ? (
                   <PageThumbnail answers={answers} themeId={resolvedThemeId} page={page.id} />
                 ) : (
                   <PageSketch type={page.id} />
@@ -346,6 +347,8 @@ export default function FunnelOverview({
                   )}
                   {isDone && page.id === 'thank-you' && (
                     <>
+                      {/* The group people join: its link on the right, or "+ Add link"
+                          when it's missing. Editing opens at the link question then. */}
                       {join && (
                         <div className="overview__service">
                           <span className="overview__service-name">{join.label}</span>
@@ -354,19 +357,27 @@ export default function FunnelOverview({
                               {join.link.replace(/^https?:\/\//i, '')}
                             </span>
                           )}
+                          {join.missing && (
+                            <button
+                              type="button"
+                              className="overview__service-add"
+                              onClick={onEditThankYou}
+                              aria-label={`Add your ${join.label} link`}
+                            >
+                              <Plus size={15} aria-hidden="true" /> Add link
+                            </button>
+                          )}
                         </div>
+                      )}
+                      {join?.missing && (
+                        <p className="overview__service-warn">
+                          <AlertCircle size={14} aria-hidden="true" />
+                          People can’t join your group until you add the link.
+                        </p>
                       )}
                       <div className="overview__page-actions">
                         <button type="button" className="overview__page-action" onClick={onEditThankYou}>
-                          {join?.missing ? (
-                            <>
-                              <Plus size={16} /> Add community link
-                            </>
-                          ) : (
-                            <>
-                              <Pencil size={16} /> Edit
-                            </>
-                          )}
+                          <Pencil size={16} /> Edit
                         </button>
                         {previewHref && (
                           <a

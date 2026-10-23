@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SimpleDesign from './designs/SimpleDesign';
 import ThankYouDesign from './designs/ThankYouDesign';
+import SignupDesign from './designs/SignupDesign';
 import { buildPageJson } from '../data/buildPageJson';
 import { getTheme, recommendedThemeId } from '../data/themes';
 import './PageThumbnail.css';
@@ -9,7 +10,8 @@ import './PageThumbnail.css';
 const THUMB_WIDTH = 1100;
 
 // A small picture of one of their pages in their design.
-// page: 'landing' (default) or 'thank-you'.
+// page: 'landing' (default), 'registration' (the sign-up page; 'signup' works too)
+// or 'thank-you'.
 // Only a picture: hidden from screen readers, can't be clicked.
 // Used on the funnel overview, the "Your funnels" cards and the building step.
 export default function PageThumbnail({ answers, themeId, page: pageId = 'landing' }) {
@@ -36,6 +38,8 @@ export default function PageThumbnail({ answers, themeId, page: pageId = 'landin
       <div className="thumb__page" style={{ width: THUMB_WIDTH, transform: `scale(${scale})` }}>
         {pageId === 'thank-you' ? (
           <ThankYouDesign answers={answers} theme={getTheme(resolvedId)} />
+        ) : pageId === 'registration' || pageId === 'signup' ? (
+          <SignupDesign answers={answers} />
         ) : (
           <SimpleDesign page={page} theme={getTheme(resolvedId)} />
         )}
