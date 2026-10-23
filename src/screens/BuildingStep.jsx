@@ -7,9 +7,9 @@ import './BuildingStep.css';
 
 // Shown once, right after the last question of a page: their page "comes
 // together" (a short checklist ticks off while the thumbnail sharpens),
-// then it's revealed. The page itself opens the preview (new tab), with a
-// quiet Preview button for those who look for one; the filled button names
-// the next step ("Next: Sign-up page") and goes back to the overview.
+// then it's revealed. The page itself opens the preview (new tab): it's
+// always dimmed a little with "Open preview" in the middle, so it's clear
+// it can be clicked. "Save & continue" goes back to the overview.
 // page: 'landing' (default) or 'thank-you'.
 // Landing: the style was picked for them from their category; the reveal
 // says which one and why. Thank you: it uses the landing page's style.
@@ -17,7 +17,7 @@ import './BuildingStep.css';
 const PAGES = {
   landing: {
     name: 'landing page',
-    next: 'Next: Sign-up page',
+    next: 'Save & continue',
     steps: () => [
       'Picking the best style for your topic',
       'Laying out your sections',
@@ -82,10 +82,7 @@ export default function BuildingStep({
       <h1 className="building__title">
         {ready ? `Your ${name} is ready` : `Building your ${name}`}
       </h1>
-      <p className="building__text">
-        {!ready && 'This only takes a few seconds.'}
-        {ready && 'Click it to see the full page in a new tab.'}
-      </p>
+      {!ready && <p className="building__text">This only takes a few seconds.</p>}
 
       {/* Their real page, blurred at first and sharpening with each tick.
           Once it's ready, the page itself is the way to preview it. */}
@@ -99,7 +96,7 @@ export default function BuildingStep({
           aria-label={`Open your ${name} (opens in a new tab)`}
         >
           <PageThumbnail answers={answers} themeId={themeId} page={page} />
-          {/* On hover (or keyboard focus) the page darkens and this shows in the middle */}
+          {/* Always there: the page dimmed a little, "Open preview" in the middle */}
           <span className="building__overlay" aria-hidden="true">
             <span className="building__overlay-btn">
               <ExternalLink size={16} /> Open preview
@@ -128,18 +125,7 @@ export default function BuildingStep({
 
       {ready ? (
         <div className="building__actions">
-          {/* Quiet: the page above is the main way to preview it */}
-          <a
-            className="building__preview"
-            href={previewHref}
-            target="_blank"
-            rel="noopener"
-            onClick={onPreview}
-            aria-label={`Preview your ${name} (opens in a new tab)`}
-          >
-            <ExternalLink size={17} aria-hidden="true" /> Preview
-          </a>
-          {/* The way forward, named, like Next on every other screen */}
+          {/* The way forward: back to the overview (Finish after the last page) */}
           <button type="button" className="flow__next building__continue" onClick={onContinue}>
             {nextLabel ?? next} <ArrowRight size={17} aria-hidden="true" />
           </button>

@@ -16,7 +16,7 @@ import './SignupStep.css';
 //   (sketch, blurred, sharpening)          (sketch)
 //   ✓ Reading your event details           It's also saved as a contract:
 //   ✓ Setting your price (₹899)            sidebar → Contracts
-//   ◌ Creating your sign-up contract       [Next: Thank you page →]
+//   ◌ Creating your sign-up contract       [Save & continue →]
 //
 // made: the webinar already has its own contract (coming back via Review),
 //       so there's nothing to build: straight to the result
@@ -152,7 +152,7 @@ export default function SignupStep({ answers, made = false, legacy: legacyNow = 
           <div className="building__actions">
             {/* Back to the overview, where the thank you page card is next */}
             <button type="button" className="flow__next building__continue" onClick={onDone}>
-              Next: Thank you page <ArrowRight size={17} aria-hidden="true" />
+              Save &amp; continue <ArrowRight size={17} aria-hidden="true" />
             </button>
           </div>
         </>
@@ -178,8 +178,8 @@ export default function SignupStep({ answers, made = false, legacy: legacyNow = 
   );
 }
 
-// The picture: a link to the full page once it's ready. Hovering darkens
-// it and shows "Open preview" in the middle (always shown on touch screens)
+// The picture: a link to the full page once it's ready, always dimmed a
+// little with "Open preview" in the middle (a bit darker on hover)
 function Shot({ ready, href, onPreview, children }) {
   if (!ready || !href) return <div className="building__shot signup__shot">{children}</div>;
   return (
@@ -192,7 +192,7 @@ function Shot({ ready, href, onPreview, children }) {
       aria-label="Open your sign-up page (opens in a new tab)"
     >
       {children}
-      {/* On hover (or keyboard focus) the picture darkens and this shows in the middle */}
+      {/* Always there: the picture dimmed a little, "Open preview" in the middle */}
       <span className="building__overlay" aria-hidden="true">
         <span className="building__overlay-btn">
           <ExternalLink size={16} /> Open preview

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { ArrowRight, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Link2, Play, Plus, RefreshCw } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Link2, Lock, Play, Plus, RefreshCw } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
@@ -221,7 +221,7 @@ export default function FunnelOverview({
         {!published && started && pagesLeft > 0 &&
           `${pagesLeft} more ${pagesLeft === 1 ? 'page' : 'pages'} and your webinar is ready.`}
         {!published && ready &&
-          'Get a link you can share with your audience.'}
+          'Check each page, then get your link below.'}
         {published && !ended &&
           'Any change you make shows up on your link straight away.'}
         {ended &&
@@ -438,28 +438,26 @@ export default function FunnelOverview({
               {published && <LiveLink href={liveLink} onOpen={onPreview} copyRef={copyRef} />}
 
         {!published && ready && (
-          <div className="overview__launch">
+          <section className="overview__launch" aria-labelledby="overview-launch-title">
+            {/* The same arrows that join the cards, pointing down: this is the step after them */}
+            <span className="overview__arrow overview__arrow--down" aria-hidden="true">
+              <ChevronRight size={18} strokeWidth={2.5} />
+              <ChevronRight size={18} strokeWidth={2.5} />
+              <ChevronRight size={18} strokeWidth={2.5} />
+            </span>
+            <h2 className="overview__launch-title" id="overview-launch-title">
+              Last step: get your link to share
+            </h2>
             <button type="button" className="overview__launch-primary" onClick={onPublish}>
-              <Link2 size={16} aria-hidden="true" /> Get my link
+              <Link2 size={16} aria-hidden="true" /> Get link to share
             </button>
-            {previewHref && (
-              <a
-                className="overview__launch-secondary"
-                href={previewHref}
-                target="_blank"
-                rel="noopener"
-                onClick={onPreview}
-                aria-label="Try your webinar's pages as a visitor (opens in a new tab)"
-              >
-                <ExternalLink size={16} /> Try it as a visitor
-              </a>
-            )}
             {/* The worry is "it'll be out in the world before the time is settled".
-                Beside the buttons, so it's read at the moment of deciding. */}
+                Right under the button, so it's read at the moment of deciding. */}
             <p className="overview__launch-note">
-              Nobody sees it until you share the link. You can still change the date, time or anything else.
+              <Lock size={14} aria-hidden="true" />
+              <span>Nobody sees it until you share the link. You can still change the date, time or anything else.</span>
             </p>
-          </div>
+          </section>
         )}
 
       </div>

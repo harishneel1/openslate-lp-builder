@@ -186,12 +186,15 @@
   outline-offset: 3px;
 }
 
+/* Always shown, so it's clear the page opens: dimmed just enough for the
+   button to stand out, while the page they just built still shows through.
+   Hover (or keyboard focus) darkens it a little more and lifts the button. */
 .building__overlay {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(17, 17, 17, 0);
+  background: rgba(17, 17, 17, 0.28);
   transition: background 0.2s ease;
 }
 
@@ -206,31 +209,21 @@
   background: var(--color-surface);
   border-radius: var(--radius-pill);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .building__shot--link:hover .building__overlay,
 .building__shot--link:focus-visible .building__overlay {
-  background: rgba(17, 17, 17, 0.45);
+  background: rgba(17, 17, 17, 0.42);
 }
 
 .building__shot--link:hover .building__overlay-btn,
 .building__shot--link:focus-visible .building__overlay-btn {
-  opacity: 1;
-  transform: none;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
 }
 
-/* Touch screens have no hover: the button is always there, the page stays light */
-@media (hover: none) {
-  .building__overlay-btn {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ---------- Preview + Next: side by side, the same height ---------- */
+/* ---------- Save & continue (or Finish) ---------- */
 .building__actions {
   display: flex;
   flex-wrap: wrap;
@@ -241,47 +234,13 @@
   animation: flow-in 0.3s ease;
 }
 
-/* Outlined: there if they look for it, but the page is the main way in */
-.building__preview {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 22px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-  text-decoration: none;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: border-color 0.15s;
-}
-
-.building__preview:hover {
-  border-color: #d6d6d6;
-}
-
 .building__continue {
   cursor: pointer;
 }
 
-.building__preview:focus-visible,
 .building__continue:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
-}
-
-/* Narrow: Next on top, full width, Preview under it */
-@media (max-width: 480px) {
-  .building__actions {
-    flex-direction: column-reverse;
-    width: 100%;
-  }
-
-  .building__preview,
-  .building__continue {
-    justify-content: center;
-  }
 }
 
 /* For screen readers only */
