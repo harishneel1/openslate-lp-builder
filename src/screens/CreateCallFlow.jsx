@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, Copy, ExternalLink, PartyPopper } from 'lucide-react';
+import { ArrowRight, Check, Copy, ExternalLink } from 'lucide-react';
 import QuestionFlow from './QuestionFlow';
 import ProfileExample from '../components/ProfileExample';
 import { useCopy } from './OfferingsHome';
@@ -12,7 +12,7 @@ import { cleanQuestions, questionsOf } from '../data/callQuestions';
 import { TITLE_SUGGESTIONS, callAboutOf, callDescriptionOf } from '../data/callDetails';
 import { clearCallDraft, saveCallDraft } from '../data/callDraft';
 import { contractPreviewSrc } from '../components/ServiceSummaryInput';
-import './MyPageReveal.css'; // the "It's ready" moment looks like setup's "It's live"
+import './QuestionFlow.css'; // flow-in, shared with the rest of the flow
 import './CreateCallFlow.css';
 
 // ------------------------------------------------------------
@@ -30,7 +30,8 @@ import './CreateCallFlow.css';
 //                                  (fixed questions), not their own
 //   6 We've set up the contract for your call  beside it, their own
 //                                  contract (its checkout, as a preview)
-//   then: Your 1:1 call is ready  (its link, Copy link, Preview, Go to my 1:1 calls)
+//   then: a short "setting it up" checklist, and "… is ready to book"
+//         (its link with Copy link, Preview, Go to my 1:1 calls)
 //
 // Beside the screens: Meera Joshi's example pages, fixed, the same for
 // every call, with the part each screen sets highlighted. Her booking page
@@ -39,7 +40,7 @@ import './CreateCallFlow.css';
 // them changes as they type. Same frame and marks as setup's (ProfileExample.jsx).
 // The contract screen is the exception: beside it is their own contract,
 // read from the draft (callDraft.js), since seeing it is what explains it.
-// Their own booking page first shows on "Your 1:1 call is ready".
+// Their own booking page opens from Preview on the ready screen.
 //
 // The call only exists once they finish. Leaving before that keeps
 // nothing, except hours saved under an id no call uses and, if they got
@@ -206,7 +207,7 @@ export default function CreateCallFlow({
       answers={draft}
       onAnswer={handleAnswer}
       onExit={onExit}
-      finishLabel="Get my booking link"
+      finishLabel="Create call"
       onComplete={finish}
       asideWidth="half"
       renderAside={({ question }) =>
@@ -228,74 +229,123 @@ export default function CreateCallFlow({
 }
 
 // ---------- The call, made ----------
-// Like setup's "It's live": what's done, its link to share, a way to
-// preview it, and the way back. Beside it, its booking page as people see it.
+// One job: the call is live, here's its link. First a short "setting it up"
+// checklist ticks off, in the same style as the webinar funnel's building
+// step (BuildingStep.jsx), then the finished screen rises in and the link
+// writes itself into its field. Plays once; with reduced motion it starts
+// finished.
+//
+//        ✓
+//   "1:1 session" is ready to book
+//   Anyone with this link can pick a time and book you.
+//   ┌──────────────────────────────────────────┬────────────┐
+//   │ openslate.app/harishneel/my-call-…       │ Copy link  │
+//   └──────────────────────────────────────────┴────────────┘
+//   [↗ Preview]
+//   Go to my 1:1 calls →
+//
 // url: its own link, or null when there isn't one yet (Preview only)
+const READY_STEPS = [
+  'Saving your call details',
+  'Setting up your booking times',
+  'Connecting your contract',
+  'Creating your booking link',
+];
+const READY_STEP_MS = 700; // one tick every 0.7s, as in the webinar funnel
+const READY_PAUSE = 400;   // a beat after the last tick, then the reveal
+
+const prefersLessMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 function CallReady({ callId, title, url, doneLabel, onDone }) {
   const [copy, copyLink] = useCopy();
   const bookingSrc = `${window.location.pathname}?mock=book&service=${encodeURIComponent(callId)}`;
   const shown = url ? url.replace(/^https?:\/\//, '') : null;
-  const page = useMemo(
-    () => ({ src: bookingSrc, link: shown ?? 'Your call’s booking page', caption: 'Your call’s booking page', byline: '' }),
-    [bookingSrc, shown],
-  );
+  const name = title || 'Your 1:1 call';
 
-  // A real link, so cmd/middle-click and popup blockers behave normally
-  const previewLink = (alone) => (
-    <a
-      className={`mpr__open ccf__btn ccf__quiet ${alone ? 'ccf__open-alone' : ''}`}
-      href={url ?? bookingSrc}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Preview the booking page (opens in a new tab)"
-    >
-      <ExternalLink size={15} aria-hidden="true" />
-      Preview
-    </a>
-  );
+  // Decided once, so it never replays
+  const [skip] = useState(prefersLessMotion);
+  const [done, setDone] = useState(skip ? READY_STEPS.length : 0); // steps ticked
+  const [ready, setReady] = useState(skip);
+
+  useEffect(() => {
+    if (skip) return undefined;
+    const timers = READY_STEPS.map((_, i) => setTimeout(() => setDone(i + 1), READY_STEP_MS * (i + 1)));
+    timers.push(setTimeout(() => setReady(true), READY_STEP_MS * READY_STEPS.length + READY_PAUSE));
+    return () => timers.forEach(clearTimeout);
+  }, [skip]);
+
+  if (!ready) {
+    return (
+      <div className="ready ready--building">
+        <h1 className="ready__title">Setting up your 1:1 call…</h1>
+        <ul className="ready__steps" aria-live="polite">
+          {READY_STEPS.map((step, i) => {
+            const state = i < done ? 'done' : i === done ? 'current' : 'todo';
+            return (
+              <li key={step} className={`ready__step ready__step--${state}`}>
+                <span className="ready__mark" aria-hidden="true">
+                  {state === 'done' && <Check size={14} strokeWidth={3} />}
+                </span>
+                {step}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
 
   return (
-    <div className="mpr">
-      <div className="mpr__main">
-        <p className="mpr__badge">
-          <PartyPopper size={16} aria-hidden="true" /> All set
+    <div className={`ready ${skip ? 'ready--still' : ''}`}>
+      <span className="ready__tick" aria-hidden="true">
+        <Check size={26} strokeWidth={3} />
+      </span>
+      <h1 className="ready__title ready__in">“{name}” is ready to book</h1>
+      <p className="ready__text ready__in">
+        {url
+          ? 'Anyone with this link can pick a time and book you.'
+          : 'It gets its own link to share once you pick your page link.'}
+      </p>
+
+      {url && (
+        // The link: something to copy, not to read. Copy link is the one
+        // orange button here.
+        <div className="ready__link">
+          <span className="ready__url" title={shown}>
+            {shown}
+          </span>
+          <button type="button" className="ready__copy" onClick={() => copyLink(url)}>
+            {copy === 'copied' ? <Check size={15} strokeWidth={3} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+            {copy === 'copied' ? 'Copied' : 'Copy link'}
+          </button>
+        </div>
+      )}
+      <span className="sr-only" aria-live="polite">
+        {copy === 'copied' && 'Link copied'}
+      </span>
+      {copy === 'failed' && (
+        <p className="qinput__error ready__error" role="alert">
+          Couldn’t copy. Select the link and copy it yourself.
         </p>
-        <h1 className="mpr__title">Your 1:1 call is ready</h1>
-        <p className="mpr__sub">“{title || 'Your 1:1 call'}” has been created.</p>
+      )}
 
-        {url ? (
-          // The whole link on its own line (a call's link is long), buttons under it
-          <div className="mpr__link ccf__link">
-            <span className="mpr__url ccf__url">{shown}</span>
-            <div className="ccf__link-actions">
-              <button type="button" className="mpr__open ccf__btn" onClick={() => copyLink(url)}>
-                {copy === 'copied' ? <Check size={15} strokeWidth={3} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
-                {copy === 'copied' ? 'Copied' : 'Copy link'}
-              </button>
-              {previewLink(false)}
-            </div>
-          </div>
-        ) : (
-          previewLink(true)
-        )}
-        <span className="sr-only" aria-live="polite">
-          {copy === 'copied' && 'Link copied'}
-        </span>
-        {copy === 'failed' && (
-          <p className="qinput__error" role="alert">
-            Couldn’t copy. Select the link and copy it yourself.
-          </p>
-        )}
+      {/* A real link, so cmd/middle-click and popup blockers behave normally */}
+      <a
+        className="ready__preview ready__later"
+        href={url ?? bookingSrc}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Preview the booking page (opens in a new tab)"
+      >
+        <ExternalLink size={15} aria-hidden="true" />
+        Preview
+      </a>
 
-        <button type="button" className="mpr__done" onClick={onDone}>
-          {doneLabel}
-          <ArrowRight size={18} aria-hidden="true" />
-        </button>
-      </div>
-
-      <aside className="mpr__aside">
-        <ProfileExample page={page} tall />
-      </aside>
+      <button type="button" className="ready__done ready__later" onClick={onDone}>
+        {doneLabel}
+        <ArrowRight size={16} aria-hidden="true" />
+      </button>
     </div>
   );
 }

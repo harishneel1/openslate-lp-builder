@@ -1,55 +1,272 @@
-/* "Create a 1:1 call": the ready screen borrows setup's "It's live" look
-   (MyPageReveal.css). What's different here: a call's link is long, so it
-   gets its own line, shown in full, with smaller buttons under it. Copy link
-   is the one thing to do with the link; the quieter Preview is for checking it. */
+/* ---------- "Create a 1:1 call": the call, made (CallReady) ----------
+   Centred, one column. First a checklist that ticks off (the webinar
+   funnel's building step, BuildingStep.css), then the finished screen:
+   tick, title, the link (its text writes itself in, Copy link pops, the
+   field glows once), and last Preview and the way back. */
 
-.mpr__link.ccf__link {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 16px 18px;
-}
-
-/* All of it, wrapping at any character if it has to, never cut off */
-.mpr__url.ccf__url {
-  width: 100%;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  font-size: 16px;
-  line-height: 1.4;
-}
-
-.ccf__link-actions {
+.ready {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-top: 10vh;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-.mpr__open.ccf__btn {
+.ready__title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.ready__text {
+  margin-top: 8px;
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Building: the checklist ---------- */
+.ready--building {
+  animation: flow-in 0.25s ease;
+}
+
+.ready__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.ready__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--color-text-disabled);
+  transition: color 0.2s;
+}
+
+.ready__step--current {
+  color: var(--color-text);
+}
+
+.ready__step--done {
+  color: var(--color-text-muted);
+}
+
+.ready__mark {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  color: #fff;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* Working on it: a ring that spins */
+.ready__step--current .ready__mark {
+  border-color: var(--color-primary-tint);
+  border-top-color: var(--color-primary);
+  animation: ready-spin 0.8s linear infinite;
+}
+
+.ready__step--done .ready__mark {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  animation: ready-pop 0.25s ease;
+}
+
+/* ---------- Ready ---------- */
+/* Each part rises in after the one before it */
+.ready__tick {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--color-success);
+  border-radius: 50%;
+  animation: ready-pop 0.35s ease both;
+}
+
+.ready__title.ready__in {
+  margin-top: 20px;
+  animation: flow-in 0.35s ease 0.1s both;
+}
+
+.ready__text.ready__in {
+  animation: flow-in 0.35s ease 0.2s both;
+}
+
+/* The link: a read-only field with Copy link inside it */
+.ready__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 28px;
+  padding: 6px 6px 6px 16px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  animation:
+    flow-in 0.35s ease 0.35s both,
+    ready-glow 1.4s ease 1.1s both;
+}
+
+/* Its text writes itself in, left to right */
+.ready__url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  animation: ready-write 0.7s steps(28, end) 0.6s both;
+}
+
+.ready__copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+  animation: ready-pop 0.3s ease 1.25s both;
+}
+
+.ready__copy:hover {
+  background: var(--color-primary-hover);
+}
+
+.ready__copy:focus-visible,
+.ready__preview:focus-visible,
+.ready__done:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ready__error {
+  margin-top: 8px;
+}
+
+/* Preview and the way back come in last */
+.ready__later {
+  animation: flow-in 0.35s ease 1.5s both;
+}
+
+.ready__preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
   padding: 8px 14px;
   font-size: 14px;
-}
-.mpr__open.ccf__quiet {
+  font-weight: 600;
+  text-decoration: none;
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
 }
 
-.mpr__open.ccf__quiet:hover {
-  background: var(--color-surface);
+.ready__preview:hover {
   border-color: #c9c9ce;
 }
 
-/* No link yet: Preview sits on its own, under the line above it */
-.ccf__open-alone {
-  margin-top: 24px;
+/* The way back: a quiet text link, not another button */
+.ready__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 36px;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s;
 }
 
-/* Done goes on its own line under whichever came before */
-.mpr__main > .mpr__done {
-  display: flex;
-  width: fit-content;
+.ready__done:hover {
+  color: var(--color-text);
+}
+
+/* For screen readers only ("Link copied") */
+.ready .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@keyframes ready-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ready-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ready-write {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* One soft orange glow around the link, then it settles */
+@keyframes ready-glow {
+  0% { border-color: var(--color-border); box-shadow: 0 0 0 0 transparent; }
+  35% { border-color: var(--color-primary); box-shadow: 0 0 0 5px var(--color-primary-tint); }
+  100% { border-color: var(--color-border); box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (max-width: 560px) {
+  .ready__link {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+  .ready__copy {
+    justify-content: center;
+  }
+}
+
+/* Reduced motion (or a screen that started finished): no movement at all */
+@media (prefers-reduced-motion: reduce) {
+  .ready *,
+  .ready {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.ready--still,
+.ready--still * {
+  animation: none !important;
 }
