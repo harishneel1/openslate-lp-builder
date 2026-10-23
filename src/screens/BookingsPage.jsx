@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarCheck, ChevronLeft, ChevronRight, Phone, Video } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Phone, Video, XCircle } from 'lucide-react';
 import BookingDrawer from '../components/BookingDrawer';
 import GuestInitials from '../components/GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
@@ -280,6 +280,12 @@ function NextCall({ booking, today, now, onOpen }) {
           <span className="bk__next-who">
             {live ? booking.title : `${name}, ${booking.title}`}
           </span>
+          {/* Only a declined calendar invite shows here: the one reply worth acting on */}
+          {booking.invite?.status === 'declined' && (
+            <span className="bk__next-flag">
+              <XCircle size={14} aria-hidden="true" /> Declined the calendar invite
+            </span>
+          )}
         </span>
       </button>
       {action}
@@ -500,6 +506,12 @@ function HourGrid({ day, onOpen }) {
                       {exactDay(b.date)}, {b.time}
                     </span>
                   </span>
+                </span>
+              )}
+              {/* A declined calendar invite, until the call is over: open it to see more */}
+              {b.state !== 'ended' && b.invite?.status === 'declined' && (
+                <span className="bk-call__chip bk-call__chip--declined" data-tip={`${name} declined the calendar invite. The booking is still on.`} data-tip-align="end">
+                  <XCircle size={13} aria-hidden="true" /> Declined invite
                 </span>
               )}
               {b.state === 'live' && <span className="bk-call__chip bk-call__chip--live">Now</span>}

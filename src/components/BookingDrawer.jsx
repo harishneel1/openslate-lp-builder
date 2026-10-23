@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Clock, Copy, Mail, Phone, Video, Wallet } from 'lucide-react';
+import { Check, CheckCircle2, Clock, Copy, HelpCircle, Info, Mail, Phone, Video, Wallet, XCircle } from 'lucide-react';
 import Drawer from './Drawer';
 import GuestInitials from './GuestInitials';
 import { cancelBooking, rescheduleBooking } from '../data/bookingsStore';
@@ -18,7 +18,8 @@ import './BookingDrawer.css';
 // same panel:
 //   details     read top to bottom, in the order the creator asks:
 //               who is this (head: initials, name, WhatsApp, email, phone)
-//               what did they book (the call: name, when, format, join)
+//               what did they book (the call: name, when, format, their
+//               reply to the calendar invite, join)
 //               about them (contact, then their answers to the questions)
 //               history (booked, rescheduled, cancelled)
 //   reschedule  pick a new time from the call's own open times
@@ -43,6 +44,15 @@ function guestTime(booking, zone, today) {
   if (!theirs || theirs === matchZone(zone)) return null;
   const ms = Date.parse(booking.start);
   return `${formatTime(ms, theirs)} ${onDay(zoned(ms, theirs).date, today)}, ${zoneLabel(theirs)}`;
+}
+
+// After they declined the calendar invite: a friendly check that the time still works
+function declinedMessage(booking, zone, guestName) {
+  const me = firstName(getMyProfile().creator.name || mockAccount.name);
+  const clock = matchZone(booking.guestTimeZone) ?? zone;
+  const ms = Date.parse(booking.start);
+  const when = `${exactDay(zoned(ms, clock).date)} at ${formatTime(ms, clock)}`;
+  return `Hi ${guestName}, this is ${me}. I saw you declined the calendar invite for our ${booking.title} on ${when}. Is that time still okay for you?`;
 }
 
 // A WhatsApp message ready to send, written for where the call is.
@@ -185,7 +195,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     footer = (
       <>
         <button type="button" className="bk-btn bk-btn--secondary" onClick={() => show('details')}>
-          Go back
+          Keep call
         </button>
         <button type="button" className="bk-btn bk-btn--danger" onClick={confirmCancel}>
           Cancel call
@@ -242,6 +252,16 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
       what: `${who(booking.moved?.by)} rescheduled`,
       detail: movedLine(booking.previousStart, booking.start),
       when: booking.rescheduledAt,
+    },
+    // Their reply to the calendar invite, once they've replied
+    booking.invite?.repliedAt && {
+      key: `invite-${booking.invite.status}`,
+      what: {
+        accepted: `${name} accepted the calendar invite`,
+        tentative: `${name} replied maybe to the calendar invite`,
+        declined: `${name} declined the calendar invite`,
+      }[booking.invite.status],
+      when: booking.invite.repliedAt,
     },
     booking.state === 'cancelled' && {
       key: 'cancelled',
@@ -354,6 +374,15 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
                 </li>
               )}
             </ul>
+
+            {/* Their reply to the calendar invite, while the call is still to come */}
+            {open && booking.invite && (
+              <InviteStatus
+                invite={booking.invite}
+                name={name}
+                whatsapp={whatsappHref(booking.guest?.phone, declinedMessage(booking, zone, name))}
+              />
+            )}
 
             {/* Join: the one big action, while the call is on */}
             {open &&
@@ -538,5 +567,60 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
       )}
       </div>
     </Drawer>
+  );
+}
+
+// ------------------------------------------------------------
+// The guest's reply to the Google Calendar invite, as one line in the
+// call card. Not replying is the usual case (many people never answer
+// invites), so it stays grey and calm; only a decline stands out, and
+// says the booking is still on, since declining an invite doesn't
+// cancel it.
+// ------------------------------------------------------------
+function InviteStatus({ invite, name, whatsapp }) {
+  if (invite.status === 'declined') {
+    return (
+      <div className="bkd-invite bkd-invite--declined" role="status">
+        <XCircle size={16} aria-hidden="true" />
+        <div>
+          <p className="bkd-invite__text">{name} declined the calendar invite</p>
+          <p className="bkd-invite__more">
+            The booking is still on. Check with {name} that the time still works.
+          </p>
+          {whatsapp && (
+            <a className="bkd-invite__action" href={whatsapp} target="_blank" rel="noreferrer">
+              Message on WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const line = {
+    accepted: { icon: CheckCircle2, text: `${name} accepted the calendar invite` },
+    tentative: { icon: HelpCircle, text: `${name} replied maybe to the calendar invite` },
+    none: { icon: Clock, text: `${name} hasn’t replied to the calendar invite` },
+  }[invite.status];
+  if (!line) return null;
+  const Icon = line.icon;
+
+  return (
+    <p className={`bkd-invite bkd-invite--${invite.status}`}>
+      <Icon size={16} aria-hidden="true" />
+      <span className="bkd-invite__text">{line.text}</span>
+      {invite.status === 'none' && (
+        <span
+          className="bkd-invite__info"
+          tabIndex={0}
+          role="img"
+          aria-label="Many people don’t reply to invites. The booking is still confirmed."
+          data-tip="Many people don’t reply to invites. The booking is still confirmed."
+          data-tip-align="end"
+        >
+          <Info size={15} aria-hidden="true" />
+        </span>
+      )}
+    </p>
   );
 }

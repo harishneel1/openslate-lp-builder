@@ -185,6 +185,91 @@
   color: var(--bk-ink-3);
 }
 
+/* ---------- Their reply to the calendar invite ---------- */
+.bkd-invite {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--bk-ink-2);
+}
+
+.bkd-invite > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.bkd-invite--accepted > svg {
+  color: #1f8a4c;
+}
+
+.bkd-invite--tentative > svg {
+  color: #b7791f;
+}
+
+.bkd-invite--none > svg {
+  color: var(--bk-ink-3);
+}
+
+.bkd-invite__info {
+  display: inline-flex;
+  margin-top: 1px;
+  color: var(--bk-ink-3);
+  border-radius: 50%;
+  cursor: help;
+}
+
+.bkd-invite__info:hover,
+.bkd-invite__info:focus-visible {
+  color: var(--bk-ink);
+}
+
+.bkd-invite__info:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Declined: the one state worth acting on, in a soft red box */
+.bkd-invite--declined {
+  padding: 12px 14px;
+  color: #8f1d1d;
+  background: #fdf2f2;
+  border: 1px solid #f3cfcf;
+  border-radius: var(--radius-sm);
+}
+
+.bkd-invite--declined > svg {
+  color: #c43c3c;
+}
+
+.bkd-invite--declined .bkd-invite__text {
+  font-weight: 600;
+}
+
+.bkd-invite__more {
+  margin-top: 2px;
+  font-size: 13.5px;
+  color: #6b2a2a;
+}
+
+.bkd-invite__action {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #8f1d1d;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bkd-invite__action:focus-visible {
+  outline: 2px solid #c43c3c;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .bkd__join {
   width: 100%;
   min-height: 44px;
@@ -346,6 +431,31 @@
 .bkd__event--cancelled:last-child::before {
   background: #c43c3c;
   border-color: #c43c3c;
+}
+
+/* Their reply to the invite: a green, amber or red dot */
+.bkd__event--invite-accepted::before {
+  border-color: #1f8a4c;
+}
+
+.bkd__event--invite-tentative::before {
+  border-color: #b7791f;
+}
+
+.bkd__event--invite-declined::before {
+  border-color: #c43c3c;
+}
+
+.bkd__event--invite-accepted:last-child::before {
+  background: #1f8a4c;
+}
+
+.bkd__event--invite-tentative:last-child::before {
+  background: #b7791f;
+}
+
+.bkd__event--invite-declined:last-child::before {
+  background: #c43c3c;
 }
 
 .bkd__event-line {

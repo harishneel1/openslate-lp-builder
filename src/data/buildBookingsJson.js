@@ -3,6 +3,7 @@ import { shortTime, timeLabel } from '../utils/weeklyHours';
 import { loadCallHours, loadDaysOff } from './availabilityStore';
 import { getMyProfile, MY_CALL_ID } from './myProfile';
 import { DEFAULT_MEETING_LINK, isActive } from './bookingsStore';
+import { inviteOf } from './inviteStatus';
 import { zoneOptions } from './timeZones';
 
 // ------------------------------------------------------------
@@ -142,6 +143,8 @@ export function describeBooking(booking, zone, now) {
         }
       : null,
     cancelledBy: isActive(booking) ? null : (booking.cancelledBy ?? 'creator'),
+    // The guest's reply to the Google Calendar invite (inviteStatus.js), or null
+    invite: inviteOf(booking, now),
   };
 }
 

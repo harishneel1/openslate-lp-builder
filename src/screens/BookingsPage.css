@@ -231,6 +231,21 @@
   text-overflow: ellipsis;
 }
 
+/* A declined calendar invite on the next call */
+.bk__next-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 2px 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #8f1d1d;
+  background: #fdecec;
+  border-radius: var(--radius-pill);
+}
+
 /* ================= Date strip ================= */
 .bk__dates {
   display: flex;
@@ -640,6 +655,16 @@
 .bk-call__chip--live {
   color: #fff;
   background: var(--bk-now);
+}
+
+/* A declined calendar invite: soft red, with the full story on hover */
+.bk-call__chip--declined {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+  color: #8f1d1d;
+  background: #fdecec;
 }
 
 /* Rescheduled: worth noticing, not acting on, so no orange. Shrinks before the name does. */
