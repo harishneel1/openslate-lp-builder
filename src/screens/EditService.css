@@ -60,15 +60,9 @@
   color: var(--color-text-muted);
 }
 
-/* Rule names are longer than day names: give them more room */
+/* Rule names are longer than day names: room for each on one line */
 .es-hours__rules .es-hours__row {
-  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
-}
-
-@media (max-width: 480px) {
-  .es-hours__rules .es-hours__row {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
+  grid-template-columns: 280px minmax(0, 1fr);
 }
 
 .es-hours__row--off {

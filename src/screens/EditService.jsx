@@ -67,7 +67,7 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 //                         the call's card there (callDescription): that card
 //                         is the only place it shows, so from the 1:1 calls
 //                         tab it isn't asked for.
-//   When people can book  this call's own hours, changed in a panel from
+//   Availability & booking rules  this call's own hours and rules, changed in a panel from
 //                         the right (HoursDrawer.jsx)
 //   Booking questions     what checkout asks: name, email and phone, then
 //                         this call's questions (QuestionsInput.jsx, callQuestions.js)
@@ -367,7 +367,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
         id="es-when"
         icon={CalendarClock}
         title="Availability & booking rules"
-        sub="Your weekly hours and booking rules for this call."
+        sub="When people can book this call."
         summary={hours.warning ? hours.short : hours.text}
         warn={Boolean(hours.warning)}
         edited={edited('when')}
@@ -613,10 +613,10 @@ function HoursSummary({ schedule, warning, onEdit }) {
       <div className="es-hours__rules">
         <h3 className="es-hours__subtitle">Booking rules</h3>
         <dl className="es-hours__list">
-          {BOOKING_RULES.map(({ key, label, options }) => (
+          {BOOKING_RULES.map(({ key, label, options, summary }) => (
             <div key={key} className="es-hours__row">
               <dt>{label}</dt>
-              <dd>{ruleLabel(options, schedule[key])}</dd>
+              <dd>{ruleLabel(options, schedule[key], summary)}</dd>
             </div>
           ))}
         </dl>
@@ -633,16 +633,17 @@ function HoursSummary({ schedule, warning, onEdit }) {
         <span>Times are in {zone} time.</span>
         <button type="button" className="es-hours__edit" onClick={onEdit}>
           <Clock size={15} aria-hidden="true" />
-          Edit hours &amp; rules
+          Edit hours &amp; booking rules
         </button>
       </div>
     </div>
   );
 }
 
-// A booking rule's value as its label ("15 minutes"), or the raw value
-// if it's no longer one of the choices
-function ruleLabel(options, value) {
+// A booking rule's value as a phrase ("At least 2 hours before the call"),
+// or the raw value if it's no longer one of the choices
+function ruleLabel(options, value, summary = (label) => label) {
   if (value == null) return '—';
-  return options.find(([v]) => v === value)?.[1] ?? String(value);
+  const label = options.find(([v]) => v === value)?.[1];
+  return label ? summary(label) : String(value);
 }

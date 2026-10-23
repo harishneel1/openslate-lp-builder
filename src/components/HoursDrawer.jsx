@@ -1,5 +1,5 @@
-import { useId, useState } from 'react';
-import { CalendarOff } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { CalendarOff, Info } from 'lucide-react';
 import Drawer from './Drawer';
 import { WeeklyHours } from './WeeklyHoursInput';
 import { BOOKING_RULES } from '../data/bookingRules';
@@ -13,7 +13,9 @@ import './HoursDrawer.css';
 // screen stays one short column of sections.
 //
 //   Weekly hours    the same sheet as setup (WeeklyHoursInput.jsx)
-//   Booking rules   break between calls, notice, how far ahead, start times
+//   Booking rules   break between calls, how soon, how far ahead; each
+//                   with an (i) saying why, and an example for the value
+//                   picked that changes as they pick another
 // Days off are shared by every call, so they're set on the 1:1 calls
 // page, under Calendar (DaysOffRow.jsx). A line at the bottom says so.
 //
@@ -103,28 +105,99 @@ function BookingRules({ value, onChange }) {
         Booking rules
       </h2>
       <div className="hd-rules__list">
-        {BOOKING_RULES.map(({ key, label, hint, options }) => (
-          <label key={key} className="hd-rule">
-            <span className="hd-rule__text">
-              <span className="hd-rule__label">{label}</span>
-              <span className="hd-rule__hint">{hint}</span>
-            </span>
-            <select
-              className="hd-rule__select"
-              value={value[key]}
-              onChange={(e) => onChange({ ...value, [key]: Number(e.target.value) })}
-            >
-              {/* A saved value that's no longer a choice still shows */}
-              {!options.some(([v]) => v === value[key]) && <option value={value[key]}>{value[key]}</option>}
-              {options.map(([v, text]) => (
-                <option key={v} value={v}>
-                  {text}
-                </option>
-              ))}
-            </select>
-          </label>
+        {BOOKING_RULES.map((rule) => (
+          <BookingRule
+            key={rule.key}
+            rule={rule}
+            value={value[rule.key]}
+            onChange={(v) => onChange({ ...value, [rule.key]: v })}
+          />
         ))}
       </div>
     </section>
+  );
+}
+
+//   Break between calls (i)                         [ 15 minutes ▾ ]
+//   Also applies to your other 1:1 calls.
+//   ┌ Example: If a call ends at 3:00 PM, the next one ┐
+//   └ can start at 3:15 PM at the earliest.             ┘
+function BookingRule({ rule, value, onChange }) {
+  const { label, hint, why, options, example } = rule;
+  const selectId = useId();
+  return (
+    <div className="hd-rule">
+      <div className="hd-rule__text">
+        <span className="hd-rule__head">
+          <label className="hd-rule__label" htmlFor={selectId}>
+            {label}
+          </label>
+          {why && <InfoTip label={label} text={why} />}
+        </span>
+        {hint && <span className="hd-rule__hint">{hint}</span>}
+        {example && (
+          <p className="hd-rule__example" aria-live="polite">
+            <span className="hd-rule__example-tag">Example:</span>{' '}
+            {example(value).map((part, i) => (i % 2 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>))}
+          </p>
+        )}
+      </div>
+      <select
+        id={selectId}
+        className="hd-rule__select"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      >
+        {/* A saved value that's no longer a choice still shows */}
+        {!options.some(([v]) => v === value) && <option value={value}>{value}</option>}
+        {options.map(([v, text]) => (
+          <option key={v} value={v}>
+            {text}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// The (i) beside a rule's name. Shows on hover, and stays open on a
+// click (for people who click rather than hover) until they click
+// elsewhere, click it again or press Escape. Escape here closes just
+// the bubble, not the panel.
+function InfoTip({ label, text }) {
+  const [pinned, setPinned] = useState(false);
+  const ref = useRef(null);
+  const tipId = useId();
+
+  useEffect(() => {
+    if (!pinned) return undefined;
+    const onDown = (e) => !ref.current?.contains(e.target) && setPinned(false);
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [pinned]);
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape' && pinned) {
+      e.preventDefault(); // keeps the panel open
+      e.stopPropagation();
+      setPinned(false);
+    }
+  };
+
+  return (
+    <span ref={ref} className={`hd-info ${pinned ? 'hd-info--open' : ''}`} onKeyDown={onKeyDown}>
+      <button
+        type="button"
+        className="hd-info__btn"
+        aria-label={`What is “${label}”?`}
+        aria-describedby={tipId}
+        onClick={() => setPinned((p) => !p)}
+      >
+        <Info size={15} aria-hidden="true" />
+      </button>
+      <span className="tip hd-info__tip" role="tooltip" id={tipId}>
+        {text}
+      </span>
+    </span>
   );
 }
