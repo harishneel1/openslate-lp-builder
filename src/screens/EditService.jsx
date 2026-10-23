@@ -11,6 +11,7 @@ import { createMockService, getService, servicePrice } from '../data/mockService
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsProblem, newCallAbout, readMeetingLink } from '../data/callDetails';
 import { DEFAULT_HOURS, loadCallHours, saveCallHours, sameHours } from '../data/availabilityStore';
+import { BOOKING_RULES } from '../data/bookingRules';
 import HoursDrawer from '../components/HoursDrawer';
 import { timeZones } from '../data/timeZones';
 import { durationLabel } from '../data/serviceKinds';
@@ -68,7 +69,7 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 //                         tab it isn't asked for.
 //   When people can book  this call's own hours, changed in a panel from
 //                         the right (HoursDrawer.jsx)
-//   Invitee form          what checkout asks: name, email and phone, then
+//   Booking questions     what checkout asks: name, email and phone, then
 //                         this call's questions (QuestionsInput.jsx, callQuestions.js)
 //   Contract              the checkout page people book and pay through.
 //                         Shown, never swapped (ContractCard): a new call's
@@ -365,7 +366,8 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
       <EditSection
         id="es-when"
         icon={CalendarClock}
-        title="Availability"
+        title="Availability & booking rules"
+        sub="Your weekly hours and booking rules for this call."
         summary={hours.warning ? hours.short : hours.text}
         warn={Boolean(hours.warning)}
         edited={edited('when')}
@@ -378,7 +380,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
       <EditSection
         id="es-questions"
         icon={ClipboardList}
-        title="Invitee form"
+        title="Booking questions"
         sub="What people fill in on checkout when they book this call."
         summary={blocker?.section === 'questions' ? blocker.text : questionsSummary(draft.callQuestions)}
         warn={blocker?.section === 'questions'}
@@ -589,6 +591,7 @@ function HoursSummary({ schedule, warning, onEdit }) {
 
   return (
     <div className="es-hours">
+      <h3 className="es-hours__subtitle">Weekly hours</h3>
       {open.length > 0 && (
         <dl className="es-hours__list">
           {open.map(({ days, hours }) => (
@@ -606,6 +609,19 @@ function HoursSummary({ schedule, warning, onEdit }) {
         </dl>
       )}
 
+      {/* Booking rules: shown here too, so it's clear they live in this section */}
+      <div className="es-hours__rules">
+        <h3 className="es-hours__subtitle">Booking rules</h3>
+        <dl className="es-hours__list">
+          {BOOKING_RULES.map(({ key, label, options }) => (
+            <div key={key} className="es-hours__row">
+              <dt>{label}</dt>
+              <dd>{ruleLabel(options, schedule[key])}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
       {warning && (
         <p className="es-hours__warning" role="alert">
           <AlertTriangle size={16} aria-hidden="true" />
@@ -617,9 +633,16 @@ function HoursSummary({ schedule, warning, onEdit }) {
         <span>Times are in {zone} time.</span>
         <button type="button" className="es-hours__edit" onClick={onEdit}>
           <Clock size={15} aria-hidden="true" />
-          Edit hours
+          Edit hours &amp; rules
         </button>
       </div>
     </div>
   );
+}
+
+// A booking rule's value as its label ("15 minutes"), or the raw value
+// if it's no longer one of the choices
+function ruleLabel(options, value) {
+  if (value == null) return '—';
+  return options.find(([v]) => v === value)?.[1] ?? String(value);
 }

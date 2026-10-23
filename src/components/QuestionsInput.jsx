@@ -14,12 +14,12 @@ import {
 import './QuestionsInput.css';
 
 // ------------------------------------------------------------
-// A call's invitee form, inside its "Invitee form" section
+// A call’s booking questions, inside its "Booking questions" section
 // (EditService.jsx), laid out like Calendly's. See callQuestions.js
 // for the questions' shape.
 //
-//   Invitee details    [🔒 Name, Email, Phone]      always asked, not editable
-//   Invitee questions
+//   Their details      [🔒 Name, Email, Phone]      always asked, not editable
+//   Your questions
 //   │ ⠿ Question 1                          🗑
 //   │ [ What's your current CTC?          ]
 //   │ ☐ Required
@@ -37,7 +37,7 @@ import './QuestionsInput.css';
 // note: a line at the end (where the form shows).
 // cards: the setup screens' look ("Ask additional questions during
 //   checkout"), on the grey page: each question its own white card, as on
-//   the other setup screens, and no Invitee details block (the screen's
+//   the other setup screens, and no Their details block (the screen's
 //   subheader says name, email and phone are always asked):
 //
 //   ┌ ⠿ QUESTION 1                               ↑  ↓  🗑 ┐
@@ -147,10 +147,10 @@ export default function QuestionsInput({ value, onChange, note = null, cards = f
 
   return (
     <div className={`bq ${cards ? 'bq--cards' : ''}`}>
-      {/* ---------- Invitee details: always asked ---------- */}
+      {/* ---------- Their details: always asked ---------- */}
       {!cards && (
         <div className="bq__block">
-          <h3 className="bq__label" id="bq-details">Invitee details</h3>
+          <h3 className="bq__label" id="bq-details">Their details</h3>
           <p className="bq__sub">Always asked, before your questions.</p>
           <div className="bq__fixed" aria-labelledby="bq-details">
             <span>Name, Email, Phone</span>
@@ -159,9 +159,9 @@ export default function QuestionsInput({ value, onChange, note = null, cards = f
         </div>
       )}
 
-      {/* ---------- Invitee questions ---------- */}
+      {/* ---------- Your questions ---------- */}
       <div className="bq__block">
-        {!cards && <h3 className="bq__label">Invitee questions</h3>}
+        {!cards && <h3 className="bq__label">Your questions</h3>}
 
         {value.length > 0 && (
           <ol className={`bq__list ${cardDrag.drag ? 'bq__list--dragging' : ''}`} ref={listRef}>

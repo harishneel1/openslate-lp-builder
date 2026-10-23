@@ -542,7 +542,7 @@ export default function QuestionInput(props) {
     case 'pickCalls':
       return <PickCallsInput {...props} />;
     case 'callQuestions':
-      // The same builder as the call editor's Invitee form, starting from
+      // The same builder as the call editor's Booking questions, starting from
       // the call's questions (the default one until they change it)
       return <QuestionsInput cards value={questionsOf(props.answers)} onChange={(list) => props.onChange(list)} />;
     default:

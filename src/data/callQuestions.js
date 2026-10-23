@@ -1,7 +1,7 @@
 // ------------------------------------------------------------
-// Invitee questions: what a call asks people on checkout, after
+// Booking questions: what a call asks people on checkout, after
 // their name, email and phone (always asked, not editable here).
-// Set per call in Edit service ("Invitee form"), saved on the
+// Set per call in Edit service ("Booking questions"), saved on the
 // call's answers as callQuestions:
 //
 //   [{ id, text, type, required, options }]

@@ -44,6 +44,33 @@
   font-weight: 600;
 }
 
+/* Booking rules, under the weekly hours: a small heading and a divider */
+.es-hours__rules {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.es-hours__subtitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Rule names are longer than day names: give them more room */
+.es-hours__rules .es-hours__row {
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+}
+
+@media (max-width: 480px) {
+  .es-hours__rules .es-hours__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
 .es-hours__row--off {
   color: var(--color-text-muted);
 }
