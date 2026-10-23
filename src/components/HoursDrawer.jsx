@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { CalendarOff } from 'lucide-react';
 import Drawer from './Drawer';
 import { WeeklyHours } from './WeeklyHoursInput';
 import { BOOKING_RULES } from '../data/bookingRules';
@@ -13,8 +14,8 @@ import './HoursDrawer.css';
 //
 //   Weekly hours    the same sheet as setup (WeeklyHoursInput.jsx)
 //   Booking rules   break between calls, notice, how far ahead, start times
-// (Days off are shared by every call, so they'll live on the offerings
-// home, not here.)
+// Days off are shared by every call, so they're set on the 1:1 calls
+// page, under Calendar (DaysOffRow.jsx). A line at the bottom says so.
 //
 // Changes stay in the panel until "Use these hours", which hands them
 // to the edit screen's draft; the screen's own Save saves them with
@@ -83,6 +84,12 @@ export default function HoursDrawer({ value, callName, callLength, onApply, onCl
     >
       <WeeklyHours value={hours} onChange={update} callLength={callLength} />
       <BookingRules value={hours} onChange={update} />
+      <p className="hd-note">
+        <CalendarOff size={16} aria-hidden="true" />
+        <span>
+          Days off apply to all your calls. Set them on the 1:1 calls page, under Calendar.
+        </span>
+      </p>
     </Drawer>
   );
 }

@@ -4,6 +4,7 @@ import EditService from './EditService';
 import CreateCallFlow from './CreateCallFlow';
 import { useCopy } from './OfferingsHome';
 import CalendarRow from '../components/CalendarPanel';
+import DaysOffRow from '../components/DaysOffRow';
 import RowMenu from '../components/RowMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { markCalendarLost } from '../data/calendarStore';
@@ -22,6 +23,7 @@ import './CallsPage.css';
 // is chosen on My offerings.
 //
 //   ┌ Calendar   G harish@…  ● Connected                    [Manage] ┐
+//   └ Days off   26–28 Oct, 2 Nov                         [Manage] ┘
 //   ┌ Your calls 3                                [+ Create a 1:1 call] ┐
 //   │ Discovery call                    [Copy link] [Edit] [↗] [⋯]   │
 //   │ Video call · 30 min · Free                                     │
@@ -118,9 +120,10 @@ export default function CallsPage() {
       <h1 className="oh__title">1:1 calls</h1>
       <p className="calls__lead">Schedule your 1:1 meetings here.</p>
 
-      {/* The calendar every call books into */}
-      <section className="oh__panel calls__settings" aria-label="Calendar">
+      {/* Settings for every call: the calendar they book into, and days away */}
+      <section className="oh__panel calls__settings" aria-label="Calendar and days off">
         <CalendarRow />
+        <DaysOffRow />
       </section>
 
       <section className="oh__panel" aria-labelledby="calls-title">

@@ -1,0 +1,394 @@
+/* Days off: the row on the 1:1 calls page (DaysOffRow.jsx) and its
+   panel (DaysOffDrawer.jsx). The row takes its frame from .oh__row
+   (OfferingsHome.css); the panel's footer from HoursDrawer.css. */
+
+/* ---------- Row ---------- */
+/* The dates: a dotted underline hints there's more on hover */
+.do-row__summary {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  cursor: default;
+}
+
+.do-row__dates {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  text-decoration: underline dotted #c9c9ce;
+  text-underline-offset: 4px;
+}
+
+.do-row__summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* The full list (look and layer from tooltip.css). Above the dates,
+   over the Calendar row. No delay and no fade, as on Bookings. */
+.do-tip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 260px;
+  padding: 10px 12px;
+  visibility: hidden;
+}
+
+.do-row__summary:hover .do-tip,
+.do-row__summary:focus-visible .do-tip {
+  visibility: visible;
+}
+
+.do-tip__title {
+  margin-bottom: 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.do-tip__item {
+  display: flex;
+  flex-direction: column;
+}
+
+.do-tip__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.do-tip__count {
+  flex: none;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.do-tip__booked {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #fcd9a8;
+}
+
+.do-tip__more {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.do-row__more {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.do-row__none {
+  color: var(--color-text-muted);
+}
+
+/* Amber, with an icon and words, so it doesn't rely on colour alone */
+.do-row__clash {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: #7a4f0f;
+}
+
+.do-row__clash svg {
+  flex: none;
+  color: #b54708;
+}
+
+/* ---------- Panel ---------- */
+.do-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---------- The month ---------- */
+.do-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.do-cal__month {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.do-cal__nav {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  transition: border-color 0.15s;
+}
+
+.do-cal__nav:hover:not(:disabled) {
+  border-color: #d6d6d6;
+}
+
+.do-cal__nav:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+/* The month: a compact block in the middle of the panel, like any
+   date picker. Capped so the days don't drift apart in a wide panel;
+   seven equal columns, each day a 40px square in the middle of its own. */
+.do-cal {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.do-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  justify-items: center;
+  gap: 6px 0;
+}
+
+.do-cal__weekday {
+  padding-bottom: 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.do-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent; /* plain numbers; only today and days off are marked */
+  border-radius: var(--radius-sm);
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* no double-tap zoom delay on phones */
+}
+
+.do-day:hover:not(:disabled) {
+  background: var(--color-primary-tint);
+}
+
+.do-day:disabled {
+  color: var(--color-text-disabled);
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
+/* Today: a ring, so it's findable without looking chosen */
+.do-day--today {
+  border: 2px solid var(--color-text);
+}
+
+/* A day off: filled. Words say it too (aria-pressed, the list below). */
+.do-day--off {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.do-day--off:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.do-day--today.do-day--off {
+  border-color: var(--color-text);
+}
+
+/* A booking that day: a dot under the number */
+.do-day--booked::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  background: #b54708;
+  border-radius: 50%;
+}
+
+.do-day--off.do-day--booked::after {
+  background: #fff;
+}
+
+.do-day:focus-visible,
+.do-cal__nav:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.do-cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.do-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.do-key__off {
+  width: 14px;
+  height: 14px;
+  background: var(--color-primary);
+  border-radius: 4px;
+}
+
+.do-key__dot {
+  width: 6px;
+  height: 6px;
+  margin: 0 4px;
+  background: #b54708;
+  border-radius: 50%;
+}
+
+/* ---------- You're away: the days off, in words ---------- */
+.do-list {
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.do-list__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.do-empty {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.do-ranges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  list-style: none;
+}
+
+.do-range {
+  border-radius: var(--radius-md);
+  background: var(--color-primary-tint);
+}
+
+.do-range__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  font-size: 14.5px;
+}
+
+.do-range__label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.do-range__count {
+  flex: none;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.do-range__remove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.do-range__remove:hover {
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.do-range__remove:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Calls already booked on a day off: inside the range they belong to */
+.do-clash {
+  margin: 0 6px 6px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #7a4f0f;
+  background: #fff6e5;
+  border: 1px solid #f6dfb4;
+  border-radius: var(--radius-sm);
+}
+
+.do-clash__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.do-clash__title svg {
+  flex: none;
+  color: #b54708;
+}
+
+.do-clash__list {
+  margin: 4px 0 4px 21px;
+  padding-left: 16px;
+}
+
+.do-clash__text {
+  margin-left: 21px;
+}
+
+/* ---------- Footer ---------- */
+.do__failed {
+  color: #b42318;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .do-day,
+  .do-cal__nav {
+    transition: none;
+  }
+}

@@ -102,6 +102,25 @@
   }
 }
 
+/* ---------- Where days off live ---------- */
+.hd-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.hd-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 /* ---------- Footer ---------- */
 .hd__status {
   flex: 1 1 200px;

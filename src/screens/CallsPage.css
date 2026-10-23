@@ -7,12 +7,19 @@
   color: var(--color-text-muted);
 }
 
-/* ---------- Calendar: one row on its own card ---------- */
-/* The row (CalendarPanel.jsx) draws a line above itself, for when it sits
-   under other rows. Alone on a card, the card's own edge is enough. */
+/* ---------- Settings: Calendar, then Days off ---------- */
+/* Each row draws a line above itself, for when it sits under another.
+   The first row has the card's own edge instead, and its tint (Calendar,
+   when it's disconnected) follows the card's top corners. The panels
+   and screen-reader notes the rows render between them aren't rows, so
+   the corners are set on the rows themselves rather than :last-child. */
 .calls__settings .oh__row:first-child {
   border-top: 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.calls__settings .do-row {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 /* ---------- No calls yet ---------- */
