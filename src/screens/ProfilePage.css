@@ -12,9 +12,32 @@
 
 /* ---------- Creator panel: on top on phones, a sticky column on desktop ---------- */
 .pf__creator {
+  position: relative;
   padding: 32px var(--pf-gutter) 28px;
   background: var(--pf-panel);
   border-bottom: 1px solid var(--pf-panel-line);
+}
+
+/* A fine dot grid on the panel, clearest at the top and fading out
+   by the middle. Decoration only: behind the content. */
+.pf__creator::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--pf-accent) 30%, transparent) 1.2px,
+    transparent 1.6px
+  );
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 65%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* The panel's content sits above the dots */
+.pf__creator > * {
+  position: relative;
 }
 
 /* ---------- Services and testimonials ---------- */
@@ -49,7 +72,7 @@
   }
 
   .pf__main {
-    margin: 0;                /* sits beside the panel rather than floating mid-screen */
+    margin: 0 auto;           /* centred in the space beside the panel, so wide screens stay balanced */
     padding: 56px var(--pf-gutter) 96px;
   }
 }

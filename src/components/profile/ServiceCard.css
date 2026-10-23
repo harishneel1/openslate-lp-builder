@@ -7,11 +7,14 @@
   background: var(--pf-surface);
   color: inherit;
   text-decoration: none;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* On hover: the border warms, and the card lifts a little on a soft warm shadow */
 .sc:hover {
   border-color: var(--pf-accent);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--pf-accent) 45%, transparent);
 }
 
 .sc:focus-visible {
@@ -139,5 +142,13 @@
   .sc,
   .sc__cta {
     transition: none;
+  }
+}
+
+/* No lift for people who'd rather not have motion; the border and shadow still change */
+@media (prefers-reduced-motion: reduce) {
+  .sc,
+  .sc:hover {
+    transform: none;
   }
 }
