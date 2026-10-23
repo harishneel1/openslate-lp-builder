@@ -567,14 +567,35 @@
   }
 }
 /* ---------- The session: when and how much ---------- */
+/* Title and subtitle on the left, the session's date on the right */
+.overview__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 32px;
+}
+
+.overview__head-text {
+  flex: 1 1 400px;
+  min-width: 0;
+}
+
+/* The date: a small white pill, top right, beside the title */
 .overview__when {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 14px;
-  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  padding: 8px 14px;
+  font-size: 14px;
   font-weight: 500;
+  white-space: nowrap;
   color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
 }
 
 .overview__when svg {

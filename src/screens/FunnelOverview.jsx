@@ -213,7 +213,10 @@ export default function FunnelOverview({
 
   return (
     <div className="overview">
-      {/* "All funnels" lives in the top bar */}
+      {/* "All funnels" lives in the top bar.
+          Title and subtitle on the left, the session's date on the right. */}
+      <div className="overview__head">
+      <div className="overview__head-text">
       <h1 className="overview__title">{title}</h1>
       <p className="overview__subtitle">
         {!started &&
@@ -227,6 +230,20 @@ export default function FunnelOverview({
         {ended &&
           'Run it again with a new date. Your pages and your link stay the same, so your ads keep working.'}
       </p>
+      </div>
+
+      {/* The session itself, once the landing page has its details: top right */}
+      {when && done.includes('landing') && (
+        <p className="overview__when">
+          <CalendarClock size={16} aria-hidden="true" />
+          <span>
+            {when.line}
+            {length ? ` · ${length}` : ''} ·{' '}
+            <span className={price.isFree ? 'overview__when-free' : 'overview__when-price'}>{price.label}</span>
+          </span>
+        </p>
+      )}
+      </div>
 
       {sessions.length > 0 && (
         <p className="overview__earlier">
