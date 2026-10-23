@@ -26,6 +26,7 @@ import { isMyCall } from './data/myProfile'
 //   Add &taken=1 to see the time having just been taken, &hold=20 to see a 20-second hold run out,
 //   or &fail=1 to see the first payment fail.
 // &questions=example on checkout shows the example questions (the questions step's preview).
+// &preview=1&draft=1 on checkout shows a call still being made (the contract step's preview).
 // ?mock=booked → the confirmation page (checkout's Pay goes here with the booking's details;
 //   &booking=<id> for the creator's own calls, the booking checkout saved).
 // ?mock=manage&booking=<id>&action=cancel or reschedule → the student's side, behind the
@@ -87,6 +88,7 @@ function Root() {
         taken={params.get('taken')}
         hold={params.get('hold')}
         preview={params.get('preview')}
+        draft={params.get('draft') === '1'}
         fail={params.get('fail')}
         exampleQuestions={params.get('questions') === 'example'}
       />

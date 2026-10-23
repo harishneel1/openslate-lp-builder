@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { FileText, Lock } from 'lucide-react';
 import { getMockProfile } from '../data/mockProfile';
 import { PAGE_DOMAIN } from '../data/myPage';
 import { profileAnnotations } from '../data/profileAnnotations';
@@ -47,6 +47,13 @@ const prefersLessMotion = () => window.matchMedia?.('(prefers-reduced-motion: re
 //   for the call's booking page on "Your 1:1 call is ready".
 // notes: annotations to use instead of setup's (profileAnnotations.js), keyed
 //   by question id. "Create a 1:1 call" passes its own, on Meera's pages.
+//   An annotation with noBox: true gets only the pill and its arrow, with no
+//   dashed box and no dimming, for when the whole page is the point (their
+//   contract, beside the contract screen). noLabel: true leaves out the pill
+//   and arrow too, so the page is just held still.
+// page.tag: a label stuck on the frame's top edge, for the whole page
+//   ("This is your contract page"). Flat and in the frame's colours, so it
+//   reads as a label, not something to click.
 export default function ProfileExample({
   questionId = null,
   answer,
@@ -289,8 +296,14 @@ export default function ProfileExample({
   }
 
   return (
-    <div className="pex">
+    <div className={`pex ${page?.tag ? 'pex--tagged' : ''}`}>
       {/* No caption or note above the frame: the page, boxed and named, says enough */}
+      {page?.tag && (
+        <p className="pex__tag">
+          <FileText size={16} aria-hidden="true" />
+          {page.tag}
+        </p>
+      )}
       <div className={`pex__frame ${tall ? 'pex__frame--tall' : ''}`} ref={frameRef}>
         <div className="pex__bar" aria-hidden="true">
           <span className="pex__dots"><span /><span /><span /></span>
@@ -317,7 +330,7 @@ export default function ProfileExample({
         {marks && (
           <>
             {/* Gently dims the rest of the page; slides between questions */}
-            <div className="pex__spot" style={marks.box} />
+            {!note.noBox && <div className="pex__spot" style={marks.box} />}
 
             {/* Box, arrows and bubbles fade in once the spot has moved */}
             <div className="pex__marks" key={note.target}>
@@ -335,26 +348,32 @@ export default function ProfileExample({
                     <path d="M 1 1 L 8 5 L 1 9" className="pex__arrowhead" />
                   </marker>
                 </defs>
-                <rect
-                  className="pex__box"
-                  x={marks.box.left}
-                  y={marks.box.top}
-                  width={marks.box.width}
-                  height={marks.box.height}
-                  rx="10"
-                />
-                <path className="pex__arrow" d={marks.labelArrow} markerEnd="url(#pex-arrowhead)" />
+                {!note.noBox && (
+                  <rect
+                    className="pex__box"
+                    x={marks.box.left}
+                    y={marks.box.top}
+                    width={marks.box.width}
+                    height={marks.box.height}
+                    rx="10"
+                  />
+                )}
+                {!note.noLabel && (
+                  <path className="pex__arrow" d={marks.labelArrow} markerEnd="url(#pex-arrowhead)" />
+                )}
                 {marks.tipArrow && (
                   <path className="pex__arrow" d={marks.tipArrow} markerEnd="url(#pex-arrowhead)" />
                 )}
               </svg>
 
+              {!note.noLabel && (
               <p
                 className="pex__label"
                 style={marks.label.right != null ? { right: marks.label.right, top: marks.label.top } : { left: marks.label.left, top: marks.label.top }}
               >
                 {note.label}
               </p>
+              )}
               {marks.tip && (
                 <p
                   className={`pex__tip ${marks.tip.inside ? 'pex__tip--inside' : ''}`}

@@ -217,16 +217,27 @@ function duration(seconds) {
 // 583 → '9:43'
 const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-// preview=1: the creator previewing their service. No time, no session box,
+// preview=1: the creator previewing their contract. No time, no session box,
 // no hold, and nothing can be booked from it.
+// draft: a call still being made (&draft=1, callDraft.js). It redraws when
+// the creator's answers change in the page that has it in a frame.
 // exampleQuestions: show EXAMPLE_QUESTIONS instead of the call's own
 // (&questions=example), for the preview beside the questions step.
-export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold, fail, preview, exampleQuestions = false }) {
+export default function CheckoutPage({ serviceId, time, state, slots, timeZone, taken, hold, fail, preview, draft = false, exampleQuestions = false }) {
   const previewing = preview === '1';
   const zone = matchZone(timeZone) ?? matchZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ?? 'Asia/Kolkata';
+  // A draft redraws on every change to what's saved in this browser
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    if (!draft) return undefined;
+    const redraw = () => setVersion((v) => v + 1);
+    window.addEventListener('storage', redraw);
+    return () => window.removeEventListener('storage', redraw);
+  }, [draft]);
   const page = useMemo(
-    () => buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone, taken: taken === '1', preview: previewing }),
-    [serviceId, time, state, slots, zone, taken, previewing],
+    () =>
+      buildCheckoutJson({ serviceId, time, profileState: state, slotsState: slots, timeZone: zone, taken: taken === '1', preview: previewing, draft }),
+    [serviceId, time, state, slots, zone, taken, previewing, draft, version],
   );
   const { status, creator, service, slot } = page;
   const questions = exampleQuestions ? EXAMPLE_QUESTIONS : (page.questions ?? []);
@@ -435,7 +446,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
     <div className="co store-theme">
       {previewing && (
         <p className="co__preview">
-          <Eye size={16} aria-hidden="true" /> This is a preview of your service. Nobody can book from it.
+          <Eye size={16} aria-hidden="true" /> This is a preview of your contract. Nobody can book from it.
         </p>
       )}
       <div className="co__layout">

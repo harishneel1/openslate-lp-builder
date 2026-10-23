@@ -194,14 +194,19 @@ export const myPageQuestions = [
   {
     id: 'service',
     showIf: MAKING_A_CALL,
-    type: 'serviceSummary', // ServiceSummaryInput: makes the service from the call's details
+    type: 'serviceSummary', // ServiceSummaryInput: makes the contract from the call's details
     required: true,
-    preview: false, // no example page on this screen
+    // No example page here in setup. "Create a 1:1 call" shows the creator's
+    // own contract beside this screen instead (CreateCallFlow.jsx).
+    preview: false,
     titleTick: true,
-    question: 'We’ve auto-created your contract page',
-    helper:
-      'The contract page is the checkout page in OpenSlate.',
+    question: 'We’ve set up the contract for your call',
+    // "contract" in the title is marked with an asterisk and explained
+    // under the card (QuestionFlow.jsx). Most creators don't know the word yet.
+    footnoteWord: 'contract',
+    footnote:
+      'A contract is the checkout page for anything you sell on OpenSlate. Every 1:1 call, webinar and course has a contract associated with it.',
     isComplete: (answers) => Boolean(answers.serviceId),
-    nextHint: 'Setting up your service…',
+    nextHint: 'Setting up your contract…',
   },
 ];

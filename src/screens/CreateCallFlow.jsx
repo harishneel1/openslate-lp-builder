@@ -10,6 +10,8 @@ import { DEFAULT_HOURS, loadCallHours, saveCallHours } from '../data/availabilit
 import { isCalendarConnected, loadCalendar } from '../data/calendarStore';
 import { cleanQuestions, questionsOf } from '../data/callQuestions';
 import { TITLE_SUGGESTIONS, callAboutOf, callDescriptionOf } from '../data/callDetails';
+import { clearCallDraft, saveCallDraft } from '../data/callDraft';
+import { contractPreviewSrc } from '../components/ServiceSummaryInput';
 import './MyPageReveal.css'; // the "It's ready" moment looks like setup's "It's live"
 import './CreateCallFlow.css';
 
@@ -26,7 +28,8 @@ import './CreateCallFlow.css';
 //   5 Ask additional questions during checkout  starts with the default
 //                                  question; beside it, an example checkout
 //                                  (fixed questions), not their own
-//   6 We've auto-created your contract page
+//   6 We've set up the contract for your call  beside it, their own
+//                                  contract (its checkout, as a preview)
 //   then: Your 1:1 call is ready  (its link, Copy link, Preview, Go to my 1:1 calls)
 //
 // Beside the screens: Meera Joshi's example pages, fixed, the same for
@@ -34,6 +37,8 @@ import './CreateCallFlow.css';
 // for the call's name, hours and description; her checkout, with example
 // questions, for the questions screen (profileAnnotations.js). Nothing on
 // them changes as they type. Same frame and marks as setup's (ProfileExample.jsx).
+// The contract screen is the exception: beside it is their own contract,
+// read from the draft (callDraft.js), since seeing it is what explains it.
 // Their own booking page first shows on "Your 1:1 call is ready".
 //
 // The call only exists once they finish. Leaving before that keeps
@@ -51,7 +56,11 @@ import './CreateCallFlow.css';
 
 const STEP_IDS = ['callDetails', 'calendar', 'availability', 'callAbout', 'callQuestions', 'service'];
 const ALL_STEPS = STEP_IDS.map((id) => myPageQuestions.find((q) => q.id === id)).map((q) =>
-  q.id === 'callDetails' ? { ...q, showDescription: false } : q,
+  q.id === 'callDetails'
+    ? { ...q, showDescription: false }
+    : q.id === 'service'
+      ? { ...q, contractAside: true } // their contract is beside it, so its card's Preview steps back
+      : q,
 );
 
 // What each screen fills in, pointed out on Meera's booking page (see
@@ -109,6 +118,30 @@ export default function CreateCallFlow({
   const [draft, setDraft] = useState(() => ({ callId, callTitle: startingTitle() }));
   const [ready, setReady] = useState(false);
 
+  // Their contract, for the panel beside the contract screen: the checkout
+  // preview of the call being made. The page follows the draft as it changes.
+  const contractPage = useMemo(() => {
+    const link = hasLinks ? `${offeringUrl(handle, callId).replace(/^https?:\/\//, '')}/checkout` : 'Your contract';
+    return {
+      src: contractPreviewSrc({ callId }),
+      link,
+      caption: 'Your contract',
+      byline: '',
+      // Labelled by a tag stuck on the frame, since it's about the whole page.
+      // Nothing on the page itself: it's just held still at its top.
+      tag: 'This is your contract page',
+      annotations: {
+        service: {
+          page: 'checkout',
+          target: '.co__layout',
+          noBox: true,
+          noLabel: true,
+          stayAtTop: true,
+        },
+      },
+    };
+  }, [hasLinks, handle, callId]);
+
   // The calendar screen only for someone who hasn't connected one.
   // Decided once, so connecting on that screen doesn't make it vanish.
   const [steps] = useState(() =>
@@ -120,6 +153,14 @@ export default function CreateCallFlow({
     const newest = myCallIds(loadAnswers())[0];
     saveCallHours(callId, newest ? strip(loadCallHours(newest)) : structuredClone(DEFAULT_HOURS));
   }, [callId]);
+
+  // Kept in this browser as they go, so their contract beside the contract
+  // screen (another page, in a frame) can show the call before it exists.
+  // Cleared once the call is made, or when they leave.
+  useEffect(() => {
+    saveCallDraft(draft);
+  }, [draft]);
+  useEffect(() => () => clearCallDraft(), []);
 
   const handleAnswer = (id, value) => setDraft((prev) => ({ ...prev, [id]: value }));
 
@@ -140,6 +181,7 @@ export default function CreateCallFlow({
       callQuestions: cleanQuestions(questionsOf(draft)), // what they set on the questions step
       serviceId: draft.serviceId,
     });
+    clearCallDraft();
     setReady(true);
   };
 
@@ -164,11 +206,16 @@ export default function CreateCallFlow({
       answers={draft}
       onAnswer={handleAnswer}
       onExit={onExit}
-      finishLabel="Create call"
+      finishLabel="Get my booking link"
       onComplete={finish}
       asideWidth="half"
       renderAside={({ question }) =>
-        question.preview === false ? null : question.id === 'callQuestions' ? (
+        question.id === 'service' ? (
+          // Their own contract, as people will see it, still, with a pill on it.
+          // Its own key, so it starts fresh rather than reusing the questions
+          // screen's frame, whose highlight would otherwise carry over
+          <ProfileExample key="contract" questionId="service" page={contractPage} />
+        ) : question.preview === false ? null : question.id === 'callQuestions' ? (
           // Her checkout, with example questions (profileAnnotations.js)
           <ProfileExample questionId="callQuestions" />
         ) : (

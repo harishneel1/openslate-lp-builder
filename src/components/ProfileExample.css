@@ -4,6 +4,39 @@
   gap: 10px;
 }
 
+/* ---------- Tag: a label stuck on the frame's top edge (page.tag) ---------- */
+/* Room above the frame for the half of the tag that sticks out */
+.pex--tagged {
+  position: relative;
+  padding-top: 16px;
+}
+
+.pex__tag {
+  position: absolute;
+  top: 0;
+  right: 24px; /* the bar's empty end, clear of its dots and link */
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-primary-tint);
+  border: 1px solid #f3c9a4;
+  border-radius: var(--radius-sm);
+  cursor: default;
+  user-select: none;
+}
+
+.pex__tag svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
 /* ---------- Header ---------- */
 .pex__caption {
   font-size: 13px;
@@ -209,7 +242,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pex__spot {
-    transition: none;
+  transition: none;
   }
   .pex__marks {
     animation: none;

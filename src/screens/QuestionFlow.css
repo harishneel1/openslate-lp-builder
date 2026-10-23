@@ -52,6 +52,98 @@
   color: var(--color-text-muted);
 }
 
+/* ---------- Footnote: a word in the title, explained under the answer ---------- */
+/* The word itself is the control: dotted underline at rest, solid on hover */
+.flow__term {
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.flow__term-word {
+  text-decoration: underline dotted var(--color-primary);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 0.15s;
+}
+
+.flow__term:hover .flow__term-word {
+  text-decoration-style: solid;
+}
+
+.flow__term-star {
+  margin-left: 1px;
+  color: var(--color-primary);
+}
+
+.flow__term--star-only .flow__term-star {
+  margin-left: 4px;
+}
+
+.flow__term:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.flow__footnote {
+  /* Padded for the highlight, pulled out so the text lines up with the card */
+  margin: 16px -12px 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 transparent;
+  transition: background-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+.flow__footnote > span {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* Hovering the word: a light mark, so they see where it points */
+.flow__footnote--hint {
+  background: var(--color-primary-tint);
+}
+
+/* Clicking it: a clear highlight that holds, then fades (FLASH_MS in QuestionFlow.jsx) */
+.flow__footnote--flash {
+  animation: flow-note-flash 2.2s ease-out forwards;
+}
+
+@keyframes flow-note-flash {
+  0%,
+  60% {
+    color: var(--color-text);
+    background: var(--color-primary-tint);
+    box-shadow: inset 3px 0 0 var(--color-primary);
+  }
+  100% {
+    color: var(--color-text-muted);
+    background: transparent;
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow__footnote {
+    transition: none;
+  }
+  /* No fade: the highlight shows, then goes when the timer ends */
+  .flow__footnote--flash {
+    animation: none;
+    color: var(--color-text);
+    background: var(--color-primary-tint);
+    box-shadow: inset 3px 0 0 var(--color-primary);
+  }
+}
+
 /* ---------- Nav ---------- */
 .flow__nav {
   display: flex;

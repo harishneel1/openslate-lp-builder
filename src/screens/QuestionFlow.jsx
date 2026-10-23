@@ -109,6 +109,9 @@ export default function QuestionFlow({
     setFurthest((f) => Math.max(f, i));
   };
 
+  // The note under the answer, for a screen with a footnote
+  const footnote = useFootnote(question.id);
+
   const goNext = () => {
     if (!canContinue) return;
     // Save a preselected default the user accepted without tapping
@@ -242,7 +245,17 @@ export default function QuestionFlow({
             <span className="flow__tick" aria-hidden="true"><Check size={22} strokeWidth={3} /></span>
           )}
           <h1 className="flow__title">
-            {question.question}
+            {question.footnote ? (
+              <TitleWithTerm
+                title={question.question}
+                word={question.footnoteWord}
+                noteId={`flow-note-${question.id}`}
+                onHint={footnote.hint}
+                onShow={footnote.show}
+              />
+            ) : (
+              question.question
+            )}
             {question.info && <InfoTip info={question.info} />}
           </h1>
           {question.helper && <p className="flow__helper">{question.helper}</p>}
@@ -254,6 +267,20 @@ export default function QuestionFlow({
             onChange={(v, id = question.id) => onAnswer(id, v)}
             onSubmit={goNext}
           />
+          {/* footnote: a word in the title explained, under the answer (the asterisk jumps here) */}
+          {question.footnote && (
+            <p
+              // A new key each time the term is clicked, so the highlight plays again
+              key={`note-${footnote.shown}`}
+              id={`flow-note-${question.id}`}
+              className={`flow__footnote ${footnote.hinted ? 'flow__footnote--hint' : ''} ${
+                footnote.shown > 0 && footnote.flashing ? 'flow__footnote--flash' : ''
+              }`}
+            >
+              <span aria-hidden="true">* </span>
+              {question.footnote}
+            </p>
+          )}
         </div>
 
                 {backAtTop ? (
@@ -280,6 +307,73 @@ export default function QuestionFlow({
 
       {aside && <aside className="flow__aside">{aside}</aside>}
     </div>
+  );
+}
+
+// ------------------------------------------------------------
+// A word in a screen's title explained under its answer (question.footnote).
+// The word itself, with an asterisk, is the control: hovering it lightly
+// marks the note; clicking it brings the note into view and highlights it
+// for a moment. footnoteWord: the word to mark (its first appearance); with
+// none, or if it isn't in the title, the asterisk goes at the end.
+// ------------------------------------------------------------
+const FLASH_MS = 2200; // matches flow-note-flash in QuestionFlow.css
+
+function useFootnote(questionId) {
+  const [hinted, setHinted] = useState(false);
+  const [shown, setShown] = useState(0); // times clicked: a new key replays the highlight
+  const [flashing, setFlashing] = useState(false);
+  const timer = useRef(null);
+
+  // A new screen starts with nothing highlighted
+  useEffect(() => {
+    setHinted(false);
+    setFlashing(false);
+    clearTimeout(timer.current);
+  }, [questionId]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const show = (noteId) => {
+    const note = document.getElementById(noteId);
+    if (note) {
+      const r = note.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > window.innerHeight) {
+        const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        note.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+      }
+    }
+    setShown((n) => n + 1);
+    setFlashing(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setFlashing(false), FLASH_MS);
+  };
+
+  return { hinted, shown, flashing, hint: setHinted, show };
+}
+
+function TitleWithTerm({ title, word, noteId, onHint, onShow }) {
+  const at = word ? title.toLowerCase().indexOf(word.toLowerCase()) : -1;
+  const before = at >= 0 ? title.slice(0, at) : title;
+  const term = at >= 0 ? title.slice(at, at + word.length) : '';
+  const after = at >= 0 ? title.slice(at + word.length) : '';
+  return (
+    <>
+      {before}
+      <button
+        type="button"
+        className={`flow__term ${term ? '' : 'flow__term--star-only'}`}
+        onClick={() => onShow(noteId)}
+        onMouseEnter={() => onHint(true)}
+        onMouseLeave={() => onHint(false)}
+        onFocus={() => onHint(true)}
+        onBlur={() => onHint(false)}
+        aria-describedby={noteId}
+      >
+        {term && <span className="flow__term-word">{term}</span>}
+        <span className="flow__term-star" aria-hidden="true">*</span>
+      </button>
+      {after}
+    </>
   );
 }
 

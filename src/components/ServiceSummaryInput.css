@@ -35,7 +35,7 @@
   color: var(--color-text-muted);
 }
 
-/* Preview and Edit, along the bottom of the card */
+/* Preview, along the bottom of the card */
 .svc__actions {
   display: flex;
   gap: 10px;
@@ -76,6 +76,14 @@
   margin-top: 12px;
   font-size: 14px;
   color: var(--color-text-muted);
+}
+
+/* "Create a 1:1 call" shows the contract beside the screen; Preview is only
+   for when that column is hidden (same width as QuestionFlow.css) */
+@media (min-width: 1001px) {
+  .svc__actions--narrow-only {
+    display: none;
+  }
 }
 
 @media (max-width: 560px) {
