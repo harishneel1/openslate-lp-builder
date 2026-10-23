@@ -12,7 +12,6 @@ import UpdatesBell from './UpdatesBell';
 import './AppLayout.css';
 
 const sidebarItems = [
-  { id: 'get-started', label: 'Get Started', icon: LayoutGrid },
   // Where 1:1 calls are made and managed. My offerings only shows them.
   // Users, not Video: Video is Workshops in the top nav.
   { id: 'calls', label: '1:1 calls', icon: Users },
