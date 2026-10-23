@@ -330,6 +330,11 @@ function App() {
           webinars={funnels.filter((f) => f.type === 'webinar')}
           onCreate={() => startFunnel('webinar')}
           onOpen={setOpenId}
+          // A click on the row: straight to its overview (the three page cards)
+          onOpenOverview={(id) => {
+            setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'overview' } : f)));
+            setOpenId(id);
+          }}
           onRunAgain={setRunAgainId}
           onDelete={deleteFunnel}
         />

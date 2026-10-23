@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarPlus, Check, ExternalLink, Link2, MonitorPlay, Pencil, Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowRight, CalendarPlus, Check, ExternalLink, Link2, MonitorPlay, Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useCopy } from './OfferingsHome';
-import RowMenu from '../components/RowMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
@@ -29,11 +28,11 @@ import './WebinarsPage.css';
 //
 //   Webinars                                    [+ Create a webinar]
 //   ┌ Upcoming 2 ───────────────────────────────────────────────────┐
-//   │ [NOV 7] Fix the Vasthu mistakes…  [Copy link] [Edit] [↗] [⋯] │
+//   │ [NOV 7] Fix the Vasthu mistakes…  [Copy link] [Preview & edit] [🗑] │
 //   │         Sat 7 Nov, 7:00 pm IST · 60 min · ₹499                │
 //   │         ● Live · Starts in 16 days                            │
 //   ├ Drafts 1 ─────────────────────────────────────────────────────┤
-//   │ [ — ]   Untitled webinar · 1 of 3 pages done  [Continue]  [⋯] │
+//   │ [ — ]   Untitled webinar · 1 of 3 pages done  [Continue]  [🗑] │
 //   └ Past ─────────────────────────────────────────────────────────┘
 //
 // Upcoming: published, soonest first. Drafts: not published, last edited
@@ -42,14 +41,18 @@ import './WebinarsPage.css';
 // webinar; only one that hasn't been run again offers Run it again.
 // Empty groups don't show.
 //
+// A click anywhere on a row opens the webinar's overview (its three page
+// cards). Preview & edit opens the landing page's preview in a new tab,
+// which has "Edit page" in its top bar.
+//
 // webinars: the saved records (App.jsx)
-// onCreate(), onOpen(id), onDelete(id), onRunAgain(id)
+// onCreate(), onOpen(id) (where they left off: Continue setting up),
+// onOpenOverview(id), onDelete(id), onRunAgain(id)
 // ------------------------------------------------------------
 
 const TYPE = funnelTypes.find((t) => t.id === 'webinar');
 
-export default function WebinarsPage({ webinars = [], onCreate, onOpen, onDelete, onRunAgain }) {
-  const [menuFor, setMenuFor] = useState(null);
+export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain }) {
   const [deleting, setDeleting] = useState(null); // { id, name } while the pop-up asks
   const [said, setSaid] = useState(''); // for screen readers: what just changed
 
@@ -85,20 +88,13 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onDelete
     setDeleting(null);
   };
 
-  const rowProps = ({ key, webinar: w, session }) => ({
+  const rowProps = ({ webinar: w, session }) => ({
     webinar: w,
     session,
-    menuOpen: menuFor === key,
-    onMenu: (open) => setMenuFor(open ? key : null),
     onOpen: () => onOpen(w.id),
-    onRunAgain: () => {
-      setMenuFor(null);
-      onRunAgain(w.id);
-    },
-    onDelete: () => {
-      setMenuFor(null);
-      setDeleting({ id: w.id, name: funnelName(w, TYPE), live: Boolean(w.publishedAt) });
-    },
+    onOpenOverview: () => onOpenOverview(w.id),
+    onRunAgain: () => onRunAgain(w.id),
+    onDelete: () => setDeleting({ id: w.id, name: funnelName(w, TYPE), live: Boolean(w.publishedAt) }),
   });
 
   return (
@@ -202,7 +198,7 @@ function draftProgress(webinar) {
 // One webinar, as a full-width row like a 1:1 call: date, what it is and
 // where it's at on the left; what you can do on the right.
 // session: an earlier session of this webinar (shown in Past), or null for its current one
-function WebinarRow({ webinar, session, menuOpen, onMenu, onOpen, onDelete, onRunAgain }) {
+function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunAgain }) {
   // An earlier session shows its own date, length and price; the rest is the webinar's
   const answers = session ? { ...webinar.answers, ...session } : webinar.answers;
   const name = funnelName(webinar, TYPE);
@@ -221,30 +217,25 @@ function WebinarRow({ webinar, session, menuOpen, onMenu, onOpen, onDelete, onRu
   const details = [when?.line, length].filter(Boolean).join(' · ');
   const showPrice = landingDone || status !== 'draft';
 
-  const menuItems = [
-    // Start takes Copy link's place on the row, so Copy link moves in here
-    ...(startNow ? [{ label: 'Copy link', icon: Link2, onSelect: () => { onMenu(false); copyLink(url); } }] : []),
-    ...(landingDone
-      ? [
-          {
-            label: 'Preview',
-            icon: ExternalLink,
-            onSelect: () => {
-              onMenu(false);
-              window.open(`?preview=${encodeURIComponent(webinar.id)}`, '_blank', 'noopener');
-            },
-          },
-        ]
-      : []),
-    { label: 'Delete', icon: Trash2, danger: true, onSelect: onDelete },
-  ];
+  // The landing page's preview (new tab), with "Edit page" in its top bar
+  const previewHref = landingDone ? `?preview=${encodeURIComponent(webinar.id)}` : null;
+  const previewAndEdit = previewHref && (
+    <a className="oh__edit" href={previewHref} target="_blank" rel="noopener" aria-label={`Preview and edit ${name} (opens in a new tab)`}>
+      <ExternalLink size={15} aria-hidden="true" /> Preview &amp; edit
+    </a>
+  );
 
   return (
-    <li className={`oh-row wb-row ${status === 'past' ? 'wb-row--past' : ''} ${menuOpen ? 'oh-row--menu' : ''}`}>
+    <li className={`oh-row wb-row ${status === 'past' ? 'wb-row--past' : ''}`}>
       <DateTile when={when} />
 
       <div className="oh-row__text">
-        <h3 className="oh-row__name">{name}</h3>
+        <h3 className="oh-row__name">
+          {/* Covers the whole row (see .wb-row__open::after): a click anywhere opens the overview */}
+          <button type="button" className="wb-row__open" onClick={onOpenOverview}>
+            {name}
+          </button>
+        </h3>
         {(details || showPrice) && (
           <p className="oh-row__detail">
             {details}
@@ -282,7 +273,7 @@ function WebinarRow({ webinar, session, menuOpen, onMenu, onOpen, onDelete, onRu
       <div className="oh-row__actions">
         {session ? (
           // An earlier session: it's a record, so the webinar is where things happen
-          <button type="button" className="oh__edit" onClick={onOpen} aria-label={`Open ${name}`}>
+          <button type="button" className="oh__edit" onClick={onOpenOverview} aria-label={`Open ${name}`}>
             Open webinar
           </button>
         ) : status === 'past' ? (
@@ -290,9 +281,7 @@ function WebinarRow({ webinar, session, menuOpen, onMenu, onOpen, onDelete, onRu
             <button type="button" className="oh__edit wb-row__again" onClick={onRunAgain} aria-label={`Run ${name} again`}>
               <RefreshCw size={15} aria-hidden="true" /> Run it again
             </button>
-            <button type="button" className="oh__edit" onClick={onOpen} aria-label={`Edit ${name}`}>
-              <Pencil size={15} aria-hidden="true" /> Edit
-            </button>
+            {previewAndEdit}
           </>
         ) : status === 'draft' ? (
           <button type="button" className="oh__edit wb-row__continue" onClick={onOpen} aria-label={`Continue setting up ${name}`}>
@@ -305,18 +294,40 @@ function WebinarRow({ webinar, session, menuOpen, onMenu, onOpen, onDelete, onRu
                 <Play size={15} aria-hidden="true" /> Start webinar
               </a>
             )}
+            {/* Start takes Copy link's place, so Copy link shrinks to an icon beside it */}
+            {startNow && url && (
+              <button
+                type="button"
+                className="wb-row__icon"
+                onClick={() => copyLink(url)}
+                aria-label={copy === 'copied' ? 'Link copied' : `Copy link to ${name}`}
+                data-tip={copy === 'copied' ? 'Copied' : 'Copy link'}
+              >
+                {copy === 'copied' ? <Check size={17} strokeWidth={3} aria-hidden="true" /> : <Link2 size={17} aria-hidden="true" />}
+              </button>
+            )}
             {status === 'upcoming' && !startNow && (
               <button type="button" className="oh-card__copy" onClick={() => copyLink(url)} aria-label={`Copy link to ${name}`}>
                 {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
                 {copy === 'copied' ? 'Copied' : 'Copy link'}
               </button>
             )}
-            <button type="button" className="oh__edit" onClick={onOpen} aria-label={`Edit ${name}`}>
-              <Pencil size={15} aria-hidden="true" /> Edit
-            </button>
+            {previewAndEdit}
           </>
         )}
-        {!session && <RowMenu title={name} open={menuOpen} onOpenChange={onMenu} items={menuItems} />}
+        {/* Delete was the only thing left in the ⋯ menu, so it's its own button */}
+        {!session && (
+          <button
+            type="button"
+            className="wb-row__icon wb-row__icon--delete"
+            onClick={onDelete}
+            aria-label={`Delete ${name}`}
+            data-tip="Delete"
+            data-tip-align="end"
+          >
+            <Trash2 size={17} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <span className="oh__sr-only" aria-live="polite">

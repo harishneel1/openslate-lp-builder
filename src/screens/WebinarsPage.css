@@ -17,6 +17,95 @@
 /* Date on the left, then what it is, then the actions */
 .wb-row {
   grid-template-columns: auto minmax(0, 1fr) auto;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+/* ---------- The whole row opens the webinar's overview ---------- */
+.wb-row__open {
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+}
+
+/* The click area: the whole row, under the buttons */
+.wb-row__open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.wb-row:has(.wb-row__open:hover) {
+  border-color: #d6d6d6;
+  box-shadow: var(--shadow-hover, 0 6px 20px rgba(0, 0, 0, 0.08));
+}
+
+.wb-row:has(.wb-row__open:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.wb-row__open:focus-visible {
+  outline: none;
+}
+
+/* The buttons sit above the click area, so they do their own thing
+   (and the link shown when copying fails can still be selected) */
+.wb-row .oh-row__actions,
+.wb-row .oh-row__error {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- The row's buttons: clearly clickable on hover ----------
+   Preview & edit is a link (<a>), so it drops the link underline. */
+.wb-row .oh__edit {
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wb-row .oh__edit:not(.wb-row__again):hover {
+  background: #f3f3f5;
+  border-color: #c4c4c9;
+}
+
+/* ---------- Square icon buttons: Delete, and Copy link beside Start ---------- */
+.wb-row__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.wb-row__icon:hover {
+  background: #f3f3f5;
+  border-color: #c4c4c9;
+}
+
+.wb-row__icon--delete {
+  color: var(--color-text-muted);
+}
+
+.wb-row__icon--delete:hover {
+  color: #b42318;
+  background: #fdf2f2;
+  border-color: #e8b4b4;
+}
+
+.wb-row__icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .wb-row--past .wb-tile,
