@@ -241,10 +241,13 @@ export default function CreateCallFlow({
 //   ┌──────────────────────────────────────────┬────────────┐
 //   │ openslate.app/harishneel/my-call-…       │ Copy link  │
 //   └──────────────────────────────────────────┴────────────┘
-//   [↗ Preview]
+//   [↗ View live page]
 //   Go to my 1:1 calls →
 //
 // url: its own link, or null when there isn't one yet (Preview only)
+// still: show it finished, with no checklist or reveal. The 1:1 calls list
+//   opens this for a call that already exists (CallsPage.jsx), so there's
+//   nothing being set up.
 const READY_STEPS = [
   'Saving your call details',
   'Setting up your booking times',
@@ -257,14 +260,14 @@ const READY_PAUSE = 400;   // a beat after the last tick, then the reveal
 const prefersLessMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-function CallReady({ callId, title, url, doneLabel, onDone }) {
+export function CallReady({ callId, title, url, doneLabel, onDone, still = false }) {
   const [copy, copyLink] = useCopy();
   const bookingSrc = `${window.location.pathname}?mock=book&service=${encodeURIComponent(callId)}`;
   const shown = url ? url.replace(/^https?:\/\//, '') : null;
   const name = title || 'Your 1:1 call';
 
   // Decided once, so it never replays
-  const [skip] = useState(prefersLessMotion);
+  const [skip] = useState(() => still || prefersLessMotion());
   const [done, setDone] = useState(skip ? READY_STEPS.length : 0); // steps ticked
   const [ready, setReady] = useState(skip);
 
@@ -336,10 +339,10 @@ function CallReady({ callId, title, url, doneLabel, onDone }) {
         href={url ?? bookingSrc}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Preview the booking page (opens in a new tab)"
+        aria-label="View the live booking page (opens in a new tab)"
       >
         <ExternalLink size={15} aria-hidden="true" />
-        Preview
+        View live page
       </a>
 
       <button type="button" className="ready__done ready__later" onClick={onDone}>

@@ -25,7 +25,7 @@ import './CallsPage.css';
 //   ┌ Calendar   G harish@…  ● Connected                    [Manage] ┐
 //   └ Days off   26–28 Oct, 2 Nov                         [Manage] ┘
 //   ┌ Your calls 3                                [+ Create a 1:1 call] ┐
-//   │ Discovery call                    [Copy link] [Edit] [↗] [⋯]   │
+//   │ Discovery call      [Copy link] [Edit] [↗ View live page] [⋯]  │
 //   │ Video call · 30 min · Free                                     │
 //   │ Mon–Fri, 9 am – 5 pm                                           │
 //   └ (one full-width row per call, like Calendly's event types)     ┘
@@ -33,21 +33,23 @@ import './CallsPage.css';
 // ⋯ holds Delete, which always asks first (ConfirmDialog).
 //
 // Create a 1:1 call is guided, every time (CreateCallFlow.jsx): one
-// question per screen beside its booking page, then "It's ready". Edit
-// opens the full editor (EditService.jsx), for changing one thing fast.
+// question per screen beside its booking page, then "It's ready". Edit (or
+// a click on the row) opens the full editor (EditService.jsx), for changing
+// one thing fast.
 // A call made here isn't put on the offerings page; back on the list
 // it's marked "Just created". It can be booked from its link either way.
 // Each call stands on its own, like a Calendly event: its link is
 // /<account link>/<call> (accountHandle in myPage.js), so it works
 // whether or not they've set up an offerings page, and every card always
-// has Copy link, Edit and Preview.
+// has Copy link, Edit and View live page.
 //
 // Add ?calendar=lost to the address to see the calendar as if Google
 // had stopped letting us in (only when one is connected).
 // ------------------------------------------------------------
 export default function CallsPage() {
   const [answers, setAnswers] = useSetupAnswers();
-  // 'list' ↔ 'edit' (one call, in the editor) or 'new' (the guided flow)
+  // 'list' ↔ 'edit' (one call, in the editor: its Edit button, or a click
+  // anywhere on its row) or 'new' (the guided flow)
   const [view, setView] = useState('list');
   const [editingId, setEditingId] = useState(null);
   const [justAddedId, setJustAddedId] = useState(null);
@@ -215,7 +217,8 @@ function hoursLine(id) {
 
 // One call, as a full-width row: what it is on the left (name, details with
 // the price, when it can be booked), what you can do on the right
-// (Copy link · Edit · Preview · ⋯). On a narrow screen the actions go under.
+// (Copy link · Edit · View live page · ⋯). On a narrow screen the actions go
+// under. Clicking the row anywhere else opens the editor, like Edit.
 // url: its own link, to share or open
 function CallRow({ call, url, isNew, menuOpen, onMenu, onEdit, onDelete }) {
   const details = call.facts.map((f) => f.text).join(' · ');
@@ -223,10 +226,23 @@ function CallRow({ call, url, isNew, menuOpen, onMenu, onEdit, onDelete }) {
   const hours = useMemo(() => hoursLine(call.id), [call.id]);
 
   return (
-    <li className={`oh-row ${isNew ? 'oh-row--new' : ''} ${menuOpen ? 'oh-row--menu' : ''}`}>
+    <li
+      className={`oh-row calls__row ${isNew ? 'oh-row--new' : ''} ${menuOpen ? 'oh-row--menu' : ''}`}
+      // Anywhere on the row opens it in the editor, like its Edit button,
+      // except its own buttons and links
+      onClick={(e) => {
+        if (e.target.closest('button, a, [role="menu"], [role="dialog"]')) return;
+        onEdit();
+      }}
+    >
       <div className="oh-row__text">
         {isNew && <span className="oh-card__new">Just created</span>}
-        <h3 className="oh-row__name">{call.title}</h3>
+        <h3 className="oh-row__name">
+          {/* The name is the row's control for keyboards and screen readers */}
+          <button type="button" className="calls__open" onClick={onEdit}>
+            {call.title}
+          </button>
+        </h3>
         <p className="oh-row__detail">
           {details} ·{' '}
           <span className={call.price.isFree ? 'oh-row__price oh-row__price--free' : 'oh-row__price'}>
@@ -245,15 +261,13 @@ function CallRow({ call, url, isNew, menuOpen, onMenu, onEdit, onDelete }) {
           <Pencil size={15} aria-hidden="true" /> Edit
         </button>
         <a
-          className="oh__edit oh-card__preview"
+          className="oh__edit oh-card__edit calls__live"
           href={url}
           target="_blank"
           rel="noopener"
-          aria-label={`Preview the booking page for ${call.title} (opens in a new tab)`}
-          data-tip="Preview"
-          data-tip-align="end"
+          aria-label={`View the live page for ${call.title} (opens in a new tab)`}
         >
-          <ExternalLink size={16} aria-hidden="true" />
+          <ExternalLink size={15} aria-hidden="true" /> View live page
         </a>
         <RowMenu
           title={call.title}

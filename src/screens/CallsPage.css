@@ -55,3 +55,41 @@
   line-height: 1.5;
   color: var(--color-text-muted);
 }
+/* ---------- A call's row: clicking it opens the call in the editor ---------- */
+.calls__row {
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.calls__row:hover {
+  border-color: #dcdcdc;
+  box-shadow: var(--shadow-hover);
+}
+
+/* The name: a button, so it looks like the heading it replaces */
+.calls__open {
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.calls__row:hover .calls__open {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.calls__open:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* View live page: a link styled like the Edit button beside it */
+.calls__live {
+  color: var(--color-text);
+  text-decoration: none;
+}
