@@ -31,7 +31,7 @@ export default function CalendarRow() {
   return (
     <>
       <div className={`oh__row cal-row ${ok ? '' : 'cal-row--alert'}`}>
-        <span className="oh__row-label">Calendar</span>
+        <span className="oh__row-label">Google Calendar</span>
 
         {ok ? (
           <div className="oh__row-value cal-row__account">

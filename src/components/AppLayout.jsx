@@ -4,12 +4,11 @@ import {
   Grid3x3, Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
-  Copy, ExternalLink, CalendarCheck, Users,
+  CalendarCheck, Users, Store,
 } from 'lucide-react';
-import { initials } from '../utils/initials';
-import { PAGE_DOMAIN, SETUP_CHANGED_EVENT, mockAccount, pageUrl, savedHandle } from '../data/myPage';
+import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
-import { buildBookingsJson } from '../data/buildBookingsJson';
+import { buildBookingsJson, shortDay } from '../data/buildBookingsJson';
 import UpdatesBell from './UpdatesBell';
 import './AppLayout.css';
 
@@ -31,16 +30,37 @@ const sidebarItems = [
   // MonitorPlay, not Video: Video is Workshops in the top nav.
   { id: 'page-builder', label: 'Webinars', icon: MonitorPlay },
   { id: 'services', label: 'Contracts', icon: Briefcase },
-  { id: 'bookings', label: 'Bookings', icon: CalendarCheck },
+  // Their storefront (the offerings page): set up once and shared, so it
+  // sits last. The id is still 'my-page'. Bookings has no item here: the
+  // "Your bookings" card at the top is the way in.
+  { id: 'my-page', label: 'Storefront', icon: Store },
 ];
 
-// Calls still to come today, for the Bookings tab's count. Follows new
-// bookings (even from another tab) and the clock, so it drops as calls end.
-function useCallsLeftToday() {
-  const count = () => buildBookingsJson({ bookings: loadBookings() }).upcomingToday;
-  const [left, setLeft] = useState(count);
+// Today, for the "Your bookings" card: how many calls are left and when
+// the next one is. Follows new bookings (even from another tab) and the
+// clock, so it moves on as calls end.
+function todayOf() {
+  const page = buildBookingsJson({ bookings: loadBookings() });
+  const { next, today, upcomingToday: left } = page;
+  // Two short lines, so neither gets cut off in the narrow card
+  let line;
+  let nextLine = null;
+  if (left > 0) {
+    line = `${left} ${left === 1 ? 'call' : 'calls'} left today`;
+    nextLine = next.state === 'live' ? 'One is on now' : `Next at ${next.time}`;
+  } else if (next) {
+    line = 'No calls today';
+    nextLine = `Next: ${shortDay(next.date, today).toLowerCase()}, ${next.time}`;
+  } else {
+    line = 'No calls coming up';
+  }
+  return { left, line, nextLine };
+}
+
+function useToday() {
+  const [summary, setSummary] = useState(todayOf);
   useEffect(() => {
-    const update = () => setLeft(count());
+    const update = () => setSummary(todayOf());
     const stop = onBookingsChange(update);
     const timer = setInterval(update, 60_000);
     return () => {
@@ -48,7 +68,18 @@ function useCallsLeftToday() {
       clearInterval(timer);
     };
   }, []);
-  return left;
+  return summary;
+}
+
+// Whether their storefront has a link yet; follows setup as it saves one
+function useHasStorefront() {
+  const [has, setHas] = useState(() => Boolean(savedHandle()));
+  useEffect(() => {
+    const update = () => setHas(Boolean(savedHandle()));
+    window.addEventListener(SETUP_CHANGED_EVENT, update);
+    return () => window.removeEventListener(SETUP_CHANGED_EVENT, update);
+  }, []);
+  return has;
 }
 
 // Focus mode: while a webinar is open, the app's top nav and sidebar step back
@@ -77,58 +108,36 @@ function FocusBar({ title, onExit, saveFailed }) {
   );
 }
 
-// The creator's offerings page. Pinned above the nav because it's the thing
-// they share everywhere: collapsed it's just their avatar, expanded it shows
-// the link and quick actions. Before they've picked a link, it invites them
-// to set it up instead.
-function MyPageCard({ active, onOpen }) {
-  const [handle, setHandle] = useState(savedHandle);
-  const [copied, setCopied] = useState(false);
-  const link = handle ? `${PAGE_DOMAIN}/${handle}` : null;
-
-  // The setup screen saves the link; pick it up as soon as it does
-  useEffect(() => {
-    const update = () => setHandle(savedHandle());
-    window.addEventListener(SETUP_CHANGED_EVENT, update);
-    return () => window.removeEventListener(SETUP_CHANGED_EVENT, update);
-  }, []);
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(pageUrl(handle));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard blocked: nothing to do, the link is visible on the card
-    }
-  }
-
+// "Your bookings": pinned above the nav, because what's on today is what a
+// coach opens the app for. Collapsed it's a calendar icon, with a dot when
+// calls are left today; expanded it says how many and when the next one is,
+// with Open calendar. The whole card opens the calendar (Bookings).
+function BookingsCard({ active, onOpen }) {
+  const { left, line, nextLine } = useToday();
   return (
-    <div className={`mypage ${active ? 'mypage--active' : ''}`}>
-      <button type="button" className="mypage__main" onClick={onOpen} title="My offerings page">
-        <span className="mypage__avatar">{initials(mockAccount.name)}</span>
+    <div className={`mypage bkcard ${active ? 'mypage--active' : ''}`}>
+      <button
+        type="button"
+        className="mypage__main"
+        onClick={onOpen}
+        title="Your bookings"
+        aria-label={`Your bookings: ${line}${nextLine ? `. ${nextLine}` : ''}. Open calendar`}
+      >
+        <span className="mypage__avatar bkcard__icon">
+          <CalendarCheck size={17} aria-hidden="true" />
+          {left > 0 && <span className="bkcard__dot" aria-hidden="true" />}
+        </span>
         <span className="mypage__text">
-          <span className="mypage__label">My offerings page</span>
-          <span className="mypage__link">{link ?? 'Not set up yet'}</span>
+          <span className="mypage__label">Your bookings</span>
+          <span className="mypage__link">{line}</span>
+          {nextLine && <span className="mypage__link bkcard__next">{nextLine}</span>}
         </span>
       </button>
 
       <div className="mypage__actions">
-        {link ? (
-          <>
-            <button type="button" className="mypage__action" onClick={copyLink}>
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied' : 'Copy link'}
-            </button>
-            <a className="mypage__action" href={`/${handle}`} target="_blank" rel="noreferrer">
-              <ExternalLink size={14} /> View
-            </a>
-          </>
-        ) : (
-          <button type="button" className="mypage__action mypage__action--start" onClick={onOpen}>
-            Set it up
-          </button>
-        )}
+        <button type="button" className="mypage__action" onClick={onOpen} tabIndex={-1} aria-hidden="true">
+          <CalendarCheck size={14} /> Open calendar
+        </button>
       </div>
     </div>
   );
@@ -136,7 +145,7 @@ function MyPageCard({ active, onOpen }) {
 
 // onOpenBooking(id): an update in the bell was clicked; open that call on Bookings
 export default function AppLayout({ activeNav, onNavigate, onOpenBooking, focus = null, children }) {
-  const callsLeftToday = useCallsLeftToday();
+  const hasStorefront = useHasStorefront();
 
   if (focus) {
     return (
@@ -183,33 +192,24 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, focus 
               <input placeholder="Search..." />
             </div>
 
-            <MyPageCard active={activeNav === 'my-page'} onOpen={() => onNavigate('my-page')} />
+            <BookingsCard active={activeNav === 'bookings'} onOpen={() => onNavigate('bookings')} />
 
             <nav className="sidebar__nav">
               {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => {
-                // Bookings shows how many calls are left today: a number when the
-                // sidebar is open, a dot on the icon when it's closed
-                const count = id === 'bookings' && callsLeftToday > 0 ? callsLeftToday : null;
+                // Storefront, before it has a link: a small "Set up" tag
+                const tag = id === 'my-page' && !hasStorefront ? 'Set up' : badge;
                 return (
                   <button
                     key={id}
                     type="button"
                     onClick={() => onNavigate(id)}
                     className={`sidebar__item ${activeNav === id ? 'sidebar__item--active' : ''}`}
-                    aria-label={count ? `${label}, ${count} ${count === 1 ? 'call' : 'calls'} left today` : undefined}
-                    title={count ? `${count} ${count === 1 ? 'call' : 'calls'} left today` : undefined}
                   >
                     <span className="sidebar__icon-wrap">
                       <Icon size={20} className="sidebar__icon" />
-                      {count && <span className="sidebar__dot" aria-hidden="true" />}
                     </span>
                     <span className="sidebar__label">{label}</span>
-                    {badge && <span className="sidebar__badge">{badge}</span>}
-                    {count && (
-                      <span className="sidebar__badge sidebar__badge--count" aria-hidden="true">
-                        {count}
-                      </span>
-                    )}
+                    {tag && <span className="sidebar__badge">{tag}</span>}
                     {hasMenu && <ChevronDown size={16} className="sidebar__chevron" />}
                   </button>
                 );

@@ -47,7 +47,7 @@ function withPickedCalls(answers) {
 const ownPagePreview = (handle) => ({
   src: `${window.location.pathname}?mock=profile&source=mine&live=1`,
   link: `${PAGE_DOMAIN}/${handle ?? ''}`,
-  caption: 'Your offerings page',
+  caption: 'Your storefront',
   byline: 'Your calls show up as you pick them',
 });
 
@@ -132,7 +132,7 @@ export default function MyPageSetup() {
         hasLinks={Boolean(answers.handle)}
         onExit={() => setStep('home')}
         onCreate={(call) => setAnswers((prev) => withAddedCall(prev, call))}
-        doneLabel="Back to your offerings page"
+        doneLabel="Back to your storefront"
         onDone={(id) => {
           setJustAddedIds([id]);
           setStep('home');
@@ -191,7 +191,7 @@ export default function MyPageSetup() {
       renderProgress={({ index, visible }) => (
         <div className="flow__progress">
           <div className="flow__progress-label">
-            <span>Setting up your offerings page</span>
+            <span>Setting up your storefront</span>
             <span>{index + 1} of {visible.length}</span>
           </div>
           <div className="flow__progress-track">

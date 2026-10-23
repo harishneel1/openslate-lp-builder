@@ -319,7 +319,7 @@ export default function ProfileExample({
               ref={iframeRef}
               className={`pex__page ${explore ? 'pex__page--explore' : ''}`}
               src={src}
-              title={page ? page.caption : mine ? 'Your offerings page' : `${EXAMPLE_CREATOR.name}’s page`}
+              title={page ? page.caption : mine ? 'Your storefront' : `${EXAMPLE_CREATOR.name}’s page`}
               tabIndex={explore ? 0 : -1}
               onLoad={handleLoad}
               style={{ width: pageWidth, height: pageH, transform: `scale(${scale})` }}

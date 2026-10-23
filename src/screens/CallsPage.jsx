@@ -197,7 +197,7 @@ export default function CallsPage() {
         >
           <p>
             <strong>“{deleting.title}”</strong> will be deleted and its link will stop working
-            {deleting.onPage ? ', and it will come off your offerings page' : ''}. Calls already booked aren’t affected.
+            {deleting.onPage ? ', and it will come off your storefront' : ''}. Calls already booked aren’t affected.
             This can’t be undone.
           </p>
         </ConfirmDialog>

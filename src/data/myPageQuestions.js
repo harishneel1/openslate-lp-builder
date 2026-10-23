@@ -181,7 +181,7 @@ export const myPageQuestions = [
         ['Astrologer', 'Your date, time and place of birth'],
         ['Business coach', 'What’s your monthly revenue?'],
       ],
-      footer: 'You’ll see their answers in Bookings, before the call.',
+      footer: 'You’ll see their answers in your calendar, before the call.',
     },
     skipLabel: 'Skip for now',
     skipValue: [], // nothing extra: only name, email and phone

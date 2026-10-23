@@ -439,3 +439,44 @@
   letter-spacing: 0;
   background: var(--color-primary);
 }
+/* ---------- "Your bookings" card ----------
+   Built on the card above (.mypage), in the same spot: a calendar icon in
+   place of the avatar, today's line in place of the link. */
+.bkcard__icon {
+  position: relative;
+  overflow: visible;
+}
+
+/* Calls left today: a dot on the icon while the rail is collapsed */
+.bkcard__dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar:hover .bkcard__dot {
+  opacity: 0;
+}
+
+/* When the next call is: the line that matters most, so it stands out */
+.bkcard__next {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* The icon is dark, so it doesn't read as the old orange avatar */
+.bkcard .bkcard__icon {
+  color: var(--color-text);
+  background: #f1f1f1;
+}
+
+.mypage--active.bkcard .bkcard__icon {
+  color: var(--color-primary);
+  background: var(--color-surface);
+}

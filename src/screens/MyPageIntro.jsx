@@ -126,11 +126,11 @@ export default function MyPageIntro({ onStart }) {
           <p className="mpi__look">
             Check out Relationship Coach
             <br />
-            <mark className="mpi__look-mark" ref={fromRef}>Meera’s Offerings Page</mark>
+            <mark className="mpi__look-mark" ref={fromRef}>Meera’s Storefront</mark>
           </p>
 
           <button type="button" className="mpi__cta" onClick={onStart}>
-            Build my offerings page <ArrowRight size={18} />
+            Build my storefront <ArrowRight size={18} />
           </button>
         </div>
       </div>

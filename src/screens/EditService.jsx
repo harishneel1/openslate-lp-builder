@@ -97,7 +97,7 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 const FROM = {
   offerings: {
     cardLine: true,
-    back: 'Your offerings page',
+    back: 'Your storefront',
     create: 'Add to your page',
     saved: 'Changes show up on your page once you save them.',
     gone: 'It may have been removed. Go back to see what’s on your page.',
@@ -347,7 +347,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
                   label="Line on your page’s card"
                   note={
                     isNew || !saved.handle ? (
-                      'Shows under its name on your offerings page.'
+                      'Shows under its name on your storefront.'
                     ) : (
                       <WhereItShows
                         text="Shows under its name at"

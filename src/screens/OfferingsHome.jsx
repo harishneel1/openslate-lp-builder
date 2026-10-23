@@ -216,7 +216,7 @@ export default function OfferingsHome({
 
   return (
     <div className="oh">
-      <h1 className="oh__title">Your offerings page</h1>
+      <h1 className="oh__title">Your storefront</h1>
 
       {/* ---------- Your page: who they are, and their link ---------- */}
       <section className="oh__panel oh__me" aria-labelledby="oh-name">
@@ -237,7 +237,7 @@ export default function OfferingsHome({
 
         {/* Label, value, actions */}
         <div className="oh__row">
-          <span className="oh__row-label">Your offerings page link</span>
+          <span className="oh__row-label">Your storefront link</span>
           <span className="oh__row-value oh__url" title={url}>
             {link}
           </span>
@@ -345,7 +345,7 @@ export default function OfferingsHome({
           }}
         >
           <p>
-            <strong>“{removing.title}”</strong> will be removed from your offerings page only. 
+            <strong>“{removing.title}”</strong> will be removed from your storefront only. 
           </p>
           <p>
             To delete it permantly, go to <strong>1:1 calls</strong> in the sidebar.

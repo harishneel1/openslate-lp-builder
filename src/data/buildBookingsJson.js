@@ -236,9 +236,8 @@ export function buildBookingsJson({ bookings, now = Date.now() }) {
 // creator works, the calls placed on them, and where "now" is.
 //
 // Returns {
-//   range:     { from, to } whole hours to draw, covering their working
-//              hours and every call (null when there's nothing to draw)
-//   hours:     [[from, to], ...] their working hours that day ([] = not working)
+//   range:     { from, to } whole hours to draw, covering every call (and
+//              now, on today); null when there are no calls to draw
 //   calls:     the day's calls in time order (see describeBooking)
 //   cancelled: the day's cancelled calls, shown apart so they don't
 //              take up the time they no longer hold
@@ -257,17 +256,17 @@ export function buildDayTimeline({ date, bookings, now = Date.now() }) {
     .sort((a, b) => a.from - b.from);
   const calls = all.filter((b) => b.state !== 'cancelled');
   const cancelled = all.filter((b) => b.state === 'cancelled');
-  const hours = hoursOn(date);
-
-  // Draw whole hours, from the earliest start to the latest end of hours and calls
-  const edges = [...hours.flat(), ...calls.flatMap((c) => [c.from, Math.min(c.to, 1440)])];
+  // Draw whole hours, from the earliest call to the latest, stretched to
+  // include now on today. Available hours aren't drawn: they're set per call,
+  // so one shared calendar can't say what they are.
+  const edges = calls.flatMap((c) => [c.from, Math.min(c.to, 1440)]);
+  if (edges.length && nowMins !== null) edges.push(nowMins);
   const range = edges.length
     ? { from: Math.floor(Math.min(...edges) / 60) * 60, to: Math.ceil(Math.max(...edges) / 60) * 60 }
     : null;
 
   return {
     range,
-    hours,
     calls,
     cancelled,
     nowMins,

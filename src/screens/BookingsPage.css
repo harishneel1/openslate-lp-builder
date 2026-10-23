@@ -452,15 +452,7 @@
   margin: 8px 0 4px;
 }
 
-/* Outside working hours: lightly hatched, so the working day reads as the open space */
-.bk-grid__off {
-  position: absolute;
-  left: var(--bk-labels);
-  right: 0;
-  background: repeating-linear-gradient(-45deg, #f7f7f8 0 6px, #f1f1f3 6px 7px);
-}
-
-/* A long empty stretch outside their hours, folded into one band */
+/* A long empty stretch between calls, folded into one plain band */
 .bk-grid__fold {
   position: absolute;
   left: var(--bk-labels);
@@ -470,7 +462,7 @@
   padding-left: 14px;
   font-size: 12px;
   color: var(--bk-ink-3);
-  background: repeating-linear-gradient(-45deg, #f7f7f8 0 6px, #f1f1f3 6px 7px);
+  background: #fafafa;
   border-top: 1px dashed #d6d6db;
   border-bottom: 1px dashed #d6d6db;
 }

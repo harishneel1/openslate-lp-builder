@@ -14,7 +14,6 @@ import {
   lengthLabel,
   longDay,
   movedFromLabel,
-  offHours,
   onDay,
   shortDay,
   startsIn,
@@ -52,7 +51,7 @@ import './BookingsPage.css';
 
 const TICK_MS = 30_000; // how often "now" moves on
 const PX_PER_MIN = 72 / 60; // an hour is 72px tall
-const FOLD_AFTER_MINS = 120; // empty time outside their hours longer than this is folded
+const FOLD_AFTER_MINS = 120; // empty time between calls longer than this is folded
 const FOLD_PX = 36; // how tall a folded stretch is
 const COMPACT_BELOW = 60; // calls shorter than this (px) fit on one line
 
@@ -72,7 +71,6 @@ function cancelledBy(booking) {
 }
 
 // Working hours as words: '9:00 am to 1:00 pm, 4:00 pm to 8:00 pm'
-const hoursText = (hours) => hours.map(([f, t]) => `${clockLabel(f)} to ${clockLabel(t)}`).join(', ');
 
 export default function BookingsPage({ onNavigate, openRequest = null }) {
   const [bookings, setBookings] = useState(loadBookings);
@@ -125,14 +123,14 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
   const nextCallAfter = page.days.find((d) => d.date > date && d.date >= page.today && d.count > 0)?.date ?? null;
 
   useEffect(() => {
-    document.title = 'Bookings';
+    document.title = 'Calendar';
   }, []);
 
   // ---------- Nobody has booked yet ----------
   if (!page.hasAny) {
     return (
       <div className="bk">
-        <h1 className="bk__title">Bookings</h1>
+        <h1 className="bk__title">Calendar</h1>
         <div className="bk__empty bk__empty--page">
           <span className="bk__empty-icon" aria-hidden="true">
             <CalendarCheck size={22} />
@@ -141,7 +139,7 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
           <p className="bk__empty-text">When someone books a call from your page, it shows up here with everything you need for it.</p>
           {onNavigate && (
             <button type="button" className="bk-btn bk-btn--secondary" onClick={() => onNavigate('my-page')}>
-              Go to My offerings page
+              Go to your storefront
             </button>
           )}
         </div>
@@ -150,13 +148,12 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
   }
 
   const chosen = page.days.find((d) => d.date === date);
-  const working = day.hours.length > 0;
   const isPast = date < page.today;
 
   return (
     <div className="bk">
       <header className="bk__head">
-        <h1 className="bk__title">Bookings</h1>
+        <h1 className="bk__title">Calendar</h1>
         <p className="bk__zone">Times in {page.zoneLabel}</p>
       </header>
 
@@ -174,9 +171,6 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
               {chosen?.relative ? `${chosen.relative}, ` : ''}
               {longDay(date)}
             </h2>
-            <p className="bk__day-hours">
-              {working ? `Your available hours: ${hoursText(day.hours)}` : isPast ? 'No hours set that day' : 'Not taking calls this day'}
-            </p>
           </div>
           {day.callCount > 0 && <p className="bk__day-sum">{daySummary(day.callCount, day.bookedMins)}</p>}
         </div>
@@ -184,7 +178,7 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
         {day.callCount === 0 ? (
           <div className="bk__empty">
             <p className="bk__empty-title">
-              {isPast ? 'No calls that day' : working ? 'No calls booked yet' : 'No calls this day'}
+              {isPast ? 'No calls that day' : 'No calls booked yet'}
             </p>
             {nextCallAfter && (
               <>
@@ -392,29 +386,26 @@ function DateStrip({ days, date, today, onChange }) {
 // shaded. Calls sit at their real time, as tall as they are long.
 // ------------------------------------------------------------
 function HourGrid({ day, onOpen }) {
-  const { range, hours, calls, nowMins } = day;
+  const { range, calls, nowMins } = day;
   if (!range) return null;
 
-  // Long empty stretches outside their hours fold into one slim band, so a
-  // late call doesn't stretch the day into hours of nothing
-  const off = offHours(range, hours);
+  // Long empty stretches between calls fold into one slim band, so a late
+  // call doesn't stretch the day into hours of nothing
+  // The empty pieces of the day: no call in them
+  let start = range.from;
+  const pieces = [];
+  for (const c of calls) {
+    if (c.to <= start) continue;
+    if (c.from > start) pieces.push([start, c.from]);
+    start = Math.max(start, c.to);
+  }
+  if (start < range.to) pieces.push([start, range.to]);
+  // Folded on whole hours, so the labels either side stay round
   const folds = [];
-  for (const [f, t] of off) {
-    // The empty pieces of this stretch: no call in them
-    let start = f;
-    const pieces = [];
-    for (const c of calls) {
-      if (c.to <= start || c.from >= t) continue;
-      if (c.from > start) pieces.push([start, c.from]);
-      start = Math.max(start, c.to);
-    }
-    if (start < t) pieces.push([start, t]);
-    // Folded on whole hours, so the labels either side stay round
-    for (const [a, b] of pieces) {
-      const from = Math.ceil(a / 60) * 60;
-      const to = Math.floor(b / 60) * 60;
-      if (to - from > FOLD_AFTER_MINS) folds.push([from, to]);
-    }
+  for (const [a, b] of pieces) {
+    const from = Math.ceil(a / 60) * 60;
+    const to = Math.floor(b / 60) * 60;
+    if (to - from > FOLD_AFTER_MINS) folds.push([from, to]);
   }
   const segments = [];
   let cursor = range.from;
@@ -447,20 +438,17 @@ function HourGrid({ day, onOpen }) {
 
   return (
     <div className="bk-grid" style={{ height }}>
-      {/* Outside their hours: shaded, so the working day stands out */}
-      {off.map(([f, t]) => (
-        <div key={`off-${f}`} className="bk-grid__off" style={{ top: y(f), height: y(t) - y(f) }} aria-hidden="true" />
-      ))}
       {folds.map(([f, t]) => (
         <div key={`fold-${f}`} className="bk-grid__fold" style={{ top: y(f), height: FOLD_PX }}>
-          Outside your hours, {hourLabel(f)} to {hourLabel(t)}
+          No calls, {hourLabel(f)} to {hourLabel(t)}
         </div>
       ))}
 
       {/* Hour lines and labels */}
       {marks.map((m) => (
         <div key={m} className="bk-grid__hour" style={{ top: y(m) }} aria-hidden="true">
-          <span className="bk-grid__label">{hourLabel(m)}</span>
+          {/* Hidden when "now" sits right on it, so the two times don't overlap */}
+          {!(showNow && Math.abs(m - nowMins) < 12) && <span className="bk-grid__label">{hourLabel(m)}</span>}
         </div>
       ))}
 

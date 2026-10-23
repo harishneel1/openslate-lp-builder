@@ -349,7 +349,7 @@ function Clashes({ bookings, zone, single }) {
         ))}
         {n > SHOWN && <li>and {n - SHOWN} more</li>}
       </ul>
-      <p className="do-clash__text">{stays(n)} Reschedule or cancel from Bookings, so your guests know.</p>
+      <p className="do-clash__text">{stays(n)} Reschedule or cancel from your calendar, so your guests know.</p>
     </div>
   );
 }

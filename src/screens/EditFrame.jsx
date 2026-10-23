@@ -77,7 +77,7 @@ export default function EditFrame({
   viewHref,
   confirm = null,
   createLabel = null,
-  backLabel = 'Your offerings page',
+  backLabel = 'Your storefront',
   aside = null,
   leaveNew = 'This isn’t on your page yet.',
   bar = null,
@@ -345,7 +345,7 @@ export function EditSection({
 }
 
 // The "Add a new offering" placeholder and any other simple page in the same frame
-export function EditPlaceholder({ title, sub, onBack, backLabel = 'Your offerings page' }) {
+export function EditPlaceholder({ title, sub, onBack, backLabel = 'Your storefront' }) {
   return (
     <div className="es">
       <div className="es__content">

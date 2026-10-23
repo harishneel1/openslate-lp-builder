@@ -17,7 +17,7 @@ export default function MyPageReveal({ handle, onDone }) {
         <p className="mpr__badge">
           <PartyPopper size={16} aria-hidden="true" /> It’s live
         </p>
-        <h1 className="mpr__title">Your offerings page is ready</h1>
+        <h1 className="mpr__title">Your storefront is ready</h1>
         <p className="mpr__sub">Share your link and people can book a call with you right away.</p>
 
         <div className="mpr__link">
@@ -30,7 +30,7 @@ export default function MyPageReveal({ handle, onDone }) {
         </div>
 
         <button type="button" className="mpr__done" onClick={onDone}>
-          Done, go to my offerings dashboard
+          Done, go to my storefront
           <ArrowRight size={18} aria-hidden="true" />
         </button>
       </div>
