@@ -228,18 +228,6 @@ export default function FunnelOverview({
           'Run it again with a new date. Your pages and your link stay the same, so your ads keep working.'}
       </p>
 
-      {/* The session itself, once the landing page has its details */}
-      {when && done.includes('landing') && (
-        <p className="overview__when">
-          <CalendarClock size={16} aria-hidden="true" />
-          <span>
-            {when.line}
-            {length ? ` · ${length}` : ''} ·{' '}
-            <span className={price.isFree ? 'overview__when-free' : 'overview__when-price'}>{price.label}</span>
-          </span>
-        </p>
-      )}
-
       {sessions.length > 0 && (
         <p className="overview__earlier">
           Earlier sessions: {earlierList(sessions)}
