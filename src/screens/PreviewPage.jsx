@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Monitor, Smartphone, X } from 'lucide-react';
+import { ArrowRight, Monitor, Pencil, Smartphone, X } from 'lucide-react';
 import SimpleDesign from '../components/designs/SimpleDesign';
 import ThankYouDesign from '../components/designs/ThankYouDesign';
 import SignupDesign from '../components/designs/SignupDesign';
@@ -8,6 +8,7 @@ import { getTheme, recommendedThemeId } from '../data/themes';
 import { funnelTypes } from '../data/funnelTypes';
 import { loadSaved } from '../utils/storage';
 import { funnelName } from '../utils/funnelName';
+import { requestEdit } from '../utils/editRequest';
 import './PreviewPage.css';
 
 // Full-screen preview of one funnel's landing page, opened in a new tab
@@ -128,6 +129,13 @@ export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
             </button>
           ))}
         </div>
+
+        {/* The landing page's card says "Preview & edit": editing is one click from here */}
+        {pageId === 'landing' && (
+          <button type="button" className="preview__edit" onClick={() => requestEdit(funnelId)}>
+            <Pencil size={16} /> Edit page
+          </button>
+        )}
 
         <button type="button" className="preview__close" onClick={closePreview}>
           <X size={16} /> Close preview

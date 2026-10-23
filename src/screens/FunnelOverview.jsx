@@ -395,21 +395,23 @@ export default function FunnelOverview({
                     </>
                   )}
                   {isDone && page.id === 'landing' && (
+                    // One way in: the preview tab, which has "Edit page" in its top bar
                     <div className="overview__page-actions">
-                      <button type="button" className="overview__page-action" onClick={onEdit}>
-                        <Pencil size={16} /> Edit
-                      </button>
-                      {previewHref && (
+                      {previewHref ? (
                         <a
                           className="overview__page-action overview__page-action--preview"
                           href={previewHref}
                           target="_blank"
                           rel="noopener"
                           onClick={onPreview}
-                          aria-label="Preview your landing page (opens in a new tab)"
+                          aria-label="Preview and edit your landing page (opens in a new tab)"
                         >
-                          <ExternalLink size={16} /> Preview
+                          <ExternalLink size={16} /> Preview &amp; edit
                         </a>
+                      ) : (
+                        <button type="button" className="overview__page-action" onClick={onEdit}>
+                          <Pencil size={16} /> Edit
+                        </button>
                       )}
                     </div>
                   )}

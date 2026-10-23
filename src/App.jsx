@@ -28,6 +28,7 @@ import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
 import { makeSlug } from './utils/publish';
+import { EDIT_REQUEST_KEY, editRequestId, takeEditParam } from './utils/editRequest';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
 const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
@@ -172,6 +173,32 @@ function App() {
     setActiveNav('page-builder');
     setOpenId(id);
   };
+
+  // "Edit page" in a landing page's preview tab: open that webinar's
+  // landing page editor here (see utils/editRequest.js)
+  const openLandingEditor = (id) => {
+    setFunnels((prev) => {
+      if (!prev.some((f) => f.id === id)) return prev;
+      return prev.map((f) => (f.id === id ? { ...f, step: 'review', returnTo: undefined } : f));
+    });
+    setActiveNav('page-builder');
+    setOpenId((open) => (funnels.some((f) => f.id === id) ? id : open));
+  };
+  const openEditorRef = useRef(openLandingEditor);
+  openEditorRef.current = openLandingEditor;
+  useEffect(() => {
+    // Opened at ?edit=<id> (the preview tab couldn't close itself)
+    const fromAddress = takeEditParam();
+    if (fromAddress) openEditorRef.current(fromAddress);
+    // Asked from a preview tab while this one is open
+    const onStorage = (e) => {
+      if (e.key !== EDIT_REQUEST_KEY || !e.newValue) return;
+      const id = editRequestId(e.newValue);
+      if (id) openEditorRef.current(id);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   // Delete from the Webinars list (so never the open one). Its sign-up
   // page was made for it alone, so that contract goes too; one picked by
