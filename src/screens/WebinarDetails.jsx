@@ -243,10 +243,6 @@ export default function WebinarDetails({
           </div>
         ) : (
           <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
-            <p className="wd__emails-for">
-              One set of emails for every upcoming session. Times and counts are for {next ? 'the next' : 'the latest'} one,{' '}
-              {currentDay}.
-            </p>
             <WebinarReminders
               webinar={current}
               people={emailPeople}
