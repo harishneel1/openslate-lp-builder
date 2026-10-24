@@ -3,7 +3,7 @@ import {
   Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
-  CalendarCheck, Users, Store,
+  CalendarCheck, Users, Store, Video,
 } from 'lucide-react';
 import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
@@ -112,20 +112,37 @@ function useHasStorefront() {
 // Focus mode: while a webinar is open, the app's top nav and sidebar step back
 // and one slim bar takes their place: exit on the left, funnel name in the
 // middle, save status on the right.
-// focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel, minimal }
+// focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel, minimal, when }
 // exitLabel: where the exit goes ('All webinars', or 'Webinar details'
 // while editing a published webinar's pages)
 // minimal: on a page that already shows the title big and edits nothing
 // (the webinar details page): no title here and no "Saved", only the way
 // back. "Not saved" still shows if saving ever fails.
-function FocusBar({ title, onExit, saveFailed, exitLabel = 'All webinars', minimal = false }) {
+// when: the webinar's date ("Sat 24 Oct, 2:00 pm IST"). Given, the middle
+// shows the webinar (icon, title, date) even when minimal: the email
+// editor uses it, so it's clear which webinar's email is open.
+function FocusBar({ title, onExit, saveFailed, exitLabel = 'All webinars', minimal = false, when = null }) {
   return (
     <header className="focusbar">
       <button type="button" className="focusbar__exit" onClick={onExit}>
         <ArrowLeft size={16} /> {exitLabel}
       </button>
 
-      {minimal ? <span /> : <p className="focusbar__title" title={title}>{title}</p>}
+      {when ? (
+        <p className="focusbar__context">
+          <Video size={15} aria-hidden="true" className="focusbar__context-icon" />
+          <span className="focusbar__title" title={title}>
+            {title}
+          </span>
+          <span className="focusbar__when">{when}</span>
+        </p>
+      ) : minimal ? (
+        <span />
+      ) : (
+        <p className="focusbar__title" title={title}>
+          {title}
+        </p>
+      )}
 
       {saveFailed ? (
         <p className="focusbar__status focusbar__status--error">

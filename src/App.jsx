@@ -17,7 +17,7 @@ import LandingEditor from './screens/LandingEditor';
 import SignupStep from './screens/SignupStep';
 import { deleteService, getService, saveWebinarContract } from './data/mockServices';
 import { thankYouQuestions, firstMissing } from './data/thankYouQuestions';
-import { contractKey, laterRuns, ownContract, webinarContractFields, webinarStatus } from './data/webinar';
+import { contractKey, laterRuns, ownContract, webinarContractFields, webinarStatus, webinarWhen } from './data/webinar';
 import RunAgainDialog from './components/RunAgainDialog';
 import ReminderEditor from './screens/ReminderEditor';
 import { withEmail, withOn } from './data/reminders';
@@ -775,6 +775,8 @@ function App() {
               ...(publishedAt && step === 'reminder-edit'
                 ? {
                     exitLabel: 'Emails',
+                    // Which webinar this email belongs to: its title and date, centred
+                    when: webinarWhen(current.answers)?.line ?? null,
                     onExit: () => {
                       if (leaveGuard.current && leaveGuard.current() === false) return;
                       updateOpen({ step: 'details', editingReminder: undefined, detailsTab: 'reminders' }, { touch: false });

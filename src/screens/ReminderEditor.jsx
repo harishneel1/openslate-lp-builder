@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bold, Check, ChevronDown, Italic, Link2, List, RotateCcw, Send, Video } from 'lucide-react';
+import InboxPreview from '../components/InboxPreview';
 import ConfirmDialog from '../components/ConfirmDialog';
 import {
   FIELDS,
   emailOf,
+  fieldHint,
   fieldLabel,
   fieldValues,
   fillIn,
@@ -14,31 +16,47 @@ import {
 import './ReminderEditor.css';
 
 // ------------------------------------------------------------
-// The email editor for one reminder: a full page, opened from the
-// Reminders tab's Edit email. It starts with our template (data/
+// The email editor for one automatic email: a full page, opened from
+// the Emails tab's pencil. It starts with our template (data/
 // reminders.js), or the coach's own version once they've saved one.
 // Nothing here is written by AI: the template is fixed text with the
 // webinar's details slotted in.
 //
-//   Reminder email 1 hour before webinar   [Send me a test] [Save]
-//   Goes out Today at 3:00 pm
-//   ┌ Subject ───────────────────────────┐   ┌ Preview ──────┐
-//   │ Starting in 1 hour: [Webinar title]│   │ (phone)       │
-//   ├ [B] [I] [🔗] [•]   [+ Insert detail]│   │               │
-//   │ Hi [First name], …                 │   │ Hi Priya, …   │
-//   │ [ Join webinar ]  always included  │   │ [Join webinar]│
-//   └────────────────────────────────────┘   └───────────────┘
-//                         Reset to template
+//   ← Emails
+//   Confirmation email after registering   Reset to template  [Send me a test]  [Save changes]
+//   Goes to each person as they register. Changes only affect this webinar.
+//   ┌ the email (wider: the thing you work on) ┐   How Priya will see it
+//   │ Subject  [You're in: (Webinar title)]    │  ╭━━━━━━━━━ • ━━━━━━━━━━╮
+//   │ B I 🔗 •                 + Insert detail │  ┃ ┌──────────────────┐ ┃
+//   │ Hi (First name), …                       │  ┃ │ the inbox, on a  │ ┃
+//   │ [ Join webinar ]                         │  ┃ │ tablet's screen  │ ┃
+//   └──────────────────────────────────────────┘  ┃ └──────────────────┘ ┃
+//                                                 ╰━━━━━━━━━━━━━━━━━━━━━━╯
 //
-// Kept simple on purpose, for the developer who builds the real one:
+// For laptops and desktops only (the tool isn't used on phones).
+// - Which webinar this email belongs to (title and date) is in the app's
+//   top bar (App.jsx passes `when`); each webinar keeps its own copy of
+//   these emails, and the status line says so.
+// - Left: the email with placeholders: fill-in fields are chips with
+//   their name ("First name"); hovering says what they fill in. Saved as
+//   markers ({{first_name}}); the sending system fills them in.
+// - Right: the email as it lands in a desktop inbox (InboxPreview.jsx),
+//   filled in for an example person (SAMPLE: Harish), never a real
+//   registrant: everyone gets the same email, only the first name
+//   changes, and the page says so. Updates with every keystroke. It sits on the screen of a dark tablet, a
+//   little smaller, so it reads as a picture of someone's device rather
+//   than a second form. Who sent it shows there
+//   only: the editor has no From row, since it can't be changed.
 // - Subject: one line. Body: bold, italic, link and bullet list only.
-// - "Insert detail" adds a fill-in field as a grey chip ([First name]).
-//   Saved as a marker ({{first_name}}); the sending system fills it in.
-// - The Join webinar button is a fixed block, not part of the text, so
-//   it can't be deleted from the emails that need it.
-// - The preview fills the fields in with a real person who registered
-//   (or a sample one) and follows every keystroke.
-// - Pasting brings in plain text only, so no stray styles come along.
+// - The Join webinar button (a link to that person's Zoom join address)
+//   is a fixed block, so it can't be deleted from the emails that need it.
+// - Save changes is greyed out until something changes; Ctrl/⌘+S saves
+//   too. Saving goes back to the Emails list (App does that).
+// - Send me a test sits beside it, always: an address box, filled with
+//   the last one used. It sends what's on screen, saved or not.
+// - Reset to template is a quiet text button, shown only once the text
+//   differs from the template; it asks first.
+// - Pasting brings in plain text only.
 // The text boxes use the browser's own editing (contentEditable); a
 // real build would likely swap in an editor library (e.g. TipTap) that
 // saves the same thing: subject + simple HTML with {{markers}}.
@@ -46,19 +64,28 @@ import './ReminderEditor.css';
 // ended: the webinar is over. Every email stays editable: for one that
 //        has already gone out, a note says the changes are used when
 //        the webinar is run again.
-// guardRef: App asks it before leaving (the top bar's ← Reminders):
+// guardRef: App asks it before leaving (the top bar's ← Emails):
 //           returns false, and asks the coach, when there are changes
 // onSave({ subject, body }), onClose()
 // ------------------------------------------------------------
+
+const TEST_KEY = 'pagebuilder:test-email'; // the last address a test went to
+
+// The example person the preview (and a test) is filled in for. Not a
+// real registrant: with hundreds, any one name is arbitrary, changes as
+// people sign up, and shows an attendee's name on a page coaches share.
+const SAMPLE = { name: 'Harish', email: 'harish@gmail.com' };
 
 // ---------- Between saved text and what's on screen ----------
 
 const escapeHtml = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-// {{first_name}} → a grey chip the coach can't type inside
+// {{first_name}} → a placeholder chip ("First name") the coach can't
+// type inside; its hint says what it fills in. The preview shows the
+// real values.
 const chipHtml = (key) =>
-  `<span class="re-chip" contenteditable="false" data-field="${key}">${escapeHtml(fieldLabel(key))}</span>`;
+  `<span class="re-chip" contenteditable="false" data-field="${key}" data-tip="${escapeHtml(fieldHint(key))}">${escapeHtml(fieldLabel(key))}</span>`;
 
 const withChips = (saved) => String(saved ?? '').replace(/\{\{(\w+)\}\}/g, (all, key) => chipHtml(key));
 
@@ -125,12 +152,12 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
   const [menu, setMenu] = useState(false); // Insert detail
   const [linking, setLinking] = useState(null); // the link box: { href }
   const [ask, setAsk] = useState(null); // 'leave' | 'reset'
-  const [test, setTest] = useState(false);
+  const [test, setTest] = useState(null); // Send me a test: { to, sent }
 
   const dirty = draft.subject !== saved.subject || draft.body !== saved.body;
   const row = timeline(webinar, people, now).find((x) => x.id === id);
-  const sample = people[0] ?? null; // the preview's person
-  const values = useMemo(() => fieldValues(webinar, sample, hostName), [webinar, sample, hostName]);
+  // The preview's person: always the example, the same for every webinar
+  const values = useMemo(() => fieldValues(webinar, SAMPLE, hostName), [webinar, hostName]);
 
   // Fill the boxes once (after that the browser owns them)
   const fill = (subject, body) => {
@@ -264,6 +291,45 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
     return () => window.removeEventListener('beforeunload', onUnload);
   }, [dirty]);
 
+  // Ctrl/⌘+S saves
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (dirty && !emptyNow()) save();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  const emptyNow = () => !readSubject(subjectEl.current);
+
+  // Send me a test: the address box, filled with the last one used
+  const openTest = () => {
+    let last = '';
+    try {
+      last = localStorage.getItem(TEST_KEY) ?? '';
+    } catch {
+      // no storage: start empty
+    }
+    setTest({ to: last, sent: null, error: null });
+  };
+  const sendTest = () => {
+    const to = test.to.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      setTest({ ...test, error: 'Enter an email address, like you@gmail.com' });
+      return;
+    }
+    try {
+      localStorage.setItem(TEST_KEY, to);
+    } catch {
+      // fine: it just won't be remembered
+    }
+    // The real app sends what's on screen now (even unsaved), with the
+    // fields filled in for SAMPLE, so it matches the preview.
+    setTest({ to, sent: to, error: null });
+  };
+
   const save = () => {
     const subject = readSubject(subjectEl.current);
     if (!subject) {
@@ -283,7 +349,7 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
   const when = row.at === null ? null : whenLabel(row.at, webinar.answers, now).replace(', ', ' at ');
   const n = (count) => `${count} ${count === 1 ? 'person' : 'people'}`;
   let status;
-  if (row.at === null) status = row.on ? `Goes to each person as they register · sent to ${n(row.sentTo)} so far` : 'Off: this email won’t be sent';
+  if (row.at === null) status = row.on ? 'Goes to each person as they register' : 'Off: this email won’t be sent';
   else if (!row.past) status = row.on ? `Goes out ${when}` : 'Off: this email won’t be sent';
   else if (!row.on) status = `Was off at ${when}, so it wasn’t sent`;
   else status = row.sentTo ? `Sent to ${n(row.sentTo)} · ${when}` : `Went out ${when}, before anyone registered`;
@@ -298,39 +364,93 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
   const isTemplate = draft.subject === reminder.subject && draft.body === reminder.body;
   const emptySubject = !draft.subject;
 
+
   return (
     <div className="re">
       <header className="re__head">
-        <div>
-          <p className="re__kicker">Automatic email</p>
+        <div className="re__intro">
           <h1 className="re__title">{reminder.name}</h1>
-          <p className="re__status">{status}</p>
+          <p className="re__status">{status}. Changes only affect this webinar.</p>
         </div>
         <div className="re__actions">
-          <button type="button" className="oh__edit re__btn" onClick={() => setTest(true)}>
-            {test ? <Check size={15} strokeWidth={3} aria-hidden="true" /> : <Send size={15} aria-hidden="true" />}
-            {test ? 'Test sent' : 'Send me a test'}
+          {!isTemplate && (
+            <button type="button" className="re__reset" onClick={() => setAsk('reset')}>
+              <RotateCcw size={14} aria-hidden="true" /> Reset to template
+            </button>
+          )}
+          <button
+            type="button"
+            className="oh__edit re__btn"
+            onClick={openTest}
+            aria-expanded={Boolean(test)}
+            aria-controls="re-test"
+          >
+            <Send size={15} aria-hidden="true" /> Send me a test
           </button>
-          <button type="button" className="oh__add re__btn re__save" onClick={save} disabled={!dirty || emptySubject}>
-            Save
+          <button
+            type="button"
+            className="oh__add re__btn re__save"
+            onClick={save}
+            disabled={!dirty || emptySubject}
+          >
+            Save changes
           </button>
         </div>
       </header>
 
-      {test && (
-        <p className="re__note" role="status">
-          In the real app, this email goes to your inbox so you can check it. Nothing is sent in this preview.
-        </p>
-      )}
       {usedLater && <p className="re__note">{usedLater}</p>}
 
+      {test && (
+        <div className="re__test" id="re-test">
+          {test.sent ? (
+            <p className="re__test-done" role="status">
+              <Check size={15} strokeWidth={3} aria-hidden="true" /> Test sent to <b>{test.sent}</b>
+            </p>
+          ) : (
+            <>
+              <label className="re__test-label" htmlFor="re-test-to">
+                Send a test to
+              </label>
+              <input
+                id="re-test-to"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@gmail.com"
+                value={test.to}
+                autoFocus
+                aria-invalid={Boolean(test.error) || undefined}
+                aria-describedby={test.error ? 're-test-error' : undefined}
+                onChange={(e) => setTest({ ...test, to: e.target.value, error: null })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') sendTest();
+                  if (e.key === 'Escape') setTest(null);
+                }}
+              />
+              <button type="button" className="oh__add re__btn" onClick={sendTest}>
+                <Send size={15} aria-hidden="true" /> Send
+              </button>
+            </>
+          )}
+          <button type="button" className="re__test-close" onClick={() => setTest(null)}>
+            {test.sent ? 'Done' : 'Cancel'}
+          </button>
+          {test.error && (
+            <p className="re__error re__test-error" id="re-test-error">
+              {test.error}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="re__grid">
-        {/* ---------- The email ---------- */}
-        <section className="re__card" aria-label="Email">
-          <div className="re__field">
-            <span className="re__label" id="re-subject-label">
-              Subject
-            </span>
+      {/* ---------- Left: the email, with placeholders ---------- */}
+      <section className="re__card" aria-label="Email">
+        <div className="re__line re__line--subject">
+          <span className="re__line-label" id="re-subject-label">
+            Subject
+          </span>
+          <div className="re__subject-wrap">
             <div
               ref={subjectEl}
               className="re__subject"
@@ -347,136 +467,124 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
             />
             {emptySubject && <p className="re__error">Add a subject, so people know what it’s about.</p>}
           </div>
+        </div>
 
-          <div className="re__toolbar" role="toolbar" aria-label="Format the email">
-            <ToolButton label="Bold" onClick={() => format('bold')}>
-              <Bold size={16} />
-            </ToolButton>
-            <ToolButton label="Italic" onClick={() => format('italic')}>
-              <Italic size={16} />
-            </ToolButton>
-            <ToolButton label="Link" onClick={openLink}>
-              <Link2 size={16} />
-            </ToolButton>
-            <ToolButton label="Bullet list" onClick={() => format('insertUnorderedList')}>
-              <List size={16} />
-            </ToolButton>
+        <div className="re__toolbar" role="toolbar" aria-label="Format the email">
+          <ToolButton label="Bold" onClick={() => format('bold')}>
+            <Bold size={16} />
+          </ToolButton>
+          <ToolButton label="Italic" onClick={() => format('italic')}>
+            <Italic size={16} />
+          </ToolButton>
+          <ToolButton label="Link" onClick={openLink}>
+            <Link2 size={16} />
+          </ToolButton>
+          <ToolButton label="Bullet list" onClick={() => format('insertUnorderedList')}>
+            <List size={16} />
+          </ToolButton>
 
-            <div className="re__insert">
-              <button
-                type="button"
-                className="re__insert-btn"
-                aria-haspopup="menu"
-                aria-expanded={menu}
-                onMouseDown={(e) => e.preventDefault()} // keep the cursor where it is
-                onClick={() => setMenu((m) => !m)}
-              >
-                + Insert detail <ChevronDown size={14} aria-hidden="true" />
-              </button>
-              {menu && (
-                <div className="re__menu" role="menu" onKeyDown={(e) => e.key === 'Escape' && setMenu(false)}>
-                  {FIELDS.map((f) => (
-                    <button
-                      key={f.key}
-                      type="button"
-                      role="menuitem"
-                      className="re__menu-item"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => insertField(f.key)}
-                    >
-                      {f.label}
-                      <span className="re__menu-eg">{values[f.key]}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {linking && (
-            <div className="re__linkbox">
-              <label className="oh__sr-only" htmlFor="re-link">
-                Link address
-              </label>
-              <input
-                id="re-link"
-                type="url"
-                value={linking.href}
-                autoFocus
-                onChange={(e) => setLinking({ href: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') addLink();
-                  if (e.key === 'Escape') setLinking(null);
-                }}
-              />
-              <button type="button" className="oh__add re__btn" onClick={addLink}>
-                Add link
-              </button>
-              <button type="button" className="oh__edit re__btn" onClick={() => setLinking(null)}>
-                Cancel
-              </button>
-            </div>
-          )}
-
-          <div
-            ref={bodyEl}
-            className="re__body"
-            role="textbox"
-            aria-multiline="true"
-            aria-label="Email text"
-            contentEditable
-            suppressContentEditableWarning
-            onInput={read}
-            onPaste={onPaste(false)}
-          />
-
-          {reminder.join && (
-            <div className="re__join">
-              <span className="re__join-btn" aria-hidden="true">
-                <Video size={15} /> Join webinar
-              </span>
-              <span className="re__join-note">Always included: takes them straight into your Zoom meeting.</span>
-            </div>
-          )}
-
-          {!isTemplate && (
-            <div className="re__foot">
-              <button type="button" className="re__reset" onClick={() => setAsk('reset')}>
-                <RotateCcw size={14} aria-hidden="true" /> Reset to template
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* ---------- The preview, as it lands on a phone ---------- */}
-        <section className="re__preview" aria-label="Preview">
-          <p className="re__label">
-            Preview{sample ? `, as ${values.first_name} will see it` : ''}
-          </p>
-          <div className="re__phone">
-            <div className="re__mail-head">
-              <span className="re__avatar" aria-hidden="true">
-                {values.your_name.charAt(0).toUpperCase()}
-              </span>
-              <span className="re__from">
-                <b>{values.your_name}</b>
-                <span>to {sample?.email ?? 'priya@gmail.com'}</span>
-              </span>
-            </div>
-            <p className="re__mail-subject">{fillIn(draft.subject, values) || 'No subject'}</p>
-            <div
-              className="re__mail-body"
-              // Our own clean() output, with escaped values filled in
-              dangerouslySetInnerHTML={{ __html: fillIn(draft.body, values, { html: true }) }}
-            />
-            {reminder.join && (
-              <a className="re__mail-join" href={values.join_link} target="_blank" rel="noopener">
-                Join webinar
-              </a>
+          <div className="re__insert">
+            <button
+              type="button"
+              className="re__insert-btn"
+              aria-haspopup="menu"
+              aria-expanded={menu}
+              onMouseDown={(e) => e.preventDefault()} // keep the cursor where it is
+              onClick={() => setMenu((m) => !m)}
+            >
+              + Insert detail <ChevronDown size={14} aria-hidden="true" />
+            </button>
+            {menu && (
+              <div className="re__menu" role="menu" onKeyDown={(e) => e.key === 'Escape' && setMenu(false)}>
+                {FIELDS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    role="menuitem"
+                    className="re__menu-item"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => insertField(f.key)}
+                  >
+                    {f.label}
+                    <span className="re__menu-eg">{f.hint}</span>
+                  </button>
+                ))}
+              </div>
             )}
-            <p className="re__mail-foot">You’re getting this because you registered for {values.webinar_title}.</p>
           </div>
-        </section>
+        </div>
+
+        {linking && (
+          <div className="re__linkbox">
+            <label className="oh__sr-only" htmlFor="re-link">
+              Link address
+            </label>
+            <input
+              id="re-link"
+              type="url"
+              value={linking.href}
+              autoFocus
+              onChange={(e) => setLinking({ href: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') addLink();
+                if (e.key === 'Escape') setLinking(null);
+              }}
+            />
+            <button type="button" className="oh__add re__btn" onClick={addLink}>
+              Add link
+            </button>
+            <button type="button" className="oh__edit re__btn" onClick={() => setLinking(null)}>
+              Cancel
+            </button>
+          </div>
+        )}
+
+        <div
+          ref={bodyEl}
+          className="re__body"
+          role="textbox"
+          aria-multiline="true"
+          aria-label="Email text"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={read}
+          onPaste={onPaste(false)}
+        />
+
+        {/* The button, as it will look in the email: a link to their Zoom join address */}
+        {reminder.join && (
+          <div className="re__join">
+            <span className="re__join-btn" data-tip="Opens Zoom for each person" data-tip-align="start">
+              <Video size={15} aria-hidden="true" /> Join webinar
+            </span>
+          </div>
+        )}
+
+      </section>
+
+      {/* ---------- Right: how it lands in their inbox ---------- */}
+      <section className="re__preview" aria-label="Preview">
+        <div className="re__preview-caption">
+          <p className="re__preview-title">How it will look in their inbox</p>
+          <p className="re__preview-note">
+            Everyone gets this same email with their own first name. {SAMPLE.name} is an example.
+          </p>
+        </div>
+        <div className="re__tablet">
+          <span className="re__tablet-camera" aria-hidden="true" />
+          <div className="re__screen">
+            <InboxPreview
+              subject={fillIn(draft.subject, values)}
+              bodyHtml={fillIn(draft.body, values, { html: true })}
+              fromName={values.your_name}
+              toEmail={SAMPLE.email}
+              time={new Date(now).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              join={reminder.join ? { label: 'Join webinar', href: values.join_link } : null}
+              footer={`You’re getting this because you registered for ${values.webinar_title}.`}
+            />
+          </div>
+        </div>
+      </section>
       </div>
 
       {ask === 'leave' && (

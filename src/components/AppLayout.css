@@ -352,6 +352,32 @@
   color: var(--color-text);
 }
 
+/* The webinar a page belongs to: icon, title, then its date after a thin rule */
+.focusbar__context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+}
+
+.focusbar__context-icon {
+  flex: none;
+  color: var(--color-primary);
+}
+
+.focusbar__context .focusbar__title {
+  max-width: 460px;
+}
+
+.focusbar__when {
+  flex: none;
+  padding-left: 10px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  border-left: 1px solid var(--color-border);
+}
+
 .focusbar__status {
   justify-self: end;
   display: inline-flex;

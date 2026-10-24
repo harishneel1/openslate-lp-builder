@@ -1,0 +1,137 @@
+/* An email opened in a desktop inbox (InboxPreview.jsx). Plain system
+   fonts inside, as email apps use, so it reads like the real thing. */
+
+.ib {
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f1f1f;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+}
+
+/* The app's toolbar: just shapes, nothing to click */
+.ib__bar {
+  display: flex;
+  gap: 22px;
+  padding: 12px 20px;
+  color: #5f6368;
+  border-bottom: 1px solid #eceff1;
+}
+
+.ib__subject-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px 6px 72px;
+}
+
+.ib__subject {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.ib__tag {
+  flex: none;
+  padding: 1px 6px;
+  font-size: 12px;
+  color: #444746;
+  background: #e8eaed;
+  border-radius: 4px;
+}
+
+/* The message: avatar on the left, everything else beside it */
+.ib__msg {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 24px 24px 20px;
+}
+
+.ib__avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+.ib__from-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ib__from {
+  margin: 0;
+  font-size: 14px;
+}
+
+.ib__time {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #5f6368;
+}
+
+.ib__to {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #5f6368;
+}
+
+/* The email itself, at the usual email width */
+.ib__email {
+  max-width: 600px;
+  margin-top: 20px;
+}
+
+.ib__body {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.ib__body p {
+  margin: 0 0 12px;
+}
+
+.ib__body ul,
+.ib__body ol {
+  margin: 0 0 12px;
+  padding-left: 24px;
+}
+
+.ib__body a {
+  color: #0b57d0;
+}
+
+.ib__join {
+  display: inline-block;
+  margin: 6px 0 4px;
+  padding: 11px 26px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: var(--color-primary);
+  border-radius: 6px;
+}
+
+.ib__foot {
+  margin: 24px 0 0;
+  padding-top: 12px;
+  font-size: 11px;
+  color: #80868b;
+  border-top: 1px solid #eceff1;
+}

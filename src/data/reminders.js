@@ -23,14 +23,17 @@ import { meetingHref, webinarEnd, webinarStart, webinarWhen } from './webinar';
 // ------------------------------------------------------------
 
 // The fill-in fields the editor's "Insert detail" menu offers
+//   hint: what it fills in with, for the hover hint in the editor
 export const FIELDS = [
-  { key: 'first_name', label: 'First name' },
-  { key: 'webinar_title', label: 'Webinar title' },
-  { key: 'date', label: 'Date' },
-  { key: 'time', label: 'Time' },
-  { key: 'join_link', label: 'Join link' },
-  { key: 'your_name', label: 'Your name' },
+  { key: 'first_name', label: 'First name', hint: 'Fills in each person’s first name' },
+  { key: 'webinar_title', label: 'Webinar title', hint: 'Fills in the webinar’s title' },
+  { key: 'date', label: 'Date', hint: 'Fills in the webinar’s date' },
+  { key: 'time', label: 'Time', hint: 'Fills in the webinar’s time' },
+  { key: 'join_link', label: 'Join link', hint: 'Fills in each person’s own join link' },
+  { key: 'your_name', label: 'Your name', hint: 'Fills in your name' },
 ];
+
+export const fieldHint = (key) => FIELDS.find((f) => f.key === key)?.hint ?? '';
 
 export const fieldLabel = (key) => FIELDS.find((f) => f.key === key)?.label ?? key;
 
@@ -49,12 +52,16 @@ export const REMINDERS = [
     when: 'Right after they register',
     askOff: true,
     join: true,
-    subject: 'You’re registered: {{webinar_title}}',
+    // Lean on purpose: the date and time are the one thing people come
+    // back for, so they get one bold line (the title is already in the
+    // subject and the footer). The reply ask helps later reminders land
+    // in the main inbox, and gives the coach questions to answer live.
+    subject: 'You’re in: {{webinar_title}}',
     body:
       '<p>Hi {{first_name}},</p>' +
-      '<p>You’re in! Here are the details:</p>' +
-      '<ul><li><b>{{webinar_title}}</b></li><li>{{date}}, {{time}}</li><li>Live on Zoom</li></ul>' +
-      '<p>Save this email. The button below takes you straight into the webinar on the day.</p>' +
+      '<p>You’re registered. See you on <b>{{date}} at {{time}}</b>, live on Zoom.</p>' +
+      '<p>Keep this email. The button below is your link to join on the day.</p>' +
+      '<p>One small thing: reply and tell me the one question you most want answered. I’ll try to cover it live.</p>' +
       '<p>See you there,<br>{{your_name}}</p>',
   },
   {
