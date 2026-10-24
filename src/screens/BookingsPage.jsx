@@ -3,6 +3,7 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Phone, Video, XCircle } from 
 import BookingDrawer from '../components/BookingDrawer';
 import GuestInitials from '../components/GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
+import { loadAnswers, myCallIds } from '../data/myProfile';
 import {
   buildBookingsJson,
   buildDayTimeline,
@@ -127,7 +128,10 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
   }, []);
 
   // ---------- Nobody has booked yet ----------
+  // Two cases: no 1:1 call to book yet (set one up), or calls that
+  // nobody has booked (go share them). Both lead to the 1:1 calls page.
   if (!page.hasAny) {
+    const hasCalls = myCallIds(loadAnswers()).length > 0;
     return (
       <div className="bk">
         <h1 className="bk__title">Calendar</h1>
@@ -136,10 +140,18 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
             <CalendarCheck size={22} />
           </span>
           <h2 className="bk__empty-title">No bookings yet</h2>
-          <p className="bk__empty-text">When someone books a call from your page, it shows up here with everything you need for it.</p>
+          <p className="bk__empty-text">
+            {hasCalls
+              ? 'When someone books one of your 1:1 calls, it shows up here with everything you need for it.'
+              : 'Set up a 1:1 call and share its link. When someone books, it shows up here with everything you need for it.'}
+          </p>
           {onNavigate && (
-            <button type="button" className="bk-btn bk-btn--secondary" onClick={() => onNavigate('my-page')}>
-              Go to your storefront
+            <button
+              type="button"
+              className={`bk-btn ${hasCalls ? 'bk-btn--secondary' : 'bk-btn--primary'}`}
+              onClick={() => onNavigate('calls')}
+            >
+              {hasCalls ? 'Go to 1:1 calls' : 'Set up a 1:1 call'}
             </button>
           )}
         </div>
