@@ -194,3 +194,18 @@
     max-width: 460px;
   }
 }
+/* On a live link the sign-up button is a real link to the sign-up page */
+.sd__button--link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.sd__button--link:hover {
+  filter: brightness(0.94);
+}
+
+.sd__button--link:focus-visible {
+  outline: 3px solid var(--sd-accent);
+  outline-offset: 3px;
+}

@@ -3,6 +3,8 @@ import { AlertTriangle } from 'lucide-react';
 import AppLayout from './components/AppLayout';
 import WebinarsPage from './screens/WebinarsPage';
 import FunnelOverview from './screens/FunnelOverview';
+import WebinarDetails from './screens/WebinarDetails';
+import { deleteSignupsOf } from './data/webinarSignups';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
 import SectionProgress from './components/SectionProgress';
@@ -31,7 +33,7 @@ import { makeSlug } from './utils/publish';
 import { EDIT_REQUEST_KEY, editRequestId, takeEditParam } from './utils/editRequest';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
-const STEPS = ['overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
+const STEPS = ['details', 'overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -49,6 +51,7 @@ function restoreFunnel(f) {
   if (!funnelTypes.some((t) => t.id === f.type)) return null;
 
   let step = STEPS.includes(f.step) ? f.step : 'overview';
+  if (step === 'details' && !Number.isFinite(f.publishedAt)) step = 'overview'; // only published ones have a details page
   if (step === 'edit') step = 'checkpoint'; // editing one answer → back to the checkpoint
   if (step === 'review-edit') step = 'review'; // editing one screen → back to "Edit your landing page"
   if (step === 'review-design') step = 'review'; // changing the style from there → back to it
@@ -208,6 +211,7 @@ function App() {
     const gone = funnels.find((f) => f.id === id);
     const own = gone ? ownContract(gone) : null;
     if (own) deleteService(own.id);
+    deleteSignupsOf(id); // its people go with it
     setFunnels((prev) => prev.filter((f) => f.id !== id));
   };
 
@@ -240,9 +244,17 @@ function App() {
       donePages: f.donePages.includes('registration') ? f.donePages : [...f.donePages, 'registration'],
     }));
 
-  // A webinar's overview (its three page cards): a click on its row, or
-  // "Ran again on …" on an earlier run
-  const openOverview = (id) => {
+  // Opening a webinar (a click on its row, "Ran again on …", Go to <date>):
+  // its details page once it's published, the setup screen (the three
+  // page cards) while it's a draft
+  const openWebinar = (id) => {
+    setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: f.publishedAt ? 'details' : 'overview' } : f)));
+    setActiveNav('page-builder');
+    setOpenId(id);
+  };
+
+  // Edit webinar pages: the three page cards, where each page is edited
+  const openPages = (id) => {
     setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'overview' } : f)));
     setOpenId(id);
   };
@@ -254,7 +266,7 @@ function App() {
   // Makes a new webinar: a full copy on the new date, with its own pages,
   // link, sign-up page (contract) and Zoom meeting. The earlier one stays
   // exactly as it was, with its own people. The copy is ready to share
-  // straight away (its pages are already done) and opens on its overview.
+  // straight away (its pages are already done) and opens on its details page.
   // Asked in a pop-up, from the list or the webinar's overview.
   const [runAgainId, setRunAgainId] = useState(null);
   const runningAgain = funnels.find((f) => f.id === runAgainId) ?? null;
@@ -266,7 +278,7 @@ function App() {
     const taken = funnels.filter((item) => item.slug).map((item) => item.slug);
     const copy = {
       ...createFunnel(f.type), // new id, so a new link and a new Zoom meeting
-      step: 'overview',
+      step: 'details',
       answers: { ...f.answers, date, time },
       themeId: f.themeId,
       donePages: [...f.donePages],
@@ -376,21 +388,46 @@ function App() {
           onCreate={() => startFunnel('webinar')}
           onOpen={setOpenId}
           // A click on the row: straight to its overview (the three page cards)
-          onOpenOverview={openOverview}
+          onOpenOverview={openWebinar}
+          onEditPages={openPages}
           onRunAgain={setRunAgainId}
           onDelete={deleteFunnel}
         />
       );
     }
 
-    if (step === 'overview') {
+    // A published webinar's own page: its header, then People
+    if (step === 'details' && publishedAt) {
+      return (
+        <WebinarDetails
+          key={openId}
+          webinar={current}
+          webinars={funnels.filter((f) => f.type === 'webinar')}
+          onEditPages={() => updateOpen({ step: 'overview' }, { touch: false })}
+          onChangeDate={() => {
+            setEditingId('eventDetails');
+            updateOpen({ step: 'review-edit', editReturn: 'details' }, { touch: false });
+          }}
+          onRunAgain={() => setRunAgainId(openId)}
+          onOpenRun={openWebinar}
+          // From its ⋯ menu: close it first, then delete (as from the list)
+          onDelete={() => {
+            const id = openId;
+            setOpenId(null);
+            deleteFunnel(id);
+          }}
+        />
+      );
+    }
+
+    if (step === 'overview' || step === 'details') {
       return (
         <FunnelOverview
           funnel={funnel}
           webinarId={openId}
           // The newer run of this one, once it's been run again ("Ran again on …")
           nextRun={latestRun(current)}
-          onOpenRun={openOverview}
+          onOpenRun={openWebinar}
           onRunAgain={() => setRunAgainId(openId)}
           done={donePages}
           answers={answers}
@@ -688,7 +725,19 @@ function App() {
       onOpenBooking={openBooking}
       focus={
         activeNav === 'page-builder' && funnel
-          ? { title: funnelName(current, funnel), onExit: closeFunnel, saveFailed }
+          ? {
+              title: funnelName(current, funnel),
+              saveFailed,
+              // Its details page shows the title big already, and edits nothing
+              minimal: step === 'details' && Boolean(publishedAt),
+              // Editing a published webinar's pages: back to its details page. Otherwise the list.
+              ...(publishedAt && step !== 'details'
+                ? {
+                    exitLabel: 'Webinar details',
+                    onExit: () => updateOpen({ step: 'details', returnTo: undefined, editReturn: undefined }, { touch: false }),
+                  }
+                : { onExit: closeFunnel }),
+            }
           : null
       }
     >

@@ -112,20 +112,27 @@ function useHasStorefront() {
 // Focus mode: while a webinar is open, the app's top nav and sidebar step back
 // and one slim bar takes their place: exit on the left, funnel name in the
 // middle, save status on the right.
-// focus: null for the normal shell, or { title, onExit, saveFailed }
-function FocusBar({ title, onExit, saveFailed }) {
+// focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel, minimal }
+// exitLabel: where the exit goes ('All webinars', or 'Webinar details'
+// while editing a published webinar's pages)
+// minimal: on a page that already shows the title big and edits nothing
+// (the webinar details page): no title here and no "Saved", only the way
+// back. "Not saved" still shows if saving ever fails.
+function FocusBar({ title, onExit, saveFailed, exitLabel = 'All webinars', minimal = false }) {
   return (
     <header className="focusbar">
       <button type="button" className="focusbar__exit" onClick={onExit}>
-        <ArrowLeft size={16} /> All webinars
+        <ArrowLeft size={16} /> {exitLabel}
       </button>
 
-      <p className="focusbar__title" title={title}>{title}</p>
+      {minimal ? <span /> : <p className="focusbar__title" title={title}>{title}</p>}
 
       {saveFailed ? (
         <p className="focusbar__status focusbar__status--error">
           <AlertTriangle size={15} /> Not saved
         </p>
+      ) : minimal ? (
+        <span />
       ) : (
         <p className="focusbar__status">
           <Check size={15} strokeWidth={2.5} /> Saved

@@ -10,6 +10,7 @@ import { loadSaved } from '../utils/storage';
 import { funnelName } from '../utils/funnelName';
 import { requestEdit } from '../utils/editRequest';
 import { lengthLabel, nextOpenRun, webinarEnd, webinarPrice, webinarWhen } from '../data/webinar';
+import { addSignup } from '../data/webinarSignups';
 import './PreviewPage.css';
 
 // Full-screen preview of one funnel's landing page, opened in a new tab
@@ -21,6 +22,11 @@ import './PreviewPage.css';
 // instead (EndedPage), so nobody signs up for a date that's gone. If the
 // coach has run it again, that page points to the new date. The top bar
 // keeps "See the page anyway", since the coach previews here too.
+//
+// While a published webinar is still to come, its link works end to end:
+// the landing page's button opens the sign-up page, and registering there
+// saves them to the webinar's People (data/webinarSignups.js) and shows
+// the thank you page.
 
 const MODES = [
   { id: 'mobile', label: 'Mobile', icon: Smartphone },
@@ -127,6 +133,20 @@ export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
   // Published and over: visitors can't sign up any more (the thank you page is only seen after signing up)
   const end = webinarEnd(funnel.answers);
   const ended = Boolean(funnel.publishedAt) && end !== null && end <= Date.now() && !isThankYou;
+  // Published and still to come: people can register from here
+  const open = Boolean(funnel.publishedAt) && (end === null || end > Date.now());
+  const pageHref = (id) => `?preview=${encodeURIComponent(funnelId)}&page=${id}`;
+  const canRegister = open && funnel.donePages.includes('registration');
+
+  // Saves them to People, then shows the thank you page. false if it couldn't save.
+  const register = ({ name, email, phone }) => {
+    const price = webinarPrice(funnel.answers);
+    const amount = price.isFree ? 0 : Number(funnel.answers.price) || 0;
+    const person = addSignup({ webinarId: funnelId, name, email, phone, amount });
+    if (!person) return false;
+    window.location.assign(pageHref('thank-you'));
+    return true;
+  };
 
   return (
     <div className={`preview preview--${mode}`}>
@@ -173,9 +193,9 @@ export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
           ) : isThankYou ? (
             <ThankYouDesign answers={funnel.answers} theme={getTheme(resolvedId)} />
           ) : pageId === 'signup' ? (
-            <SignupDesign answers={funnel.answers} />
+            <SignupDesign answers={funnel.answers} onRegister={canRegister ? register : null} />
           ) : (
-            <SimpleDesign page={page} theme={getTheme(resolvedId)} />
+            <SimpleDesign page={page} theme={getTheme(resolvedId)} signupHref={canRegister ? pageHref('signup') : null} />
           )}
         </div>
       </main>

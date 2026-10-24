@@ -1,4 +1,5 @@
 import { loadBookings } from './bookingsStore';
+import { peopleOf } from './webinarSignups';
 
 // ------------------------------------------------------------
 // Sign-ups: how many people have signed up on a contract. Everyone who
@@ -9,9 +10,10 @@ import { loadBookings } from './bookingsStore';
 // For the mock:
 //   a 1:1 call's contract   the people who booked that call (bookingsStore.js),
 //                           matched by email, else phone, else name
+//   a webinar's contract    the people who registered for that webinar
+//                           (webinarSignups.js)
 //   the sample contracts    a made-up number (signups in mockServices.js)
-//   anything else           0, since webinar sign-ups and course
-//                           enrolments aren't saved yet
+//   anything else           0, since course enrolments aren't saved yet
 // In the real product the server counts the people on each contract.
 //
 // signupCounts(contracts) → { [contractId]: number }
@@ -39,7 +41,11 @@ export function signupCounts(contracts) {
   return Object.fromEntries(
     contracts.map((c) => [
       c.id,
-      c.callId ? byCall[c.callId]?.size ?? 0 : Math.max(0, Math.round(Number(c.signups) || 0)),
+      c.callId
+        ? byCall[c.callId]?.size ?? 0
+        : c.webinarId
+          ? peopleOf(c.webinarId).length
+          : Math.max(0, Math.round(Number(c.signups) || 0)),
     ]),
   );
 }

@@ -21,7 +21,7 @@ function useThemeFont(theme) {
   }, [theme]);
 }
 
-function Hero({ hero, event, pricing }) {
+function Hero({ hero, event, pricing, signupHref }) {
   const isPaid = pricing.type === 'paid' && pricing.price !== null;
 
   return (
@@ -51,14 +51,23 @@ function Hero({ hero, event, pricing }) {
             {isPaid ? formatPrice(pricing.price) : 'Free'}
             {isPaid && pricing.oldPrice !== null && <s>{formatPrice(pricing.oldPrice)}</s>}
           </p>
-          <span className="sd__button">{pricing.ctaLabel}</span>
+          {/* A link to the sign-up page on a live link; just the look in previews and thumbnails */}
+          {signupHref ? (
+            <a className="sd__button sd__button--link" href={signupHref}>
+              {pricing.ctaLabel}
+            </a>
+          ) : (
+            <span className="sd__button">{pricing.ctaLabel}</span>
+          )}
         </div>
       </div>
     </header>
   );
 }
 
-export default function SimpleDesign({ page, theme }) {
+// signupHref: where the sign-up button goes (a published webinar's link
+// that hasn't ended), or null for a button that's only shown
+export default function SimpleDesign({ page, theme, signupHref = null }) {
   useThemeFont(theme);
 
   return (
@@ -66,7 +75,7 @@ export default function SimpleDesign({ page, theme }) {
       className={`sd sd--hero-${theme.layout.hero} sd--card-${theme.layout.card}`}
       style={themeStyle(theme)}
     >
-      <Hero {...page} />
+      <Hero {...page} signupHref={signupHref} />
 
       {/* TEMPORARY: replaced by the other sections in chunk 3 */}
       <p className="sd__todo">The rest of your page appears here in the next step.</p>

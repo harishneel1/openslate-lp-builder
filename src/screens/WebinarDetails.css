@@ -1,0 +1,487 @@
+/* The webinar details page (WebinarDetails.jsx). Panels and buttons come
+   from OfferingsHome.css, the meeting button and badges from
+   WebinarsPage.css; only what's new is here. */
+
+/* ---------- Header: what it is on the left, what to do on the right ---------- */
+.wd__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start; /* the buttons line up with the top, not the link */
+  gap: 16px 32px;
+  padding-top: 8px;
+}
+
+.wd__status {
+  margin: 0 0 10px;
+}
+
+.wd__title {
+  max-width: 30ch;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.wd__when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.wd__when svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.wd__free {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.wd__price {
+  font-weight: 600;
+}
+
+.wd__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ⋯ the same height as the buttons beside it */
+.wd__actions .row-menu__button {
+  width: 42px;
+  height: 42px;
+}
+
+/* Wide enough for "Run again on a new date" on one line */
+.wd__actions .row-menu__list {
+  width: 250px;
+}
+
+/* Today / Tomorrow: soon, so warm, but not as loud as Live now */
+.wd__badge--soon {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+}
+
+/* ---------- The landing page link: a small box with Copy attached ---------- */
+.wd__share {
+  margin-top: 16px;
+}
+
+.wd__share-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Looks like a read-only field: one edge around the address and Copy */
+.wd__share-box {
+  display: flex;
+  align-items: center;
+  width: 440px;
+  max-width: 100%;
+  height: 42px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.wd__share-icon {
+  flex: none;
+  margin: 0 8px 0 12px;
+  color: var(--color-text-muted);
+}
+
+.wd__share-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wd__share-open {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 4px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.wd__share-open:hover {
+  color: var(--color-text);
+  background: #f3f3f5;
+}
+
+/* Copy: part of the box, divided by a line, tinted like other copy buttons */
+.wd__share-copy {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.wd__share-copy:hover {
+  background: #fbe4d1;
+}
+
+.wd__share-copy--done {
+  color: var(--color-success);
+  background: var(--color-success-tint);
+}
+
+.wd__share-copy--done:hover {
+  background: var(--color-success-tint);
+}
+
+.wd__share-open:focus-visible,
+.wd__share-copy:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.wd__share .wd__copy-error {
+  margin: 6px 0 0;
+}
+
+/* ---------- On the day: the countdown tag ----------
+   A pill like the other tags, a little warmer as the time comes. The
+   thin line along its bottom is how far through the day (or the
+   webinar) it is. */
+.wd__count {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  padding: 3px 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  background: #f0f0f2;
+  border-radius: 999px;
+}
+
+.wd__count-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: #b9b9bf;
+  transition: width 1s ease;
+}
+
+/* The last 15 minutes, and live: orange, as the button is */
+.wd__count--soon,
+.wd__count--live {
+  color: #b4520c;
+  background: var(--color-primary-tint);
+}
+
+.wd__count--soon .wd__count-fill,
+.wd__count--live .wd__count-fill {
+  background: #d4600c;
+}
+
+.wd__count-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  background: #d4600c;
+  border-radius: 50%;
+}
+
+.wd__count-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #d4600c;
+  border-radius: 50%;
+  animation: wb-pulse 1.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd__count-dot::after {
+    animation: none;
+  }
+
+  .wd__count-fill {
+    transition: none;
+  }
+}
+
+/* "in 14 days" after the price: quieter than the date */
+.wd__away {
+  color: var(--color-text-muted);
+}
+
+/* ---------- People ---------- */
+.wd__people {
+  margin-top: 28px;
+}
+
+.wd__people-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
+.wd__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wd__people .oh__edit {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.wd__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  max-width: 100%;
+  padding: 0 12px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.wd__search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.wd__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.wd__people-body {
+  padding: 0;
+}
+
+.wd__people-body .calls__empty {
+  padding: 40px 16px;
+}
+
+
+/* The table scrolls sideways inside its card, never the page */
+.wd__table-wrap {
+  overflow-x: auto;
+}
+
+.wd__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.wd__table th {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wd__table td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wd__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.wd__table th:first-child,
+.wd__table td:first-child {
+  padding-left: 24px;
+}
+
+.wd__table th:last-child,
+.wd__table td:last-child {
+  padding-right: 24px;
+}
+
+.wd__name {
+  font-weight: 600;
+}
+
+.wd__email {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.wd__email:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wd__phone,
+.wd__muted {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.wd__muted {
+  color: var(--color-text-muted);
+}
+
+.wd__chat {
+  width: 1%;
+  text-align: right;
+}
+
+/* WhatsApp: an icon on wide screens (named by its tooltip), a labelled button on phones */
+.wd__wa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 36px;
+  height: 36px;
+  color: #128c4b;
+  text-decoration: none;
+  background: #e8f7ee;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.wd__wa:hover {
+  background: #d3f0de;
+}
+
+.wd__wa-text {
+  display: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 860px) {
+  .wd__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wd__actions {
+    justify-content: flex-start;
+  }
+}
+
+/* Phones: each person is a small card, label beside each value */
+@media (max-width: 640px) {
+  .wd__title {
+    font-size: 23px;
+  }
+
+  .wd__search {
+    width: 100%;
+  }
+
+  .wd__share-box {
+    width: 100%;
+  }
+
+
+  .wd__tools {
+    width: 100%;
+  }
+
+  .wd__table thead {
+    display: none;
+  }
+
+  .wd__table,
+  .wd__table tbody,
+  .wd__table tr,
+  .wd__table td {
+    display: block;
+  }
+
+  .wd__table tr {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .wd__table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .wd__table td,
+  .wd__table td:first-child,
+  .wd__table td:last-child {
+    padding: 3px 0;
+    border: 0;
+  }
+
+  .wd__table td[data-label]:not(.wd__name)::before {
+    content: attr(data-label) ' ';
+    display: inline-block;
+    min-width: 92px;
+    color: var(--color-text-muted);
+  }
+
+  .wd__name {
+    font-size: 15px;
+  }
+
+  .wd__chat {
+    width: auto;
+    margin-top: 8px;
+    text-align: left;
+  }
+
+  .wd__wa {
+    width: auto;
+    padding: 0 14px;
+  }
+
+  .wd__wa-text {
+    display: inline;
+  }
+}

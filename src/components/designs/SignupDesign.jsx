@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Clock, Globe, Lock } from 'lucide-react';
 import { lengthLabel, webinarPrice, webinarWhen } from '../../data/webinar';
 import { mockAccount } from '../../data/myPage';
@@ -13,10 +14,64 @@ import './SignupDesign.css';
 // the right. The same layout and look as the 1:1 call checkout
 // (CheckoutPage.jsx), filled from the webinar's answers.
 //
-// Shown in the preview tab (?preview=<id>&page=signup). It's a preview:
-// the fields can be typed in, but nobody can sign up or pay from it.
+// Shown in the preview tab (?preview=<id>&page=signup), and as a card
+// thumbnail. Without onRegister it's a preview: the fields can be typed
+// in, but nobody can sign up or pay from it.
+//
+// onRegister({ name, email, phone }): given on a published webinar's
+// link that hasn't ended. Then the form works: it checks the details and
+// hands them over (PreviewPage saves them to People). A paid webinar's
+// payment is pretended for now: Pay registers them as paid.
 // ------------------------------------------------------------
-export default function SignupDesign({ answers }) {
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// The details as typed → an error per field, or {} when they're fine
+function checkDetails({ name, email, phone }) {
+  const errors = {};
+  if (!name.trim()) errors.name = 'Enter your name.';
+  if (!EMAIL.test(email.trim())) errors.email = 'Enter an email like name@gmail.com.';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 7 || digits.length > 15) errors.phone = 'Enter your phone number.';
+  return errors;
+}
+
+export default function SignupDesign({ answers, onRegister = null }) {
+  const live = Boolean(onRegister);
+  const [form, setForm] = useState({ name: '', email: '', code: COUNTRY_CODES[0]?.code ?? '+91', phone: '' });
+  const [errors, setErrors] = useState({});
+  const [sending, setSending] = useState(false);
+  const set = (field) => (e) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    if (errors[field]) setErrors((x) => ({ ...x, [field]: undefined }));
+  };
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!live || sending) return;
+    const found = checkDetails(form);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      document.getElementById(`su-${Object.keys(found)[0]}`)?.focus();
+      return;
+    }
+    setSending(true);
+    const ok = onRegister({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: `${form.code} ${form.phone.trim()}`,
+    });
+    if (ok === false) {
+      setSending(false);
+      setErrors({ form: 'We couldn’t save your details. Please try again.' });
+    }
+  };
+
+  // Ties an input to its hint and error, for screen readers
+  const describe = (id, hint) => ({
+    'aria-invalid': errors[id] ? true : undefined,
+    'aria-describedby': [hint && `su-${id}-hint`, errors[id] && `su-${id}-error`].filter(Boolean).join(' ') || undefined,
+  });
   const title = String(answers.headline ?? '').trim() || 'Webinar';
   const about = String(answers.subheadline ?? '').trim();
   const when = webinarWhen(answers);
@@ -81,27 +136,52 @@ export default function SignupDesign({ answers }) {
         </section>
 
         {/* ================= Right: their details ================= */}
-        <form className="co__pay" onSubmit={(e) => e.preventDefault()} aria-labelledby="su-details">
+        <form className="co__pay" onSubmit={submit} noValidate aria-labelledby="su-details">
           <div className="co__box">
             <h2 id="su-details" className="co__box-title">
               Your details
             </h2>
-            <SignupField id="su-name" label="Name">
-              <input id="su-name" className="co-input" type="text" autoComplete="off" />
+            <SignupField id="su-name" label="Name" error={errors.name}>
+              <input
+                id="su-name"
+                className="co-input"
+                type="text"
+                autoComplete={live ? 'name' : 'off'}
+                value={form.name}
+                onChange={set('name')}
+                {...describe('name')}
+              />
             </SignupField>
-            <SignupField id="su-email" label="Email" hint="We'll send the joining link here.">
-              <input id="su-email" className="co-input" type="email" autoComplete="off" />
+            <SignupField id="su-email" label="Email" hint="We'll send the joining link here." error={errors.email}>
+              <input
+                id="su-email"
+                className="co-input"
+                type="email"
+                autoComplete={live ? 'email' : 'off'}
+                value={form.email}
+                onChange={set('email')}
+                {...describe('email', true)}
+              />
             </SignupField>
-            <SignupField id="su-phone" label="Phone number">
+            <SignupField id="su-phone" label="Phone number" error={errors.phone}>
               <div className="co-phone">
-                <select className="co-input co-select co-phone__code" aria-label="Country code" defaultValue={COUNTRY_CODES[0]?.code}>
+                <select className="co-input co-select co-phone__code" aria-label="Country code" value={form.code} onChange={set('code')}>
                   {COUNTRY_CODES.map((c) => (
                     <option key={c.code} value={c.code} title={c.name}>
                       {c.code}
                     </option>
                   ))}
                 </select>
-                <input id="su-phone" className="co-input" type="tel" autoComplete="off" inputMode="tel" />
+                <input
+                  id="su-phone"
+                  className="co-input"
+                  type="tel"
+                  autoComplete={live ? 'tel-national' : 'off'}
+                  inputMode="tel"
+                  value={form.phone}
+                  onChange={set('phone')}
+                  {...describe('phone')}
+                />
               </div>
             </SignupField>
           </div>
@@ -131,10 +211,15 @@ export default function SignupDesign({ answers }) {
             </dl>
 
             {/* A preview: the button shows, but does nothing */}
-            <button type="submit" className="co__pay-btn" disabled>
+            <button type="submit" className="co__pay-btn" disabled={!live || sending}>
               {button}
             </button>
-            <p className="signup-design__note">This is a preview, so nobody can sign up from it.</p>
+            {errors.form && (
+              <p className="co-field__error" role="alert">
+                {errors.form}
+              </p>
+            )}
+            {!live && <p className="signup-design__note">This is a preview, so nobody can sign up from it.</p>}
             {!price.isFree && (
               <p className="co__secure">
                 <Lock size={13} aria-hidden="true" /> Secure payment by Razorpay
@@ -147,7 +232,7 @@ export default function SignupDesign({ answers }) {
   );
 }
 
-function SignupField({ id, label, hint, children }) {
+function SignupField({ id, label, hint, error, children }) {
   return (
     <div className="co-field">
       <label className="co-field__label" htmlFor={id}>
@@ -162,6 +247,11 @@ function SignupField({ id, label, hint, children }) {
         </p>
       )}
       {children}
+      {error && (
+        <p className="co-field__error" id={`${id}-error`} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

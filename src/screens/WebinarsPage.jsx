@@ -45,8 +45,9 @@ import './WebinarsPage.css';
 // its own link (App.jsx), so the same name can show in Past and Upcoming.
 // The date tile tells them apart, and a past one links to its newer run.
 //
-// A click anywhere on a row opens the webinar's overview (its three page
-// cards), and so does Edit pages: that's where every page is edited.
+// A click anywhere on a row opens the webinar (App.jsx: its details page
+// once it's published, the setup screen while it's a draft). Edit pages
+// opens the three page cards, where every page is edited.
 //
 // Every upcoming webinar has its meeting button, always in the same place
 // (Zoom is built in, so there's always a meeting). It changes with the clock:
@@ -59,13 +60,13 @@ import './WebinarsPage.css';
 //
 // webinars: the saved records (App.jsx)
 // onCreate(), onOpen(id) (where they left off: Continue setting up),
-// onOpenOverview(id), onDelete(id), onRunAgain(id)
+// onOpenOverview(id) (a click on the row), onEditPages(id), onDelete(id), onRunAgain(id)
 // ------------------------------------------------------------
 
 const TYPE = funnelTypes.find((t) => t.id === 'webinar');
 
-// The time now, updated every `every` ms
-function useNow(every = 30_000) {
+// The time now, updated every `every` ms (also used by WebinarDetails)
+export function useNow(every = 30_000) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), every);
@@ -74,7 +75,7 @@ function useNow(every = 30_000) {
   return now;
 }
 
-export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain }) {
+export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onEditPages = onOpenOverview, onDelete, onRunAgain }) {
   const [deleting, setDeleting] = useState(null); // { id, name } while the pop-up asks
   const [said, setSaid] = useState(''); // for screen readers: what just changed
   const now = useNow();
@@ -111,6 +112,7 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
     nextRun: webinarStatus(w, now) === 'past' ? laterRuns(w, webinars, now)[0]?.webinar ?? null : null,
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
+    onEditPages: () => onEditPages(w.id),
     onOpenRun: (id) => onOpenOverview(id),
     onRunAgain: () => onRunAgain(w.id),
     onDelete: () => setDeleting({ id: w.id, name: funnelName(w, TYPE), live: Boolean(w.publishedAt) }),
@@ -217,7 +219,7 @@ function draftProgress(webinar) {
 // One webinar, as a full-width row like a 1:1 call: date, what it is and
 // where it's at on the left; what you can do on the right.
 // nextRun: on a past one, the newest webinar made from it with Run again, or null
-function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onOpenRun, onDelete, onRunAgain }) {
+function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onEditPages, onOpenRun, onDelete, onRunAgain }) {
   const { answers } = webinar;
   const name = funnelName(webinar, TYPE);
   const status = webinarStatus(webinar, now);
@@ -235,9 +237,9 @@ function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onOpenRun, 
   const details = [when?.line, length].filter(Boolean).join(' · ');
   const showPrice = landingDone || status !== 'draft';
 
-  // The overview's three page cards, the same place a click on the row goes
+  // The three page cards, where each page is edited
   const editPages = (
-    <button type="button" className="oh__edit" onClick={onOpenOverview} aria-label={`Edit the pages of ${name}`}>
+    <button type="button" className="oh__edit" onClick={onEditPages} aria-label={`Edit the pages of ${name}`}>
       <Pencil size={15} aria-hidden="true" /> Edit pages
     </button>
   );
@@ -358,8 +360,9 @@ function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onOpenRun, 
 
 // The coach's way into their Zoom meeting (a new tab). Always the first
 // button on an upcoming row, so it's where they expect it on the day.
+// Also in the details page's header (WebinarDetails).
 // state: 'join' | 'start' | 'live' (meetingState in data/webinar.js)
-function MeetingButton({ state, href, name }) {
+export function MeetingButton({ state, href, name }) {
   const look = {
     join: { className: 'oh__edit wb-row__join', label: `Join the meeting for ${name}` },
     start: { className: 'oh__add wb-row__start', label: `Start ${name}` },
