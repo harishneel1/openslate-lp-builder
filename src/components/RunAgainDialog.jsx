@@ -1,68 +1,64 @@
 import { useState } from 'react';
+import { Pencil } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
-import { isFuture, lengthLabel, nextDateFor } from '../data/webinar';
+import DatePicker from './DatePicker';
+import TimePicker from './TimePicker';
+import { isFuture, nextDateFor } from '../data/webinar';
 import './RunAgainDialog.css';
 
 // ------------------------------------------------------------
-// "Run it again": the same webinar on a new date. Its pages and its
-// link stay as they are, so ads and shared links keep working; only
-// the date and time are asked for. It keeps its Zoom meeting too.
-// The session that's over is kept as an earlier session.
+// "Run again on a new date": makes a new webinar, a copy of this one on
+// a new date (App.jsx). Only the date and time are asked for; the pages,
+// price, design and settings are copied. (The copy promises the Meta
+// pixel too; the pixel setting isn't built yet.) The copy gets its own link,
+// sign-up page and Zoom meeting, and this one stays as it is, with the
+// people who signed up for it.
 //
-// Uses the "Are you sure?" pop-up (ConfirmDialog), with the form inside.
+// Uses the "Are you sure?" pop-up (ConfirmDialog) as a form: a click
+// outside doesn't close it. The date and time use our own pickers, and a
+// quiet line under them says the date can be changed later, so picking
+// one doesn't feel final.
 //
-// name: the webinar's name, for the title
 // answers: its current answers (date, time, time zone, length)
 // onCancel(), onSchedule({ date, time })
 // ------------------------------------------------------------
-export default function RunAgainDialog({ name, answers, onCancel, onSchedule }) {
+export default function RunAgainDialog({ answers, onCancel, onSchedule }) {
   const [date, setDate] = useState(() => nextDateFor(answers));
   const [time, setTime] = useState(answers.time ?? '19:00');
 
-  const zone = String(answers.timeZone ?? 'IST').split(' ')[0];
-  const length = lengthLabel(answers);
+  const zone = String(answers.timeZone ?? 'IST').split(' ')[0]; // 'IST', shown after the time
   const filled = /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{2}:\d{2}$/.test(time);
   const future = filled && isFuture(answers, date, time);
-  const error = !filled ? 'Pick a date and a start time.' : !future ? 'Pick a date and time that’s still to come.' : null;
+  const error = !filled ? 'Pick a date and a start time.' : !future ? 'Pick a date and time in the future.' : null;
 
   return (
     <ConfirmDialog
-      title="Run it again"
-      confirmLabel="Schedule session"
+      title="Run again on a new date"
+      confirmLabel="Create new webinar"
       confirmDisabled={Boolean(error)}
+      form
       onCancel={onCancel}
       onConfirm={() => onSchedule({ date, time })}
     >
-      <p>
-        <strong>“{name}”</strong> keeps its pages and its link, so your ads keep working. Just pick
-        the new date.
-      </p>
+      <p>We will make a copy of this webinar with a new link. Your pages, price and Meta pixel will be copied too.</p>
+      <p>The new cloned webinar starts with 0 signed-up customers.</p>
 
       <div className="run-again__row">
-        <label className="run-again__field">
-          <span className="run-again__label">Date</span>
-          <input
-            className="run-again__input"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            aria-describedby="run-again-error"
-          />
-        </label>
-        <label className="run-again__field">
-          <span className="run-again__label">Start time</span>
-          <input
-            className="run-again__input"
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            aria-describedby="run-again-error"
-          />
-        </label>
+        <div className="run-again__field">
+          <label className="run-again__label" htmlFor="run-again-date">
+            Date
+          </label>
+          <DatePicker id="run-again-date" value={date} onChange={setDate} className="run-again__input" />
+        </div>
+        <div className="run-again__field">
+          <label className="run-again__label" htmlFor="run-again-time">
+            Start time
+          </label>
+          <TimePicker id="run-again-time" value={time} onChange={setTime} zone={zone} className="run-again__input" />
+        </div>
       </div>
-      <p className="run-again__hint">
-        {zone}
-        {length ? `, ${length}` : ''}, as before. To change those, edit your landing page.
+      <p className="run-again__later">
+        <Pencil size={13} aria-hidden="true" /> Not sure yet? Pick any date. You can change it later.
       </p>
 
       <p className="run-again__error" id="run-again-error" role="alert">

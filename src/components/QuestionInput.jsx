@@ -17,6 +17,8 @@ import ServiceSummaryInput from './ServiceSummaryInput';
 import CalendarConnectInput from './CalendarConnectInput';
 import PickCallsInput from './PickCallsInput';
 import QuestionsInput from './QuestionsInput';
+import DatePicker from './DatePicker';
+import TimePicker from './TimePicker';
 import { questionsOf } from '../data/callQuestions';
 
 const CTA_MAX = 25;
@@ -226,13 +228,6 @@ function SentenceInput({ question, answers, onChange, onSubmit }) {
   );
 }
 
-// Today's date as YYYY-MM-DD in local time, so past dates can't be picked
-function todayISO() {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
-}
-
 function Pills({ field, value, onPick }) {
   return (
     <div className="qinput__pills" role="group" aria-label={field.label}>
@@ -313,15 +308,6 @@ function GroupInput({ question, answers, onChange }) {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Clicking anywhere on a date/time box opens the picker, not just the icon
-  const openPicker = (e) => {
-    try {
-      e.currentTarget.showPicker?.();
-    } catch {
-      // older browsers: the normal picker still works
-    }
-  };
-
   const renderField = (f) => {
     const value = valueOf(f);
 
@@ -395,19 +381,17 @@ function GroupInput({ question, answers, onChange }) {
       );
     }
 
+    // Our own pickers (DatePicker, TimePicker), the same as in Run again
     if (f.type === 'date' || f.type === 'time') {
+      const id = `qinput-${f.id}`;
+      const Picker = f.type === 'date' ? DatePicker : TimePicker;
       return (
-        <label key={f.id} className="qinput__field">
-          <span className="qinput__label">{f.label}</span>
-          <input
-            type={f.type}
-            className="qinput__text qinput__picker"
-            value={value}
-            min={f.type === 'date' ? todayISO() : undefined}
-            onClick={openPicker}
-            onChange={(e) => onChange(e.target.value, f.id)}
-          />
-        </label>
+        <div key={f.id} className="qinput__field">
+          <label className="qinput__label" htmlFor={id}>
+            {f.label}
+          </label>
+          <Picker id={id} value={value} onChange={(v) => onChange(v, f.id)} className="qinput__text qinput__picker" />
+        </div>
       );
     }
 

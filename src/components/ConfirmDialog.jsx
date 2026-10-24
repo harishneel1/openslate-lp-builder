@@ -4,7 +4,7 @@ import './ConfirmDialog.css';
 // ------------------------------------------------------------
 // "Are you sure?" pop-up, as in Contracts: the browser's own <dialog>,
 // which dims the page, keeps the keyboard inside, and closes on Escape or
-// a click outside. Cancel has focus first, so Enter by habit does nothing.
+// a click outside (not for a form; see `form`). Cancel has focus first, so Enter by habit does nothing.
 // Used by 1:1 calls (Delete) and My offerings (Remove from page).
 //
 // title, children (what happens, in a sentence or two)
@@ -13,7 +13,10 @@ import './ConfirmDialog.css';
 // onCancel(), onConfirm()
 // ------------------------------------------------------------
 // confirmDisabled: the action can't happen yet (e.g. a date still to fix); the button says so and does nothing
-export default function ConfirmDialog({ title, children, confirmLabel, danger = false, confirmDisabled = false, onCancel, onConfirm }) {
+// form: it has fields to fill (Run again). A click outside doesn't close it,
+//   so a date they've picked isn't lost by a stray click; Cancel and Escape
+//   still do. Its date and time panels can open past its edges.
+export default function ConfirmDialog({ title, children, confirmLabel, danger = false, confirmDisabled = false, form = false, onCancel, onConfirm }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -25,14 +28,14 @@ export default function ConfirmDialog({ title, children, confirmLabel, danger = 
   return (
     <dialog
       ref={ref}
-      className="confirm-dialog"
+      className={form ? 'confirm-dialog confirm-dialog--form' : 'confirm-dialog'}
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-body"
       onCancel={(e) => {
         e.preventDefault();
         onCancel();
       }}
-      onClick={(e) => e.target === ref.current && onCancel()}
+      onClick={(e) => !form && e.target === ref.current && onCancel()}
     >
       <h2 className="confirm-dialog__title" id="confirm-dialog-title">
         {title}

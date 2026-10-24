@@ -10,6 +10,12 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
 }
 
+/* A form's date and time panels open past its edges (the browser
+   would otherwise make the pop-up scroll) */
+.confirm-dialog--form {
+  overflow: visible;
+}
+
 .confirm-dialog:focus,
 .confirm-dialog:focus-visible {
   outline: none;

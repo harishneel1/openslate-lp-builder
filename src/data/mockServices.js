@@ -359,9 +359,12 @@ export function updateContract(id, fields) {
 //
 // fields: title, description, type ('free' | 'onetime'), prices (see contractPricing.js)
 // startDate: the webinar's date, YYYY-MM-DD
+// copyOf: for a webinar run again, the earlier run's contract. The new
+//   one starts from it, so its cover, questions, GST and after-payment
+//   settings come along; it's still a separate contract.
 // Returns the contract's id, or null if storage failed.
 // ------------------------------------------------------------
-export function saveWebinarContract({ webinarId, contractId, fields, startDate }) {
+export function saveWebinarContract({ webinarId, contractId, fields, startDate, copyOf = null }) {
   const existing = contractId ? getService(contractId) : null;
   if (existing && existing.webinarId === webinarId) {
     // Keep what the coach set on the contract screen (cover, questions,
@@ -370,9 +373,11 @@ export function saveWebinarContract({ webinarId, contractId, fields, startDate }
     return saveChange(contractId, { ...merged, startDate: startDate || existing.startDate }) ? contractId : null;
   }
   const now = new Date();
+  const from = copyOf ? getService(copyOf) : null;
+  const start = from ? contractOf(from) : { success: DEFAULT_SUCCESS };
   const contract = {
     id: `svc-${now.getTime().toString(36)}`,
-    ...contractFields({ ...fields, success: DEFAULT_SUCCESS }),
+    ...contractFields({ ...start, ...fields }),
     webinarId,
     startDate: startDate || now.toISOString().slice(0, 10),
     status: 'active',

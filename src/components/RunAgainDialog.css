@@ -1,4 +1,4 @@
-/* "Run it again" (RunAgainDialog.jsx): a small form inside the pop-up */
+/* "Run again on a new date" (RunAgainDialog.jsx): a small form inside the pop-up */
 .run-again__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -30,16 +30,19 @@
   border-radius: var(--radius-sm);
 }
 
-.run-again__input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-primary-tint);
-}
-
-.run-again__hint {
+/* "Not sure yet? … You can change it later." Quiet, right under the fields */
+.run-again__later {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: -2px;
   font-size: 13px;
   line-height: 1.45;
   color: var(--color-text-muted);
+}
+
+.run-again__later svg {
+  flex: none;
 }
 
 .run-again__error {

@@ -193,7 +193,7 @@ export const webinarQuestions = [
         label: 'Date',
         half: true,
         default: twoWeeksFromToday(),
-        helper: "Not sure about date & time yet? Keep the date we've filled in. You can change it anytime before you publish.",
+        helper: 'Not sure yet? Pick any date. You can change it later.',
         required: true,
       },
       {

@@ -15,7 +15,7 @@ import LandingEditor from './screens/LandingEditor';
 import SignupStep from './screens/SignupStep';
 import { deleteService, getService, saveWebinarContract } from './data/mockServices';
 import { thankYouQuestions, firstMissing } from './data/thankYouQuestions';
-import { contractKey, ownContract, sessionOf, webinarContractFields } from './data/webinar';
+import { contractKey, laterRuns, ownContract, webinarContractFields } from './data/webinar';
 import RunAgainDialog from './components/RunAgainDialog';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
@@ -74,8 +74,9 @@ function restoreFunnel(f) {
     // Saves from before publishing existed have neither: not live yet
     publishedAt: Number.isFinite(f.publishedAt) ? f.publishedAt : null,
     slug: typeof f.slug === 'string' && f.slug ? f.slug : null,
-    // Earlier runs of this webinar (Run it again); older saves have none
-    sessions: Array.isArray(f.sessions) ? f.sessions.filter(isObject) : [],
+    // The webinar this one was run again from (data/webinar.js). Older
+    // saves' `sessions` (runs kept inside one webinar) are dropped.
+    copiedFrom: typeof f.copiedFrom === 'string' ? f.copiedFrom : null,
   };
 }
 
@@ -239,26 +240,57 @@ function App() {
       donePages: f.donePages.includes('registration') ? f.donePages : [...f.donePages, 'registration'],
     }));
 
-  // ---------- Run it again ----------
-  // Same pages, same link, new date. The session that's over is kept in
-  // `sessions`; the answers become the new one. Asked in a pop-up, from
-  // the list or the webinar's overview.
+  // A webinar's overview (its three page cards): a click on its row, or
+  // "Ran again on …" on an earlier run
+  const openOverview = (id) => {
+    setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'overview' } : f)));
+    setOpenId(id);
+  };
+
+  // The newest run made from this webinar, or null
+  const latestRun = (f) => laterRuns(f, funnels)[0]?.webinar ?? null;
+
+  // ---------- Run again on a new date ----------
+  // Makes a new webinar: a full copy on the new date, with its own pages,
+  // link, sign-up page (contract) and Zoom meeting. The earlier one stays
+  // exactly as it was, with its own people. The copy is ready to share
+  // straight away (its pages are already done) and opens on its overview.
+  // Asked in a pop-up, from the list or the webinar's overview.
   const [runAgainId, setRunAgainId] = useState(null);
   const runningAgain = funnels.find((f) => f.id === runAgainId) ?? null;
 
-  const runAgain = ({ date, time, meetingLink }) => {
+  const runAgain = ({ date, time }) => {
     const f = runningAgain;
     if (!f) return;
-    const next = {
-      ...f,
-      sessions: [sessionOf(f.answers), ...(f.sessions ?? [])],
-      answers: { ...f.answers, date, time, meetingLink },
-      updatedAt: Date.now(),
+    const now = Date.now();
+    const taken = funnels.filter((item) => item.slug).map((item) => item.slug);
+    const copy = {
+      ...createFunnel(f.type), // new id, so a new link and a new Zoom meeting
+      step: 'overview',
+      answers: { ...f.answers, date, time },
+      themeId: f.themeId,
+      donePages: [...f.donePages],
+      positions: f.positions ?? {},
+      publishedAt: now,
+      slug: makeSlug(f.answers.headline, taken),
+      copiedFrom: f.id,
     };
-    setFunnels((prev) => prev.map((item) => (item.id === f.id ? next : item)));
-    // Its sign-up page shows the new date straight away, whether or not it's open
-    if (ownContract(next)) saveContract(next);
+    // Its own sign-up page, starting from the earlier one's settings
+    const contractId = saveWebinarContract({
+      webinarId: copy.id,
+      contractId: null,
+      fields: webinarContractFields(copy.answers),
+      startDate: date,
+      copyOf: ownContract(f)?.id ?? null,
+    });
+    if (!contractId) {
+      setSaveFailed(true);
+      return;
+    }
+    setFunnels((prev) => [{ ...copy, serviceId: contractId }, ...prev]);
     setRunAgainId(null);
+    setActiveNav('page-builder');
+    setOpenId(copy.id);
   };
 
   // After that it follows the landing page: a new headline, date or price
@@ -344,10 +376,7 @@ function App() {
           onCreate={() => startFunnel('webinar')}
           onOpen={setOpenId}
           // A click on the row: straight to its overview (the three page cards)
-          onOpenOverview={(id) => {
-            setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'overview' } : f)));
-            setOpenId(id);
-          }}
+          onOpenOverview={openOverview}
           onRunAgain={setRunAgainId}
           onDelete={deleteFunnel}
         />
@@ -359,7 +388,9 @@ function App() {
         <FunnelOverview
           funnel={funnel}
           webinarId={openId}
-          sessions={current.sessions ?? []}
+          // The newer run of this one, once it's been run again ("Ran again on …")
+          nextRun={latestRun(current)}
+          onOpenRun={openOverview}
           onRunAgain={() => setRunAgainId(openId)}
           done={donePages}
           answers={answers}
@@ -369,6 +400,11 @@ function App() {
           previewHref={`?preview=${encodeURIComponent(openId)}`}
           onPreview={saveNow}
           onEdit={() => updateOpen({ step: 'review', returnTo: undefined }, { touch: false })}
+          // "Change" by the date: just the event details screen, then back here
+          onChangeDate={() => {
+            setEditingId('eventDetails');
+            updateOpen({ step: 'review-edit', editReturn: 'overview' }, { touch: false });
+          }}
           service={getService(serviceId)}
           serviceIsOwn={Boolean(ownContract(current))}
           onChangeService={() => updateOpen({ step: 'registration' }, { touch: false })}
@@ -392,8 +428,10 @@ function App() {
     // One row of "Edit your landing page": that screen only (Free or paid also
     // brings Price and Crossed-out price when Paid), then back to the list.
     // Answers save as they type, so Save and Back both just return.
+    // From the overview's "Change" by the date (editReturn), back to the overview.
     if (step === 'review-edit') {
-      const backToReview = () => updateOpen({ step: 'review' }, { touch: false });
+      const backToReview = () =>
+        updateOpen((f) => ({ step: f.editReturn ?? 'review', editReturn: undefined }), { touch: false });
       const screens = editGroup(editingId);
       if (screens.length > 0) {
         return (

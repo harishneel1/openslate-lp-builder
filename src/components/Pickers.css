@@ -1,0 +1,275 @@
+/* The date and time pickers (DatePicker.jsx, TimePicker.jsx). The field's
+   own border, padding and size come from where it's used (className);
+   this file lays out what's inside it and the panel it opens. */
+
+.pk {
+  position: relative;
+  min-width: 0;
+}
+
+/* ---------- The field ---------- */
+.pk__trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.pk__trigger[aria-expanded='true'],
+.pk__trigger:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+  outline: none;
+}
+
+.pk__icon {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.pk__value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pk__trigger--empty .pk__value {
+  color: var(--color-text-disabled);
+}
+
+/* ---------- The panel under it ---------- */
+.pk__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: var(--z-dropdown);
+  padding: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+}
+
+.pk__panel--date {
+  width: 316px;
+}
+
+/* The time field usually sits on the right: its panel lines up with its right edge */
+.pk__panel--time {
+  right: 0;
+  left: auto;
+  width: 320px;
+}
+
+.pk__scrim {
+  display: none;
+}
+
+.pk button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Calendar ---------- */
+.pk__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pk__month {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pk__nav {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--color-text);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.pk__nav:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+.pk__nav:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+.pk__grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.pk__grid td {
+  padding: 1px 0;
+  text-align: center;
+}
+
+.pk__weekday {
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.pk__day {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.pk__day:hover:not(:disabled):not(.pk__day--chosen) {
+  background: var(--color-primary-tint);
+}
+
+.pk__day:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+/* Today: a small dot under the number */
+.pk__day--today::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+.pk__day--chosen {
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.pk__day--chosen.pk__day--today::after {
+  background: #fff;
+}
+
+/* ---------- Times ---------- */
+.pk__tabs {
+  display: flex;
+  padding: 3px;
+  margin-bottom: 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+.pk__tab {
+  flex: 1;
+  padding: 7px 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.pk__tab--on {
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.pk__times {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pk__time {
+  padding: 10px 4px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.pk__time:hover:not(.pk__time--chosen) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.pk__time--chosen {
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* ---------- Phones: the panel comes up from the bottom ---------- */
+@media (max-width: 600px) {
+  .pk__scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-dropdown);
+    background: rgba(17, 17, 17, 0.35);
+  }
+
+  .pk__panel,
+  .pk__panel--time {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .pk__panel--date .pk__grid {
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  .pk__day {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .pk__time {
+    padding: 12px 4px;
+    font-size: 15px;
+  }
+}

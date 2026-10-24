@@ -6,7 +6,7 @@ import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
 import {
-  earlierSessions,
+  laterRuns,
   lengthLabel,
   meetingHref,
   meetingState,
@@ -33,13 +33,17 @@ import './WebinarsPage.css';
 //   │         ● Link ready · Starts in 16 days                                  │
 //   ├ Drafts 1 ─────────────────────────────────────────────────────┤
 //   │ [ — ]   Untitled webinar · 1 of 3 pages done  [Continue]  [🗑] │
-//   └ Past ─────────────────────────────────────────────────────────┘
+//   ├ Past 1 ───────────────────────────────────────────────────────────────────┤
+//   │ [OCT 31] Fix the Vasthu mistakes…   [Run again on a new date] [Edit pages] [🗑] │
+//   │          ● Ended · Ran again on Sat 7 Nov →                                │
+//   └────────────────────────────────────────────────────────────────────────────┘
 //
 // Upcoming: published, soonest first. Drafts: not published, last edited
-// first. Past: every session that's over, latest first, one row each.
-// A webinar run three times shows three rows there, all opening the same
-// webinar; only one that hasn't been run again offers Run it again.
-// Empty groups don't show.
+// first. Past: published and over, latest first. Empty groups don't show.
+//
+// Every run is its own webinar: Run again makes a copy on a new date with
+// its own link (App.jsx), so the same name can show in Past and Upcoming.
+// The date tile tells them apart, and a past one links to its newer run.
 //
 // A click anywhere on a row opens the webinar's overview (its three page
 // cards), and so does Edit pages: that's where every page is edited.
@@ -48,7 +52,7 @@ import './WebinarsPage.css';
 // (Zoom is built in, so there's always a meeting). It changes with the clock:
 //   Join meeting       more than 15 minutes away (quiet, outlined)
 //   ● Start webinar    from 15 minutes before (orange, pulsing dot)
-//   ● Live now · Rejoin while it's on
+//   ● Live now         while it's on
 // Copy link is a full button until then, and an icon beside Start/Live.
 // The list re-reads the clock every 30 seconds, so the button, the
 // "Starts in" line and the groups move on while the page sits open.
@@ -85,18 +89,12 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
     const startOf = (w) => webinarStart(w.answers) ?? Infinity;
     by.upcoming.sort((a, b) => startOf(a) - startOf(b));
     by.draft.sort((a, b) => b.updatedAt - a.updatedAt);
-    // Past: webinars whose session is over, and every earlier session of any webinar
-    const past = [
-      ...by.past.map((w) => ({ key: w.id, webinar: w, session: null, at: startOf(w) })),
-      ...webinars.flatMap((w) =>
-        earlierSessions(w).map((x) => ({ key: `${w.id}:${x.id}`, webinar: w, session: x, at: webinarStart(x) ?? -Infinity })),
-      ),
-    ].sort((a, b) => b.at - a.at);
-    const rows = (list) => list.map((w) => ({ key: w.id, webinar: w, session: null }));
+    // Past: latest first
+    by.past.sort((a, b) => startOf(b) - startOf(a));
     return [
-      { id: 'upcoming', title: 'Upcoming', list: rows(by.upcoming) },
-      { id: 'draft', title: 'Drafts', list: rows(by.draft) },
-      { id: 'past', title: 'Past', list: past },
+      { id: 'upcoming', title: 'Upcoming', list: by.upcoming },
+      { id: 'draft', title: 'Drafts', list: by.draft },
+      { id: 'past', title: 'Past', list: by.past },
     ].filter((g) => g.list.length > 0);
   }, [webinars, now]);
 
@@ -106,12 +104,14 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
     setDeleting(null);
   };
 
-  const rowProps = ({ webinar: w, session }) => ({
+  const rowProps = (w) => ({
     webinar: w,
-    session,
     now,
+    // Its newest later run, for "Ran again on …" (Past only)
+    nextRun: webinarStatus(w, now) === 'past' ? laterRuns(w, webinars, now)[0]?.webinar ?? null : null,
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
+    onOpenRun: (id) => onOpenOverview(id),
     onRunAgain: () => onRunAgain(w.id),
     onDelete: () => setDeleting({ id: w.id, name: funnelName(w, TYPE), live: Boolean(w.publishedAt) }),
   });
@@ -158,8 +158,8 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
             </div>
             <div className="oh__panel-body">
               <ul className="oh__rows">
-                {g.list.map((row) => (
-                  <WebinarRow key={row.key} {...rowProps(row)} />
+                {g.list.map((w) => (
+                  <WebinarRow key={w.id} {...rowProps(w)} />
                 ))}
               </ul>
             </div>
@@ -216,13 +216,12 @@ function draftProgress(webinar) {
 
 // One webinar, as a full-width row like a 1:1 call: date, what it is and
 // where it's at on the left; what you can do on the right.
-// session: an earlier session of this webinar (shown in Past), or null for its current one
-function WebinarRow({ webinar, session, now, onOpen, onOpenOverview, onDelete, onRunAgain }) {
-  // An earlier session shows its own date, length and price; the rest is the webinar's
-  const answers = session ? { ...webinar.answers, ...session } : webinar.answers;
+// nextRun: on a past one, the newest webinar made from it with Run again, or null
+function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onOpenRun, onDelete, onRunAgain }) {
+  const { answers } = webinar;
   const name = funnelName(webinar, TYPE);
-  const status = session ? 'past' : webinarStatus(webinar, now);
-  const earlier = earlierSessions(webinar).length;
+  const status = webinarStatus(webinar, now);
+  const nextWhen = nextRun ? webinarWhen(nextRun.answers) : null;
   // 'join', 'start' or 'live' (data/webinar.js); only upcoming webinars have the button
   const meeting = status === 'upcoming' ? meetingState(answers, now) : null;
   const when = webinarWhen(answers);
@@ -280,24 +279,27 @@ function WebinarRow({ webinar, session, now, onOpen, onOpenOverview, onDelete, o
             </>
           )}
           {status === 'past' && <span className="wb-badge">Ended</span>}
-          {status === 'upcoming' && earlier > 0 && (
-            <span>
-              Run {earlier} {earlier === 1 ? 'time' : 'times'} before
-            </span>
+          {/* Run again already: which one, so they can follow it */}
+          {nextRun && (
+            <button type="button" className="wb-row__next" onClick={() => onOpenRun(nextRun.id)}>
+              Ran again on {nextWhen ? `${nextWhen.weekday} ${nextWhen.day} ${nextWhen.month}` : 'a new date'}
+              <ArrowRight size={13} aria-hidden="true" />
+            </button>
           )}
         </p>
       </div>
 
       <div className="oh-row__actions">
-        {session ? (
-          // An earlier session: it's a record, so the webinar is where things happen
-          <button type="button" className="oh__edit" onClick={onOpenOverview} aria-label={`Open ${name}`}>
-            Open webinar
-          </button>
-        ) : status === 'past' ? (
+        {status === 'past' ? (
           <>
-            <button type="button" className="oh__edit wb-row__again" onClick={onRunAgain} aria-label={`Run ${name} again`}>
-              <RefreshCw size={15} aria-hidden="true" /> Run it again
+            {/* The next thing to do on one that's over, until it's been run again */}
+            <button
+              type="button"
+              className={nextRun ? 'oh__edit' : 'oh__edit wb-row__again'}
+              onClick={onRunAgain}
+              aria-label={`Run ${name} again on a new date`}
+            >
+              <RefreshCw size={15} aria-hidden="true" /> Run again on a new date
             </button>
             {editPages}
           </>
@@ -330,18 +332,16 @@ function WebinarRow({ webinar, session, now, onOpen, onOpenOverview, onDelete, o
           </>
         )}
         {/* Delete was the only thing left in the ⋯ menu, so it's its own button */}
-        {!session && (
-          <button
-            type="button"
-            className="wb-row__icon wb-row__icon--delete"
-            onClick={onDelete}
-            aria-label={`Delete ${name}`}
-            data-tip="Delete"
-            data-tip-align="end"
-          >
-            <Trash2 size={17} aria-hidden="true" />
-          </button>
-        )}
+        <button
+          type="button"
+          className="wb-row__icon wb-row__icon--delete"
+          onClick={onDelete}
+          aria-label={`Delete ${name}`}
+          data-tip="Delete"
+          data-tip-align="end"
+        >
+          <Trash2 size={17} aria-hidden="true" />
+        </button>
       </div>
 
       <span className="oh__sr-only" aria-live="polite">
@@ -363,7 +363,7 @@ function MeetingButton({ state, href, name }) {
   const look = {
     join: { className: 'oh__edit wb-row__join', label: `Join the meeting for ${name}` },
     start: { className: 'oh__add wb-row__start', label: `Start ${name}` },
-    live: { className: 'oh__add wb-row__start wb-row__start--live', label: `${name} is live now. Rejoin` },
+    live: { className: 'oh__add wb-row__start wb-row__start--live', label: `Join ${name}, live now` },
   }[state];
   return (
     <a className={look.className} href={href} target="_blank" rel="noopener" aria-label={`${look.label} (opens Zoom in a new tab)`}>
@@ -374,13 +374,7 @@ function MeetingButton({ state, href, name }) {
       ) : (
         <>
           <span className="wb-row__pulse" aria-hidden="true" />
-          {state === 'live' ? (
-            <>
-              Live now 
-            </>
-          ) : (
-            'Start webinar'
-          )}
+          {state === 'live' ? 'Live now' : 'Start webinar'}
         </>
       )}
     </a>

@@ -217,7 +217,7 @@
 
 /* ---------- The meeting button ----------
    One button in one place that changes with the clock (MeetingButton):
-   Join meeting (outlined) → Start webinar (orange, pulsing dot) → Live now · Rejoin. */
+   Join meeting (outlined) → Start webinar (orange, pulsing dot) → Live now. */
 .wb-row__join,
 .wb-row__start {
   white-space: nowrap;
@@ -254,11 +254,6 @@
   to { transform: scale(2.6); opacity: 0; }
 }
 
-.wb-row__sep {
-  margin: 0 -2px;
-  opacity: 0.7;
-}
-
 .wb-row__join:focus-visible,
 .wb-row__start:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -271,4 +266,30 @@
     animation: none;
     opacity: 0;
   }
+}
+/* "Ran again on Sat 7 Nov →": opens the newer run. Sits above the row's
+   click area, like the buttons. */
+.wb-row__next {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: none;
+  cursor: pointer;
+}
+
+.wb-row__next:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wb-row__next:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

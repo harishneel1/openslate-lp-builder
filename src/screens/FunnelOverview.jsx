@@ -135,23 +135,14 @@ function LiveLink({ href, onOpen, copyRef }) {
   );
 }
 
-// "24 Oct, 10 Oct and 2 more"
-function earlierList(sessions) {
-  const dates = sessions.map((x) => {
-    const d = new Date(`${x.date}T00:00:00`);
-    return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  }).filter(Boolean);
-  const shown = dates.slice(0, 3).join(', ');
-  return dates.length > 3 ? `${shown} and ${dates.length - 3} more` : shown;
-}
-
 // done: ids of the pages they've finished, e.g. ['landing'].
 // Empty on the first visit, so the screen looks as it always did.
 export default function FunnelOverview({
   funnel,
   webinarId,          // this webinar's id, for its live link
-  sessions = [],      // its earlier sessions, newest first (Run it again)
-  onRunAgain,         // opens the Run it again pop-up
+  nextRun = null,     // the newest webinar made from this one with Run again, or null
+  onOpenRun,          // opens that one: onOpenRun(id)
+  onRunAgain,         // opens the Run again pop-up
   onStart,
   done = [],
   answers = {},
@@ -159,6 +150,7 @@ export default function FunnelOverview({
   previewHref = null, // address of the full-screen preview (opens in a new tab)
   onPreview,          // called just before it opens
   onEdit,
+  onChangeDate,       // opens the event details (date, time…) to change them
   service = null,     // the sign-up page's contract (made from the event details)
   serviceIsOwn = true, // false: a contract picked by hand on an older webinar
   onChangeService,    // reopens the sign-up page step
@@ -180,6 +172,9 @@ export default function FunnelOverview({
   // Its session is over (and not run again yet), or about to start / on now
   const end = webinarEnd(answers);
   const ended = Boolean(publishedAt) && end !== null && end <= Date.now();
+  // "Sat 7 Nov", for the button to its newer run
+  const nextWhen = nextRun ? webinarWhen(nextRun.answers ?? {}) : null;
+  const nextRunDay = nextWhen ? `${nextWhen.weekday} ${nextWhen.day} ${nextWhen.month}` : 'the new date';
   const startable = Boolean(publishedAt) && canStart(answers);
   const published = Boolean(publishedAt);
   // Every page done: they can publish. A missing group link doesn't block it
@@ -198,7 +193,7 @@ export default function FunnelOverview({
   }, [published]);
 
   let title;
-  if (ended) title = 'This session has ended';
+  if (ended) title = 'This webinar has ended';
   // "Live" and "publish" sound like it's announced to the world. It isn't:
   // they just get a link, and nobody sees anything until they share it.
   else if (published) title = 'Your link is ready';
@@ -226,8 +221,10 @@ export default function FunnelOverview({
           'Check each page, then get your link below.'}
         {published && !ended &&
           'Any change you make shows up on your link straight away.'}
-        {ended &&
-          'Run it again with a new date. Your pages and your link stay the same, so your ads keep working.'}
+        {ended && !nextRun &&
+          'Run it again on a new date. That makes a new webinar with its own link, and this one stays as it is.'}
+        {ended && nextRun &&
+          `You ran it again on ${nextRunDay}. This one stays as it was, with the people who signed up for it.`}
       </p>
       </div>
 
@@ -240,15 +237,15 @@ export default function FunnelOverview({
             {length ? ` · ${length}` : ''} ·{' '}
             <span className={price.isFree ? 'overview__when-free' : 'overview__when-price'}>{price.label}</span>
           </span>
+          {/* Shows the date isn't final. Not once it's over: that's Run again. */}
+          {onChangeDate && !ended && (
+            <button type="button" className="overview__when-change" onClick={onChangeDate} aria-label="Change the date and time">
+              Change
+            </button>
+          )}
         </p>
       )}
       </div>
-
-      {sessions.length > 0 && (
-        <p className="overview__earlier">
-          Earlier sessions: {earlierList(sessions)}
-        </p>
-      )}
 
       {published ? null : started ? (
         <div className="overview__progress">
@@ -425,10 +422,22 @@ export default function FunnelOverview({
           link, start it or run it again. Below the cards so the pages read first. */}
       <div className="overview__actions">
         {/* Ended: the one thing to do next */}
-        {ended && (
+        {ended && !nextRun && (
           <div className="overview__launch">
             <button type="button" className="overview__launch-primary" onClick={onRunAgain}>
-              <RefreshCw size={16} aria-hidden="true" /> Run it again
+              <RefreshCw size={16} aria-hidden="true" /> Run again on a new date
+            </button>
+          </div>
+        )}
+
+        {/* Run again already: the new one comes first, another date second */}
+        {ended && nextRun && (
+          <div className="overview__launch">
+            <button type="button" className="overview__launch-primary" onClick={() => onOpenRun(nextRun.id)}>
+              Go to {nextRunDay} <ArrowRight size={16} aria-hidden="true" />
+            </button>
+            <button type="button" className="overview__launch-link" onClick={onRunAgain}>
+              Run again on another date
             </button>
           </div>
         )}
@@ -452,7 +461,8 @@ export default function FunnelOverview({
           </div>
         )}
 
-              {published && <LiveLink href={liveLink} onOpen={onPreview} copyRef={copyRef} />}
+              {/* Ended: nobody can sign up on it any more, so no prompt to share it */}
+              {published && !ended && <LiveLink href={liveLink} onOpen={onPreview} copyRef={copyRef} />}
 
         {!published && ready && (
           <section className="overview__launch" aria-labelledby="overview-launch-title">

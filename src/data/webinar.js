@@ -135,32 +135,37 @@ export const contractKey = (answers) =>
   JSON.stringify([answers.headline, answers.subheadline, answers.pricing, answers.price, answers.oldPrice, answers.date]);
 
 // ------------------------------------------------------------
-// Sessions. A webinar keeps one landing page, one sign-up page and one
-// link, and can run many times ("Run it again"). Its answers always
-// hold the current session (date, time); each earlier one is kept in
-// `sessions`, newest first:
-//   { id, date, time, timeZone, duration, pricing, price }
-// (Older saves may still have a meetingLink in there; nothing reads it.)
-// Ads keep pointing at the same link, which always shows the next date.
+// Running it again. Every run is its own webinar: "Run again on a new
+// date" makes a full copy (App.jsx) with its own pages, link, sign-up
+// page (contract), Zoom meeting and people, so changing one never
+// touches another. The copy only remembers where it came from
+// (copiedFrom: the earlier webinar's id), for two things:
+//   - the list's "Ran again on Sat 14 Nov" line on the earlier one
+//   - the earlier link, once it's over, pointing people to the new date
+// A copy of a copy keeps the chain going: A → B → C.
 // ------------------------------------------------------------
 
-// The current session's details, frozen, for when it's run again
-export function sessionOf(answers) {
-  return {
-    id: `session-${Date.now().toString(36)}`,
-    date: answers.date ?? null,
-    time: answers.time ?? null,
-    timeZone: answers.timeZone ?? null,
-    duration: answers.duration ?? null,
-    pricing: answers.pricing ?? null,
-    price: answers.price ?? null,
-  };
+// Every later run of this webinar (copies, copies of copies), published
+// ones only, latest date first
+export function laterRuns(webinar, all, now = Date.now()) {
+  const found = [];
+  let ids = [webinar.id];
+  while (ids.length > 0) {
+    const next = all.filter((w) => w && ids.includes(w.copiedFrom) && !found.includes(w));
+    found.push(...next);
+    ids = next.map((w) => w.id);
+  }
+  return found
+    .filter((w) => w.publishedAt)
+    .sort((a, b) => (webinarStart(b.answers ?? {}) ?? 0) - (webinarStart(a.answers ?? {}) ?? 0))
+    .map((w) => ({ webinar: w, upcoming: webinarStatus(w, now) === 'upcoming' }));
 }
 
-export const earlierSessions = (webinar) => (Array.isArray(webinar.sessions) ? webinar.sessions : []);
-
-// Its current session is over and it hasn't been run again yet
-export const hasEnded = (webinar, now = Date.now()) => webinarStatus(webinar, now) === 'past';
+// The run people should go to instead of this one: its latest later run
+// that's still to come, or null
+export function nextOpenRun(webinar, all, now = Date.now()) {
+  return laterRuns(webinar, all, now).find((r) => r.upcoming)?.webinar ?? null;
+}
 
 // From 15 minutes before it starts until it ends, the coach can start it from here
 export function canStart(answers, now = Date.now()) {
@@ -194,7 +199,7 @@ export function isFuture(answers, date, time, now = Date.now()) {
 
 // ------------------------------------------------------------
 // The meeting. Zoom comes built in: every webinar gets its own Zoom
-// meeting when it's made, and keeps it when it's run again, so there's
+// meeting when it's made (a copy made with Run again gets its own), so there's
 // always a link and the coach never pastes one. For now that meeting is
 // a mock room in this app (?mock=zoom&webinar=<id>, ZoomMeetingPage).
 // ------------------------------------------------------------
@@ -214,7 +219,7 @@ export const meetingHref = (webinarId) => `?mock=zoom&webinar=${encodeURICompone
 // What the meeting button says, for a webinar that's coming up:
 //   'join'  more than 15 minutes away: "Join meeting" (check the room early)
 //   'start' from 15 minutes before: "Start webinar"
-//   'live'  while it's on: "Live now · Rejoin"
+//   'live'  while it's on: "Live now"
 export function meetingState(answers, now = Date.now()) {
   if (isOnNow(answers, now)) return 'live';
   if (canStart(answers, now)) return 'start';
