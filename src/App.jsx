@@ -88,6 +88,9 @@ function restoreFunnel(f) {
     // The webinar this one was run again from: history only. Older
     // saves' `sessions` (runs kept inside one webinar) are dropped.
     copiedFrom: typeof f.copiedFrom === 'string' ? f.copiedFrom : null,
+    // Been to its webinar page: its pages screen is then just for editing
+    // the pages (no link card, no Join, no "Go to your webinar")
+    seenDetails: f.seenDetails === true,
     // Reminder emails: on/off and the coach's own text (data/reminders.js)
     reminders: isObject(f.reminders) ? f.reminders : {},
   };
@@ -322,6 +325,7 @@ function App() {
       seriesId: series, // the same link as the earlier run
       slug: f.slug ?? makeSlug(f.answers.headline, taken),
       copiedFrom: f.id,
+      seenDetails: true, // they're adding it from the webinar page
       reminders: f.reminders ?? {}, // the same emails and switches; dates fill in fresh
     };
     // Its own sign-up page, starting from the earlier one's settings
@@ -341,6 +345,14 @@ function App() {
     setActiveNav('page-builder');
     setOpenId(copy.id);
   };
+
+  // The first visit to a published webinar's page: remember it, so its
+  // pages screen turns into just the pages (FunnelOverview's editing)
+  useEffect(() => {
+    if (current && step === 'details' && publishedAt && !current.seenDetails) {
+      updateOpen({ seenDetails: true }, { touch: false });
+    }
+  }, [current?.id, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // After that it follows the landing page: a new headline, date or price
   // updates the contract a moment later. Only the webinar's own contract,
@@ -522,6 +534,11 @@ function App() {
           funnel={funnel}
           webinarId={openId}
           webinarSlug={current.slug}
+          // Any session of it counts: sessions added before this was remembered don't have it
+          editing={
+            Boolean(publishedAt) &&
+            funnels.some((f) => f.seenDetails && seriesIdOf(f, funnels) === seriesIdOf(current, funnels))
+          }
           onOpenDetails={() => updateOpen({ step: 'details', returnTo: undefined, editReturn: undefined }, { touch: false })}
           // The newer run of this one, once it's been run again ("Ran again on …")
           nextRun={latestRun(current)}

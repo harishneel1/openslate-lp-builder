@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { AlertCircle, ArrowRight, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Link2, Lock, Play, Plus, RefreshCw } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
-import { recommendedThemeId } from '../data/themes';
+import { getTheme, recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
 import { joinSummary } from '../data/thankYouQuestions';
 import { canStart, isOnNow, lengthLabel, meetingHref, webinarEnd, webinarPrice, webinarWhen } from '../data/webinar';
@@ -145,6 +145,9 @@ export default function FunnelOverview({
   onOpenRun,          // opens that one: onOpenRun(id)
   onRunAgain,         // opens the Add another session pop-up
   onOpenDetails = null, // "Go to your webinar": its page (sign-ups, Join), once published
+  // Coming back to edit (they've been to the webinar page): just the pages.
+  // The link, Join and "Go to your webinar" live on the webinar page.
+  editing = false,
   onStart,
   done = [],
   answers = {},
@@ -195,7 +198,8 @@ export default function FunnelOverview({
   }, [published]);
 
   let title;
-  if (ended) title = 'This session has ended';
+  if (editing) title = 'Your webinar pages';
+  else if (ended) title = 'This session has ended';
   // "Live" and "publish" sound like it's announced to the world. It isn't:
   // they just get a link, and nobody sees anything until they share it.
   else if (published) title = 'Your link is ready';
@@ -208,7 +212,7 @@ export default function FunnelOverview({
     themeId ?? recommendedThemeId(String(answers.category ?? '').trim());
 
   return (
-    <div className="overview">
+    <div className={`overview ${editing ? 'overview--editing' : ''}`}>
       {/* "All funnels" lives in the top bar.
           Title and subtitle on the left, the session's date on the right. */}
       <div className="overview__head">
@@ -222,10 +226,12 @@ export default function FunnelOverview({
         {!published && ready &&
           'Check each page, then get your link below.'}
         {published && !ended &&
-          'Any change you make shows up on your link straight away, and applies to every upcoming session.'}
-        {ended && !nextRun &&
+          'Changes show up on your link straight away, for every upcoming session.'}
+        {editing && ended &&
+          'This session has ended. Changes here are used for the next session you add.'}
+        {!editing && ended && !nextRun &&
           'Add another session on a new date. Your link stays the same and opens the new session.'}
-        {ended && nextRun &&
+        {!editing && ended && nextRun &&
           `Your next session is on ${nextRunDay}. This one stays as it was, with the people who signed up for it.`}
       </p>
       </div>
@@ -393,7 +399,14 @@ export default function FunnelOverview({
                     </>
                   )}
                   {isDone && page.id === 'landing' && (
-                    // One way in: the preview tab, which has "Edit page" in its top bar
+                    <>
+                    {/* Its style, in the same grey row the other two cards have, so
+                        the three line up (and it says what the page looks like) */}
+                    <div className="overview__service">
+                      <span className="overview__service-name">Style</span>
+                      <span className="overview__service-price">{getTheme(resolvedThemeId)?.name ?? 'Recommended'}</span>
+                    </div>
+                    {/* One way in: the preview tab, which has "Edit page" in its top bar */}
                     <div className="overview__page-actions">
                       {previewHref ? (
                         <a
@@ -412,6 +425,7 @@ export default function FunnelOverview({
                         </button>
                       )}
                     </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -422,6 +436,8 @@ export default function FunnelOverview({
 
       {/* What to do with it, under the pages: publish, or once it's live the
           link, start it or add another session. Below the cards so the pages read first. */}
+      {/* Not when coming back to edit: the webinar page has all of this */}
+      {!editing && (
       <div className="overview__actions">
         {/* Ended: the one thing to do next */}
         {ended && !nextRun && (
@@ -503,6 +519,7 @@ export default function FunnelOverview({
         )}
 
       </div>
+      )}
     </div>
   );
 }

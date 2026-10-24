@@ -10,6 +10,12 @@
   padding-top: 16px;
 }
 
+/* Coming back to edit: the title starts where the webinar page's does,
+   so moving between the two doesn't make the page jump */
+.overview--editing {
+  margin-top: 24px;
+}
+
 .overview__title {
   font-size: 32px;
   font-weight: 700;
