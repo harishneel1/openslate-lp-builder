@@ -4,7 +4,7 @@ import AppLayout from './components/AppLayout';
 import WebinarsPage from './screens/WebinarsPage';
 import FunnelOverview from './screens/FunnelOverview';
 import WebinarDetails from './screens/WebinarDetails';
-import { deleteSignupsOf } from './data/webinarSignups';
+import { deleteSignupsOf, peopleOf } from './data/webinarSignups';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
 import SectionProgress from './components/SectionProgress';
@@ -17,8 +17,10 @@ import LandingEditor from './screens/LandingEditor';
 import SignupStep from './screens/SignupStep';
 import { deleteService, getService, saveWebinarContract } from './data/mockServices';
 import { thankYouQuestions, firstMissing } from './data/thankYouQuestions';
-import { contractKey, laterRuns, ownContract, webinarContractFields } from './data/webinar';
+import { contractKey, laterRuns, ownContract, webinarContractFields, webinarStatus } from './data/webinar';
 import RunAgainDialog from './components/RunAgainDialog';
+import ReminderEditor from './screens/ReminderEditor';
+import { withEmail, withOn } from './data/reminders';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
 import ExamplePreview from './components/ExamplePreview';
@@ -33,7 +35,7 @@ import { makeSlug } from './utils/publish';
 import { EDIT_REQUEST_KEY, editRequestId, takeEditParam } from './utils/editRequest';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
-const STEPS = ['details', 'overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
+const STEPS = ['details', 'reminder-edit', 'overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -52,6 +54,7 @@ function restoreFunnel(f) {
 
   let step = STEPS.includes(f.step) ? f.step : 'overview';
   if (step === 'details' && !Number.isFinite(f.publishedAt)) step = 'overview'; // only published ones have a details page
+  if (step === 'reminder-edit') step = 'details'; // an email being edited → back to the webinar (unsaved changes are gone)
   if (step === 'edit') step = 'checkpoint'; // editing one answer → back to the checkpoint
   if (step === 'review-edit') step = 'review'; // editing one screen → back to "Edit your landing page"
   if (step === 'review-design') step = 'review'; // changing the style from there → back to it
@@ -80,6 +83,8 @@ function restoreFunnel(f) {
     // The webinar this one was run again from (data/webinar.js). Older
     // saves' `sessions` (runs kept inside one webinar) are dropped.
     copiedFrom: typeof f.copiedFrom === 'string' ? f.copiedFrom : null,
+    // Reminder emails: on/off and the coach's own text (data/reminders.js)
+    reminders: isObject(f.reminders) ? f.reminders : {},
   };
 }
 
@@ -107,6 +112,8 @@ function App() {
   const [previewMode, setPreviewMode] = useState(initial.previewMode); // live preview: 'desktop' | 'mobile' (same for every funnel)
   const [funnels, setFunnels] = useState(initial.funnels); // every funnel they've started, newest first
   const [openId, setOpenId] = useState(initial.openId);    // the funnel being worked on; null = on the picker
+  // The email editor's "any unsaved changes?" check, for the top bar's ← Reminders
+  const leaveGuard = useRef(null);
   const [editingId, setEditingId] = useState(null);         // which screen is being edited, about or landing (not saved)
   const [saveFailed, setSaveFailed] = useState(false);      // shows the "couldn't save" notice
 
@@ -286,6 +293,7 @@ function App() {
       publishedAt: now,
       slug: makeSlug(f.answers.headline, taken),
       copiedFrom: f.id,
+      reminders: f.reminders ?? {}, // the same emails and switches; dates fill in fresh
     };
     // Its own sign-up page, starting from the earlier one's settings
     const contractId = saveWebinarContract({
@@ -403,6 +411,10 @@ function App() {
           key={openId}
           webinar={current}
           webinars={funnels.filter((f) => f.type === 'webinar')}
+          tab={current.detailsTab ?? 'people'}
+          onTab={(detailsTab) => updateOpen({ detailsTab }, { touch: false })}
+          onToggleReminder={(id, on) => updateOpen((f) => ({ reminders: withOn(f.reminders, id, on) }))}
+          onEditReminder={(id) => updateOpen({ step: 'reminder-edit', editingReminder: id }, { touch: false })}
           onEditPages={() => updateOpen({ step: 'overview' }, { touch: false })}
           onChangeDate={() => {
             setEditingId('eventDetails');
@@ -416,6 +428,33 @@ function App() {
             setOpenId(null);
             deleteFunnel(id);
           }}
+        />
+      );
+    }
+
+    // One reminder's email, in the full-page editor. Save keeps the
+    // coach's version (or none, if it matches the template) and goes back
+    // to the Reminders tab; so does ← Reminders, after asking about changes.
+    if (step === 'reminder-edit' && publishedAt && current.editingReminder) {
+      const id = current.editingReminder;
+      const now = Date.now();
+      const ended = webinarStatus(current, now) === 'past';
+      const back = () => updateOpen({ step: 'details', editingReminder: undefined, detailsTab: 'reminders' }, { touch: false });
+      return (
+        <ReminderEditor
+          key={`${openId}-${id}`}
+          webinar={current}
+          id={id}
+          people={peopleOf(openId)}
+          hostName={answers.hostName}
+          now={now}
+          ended={ended}
+          guardRef={leaveGuard}
+          onSave={(email) => {
+            updateOpen((f) => ({ reminders: withEmail(f.reminders, id, email) }));
+            back();
+          }}
+          onClose={back}
         />
       );
     }
@@ -728,10 +767,20 @@ function App() {
           ? {
               title: funnelName(current, funnel),
               saveFailed,
-              // Its details page shows the title big already, and edits nothing
-              minimal: step === 'details' && Boolean(publishedAt),
+              // Its details page shows the title big already, and edits nothing;
+              // the email editor has its own heading and Save
+              minimal: (step === 'details' || step === 'reminder-edit') && Boolean(publishedAt),
+              // Editing an automatic email: back to the Emails tab, asking first about changes.
               // Editing a published webinar's pages: back to its details page. Otherwise the list.
-              ...(publishedAt && step !== 'details'
+              ...(publishedAt && step === 'reminder-edit'
+                ? {
+                    exitLabel: 'Emails',
+                    onExit: () => {
+                      if (leaveGuard.current && leaveGuard.current() === false) return;
+                      updateOpen({ step: 'details', editingReminder: undefined, detailsTab: 'reminders' }, { touch: false });
+                    },
+                  }
+                : publishedAt && step !== 'details'
                 ? {
                     exitLabel: 'Webinar details',
                     onExit: () => updateOpen({ step: 'details', returnTo: undefined, editReturn: undefined }, { touch: false }),

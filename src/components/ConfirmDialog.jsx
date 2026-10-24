@@ -10,13 +10,14 @@ import './ConfirmDialog.css';
 // title, children (what happens, in a sentence or two)
 // confirmLabel: the action's words ("Delete call")
 // danger: the action's button in red (for what can't be undone)
+// cancelLabel: the quiet button's words (default Cancel)
 // onCancel(), onConfirm()
 // ------------------------------------------------------------
 // confirmDisabled: the action can't happen yet (e.g. a date still to fix); the button says so and does nothing
 // form: it has fields to fill (Run again). A click outside doesn't close it,
 //   so a date they've picked isn't lost by a stray click; Cancel and Escape
 //   still do. Its date and time panels can open past its edges.
-export default function ConfirmDialog({ title, children, confirmLabel, danger = false, confirmDisabled = false, form = false, onCancel, onConfirm }) {
+export default function ConfirmDialog({ title, children, confirmLabel, cancelLabel = 'Cancel', danger = false, confirmDisabled = false, form = false, onCancel, onConfirm }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function ConfirmDialog({ title, children, confirmLabel, danger = 
       </div>
       <div className="confirm-dialog__actions">
         <button type="button" className="confirm-btn confirm-btn--quiet" onClick={onCancel} autoFocus>
-          Cancel
+          {cancelLabel}
         </button>
         <button
           type="button"

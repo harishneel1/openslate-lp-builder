@@ -18,6 +18,7 @@ import {
 import ConfirmDialog from '../components/ConfirmDialog';
 import RowMenu from '../components/RowMenu';
 import { useCopy } from './OfferingsHome';
+import WebinarReminders from './WebinarReminders';
 import { MeetingButton, useNow } from './WebinarsPage';
 import { funnelTypes } from '../data/funnelTypes';
 import {
@@ -70,7 +71,10 @@ import './WebinarDetails.css';
 // new date, or, if it's been run again, Go to <that date>.
 //
 // webinar: its saved record; webinars: all of them (for its newer run)
+// tab: 'people' or 'reminders' (the Emails tab; App keeps it, so coming
+//      back from the email editor lands on it); onTab(tab)
 // onEditPages(), onChangeDate(), onRunAgain(), onOpenRun(id), onDelete()
+// onToggleReminder(id, on), onEditReminder(id): the Emails tab
 // ------------------------------------------------------------
 
 const TYPE = funnelTypes.find((t) => t.id === 'webinar');
@@ -168,7 +172,19 @@ function usePeople(webinarId) {
   return people;
 }
 
-export default function WebinarDetails({ webinar, webinars = [], onEditPages, onChangeDate, onRunAgain, onOpenRun, onDelete }) {
+export default function WebinarDetails({
+  webinar,
+  webinars = [],
+  tab = 'people',
+  onTab,
+  onEditPages,
+  onChangeDate,
+  onRunAgain,
+  onOpenRun,
+  onDelete,
+  onToggleReminder,
+  onEditReminder,
+}) {
   const now = useNow(15_000); // the countdown moves on every minute
   const { answers } = webinar;
   const name = funnelName(webinar, TYPE);
@@ -234,7 +250,7 @@ export default function WebinarDetails({ webinar, webinars = [], onEditPages, on
         </div>
 
         <div className="wd__actions">
-          {!ended && <MeetingButton state={meeting} href={meetingHref(webinar.id)} name={name} />}
+          {!ended && <MeetingButton state={meeting} href={meetingHref(webinar.id)} name={name} liveLabel="Rejoin meeting" />}
           {ended && !nextRun && (
             <button type="button" className="oh__add wd__primary" onClick={onRunAgain}>
               <RefreshCw size={16} aria-hidden="true" /> Run again on a new date
@@ -252,7 +268,23 @@ export default function WebinarDetails({ webinar, webinars = [], onEditPages, on
         </div>
       </header>
 
-      <People webinar={webinar} people={people} name={name} ended={ended} paid={!price.isFree} now={now} />
+      {(() => {
+        const tabs = <Tabs tab={tab} onTab={onTab} people={people.length} />;
+        return tab === 'reminders' ? (
+          <section className="oh__panel wd__people" aria-label="Emails">
+            <div className="oh__panel-head wd__people-head">{tabs}</div>
+            <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
+              <WebinarReminders
+                webinar={webinar}
+                onToggle={onToggleReminder}
+                onEdit={onEditReminder}
+              />
+            </div>
+          </section>
+        ) : (
+          <People webinar={webinar} people={people} name={name} ended={ended} paid={!price.isFree} now={now} tabs={tabs} />
+        );
+      })()}
 
       {deleting && (
         <ConfirmDialog
@@ -355,8 +387,44 @@ function LandingLink({ webinar, url }) {
   );
 }
 
+// ---------- The tabs: People | Emails ----------
+// Underlined tabs at the top of the panel. People shows how many
+// registered; Emails holds the automatic emails.
+function Tabs({ tab, onTab, people }) {
+  const items = [
+    { id: 'people', label: 'People', count: people },
+    { id: 'reminders', label: 'Emails', count: null }, // the automatic emails (WebinarReminders.jsx)
+  ];
+  // Left and right arrows move between the tabs
+  const onKey = (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const next = tab === 'people' ? 'reminders' : 'people';
+    onTab(next);
+    requestAnimationFrame(() => document.getElementById(`wd-tab-${next}`)?.focus());
+  };
+  return (
+    <div className="wd__tabs" role="tablist" aria-label="Webinar" onKeyDown={onKey}>
+      {items.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          id={`wd-tab-${t.id}`}
+          aria-selected={tab === t.id}
+          aria-controls={`wd-panel-${t.id}`}
+          tabIndex={tab === t.id ? 0 : -1}
+          className="wd__tab"
+          onClick={() => onTab(t.id)}
+        >
+          {t.label} {t.count !== null && <span className="oh__count">{t.count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ---------- People ----------
-function People({ webinar, people, name, ended, paid, now }) {
+function People({ webinar, people, name, ended, paid, now, tabs }) {
   const [query, setQuery] = useState('');
 
   const shown = useMemo(() => {
@@ -384,11 +452,9 @@ function People({ webinar, people, name, ended, paid, now }) {
   };
 
   return (
-    <section className="oh__panel wd__people" aria-labelledby="wd-people-title">
+    <section className="oh__panel wd__people" aria-label="People">
       <div className="oh__panel-head wd__people-head">
-        <h2 className="oh__panel-title" id="wd-people-title">
-          People <span className="oh__count">{people.length}</span>
-        </h2>
+        {tabs}
         {people.length > 0 && (
           <div className="wd__tools">
             <label className="wd__search">
@@ -408,7 +474,7 @@ function People({ webinar, people, name, ended, paid, now }) {
         )}
       </div>
 
-      <div className="oh__panel-body wd__people-body">
+      <div className="oh__panel-body wd__people-body" id="wd-panel-people" role="tabpanel" aria-labelledby="wd-tab-people">
         {people.length === 0 ? (
           <div className="calls__empty">
             <span className="calls__empty-icon" aria-hidden="true">

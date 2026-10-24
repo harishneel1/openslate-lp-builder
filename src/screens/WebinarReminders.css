@@ -1,0 +1,135 @@
+/* The Emails tab (WebinarReminders.jsx): a plain settings list. Every
+   row the same: name, switch, pencil, in fixed columns. */
+
+.rm {
+  font-size: 15px;
+}
+
+.rm__head,
+.rm__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 64px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 0 24px;
+}
+
+/* Column names: small and quiet */
+.rm__head {
+  height: 40px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: #fafafb;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rm__row {
+  min-height: 60px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rm__row:last-child {
+  border-bottom: 0;
+}
+
+.rm__col {
+  display: flex;
+  justify-content: center;
+}
+
+.rm__name {
+  font-weight: 500;
+}
+
+.rm__edited {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.rm__row--off .rm__name {
+  color: var(--color-text-muted);
+}
+
+/* ---------- The switch ---------- */
+.rm__switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  background: #c9c9ce;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rm__switch[aria-checked='true'] {
+  background: var(--color-success);
+}
+
+.rm__switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s;
+}
+
+.rm__switch[aria-checked='true'] .rm__switch-thumb {
+  transform: translateX(16px);
+}
+
+/* ---------- Edit: a small pencil ---------- */
+.rm__icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.rm__icon:hover {
+  background: #f3f3f5;
+  border-color: var(--color-border);
+}
+
+.rm__switch:focus-visible,
+.rm__icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rm__switch,
+  .rm__switch-thumb {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .rm__head,
+  .rm__row {
+    grid-template-columns: minmax(0, 1fr) 52px 44px;
+    gap: 8px;
+    padding: 0 8px 0 16px;
+  }
+
+  .rm__row {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .rm {
+    font-size: 14px;
+  }
+}

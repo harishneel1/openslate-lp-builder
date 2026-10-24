@@ -243,6 +243,43 @@
   color: var(--color-text-muted);
 }
 
+/* ---------- The tabs: People | Reminders ---------- */
+.wd__tabs {
+  display: flex;
+  gap: 24px;
+  margin: -20px 0 -21px; /* the underline sits on the panel head's bottom line */
+}
+
+.wd__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0 18px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.wd__tab:hover {
+  color: var(--color-text);
+}
+
+.wd__tab[aria-selected='true'] {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+}
+
+.wd__tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -4px;
+  border-radius: 4px;
+}
+
 /* ---------- People ---------- */
 .wd__people {
   margin-top: 28px;
