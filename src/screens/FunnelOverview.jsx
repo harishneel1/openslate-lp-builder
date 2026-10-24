@@ -3,8 +3,8 @@ import { AlertCircle, ArrowRight, CalendarClock, Check, ChevronRight, Clock, Cop
 import PageThumbnail from '../components/PageThumbnail';
 import { recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
-import { joinSummary, meetingSummary } from '../data/thankYouQuestions';
-import { canStart, isOnNow, lengthLabel, webinarEnd, webinarPrice, webinarWhen } from '../data/webinar';
+import { joinSummary } from '../data/thankYouQuestions';
+import { canStart, isOnNow, lengthLabel, meetingHref, webinarEnd, webinarPrice, webinarWhen } from '../data/webinar';
 import { liveHref, liveSince } from '../utils/publish';
 import './FunnelOverview.css';
 
@@ -174,7 +174,6 @@ export default function FunnelOverview({
   const lastDone = [...pages].reverse().find((p) => done.includes(p.id));
   const nextPage = pages.find((p) => !done.includes(p.id));
   const join = joinSummary(answers); // the group people join after signing up
-  const meeting = meetingSummary(answers); // the link they join the session on
   const when = webinarWhen(answers);
   const length = lengthLabel(answers);
   const price = webinarPrice(answers);
@@ -435,7 +434,7 @@ export default function FunnelOverview({
         )}
 
         {/* About to start, or on now: start it from here */}
-        {startable && !meeting.missing && (
+        {startable && (
           <div className="overview__start">
             <span className="overview__start-text">
               <span className="overview__start-dot" aria-hidden="true" />
@@ -443,12 +442,12 @@ export default function FunnelOverview({
             </span>
             <a
               className="overview__launch-primary"
-              href={meeting.link.startsWith('http') ? meeting.link : `https://${meeting.link}`}
+              href={meetingHref(webinarId)}
               target="_blank"
               rel="noopener"
-              aria-label={`Start webinar in ${meeting.app ?? 'your meeting app'} (opens in a new tab)`}
+              aria-label={`${isOnNow(answers) ? 'Rejoin your webinar' : 'Start webinar'} in Zoom (opens in a new tab)`}
             >
-              <Play size={16} aria-hidden="true" /> Start webinar
+              <Play size={16} aria-hidden="true" /> {isOnNow(answers) ? 'Rejoin' : 'Start webinar'}
             </a>
           </div>
         )}

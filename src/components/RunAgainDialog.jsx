@@ -6,19 +6,18 @@ import './RunAgainDialog.css';
 // ------------------------------------------------------------
 // "Run it again": the same webinar on a new date. Its pages and its
 // link stay as they are, so ads and shared links keep working; only
-// the date, time and (if it changed) the meeting link are asked for.
+// the date and time are asked for. It keeps its Zoom meeting too.
 // The session that's over is kept as an earlier session.
 //
 // Uses the "Are you sure?" pop-up (ConfirmDialog), with the form inside.
 //
 // name: the webinar's name, for the title
-// answers: its current answers (date, time, time zone, length, meeting link)
-// onCancel(), onSchedule({ date, time, meetingLink })
+// answers: its current answers (date, time, time zone, length)
+// onCancel(), onSchedule({ date, time })
 // ------------------------------------------------------------
 export default function RunAgainDialog({ name, answers, onCancel, onSchedule }) {
   const [date, setDate] = useState(() => nextDateFor(answers));
   const [time, setTime] = useState(answers.time ?? '19:00');
-  const [link, setLink] = useState(answers.meetingLink ?? '');
 
   const zone = String(answers.timeZone ?? 'IST').split(' ')[0];
   const length = lengthLabel(answers);
@@ -32,7 +31,7 @@ export default function RunAgainDialog({ name, answers, onCancel, onSchedule }) 
       confirmLabel="Schedule session"
       confirmDisabled={Boolean(error)}
       onCancel={onCancel}
-      onConfirm={() => onSchedule({ date, time, meetingLink: link.trim() })}
+      onConfirm={() => onSchedule({ date, time })}
     >
       <p>
         <strong>“{name}”</strong> keeps its pages and its link, so your ads keep working. Just pick
@@ -65,21 +64,6 @@ export default function RunAgainDialog({ name, answers, onCancel, onSchedule }) 
         {zone}
         {length ? `, ${length}` : ''}, as before. To change those, edit your landing page.
       </p>
-
-      <label className="run-again__field">
-        <span className="run-again__label">Meeting link</span>
-        <input
-          className="run-again__input"
-          type="url"
-          inputMode="url"
-          spellCheck={false}
-          autoCapitalize="off"
-          value={link}
-          placeholder="e.g. https://zoom.us/j/1234567890"
-          onChange={(e) => setLink(e.target.value)}
-        />
-        <span className="run-again__hint">Using a new Zoom or Meet link for this session? Paste it here.</span>
-      </label>
 
       <p className="run-again__error" id="run-again-error" role="alert">
         {error && filled ? error : ''}

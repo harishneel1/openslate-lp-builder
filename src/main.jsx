@@ -10,6 +10,7 @@ import CheckoutPage from './screens/CheckoutPage.jsx'
 import BookedPage from './screens/BookedPage.jsx'
 import ManageBookingPage from './screens/ManageBookingPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
+import ZoomMeetingPage from './screens/ZoomMeetingPage.jsx'
 import { accountHandle, savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
@@ -31,6 +32,8 @@ import { isMyCall } from './data/myProfile'
 //   &booking=<id> for the creator's own calls, the booking checkout saved).
 // ?mock=manage&booking=<id>&action=cancel or reschedule → the student's side, behind the
 //   links in their confirmation email. Leave out action to offer both; &tz=<zone> for another clock.
+// ?mock=zoom&webinar=<id> → that webinar's Zoom meeting (a mock room). The meeting button
+//   on the Webinars tab opens it: Join meeting, Start webinar or Live now · Rejoin.
 // /<handle> (e.g. localhost:5173/harishneel) → that creator's page: the one made
 //   in setup (saved in this browser), or Meera's at /meerajoshi. Unknown → not found.
 // /<handle>/<offering id> (e.g. /harishneel/my-call) → that offering's booking page,
@@ -64,6 +67,7 @@ function Root() {
     if (mine && !savedHandle()) return <PageNotFound handle={handle} />
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
+  if (mock === 'zoom') return <ZoomMeetingPage webinarId={params.get('webinar')} />
   if (mock === 'create-service') return <ContractEditorTab serviceId={params.get('service')} />
   if (mock === 'profile')
     return <ProfilePage state={params.get('state')} source={params.get('source')} live={params.get('live') === '1'} />

@@ -1,12 +1,11 @@
 // ------------------------------------------------------------
 // Thank you page: whether people join a group after signing up, and
-// on which app. (The meeting link isn't asked here: it will come from
-// the Zoom connection later. A link set with Run it again is still kept.) That's the only part that changes from one webinar to
+// on which app. That's the only part that changes from one webinar to
 // the next; the rest of the page comes from answers they've already given.
+// The meeting link is never asked anywhere: Zoom comes built in, and each
+// webinar gets its own meeting (see data/webinar.js).
 //
 // Answers are stored flat, like the landing page ones:
-//   meetingLink: the link people join the session on, if one was set
-//              (Run it again). Never shown on the public pages.
 //   groupApp:  one of GROUP_OPTIONS (below)
 //   groupLink: the group's invite link (not asked when there's no group)
 // ------------------------------------------------------------
@@ -37,28 +36,6 @@ function checkTelegram(value) {
   const link = withoutScheme(clean(value));
   if (/^(t\.me|telegram\.me)\/\S+/i.test(link)) return null;
   return "This doesn't look like a Telegram link. It should start with t.me/";
-}
-
-// The video call people join. Any https link works (Zoom, Google Meet,
-// Teams…); a group invite pasted here by mistake gets its own message.
-function checkMeetingLink(value) {
-  const link = withoutScheme(clean(value));
-  if (/^(chat\.whatsapp\.com|wa\.me|api\.whatsapp\.com|t\.me|telegram\.me)\//i.test(link)) {
-    return "That's a group link. Paste the link people use to join the video call, like a Zoom or Google Meet link.";
-  }
-  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(link)) {
-    return "This doesn't look like a link. It should look like zoom.us/j/… or meet.google.com/…";
-  }
-  return null;
-}
-
-// Where the meeting runs, from its link: 'Zoom', 'Google Meet', 'Microsoft Teams' or null
-function meetingApp(link) {
-  const host = withoutScheme(link).split('/')[0].toLowerCase();
-  if (host.endsWith('zoom.us')) return 'Zoom';
-  if (host === 'meet.google.com') return 'Google Meet';
-  if (host.endsWith('teams.microsoft.com') || host.endsWith('teams.live.com')) return 'Microsoft Teams';
-  return null;
 }
 
 export const thankYouQuestions = [
@@ -132,16 +109,6 @@ export function joinSummary(answers) {
   const label = app === GROUP_OPTIONS.telegram ? 'Telegram group' : 'WhatsApp group';
   const missing = groupLinkMissing(answers);
   return { label, link: missing ? null : clean(answers.groupLink), missing };
-}
-
-// No working meeting link yet
-export const meetingLinkMissing = (answers) => checkMeetingLink(answers.meetingLink ?? '') !== null;
-
-// For the overview card: { app: 'Zoom' | null, link } or { missing: true }
-export function meetingSummary(answers) {
-  if (meetingLinkMissing(answers)) return { missing: true, app: null, link: null };
-  const link = clean(answers.meetingLink);
-  return { missing: false, app: meetingApp(link), link };
 }
 
 // The thank you flow opens on the first thing still missing ("Add

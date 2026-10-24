@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarPlus, Check, ExternalLink, Link2, MonitorPlay, Play, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowRight, CalendarPlus, Check, Link2, MonitorPlay, Pencil, Plus, RefreshCw, Trash2, Video } from 'lucide-react';
 import { useCopy } from './OfferingsHome';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
 import {
-  canStart,
   earlierSessions,
   lengthLabel,
-  needsMeetingLink,
+  meetingHref,
+  meetingState,
   startsIn,
   webinarPrice,
   webinarStart,
@@ -26,11 +26,11 @@ import './WebinarsPage.css';
 // same steps as before (landing page → sign-up page → thank you page →
 // publish); this is where they come back to.
 //
-//   Webinars                                    [+ Create a webinar]
-//   ┌ Upcoming 2 ───────────────────────────────────────────────────┐
-//   │ [NOV 7] Fix the Vasthu mistakes…  [Copy link] [Preview & edit] [🗑] │
-//   │         Sat 7 Nov, 7:00 pm IST · 60 min · ₹499                │
-//   │         ● Live · Starts in 16 days                            │
+//   Webinars                                                [+ Create a webinar]
+//   ┌ Upcoming 2 ───────────────────────────────────────────────────────────────┐
+//   │ [NOV 7] Fix the Vasthu mistakes…  [Join meeting] [Copy link] [Edit pages] [🗑] │
+//   │         Sat 7 Nov, 7:00 pm IST · 60 min · ₹499                            │
+//   │         ● Link ready · Starts in 16 days                                  │
 //   ├ Drafts 1 ─────────────────────────────────────────────────────┤
 //   │ [ — ]   Untitled webinar · 1 of 3 pages done  [Continue]  [🗑] │
 //   └ Past ─────────────────────────────────────────────────────────┘
@@ -42,8 +42,16 @@ import './WebinarsPage.css';
 // Empty groups don't show.
 //
 // A click anywhere on a row opens the webinar's overview (its three page
-// cards). Preview & edit opens the landing page's preview in a new tab,
-// which has "Edit page" in its top bar.
+// cards), and so does Edit pages: that's where every page is edited.
+//
+// Every upcoming webinar has its meeting button, always in the same place
+// (Zoom is built in, so there's always a meeting). It changes with the clock:
+//   Join meeting       more than 15 minutes away (quiet, outlined)
+//   ● Start webinar    from 15 minutes before (orange, pulsing dot)
+//   ● Live now · Rejoin while it's on
+// Copy link is a full button until then, and an icon beside Start/Live.
+// The list re-reads the clock every 30 seconds, so the button, the
+// "Starts in" line and the groups move on while the page sits open.
 //
 // webinars: the saved records (App.jsx)
 // onCreate(), onOpen(id) (where they left off: Continue setting up),
@@ -52,16 +60,26 @@ import './WebinarsPage.css';
 
 const TYPE = funnelTypes.find((t) => t.id === 'webinar');
 
+// The time now, updated every `every` ms
+function useNow(every = 30_000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), every);
+    return () => clearInterval(timer);
+  }, [every]);
+  return now;
+}
+
 export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain }) {
   const [deleting, setDeleting] = useState(null); // { id, name } while the pop-up asks
   const [said, setSaid] = useState(''); // for screen readers: what just changed
+  const now = useNow();
 
   useEffect(() => {
     document.title = 'Webinars';
   }, []);
 
   const groups = useMemo(() => {
-    const now = Date.now();
     const by = { upcoming: [], draft: [], past: [] };
     webinars.forEach((w) => by[webinarStatus(w, now)].push(w));
     const startOf = (w) => webinarStart(w.answers) ?? Infinity;
@@ -80,7 +98,7 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
       { id: 'draft', title: 'Drafts', list: rows(by.draft) },
       { id: 'past', title: 'Past', list: past },
     ].filter((g) => g.list.length > 0);
-  }, [webinars]);
+  }, [webinars, now]);
 
   const confirmDelete = () => {
     onDelete(deleting.id);
@@ -91,6 +109,7 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
   const rowProps = ({ webinar: w, session }) => ({
     webinar: w,
     session,
+    now,
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
     onRunAgain: () => onRunAgain(w.id),
@@ -198,14 +217,14 @@ function draftProgress(webinar) {
 // One webinar, as a full-width row like a 1:1 call: date, what it is and
 // where it's at on the left; what you can do on the right.
 // session: an earlier session of this webinar (shown in Past), or null for its current one
-function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunAgain }) {
+function WebinarRow({ webinar, session, now, onOpen, onOpenOverview, onDelete, onRunAgain }) {
   // An earlier session shows its own date, length and price; the rest is the webinar's
   const answers = session ? { ...webinar.answers, ...session } : webinar.answers;
   const name = funnelName(webinar, TYPE);
-  const status = session ? 'past' : webinarStatus(webinar);
+  const status = session ? 'past' : webinarStatus(webinar, now);
   const earlier = earlierSessions(webinar).length;
-  const startNow = status === 'upcoming' && canStart(answers) && !needsMeetingLink(webinar) && Boolean(answers.meetingLink);
-  const meetingHref = startNow ? (/^https?:\/\//i.test(answers.meetingLink) ? answers.meetingLink : `https://${answers.meetingLink}`) : null;
+  // 'join', 'start' or 'live' (data/webinar.js); only upcoming webinars have the button
+  const meeting = status === 'upcoming' ? meetingState(answers, now) : null;
   const when = webinarWhen(answers);
   const price = webinarPrice(answers);
   const length = lengthLabel(answers);
@@ -217,12 +236,11 @@ function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunA
   const details = [when?.line, length].filter(Boolean).join(' · ');
   const showPrice = landingDone || status !== 'draft';
 
-  // The landing page's preview (new tab), with "Edit page" in its top bar
-  const previewHref = landingDone ? `?preview=${encodeURIComponent(webinar.id)}` : null;
-  const previewAndEdit = previewHref && (
-    <a className="oh__edit" href={previewHref} target="_blank" rel="noopener" aria-label={`Preview and edit ${name} (opens in a new tab)`}>
-      <ExternalLink size={15} aria-hidden="true" /> Preview &amp; edit
-    </a>
+  // The overview's three page cards, the same place a click on the row goes
+  const editPages = (
+    <button type="button" className="oh__edit" onClick={onOpenOverview} aria-label={`Edit the pages of ${name}`}>
+      <Pencil size={15} aria-hidden="true" /> Edit pages
+    </button>
   );
 
   return (
@@ -252,7 +270,7 @@ function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunA
               <span className="wb-badge wb-badge--live">
                 <span className="wb-badge__dot" aria-hidden="true" /> Link ready
               </span>
-              <span>{startsIn(answers)}</span>
+              <span>{startsIn(answers, now)}</span>
             </>
           )}
           {status === 'draft' && (
@@ -281,7 +299,7 @@ function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunA
             <button type="button" className="oh__edit wb-row__again" onClick={onRunAgain} aria-label={`Run ${name} again`}>
               <RefreshCw size={15} aria-hidden="true" /> Run it again
             </button>
-            {previewAndEdit}
+            {editPages}
           </>
         ) : status === 'draft' ? (
           <button type="button" className="oh__edit wb-row__continue" onClick={onOpen} aria-label={`Continue setting up ${name}`}>
@@ -289,13 +307,9 @@ function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunA
           </button>
         ) : (
           <>
-            {startNow && (
-              <a className="oh__add wb-row__start" href={meetingHref} target="_blank" rel="noopener" aria-label={`Start ${name} (opens your meeting in a new tab)`}>
-                <Play size={15} aria-hidden="true" /> Start webinar
-              </a>
-            )}
-            {/* Start takes Copy link's place, so Copy link shrinks to an icon beside it */}
-            {startNow && url && (
+            <MeetingButton state={meeting} href={meetingHref(webinar.id)} name={name} />
+            {/* Once Start is the thing to press, Copy link shrinks to an icon beside it */}
+            {meeting !== 'join' && url && (
               <button
                 type="button"
                 className="wb-row__icon"
@@ -306,13 +320,13 @@ function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunA
                 {copy === 'copied' ? <Check size={17} strokeWidth={3} aria-hidden="true" /> : <Link2 size={17} aria-hidden="true" />}
               </button>
             )}
-            {status === 'upcoming' && !startNow && (
+            {meeting === 'join' && (
               <button type="button" className="oh-card__copy" onClick={() => copyLink(url)} aria-label={`Copy link to ${name}`}>
                 {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
                 {copy === 'copied' ? 'Copied' : 'Copy link'}
               </button>
             )}
-            {previewAndEdit}
+            {editPages}
           </>
         )}
         {/* Delete was the only thing left in the ⋯ menu, so it's its own button */}
@@ -339,5 +353,36 @@ function WebinarRow({ webinar, session, onOpen, onOpenOverview, onDelete, onRunA
         </p>
       )}
     </li>
+  );
+}
+
+// The coach's way into their Zoom meeting (a new tab). Always the first
+// button on an upcoming row, so it's where they expect it on the day.
+// state: 'join' | 'start' | 'live' (meetingState in data/webinar.js)
+function MeetingButton({ state, href, name }) {
+  const look = {
+    join: { className: 'oh__edit wb-row__join', label: `Join the meeting for ${name}` },
+    start: { className: 'oh__add wb-row__start', label: `Start ${name}` },
+    live: { className: 'oh__add wb-row__start wb-row__start--live', label: `${name} is live now. Rejoin` },
+  }[state];
+  return (
+    <a className={look.className} href={href} target="_blank" rel="noopener" aria-label={`${look.label} (opens Zoom in a new tab)`}>
+      {state === 'join' ? (
+        <>
+          <Video size={15} aria-hidden="true" /> Join meeting
+        </>
+      ) : (
+        <>
+          <span className="wb-row__pulse" aria-hidden="true" />
+          {state === 'live' ? (
+            <>
+              Live now 
+            </>
+          ) : (
+            'Start webinar'
+          )}
+        </>
+      )}
+    </a>
   );
 }

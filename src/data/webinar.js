@@ -1,4 +1,3 @@
-import { meetingLinkMissing } from './thankYouQuestions';
 import { getService } from './mockServices';
 
 // ------------------------------------------------------------
@@ -117,11 +116,6 @@ export function ownContract(webinar) {
   return contract && contract.webinarId === webinar.id ? contract : null;
 }
 
-// What still needs doing before the session, for the list and overview
-export function needsMeetingLink(webinar) {
-  return (webinar.donePages ?? []).includes('thank-you') && meetingLinkMissing(webinar.answers ?? {});
-}
-
 // What the webinar's own contract says, from its answers.
 // The landing page's discounted price is what people pay; its regular
 // price shows crossed out (in a contract: price, with discount = what they pay).
@@ -143,9 +137,10 @@ export const contractKey = (answers) =>
 // ------------------------------------------------------------
 // Sessions. A webinar keeps one landing page, one sign-up page and one
 // link, and can run many times ("Run it again"). Its answers always
-// hold the current session (date, time, meeting link); each earlier
-// one is kept in `sessions`, newest first:
-//   { id, date, time, timeZone, duration, meetingLink, pricing, price }
+// hold the current session (date, time); each earlier one is kept in
+// `sessions`, newest first:
+//   { id, date, time, timeZone, duration, pricing, price }
+// (Older saves may still have a meetingLink in there; nothing reads it.)
 // Ads keep pointing at the same link, which always shows the next date.
 // ------------------------------------------------------------
 
@@ -157,7 +152,6 @@ export function sessionOf(answers) {
     time: answers.time ?? null,
     timeZone: answers.timeZone ?? null,
     duration: answers.duration ?? null,
-    meetingLink: answers.meetingLink ?? '',
     pricing: answers.pricing ?? null,
     price: answers.price ?? null,
   };
@@ -196,4 +190,33 @@ export function nextDateFor(answers, now = Date.now()) {
 export function isFuture(answers, date, time, now = Date.now()) {
   const start = webinarStart({ ...answers, date, time });
   return start !== null && start > now;
+}
+
+// ------------------------------------------------------------
+// The meeting. Zoom comes built in: every webinar gets its own Zoom
+// meeting when it's made, and keeps it when it's run again, so there's
+// always a link and the coach never pastes one. For now that meeting is
+// a mock room in this app (?mock=zoom&webinar=<id>, ZoomMeetingPage).
+// ------------------------------------------------------------
+
+// The webinar's Zoom meeting ID, made from its id so it never changes:
+// '845 2193 0761'
+export function zoomMeetingId(webinarId) {
+  let h = 2166136261;
+  for (const ch of String(webinarId)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  const digits = `8${String(h).padStart(10, '0')}`.slice(0, 11);
+  return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
+}
+
+// Where the coach's meeting button goes (opens in a new tab)
+export const meetingHref = (webinarId) => `?mock=zoom&webinar=${encodeURIComponent(webinarId)}`;
+
+// What the meeting button says, for a webinar that's coming up:
+//   'join'  more than 15 minutes away: "Join meeting" (check the room early)
+//   'start' from 15 minutes before: "Start webinar"
+//   'live'  while it's on: "Live now · Rejoin"
+export function meetingState(answers, now = Date.now()) {
+  if (isOnNow(answers, now)) return 'live';
+  if (canStart(answers, now)) return 'start';
+  return 'join';
 }

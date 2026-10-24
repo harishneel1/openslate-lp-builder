@@ -215,9 +215,60 @@
   border-color: var(--color-primary);
 }
 
-/* Start webinar: the one orange button on the row, on the day */
+/* ---------- The meeting button ----------
+   One button in one place that changes with the clock (MeetingButton):
+   Join meeting (outlined) → Start webinar (orange, pulsing dot) → Live now · Rejoin. */
+.wb-row__join,
+.wb-row__start {
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* Start webinar / Live now: the one orange button on the row, on the day */
 .wb-row__start {
   padding: 10px 16px;
   font-size: 14px;
-  text-decoration: none;
+}
+
+/* "It's time": a small white dot that breathes */
+.wb-row__pulse {
+  position: relative;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.wb-row__pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  border-radius: 50%;
+  animation: wb-pulse 1.6s ease-out infinite;
+}
+
+@keyframes wb-pulse {
+  from { transform: scale(1); opacity: 0.7; }
+  to { transform: scale(2.6); opacity: 0; }
+}
+
+.wb-row__sep {
+  margin: 0 -2px;
+  opacity: 0.7;
+}
+
+.wb-row__join:focus-visible,
+.wb-row__start:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Still tells them it's time, without the movement */
+@media (prefers-reduced-motion: reduce) {
+  .wb-row__pulse::after {
+    animation: none;
+    opacity: 0;
+  }
 }
