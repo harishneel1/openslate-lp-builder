@@ -33,8 +33,23 @@ export function makeSlug(headline, taken = []) {
 
 export const isPublished = (funnel) => Boolean(funnel?.publishedAt);
 
-// The link they share. Full address, so it works when pasted anywhere.
+// The link they share. Full address, so it works when pasted anywhere:
+// http://localhost:5173/fix-the-vasthu-mistakes. The slug belongs to the
+// whole webinar (every session shares it), so the link stays the same when
+// they add a session: it opens whichever session is current (currentRun in
+// data/webinar.js; main.jsx reads the address). Without a slug (not
+// published yet), ?go=<id> does the same; any session's id works there.
+// When real hosting arrives, only the origin here changes.
 export function liveHref(funnel) {
+  const { origin, pathname } = window.location;
+  if (funnel.slug) return `${origin}/${encodeURIComponent(funnel.slug)}`;
+  return `${origin}${pathname}?go=${encodeURIComponent(funnel.seriesId ?? funnel.id)}`;
+}
+
+// One run's own pages, for places that are about that date alone (its
+// sign-up page in Contracts, the ended page's "Sign up for Sat 7 Nov",
+// the coach's previews)
+export function runHref(funnel) {
   const { origin, pathname } = window.location;
   return `${origin}${pathname}?preview=${encodeURIComponent(funnel.id)}`;
 }

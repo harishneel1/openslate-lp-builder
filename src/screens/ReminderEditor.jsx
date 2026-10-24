@@ -24,7 +24,7 @@ import './ReminderEditor.css';
 //
 //   ← Emails
 //   Confirmation email after registering   Reset to template  [Send me a test]  [Save changes]
-//   Goes to each person as they register. Changes only affect this webinar.
+//   Goes to each person as they register. Changes apply to every upcoming session.
 //   ┌ the email (wider: the thing you work on) ┐   How Priya will see it
 //   │ Subject  [You're in: (Webinar title)]    │  ╭━━━━━━━━━ • ━━━━━━━━━━╮
 //   │ B I 🔗 •                 + Insert detail │  ┃ ┌──────────────────┐ ┃
@@ -349,11 +349,12 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
   // list's hover hint (emailStatus in data/reminders.js)
   const status = emailStatus(row, webinar.answers, now).full;
 
-  // Already gone out for this date: say where changes will be used
+  // Already gone out for this session: say where changes will be used
+  // (every session still to come gets them; see withSharedChanges)
   const usedLater = ended
-    ? 'This webinar has ended. Your changes will be used when you run it again.'
+    ? 'This session has ended. Your changes will be used for the next session you add.'
     : row.past && row.at !== null && !row.skipped
-      ? 'Already sent for this date. Your changes will be used when you run this webinar again.'
+      ? 'Already sent for this session. Your changes will be used for the next sessions.'
       : null;
 
   const isTemplate = draft.subject === reminder.subject && draft.body === reminder.body;
@@ -365,7 +366,7 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
       <header className="re__head">
         <div className="re__intro">
           <h1 className="re__title">{reminder.name}</h1>
-          <p className="re__status">{status}. Changes only affect this webinar.</p>
+          <p className="re__status">{status}. Changes apply to every upcoming session.</p>
         </div>
         <div className="re__actions">
           {!isTemplate && (

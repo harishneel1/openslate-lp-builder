@@ -8,15 +8,19 @@
 //   funnels: [         // newest first
 //     { id, type, createdAt, updatedAt, step, answers,
 //       themeId, serviceId, donePages, resumeAtEnd, landingAtEnd,
-//       publishedAt, slug, copiedFrom }
+//       publishedAt, slug, seriesId, copiedFrom }
+//     seriesId:   the series this run belongs to (the first run's id). All
+//                 runs of a webinar share it, and its one link (data/webinar.js).
+//                 Saves from before it existed get it on load.
 //     copiedFrom: the webinar this one was run again from, or null.
-//                 Every run is its own webinar (data/webinar.js).
+//                 History only; every run is its own webinar.
 //     (Older saves may have `sessions`, from when runs were kept inside
 //     one webinar. They're ignored now.)
 //     serviceId: the service picked as the registration page, or null
 //     publishedAt: when they published it, or null (not live yet)
 //     slug: its address name, e.g. 'fix-the-vasthu-mistakes'; set once on
-//           first publish and kept, so a shared link never changes
+//           first publish and kept, so a shared link never changes. Runs
+//           of one series share it.
 //   ]
 // }
 // If we change this shape again, bump to v3 so old saves are ignored or converted.
@@ -30,8 +34,9 @@ const makeId = () =>
 // A new, empty funnel of this type (e.g. 'webinar')
 export function createFunnel(type) {
   const now = Date.now();
+  const id = makeId();
   return {
-    id: makeId(),
+    id,
     type,
     createdAt: now,
     updatedAt: now,
@@ -44,6 +49,7 @@ export function createFunnel(type) {
     landingAtEnd: false,
     publishedAt: null,
     slug: null,
+    seriesId: id, // a new webinar starts its own series; Run again sets the original's
     copiedFrom: null, // the webinar this was run again from (see data/webinar.js)
   };
 }

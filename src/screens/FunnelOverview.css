@@ -111,6 +111,55 @@
   outline-offset: 2px;
 }
 
+/* "Go to your webinar": the step after copying the link. Outlined, so
+   Copy link stays the one filled button; centred under the link card. */
+.overview__next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 16px;
+  margin-top: 24px;
+}
+
+.overview__next-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.overview__next-btn:hover {
+  background: #f3f3f5;
+  border-color: #c9c9cf;
+}
+
+.overview__next-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.overview__next-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview__next-btn {
+    transition: none;
+  }
+}
+
 /* Publish: a small shake every few seconds plus an orange ring pulsing
    outwards, so it's obvious what to do next. Stops on hover or keyboard focus.
    Scoped to .overview__launch so the Copy link button (same class) stays still. */

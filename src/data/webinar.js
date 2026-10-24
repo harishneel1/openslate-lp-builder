@@ -136,36 +136,170 @@ export const contractKey = (answers) =>
 
 // ------------------------------------------------------------
 // Running it again. Every run is its own webinar: "Run again on a new
-// date" makes a full copy (App.jsx) with its own pages, link, sign-up
-// page (contract), Zoom meeting and people, so changing one never
-// touches another. The copy only remembers where it came from
-// (copiedFrom: the earlier webinar's id), for two things:
-//   - the list's "Ran again on Sat 14 Nov" line on the earlier one
-//   - the earlier link, once it's over, pointing people to the new date
-// A copy of a copy keeps the chain going: A → B → C.
+// date" makes a full copy (App.jsx) with its own pages, sign-up page
+// (contract), Zoom meeting and people, so changing one never touches
+// another.
+//
+// All the runs of one webinar share a series (seriesId: the first run's
+// id) and one link. The link (liveHref, utils/publish.js) names the
+// series, not a run, and opens whichever run is current (currentRun):
+// the one on right now, else the soonest still to come, else the latest
+// that's over. So the link a coach posted on Instagram or in a WhatsApp
+// group keeps working, run after run.
+//
+// copiedFrom (the run it was copied from) is kept as history only;
+// nothing depends on it, so deleting a run in the middle breaks nothing.
 // ------------------------------------------------------------
 
-// Every later run of this webinar (copies, copies of copies), published
+const isRecord = (w) => w && typeof w === 'object' && typeof w.id === 'string';
+
+// The series a webinar belongs to. Saves from before series existed have
+// no seriesId: the first run up its copiedFrom chain stands in (or, when
+// that one was deleted, the id it was copied from).
+export function seriesIdOf(webinar, all = []) {
+  if (typeof webinar?.seriesId === 'string' && webinar.seriesId) return webinar.seriesId;
+  const byId = new Map(all.filter(isRecord).map((w) => [w.id, w]));
+  const seen = new Set();
+  let cur = webinar;
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    if (typeof cur.seriesId === 'string' && cur.seriesId) return cur.seriesId;
+    if (typeof cur.copiedFrom !== 'string' || !cur.copiedFrom) return cur.id;
+    const parent = byId.get(cur.copiedFrom);
+    if (!parent) return cur.copiedFrom;
+    cur = parent;
+  }
+  return webinar.id;
+}
+
+// The same list with every seriesId filled in (for older saves)
+export const withSeriesIds = (all) =>
+  all.map((w) => (isRecord(w) && !w.seriesId ? { ...w, seriesId: seriesIdOf(w, all) } : w));
+
+// Every published run in this webinar's series, this one included
+function publishedRuns(webinar, all) {
+  const series = seriesIdOf(webinar, all);
+  return all.filter((w) => isRecord(w) && w.publishedAt && seriesIdOf(w, all) === series);
+}
+
+// Start times, with a run that has no date yet sorting last
+const startOf = (w) => webinarStart(w.answers ?? {}) ?? Infinity;
+
+// The run a link opens. linkId is a seriesId, or any run's id (older
+// links, and places that only know a run). Picks, among its published runs:
+//   1. the one on right now
+//   2. else the soonest one still to come
+//   3. else the latest one that's over (its page says it has ended)
+// With nothing published yet, the run itself (the coach previewing).
+// null when there's no such webinar any more.
+export function currentRun(linkId, all, now = Date.now()) {
+  const list = all.filter(isRecord);
+  const anchor = list.find((w) => w.id === linkId) ?? list.find((w) => seriesIdOf(w, list) === linkId);
+  if (!anchor) return null;
+  const runs = publishedRuns(anchor, list);
+  if (runs.length === 0) return anchor;
+  const live = runs.find((w) => isOnNow(w.answers ?? {}, now));
+  if (live) return live;
+  const toCome = runs.filter((w) => webinarStatus(w, now) === 'upcoming').sort((a, b) => startOf(a) - startOf(b));
+  if (toCome.length > 0) return toCome[0];
+  return [...runs].sort((a, b) => startOf(b) - startOf(a))[0];
+}
+
+// The other runs in this webinar's series that start after it, published
 // ones only, latest date first
 export function laterRuns(webinar, all, now = Date.now()) {
-  const found = [];
-  let ids = [webinar.id];
-  while (ids.length > 0) {
-    const next = all.filter((w) => w && ids.includes(w.copiedFrom) && !found.includes(w));
-    found.push(...next);
-    ids = next.map((w) => w.id);
-  }
-  return found
-    .filter((w) => w.publishedAt)
-    .sort((a, b) => (webinarStart(b.answers ?? {}) ?? 0) - (webinarStart(a.answers ?? {}) ?? 0))
+  const mine = startOf(webinar);
+  return publishedRuns(webinar, all)
+    .filter((w) => w.id !== webinar.id && startOf(w) > mine)
+    .sort((a, b) => startOf(b) - startOf(a))
     .map((w) => ({ webinar: w, upcoming: webinarStatus(w, now) === 'upcoming' }));
 }
 
-// The run people should go to instead of this one: its latest later run
-// that's still to come, or null
+// The run people should go to instead of this one: the soonest later run
+// that's still to come (the same one its link opens), or null
 export function nextOpenRun(webinar, all, now = Date.now()) {
-  return laterRuns(webinar, all, now).find((r) => r.upcoming)?.webinar ?? null;
+  const open = laterRuns(webinar, all, now).filter((r) => r.upcoming);
+  return open.length > 0 ? open[open.length - 1].webinar : null;
 }
+
+// The series a webinar's address opens (localhost:5173/<slug>), or null.
+// Every session of a webinar shares its slug, so any of them will do.
+export function seriesBySlug(slug, all) {
+  const want = String(slug ?? '').toLowerCase();
+  if (!want) return null;
+  const list = all.filter(isRecord);
+  const found = list.find((w) => w.publishedAt && typeof w.slug === 'string' && w.slug.toLowerCase() === want);
+  return found ? seriesIdOf(found, list) : null;
+}
+
+// Every published run of this webinar (its dates), earliest first. Used
+// for the Webinars list (one row per webinar) and the Dates on its page.
+export function runsOf(webinar, all) {
+  return publishedRuns(webinar, all).sort((a, b) => startOf(a) - startOf(b));
+}
+
+// ------------------------------------------------------------
+// One set of pages, price and emails. Each session keeps its own copy
+// (so a past session stays a true record of what people saw and got),
+// but a change made on one goes to every session still to come: the
+// coach edits once. What stays each session's own: its date, time and
+// time zone (SESSION_KEYS), its Zoom meeting, its people and its sign-up
+// page record (contract), which App re-saves from the shared answers.
+// ------------------------------------------------------------
+
+export const SESSION_KEYS = ['date', 'time', 'timeZone'];
+
+const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+// What changed between two versions of one session that the others share,
+// or null when nothing did:
+//   { set: { headline: '…' }, unset: ['oldPrice'], themeId?, donePages?, reminders? }
+export function sharedChanges(before, after) {
+  const a = before.answers ?? {};
+  const b = after.answers ?? {};
+  const set = {};
+  const unset = [];
+  new Set([...Object.keys(a), ...Object.keys(b)]).forEach((key) => {
+    if (SESSION_KEYS.includes(key) || same(a[key], b[key])) return;
+    if (key in b) set[key] = b[key];
+    else unset.push(key);
+  });
+  const out = { set, unset };
+  ['themeId', 'donePages', 'reminders'].forEach((key) => {
+    if (!same(before[key], after[key])) out[key] = after[key];
+  });
+  const any = Object.keys(set).length > 0 || unset.length > 0 || Object.keys(out).length > 2;
+  return any ? out : null;
+}
+
+// The list with `after` (a new version of one session) in place, and what
+// changed in it copied to every other session of its webinar that's
+// still to come. Drafts and past sessions pass nothing on.
+export function withSharedChanges(list, before, after, now = Date.now()) {
+  const placed = list.map((f) => (f.id === after.id ? after : f));
+  if (!after.publishedAt) return placed;
+  const change = sharedChanges(before, after);
+  if (!change) return placed;
+  const series = seriesIdOf(after, placed);
+  return placed.map((f) => {
+    if (f.id === after.id || !isRecord(f) || !f.publishedAt) return f;
+    if (seriesIdOf(f, placed) !== series || webinarStatus(f, now) === 'past') return f;
+    const answers = { ...(f.answers ?? {}), ...change.set };
+    change.unset.forEach((key) => delete answers[key]);
+    const next = { ...f, answers, updatedAt: after.updatedAt ?? f.updatedAt };
+    ['themeId', 'donePages', 'reminders'].forEach((key) => {
+      if (key in change) next[key] = change[key];
+    });
+    return next;
+  });
+}
+
+// The other sessions of this webinar still to come (they get its changes)
+export const upcomingSiblings = (webinar, all, now = Date.now()) =>
+  publishedRuns(webinar, all).filter((w) => w.id !== webinar.id && webinarStatus(w, now) !== 'past');
+
+// Other published runs share this one's link: deleting it leaves the link working
+export const sharesLink = (webinar, all) => publishedRuns(webinar, all).some((w) => w.id !== webinar.id);
 
 // From 15 minutes before it starts until it ends, the coach can start it from here
 export function canStart(answers, now = Date.now()) {

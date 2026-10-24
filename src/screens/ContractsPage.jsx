@@ -22,7 +22,7 @@ import { BOOKINGS_CHANGED_EVENT } from '../data/bookingsStore';
 import { formatMoney } from '../data/contractPricing';
 import ContractEditor from './ContractEditor';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { liveHref } from '../utils/publish';
+import { runHref } from '../utils/publish';
 import { SETUP_CHANGED_EVENT } from '../data/myPage';
 import './ContractsPage.css';
 
@@ -428,7 +428,8 @@ function liveLinkOf(contract) {
   if (owner?.kind === 'call') {
     return `${window.location.pathname}?mock=checkout&service=${encodeURIComponent(owner.id)}&preview=1`;
   }
-  if (owner?.kind === 'webinar') return `${liveHref({ id: owner.id })}&page=signup`;
+  // This run's own sign-up page (its contract is this date's alone)
+  if (owner?.kind === 'webinar') return `${runHref({ id: owner.id })}&page=signup`;
   return null;
 }
 

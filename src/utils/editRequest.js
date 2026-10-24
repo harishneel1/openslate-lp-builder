@@ -23,7 +23,8 @@ export function requestEdit(funnelId) {
   }
   window.close();
   setTimeout(() => {
-    window.location.assign(`${window.location.pathname}?edit=${encodeURIComponent(funnelId)}`);
+    // The builder's own address ('/'), not this page's: a webinar's link (/<slug>) opens its page, not the builder
+    window.location.assign(`/?edit=${encodeURIComponent(funnelId)}`);
   }, 150);
 }
 

@@ -1,4 +1,4 @@
-/* "Run again on a new date" (RunAgainDialog.jsx): a small form inside the pop-up */
+/* "Add another session" (RunAgainDialog.jsx): a small form inside the pop-up */
 .run-again__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -30,19 +30,29 @@
   border-radius: var(--radius-sm);
 }
 
-/* "Not sure yet? … You can change it later." Quiet, right under the fields */
-.run-again__later {
-  display: flex;
+/* Two short lines; the second ends with the (i) about the link */
+.run-again__link {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: -2px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
+  gap: 4px;
 }
 
-.run-again__later svg {
-  flex: none;
+/* Why this date is filled in, in their own dates, like the booking
+   rules' examples (HoursDrawer.css): a soft box, the picked date bold
+   and orange */
+.run-again__why {
+  margin-top: 2px;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.run-again__why strong {
+  font-weight: 600;
+  color: var(--color-primary-hover);
 }
 
 .run-again__error {

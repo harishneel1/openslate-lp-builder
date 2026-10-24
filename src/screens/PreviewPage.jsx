@@ -9,7 +9,7 @@ import { funnelTypes } from '../data/funnelTypes';
 import { loadSaved } from '../utils/storage';
 import { funnelName } from '../utils/funnelName';
 import { requestEdit } from '../utils/editRequest';
-import { lengthLabel, nextOpenRun, webinarEnd, webinarPrice, webinarWhen } from '../data/webinar';
+import { currentRun, lengthLabel, nextOpenRun, webinarEnd, webinarPrice, webinarWhen, withSeriesIds } from '../data/webinar';
 import { addSignup } from '../data/webinarSignups';
 import './PreviewPage.css';
 
@@ -17,7 +17,14 @@ import './PreviewPage.css';
 // at ?preview=<funnelId> (see main.jsx). A new tab starts with no state,
 // so everything is read from the save (localStorage).
 //
-// This is also the link they share, for now. Once a published webinar is
+// The link they share opens here too, at ?go=<seriesId> (linkId): it
+// shows whichever run of the webinar is current (currentRun in
+// data/webinar.js), so it keeps working when they run it again. From
+// there, everything is about that one run: the landing page's button goes
+// to ?preview=<that run>&page=signup, so someone who's signing up stays on
+// the date they saw, even if a newer one takes over the link meanwhile.
+//
+// Once a published webinar is
 // over, its landing and sign-up pages show "This webinar has ended"
 // instead (EndedPage), so nobody signs up for a date that's gone. If the
 // coach has run it again, that page points to the new date. The top bar
@@ -33,15 +40,18 @@ const MODES = [
   { id: 'desktop', label: 'Desktop', icon: Monitor },
 ];
 
-// The Funnels page's own address (this one without ?preview=…)
-const builderUrl = () => window.location.pathname;
+// The builder's own address. Always '/', since this page can also be open
+// at a webinar's link (/<slug>), which would only open this page again.
+const builderUrl = () => '/';
 
 // One funnel from the save → what the preview needs. null if it's missing or unreadable.
-function readFunnel(id) {
-  const { funnels } = loadSaved();
-  if (!Array.isArray(funnels)) return null;
+// fromLink: id is a shared link's (a series, or any run): read its current run.
+function readFunnel(id, fromLink = false) {
+  const { funnels: saved } = loadSaved();
+  if (!Array.isArray(saved)) return null;
+  const funnels = withSeriesIds(saved.filter((item) => item && typeof item === 'object'));
 
-  const f = funnels.find((item) => item && typeof item === 'object' && item.id === id);
+  const f = fromLink ? currentRun(id, funnels) : funnels.find((item) => item.id === id);
   if (!f) return null;
 
   const type = funnelTypes.find((t) => t.id === f.type);
@@ -50,11 +60,12 @@ function readFunnel(id) {
   const answers =
     f.answers && typeof f.answers === 'object' && !Array.isArray(f.answers) ? f.answers : {};
 
-  // Run again since: the newest copy that's still to come (data/webinar.js)
-  const next = nextOpenRun(f, funnels.filter((item) => item && typeof item === 'object'));
+  // Run again since: the soonest later run that's still to come (data/webinar.js)
+  const next = nextOpenRun(f, funnels);
   const nextAnswers = next?.answers && typeof next.answers === 'object' ? next.answers : {};
 
   return {
+    id: f.id,
     answers,
     themeId: typeof f.themeId === 'string' ? f.themeId : null,
     donePages: Array.isArray(f.donePages) ? f.donePages : [],
@@ -93,11 +104,15 @@ const PAGE_INFO = {
   'thank-you': { done: 'thank-you', label: 'Preview: Thank you page', name: 'thank you page' },
 };
 
+// funnelId: one run (?preview=), or
+// linkId: a shared link (?go=), which opens its current run's landing page
 // page: 'landing' (default), 'signup' or 'thank-you'
-export default function PreviewPage({ funnelId, page: pageId = 'landing' }) {
+export default function PreviewPage({ funnelId: runId = null, linkId = null, page: pageId = 'landing' }) {
   const isThankYou = pageId === 'thank-you';
   const info = PAGE_INFO[pageId] ?? PAGE_INFO.landing;
-  const [funnel] = useState(() => readFunnel(funnelId));
+  const [funnel] = useState(() => (linkId !== null ? readFunnel(linkId, true) : readFunnel(runId)));
+  // The run on show, from here on (sign-up, People and the thank you page all use it)
+  const funnelId = funnel?.id ?? runId;
   const [mode, setMode] = useState('desktop');
   const [showAnyway, setShowAnyway] = useState(false); // the coach looking past "This webinar has ended"
 

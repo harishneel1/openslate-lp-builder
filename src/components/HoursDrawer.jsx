@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { CalendarOff, Info } from 'lucide-react';
+import { useId, useState } from 'react';
+import { CalendarOff } from 'lucide-react';
 import Drawer from './Drawer';
+import InfoTip from './InfoTip';
 import { WeeklyHours } from './WeeklyHoursInput';
 import { BOOKING_RULES } from '../data/bookingRules';
 import { sameHours } from '../data/availabilityStore';
@@ -157,47 +158,5 @@ function BookingRule({ rule, value, onChange }) {
         ))}
       </select>
     </div>
-  );
-}
-
-// The (i) beside a rule's name. Shows on hover, and stays open on a
-// click (for people who click rather than hover) until they click
-// elsewhere, click it again or press Escape. Escape here closes just
-// the bubble, not the panel.
-function InfoTip({ label, text }) {
-  const [pinned, setPinned] = useState(false);
-  const ref = useRef(null);
-  const tipId = useId();
-
-  useEffect(() => {
-    if (!pinned) return undefined;
-    const onDown = (e) => !ref.current?.contains(e.target) && setPinned(false);
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [pinned]);
-
-  const onKeyDown = (e) => {
-    if (e.key === 'Escape' && pinned) {
-      e.preventDefault(); // keeps the panel open
-      e.stopPropagation();
-      setPinned(false);
-    }
-  };
-
-  return (
-    <span ref={ref} className={`hd-info ${pinned ? 'hd-info--open' : ''}`} onKeyDown={onKeyDown}>
-      <button
-        type="button"
-        className="hd-info__btn"
-        aria-label={`What is “${label}”?`}
-        aria-describedby={tipId}
-        onClick={() => setPinned((p) => !p)}
-      >
-        <Info size={15} aria-hidden="true" />
-      </button>
-      <span className="tip hd-info__tip" role="tooltip" id={tipId}>
-        {text}
-      </span>
-    </span>
   );
 }

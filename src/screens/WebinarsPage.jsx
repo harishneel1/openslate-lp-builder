@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarPlus, MonitorPlay, Pencil, Plus, RefreshCw, Trash2, Video } from 'lucide-react';
+import { ArrowRight, CalendarPlus, CalendarRange, MonitorPlay, Pencil, Plus, Trash2, Users, Video } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
+import { onSignupsChange, peopleOf } from '../data/webinarSignups';
 import {
-  laterRuns,
+  currentRun,
+  runsOf,
+  seriesIdOf,
   lengthLabel,
   meetingHref,
   meetingState,
@@ -28,24 +31,29 @@ import './WebinarsPage.css';
 //   ┌ Upcoming 2 ───────────────────────────────────────────────────────────────┐
 //   │ [NOV 7] Fix the Vasthu mistakes…  [Join meeting] [Edit webinar pages] [🗑] │
 //   │         Sat 7 Nov, 7:00 pm IST · 60 min · ₹499                            │
-//   │         ● Link ready · Starts in 16 days                                  │
+//   │         ● Link ready  Starts in 16 days  👥 23 signed up  📅 3 dates       │
 //   ├ Drafts 1 ─────────────────────────────────────────────────────┤
 //   │ [ — ]   Untitled webinar · 1 of 3 pages done  [Continue]  [🗑] │
 //   ├ Past 1 ───────────────────────────────────────────────────────────────────┤
 //   │ [OCT 31] Fix the Vasthu mistakes…   [Run again on a new date] [Edit webinar pages] [🗑] │
-//   │          ● Ended · Ran again on Sat 7 Nov →                                │
+//   │          Ended  👥 41 signed up                                           │
 //   └────────────────────────────────────────────────────────────────────────────┘
 //
-// Upcoming: published, soonest first. Drafts: not published, last edited
-// first. Past: published and over, latest first. Empty groups don't show.
+// One row per webinar, however many times it has run. Run again makes a
+// copy on a new date (App.jsx), and all of them share one link: a series
+// (data/webinar.js). The row shows the date that link opens (currentRun:
+// on now, else the soonest to come, else the latest that's over), so a
+// webinar sits in Upcoming while it has a date to come and in Past once
+// all its dates are over. "3 dates" says there's more inside; the other
+// dates are on its page (WebinarDetails).
 //
-// Every run is its own webinar: Run again makes a copy on a new date with
-// its own link (App.jsx), so the same name can show in Past and Upcoming.
-// The date tile tells them apart, and a past one links to its newer run.
+// Upcoming: soonest first. Drafts: not published, last edited first.
+// Past: latest first. Empty groups don't show.
 //
-// A click anywhere on a row opens the webinar (App.jsx: its details page
-// once it's published, the setup screen while it's a draft). Edit webinar pages
-// opens the three page cards, where every page is edited.
+// A click anywhere on a row opens the date it shows (App.jsx: its details
+// page once it's published, the setup screen while it's a draft). Edit
+// webinar pages opens that date's three page cards. Delete removes the
+// whole webinar, every date (one date is deleted from its own page).
 //
 // Every upcoming webinar has its meeting button, always in the same place
 // (Zoom is built in, so there's always a meeting). It changes with the clock:
@@ -59,7 +67,8 @@ import './WebinarsPage.css';
 //
 // webinars: the saved records (App.jsx)
 // onCreate(), onOpen(id) (where they left off: Continue setting up),
-// onOpenOverview(id) (a click on the row), onEditPages(id), onDelete(id), onRunAgain(id)
+// onOpenOverview(id) (a click on the row), onEditPages(id),
+// onDelete(ids) (every date of one webinar), onRunAgain(id)
 // ------------------------------------------------------------
 
 const TYPE = funnelTypes.find((t) => t.id === 'webinar');
@@ -74,21 +83,48 @@ export function useNow(every = 30_000) {
   return now;
 }
 
+// Re-renders when someone registers (here or in another tab), so the
+// "signed up" counts stay right
+function useSignupsTick() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => onSignupsChange(() => setTick((n) => n + 1)), []);
+  return tick;
+}
+
 export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onEditPages = onOpenOverview, onDelete, onRunAgain }) {
-  const [deleting, setDeleting] = useState(null); // { id, name } while the pop-up asks
+  const [deleting, setDeleting] = useState(null); // { ids, name, dates, live } while the pop-up asks
   const [said, setSaid] = useState(''); // for screen readers: what just changed
   const now = useNow();
+  useSignupsTick();
 
   useEffect(() => {
     document.title = 'Webinars';
   }, []);
 
+  // One entry per webinar: { webinar: the date its row shows, runs: all its dates }.
+  // Drafts aren't in a series yet (nothing's published), so each is its own.
+  const entries = useMemo(() => {
+    const out = [];
+    const seen = new Set();
+    webinars.forEach((w) => {
+      if (!w.publishedAt) {
+        out.push({ webinar: w, runs: [w] });
+        return;
+      }
+      const series = seriesIdOf(w, webinars);
+      if (seen.has(series)) return;
+      seen.add(series);
+      out.push({ webinar: currentRun(series, webinars, now) ?? w, runs: runsOf(w, webinars) });
+    });
+    return out;
+  }, [webinars, now]);
+
   const groups = useMemo(() => {
     const by = { upcoming: [], draft: [], past: [] };
-    webinars.forEach((w) => by[webinarStatus(w, now)].push(w));
-    const startOf = (w) => webinarStart(w.answers) ?? Infinity;
+    entries.forEach((e) => by[webinarStatus(e.webinar, now)].push(e));
+    const startOf = (e) => webinarStart(e.webinar.answers) ?? Infinity;
     by.upcoming.sort((a, b) => startOf(a) - startOf(b));
-    by.draft.sort((a, b) => b.updatedAt - a.updatedAt);
+    by.draft.sort((a, b) => b.webinar.updatedAt - a.webinar.updatedAt);
     // Past: latest first
     by.past.sort((a, b) => startOf(b) - startOf(a));
     return [
@@ -96,25 +132,30 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
       { id: 'draft', title: 'Drafts', list: by.draft },
       { id: 'past', title: 'Past', list: by.past },
     ].filter((g) => g.list.length > 0);
-  }, [webinars, now]);
+  }, [entries, now]);
 
   const confirmDelete = () => {
-    onDelete(deleting.id);
+    onDelete(deleting.ids);
     setSaid(`${deleting.name} deleted.`);
     setDeleting(null);
   };
 
-  const rowProps = (w) => ({
+  const rowProps = ({ webinar: w, runs }) => ({
     webinar: w,
     now,
-    // Its newest later run, for "Ran again on …" (Past only)
-    nextRun: webinarStatus(w, now) === 'past' ? laterRuns(w, webinars, now)[0]?.webinar ?? null : null,
+    dates: runs.length,
+    people: w.publishedAt ? peopleOf(w.id).length : null,
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
     onEditPages: () => onEditPages(w.id),
-    onOpenRun: (id) => onOpenOverview(id),
     onRunAgain: () => onRunAgain(w.id),
-    onDelete: () => setDeleting({ id: w.id, name: funnelName(w, TYPE), live: Boolean(w.publishedAt) }),
+    onDelete: () =>
+      setDeleting({
+        ids: runs.map((r) => r.id),
+        name: funnelName(w, TYPE),
+        dates: runs.length,
+        live: Boolean(w.publishedAt),
+      }),
   });
 
   return (
@@ -159,8 +200,8 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
             </div>
             <div className="oh__panel-body">
               <ul className="oh__rows">
-                {g.list.map((w) => (
-                  <WebinarRow key={w.id} {...rowProps(w)} />
+                {g.list.map((e) => (
+                  <WebinarRow key={e.webinar.id} {...rowProps(e)} />
                 ))}
               </ul>
             </div>
@@ -181,9 +222,11 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
           onConfirm={confirmDelete}
         >
           <p>
-            <strong>“{deleting.name}”</strong> will be deleted with its pages
+            <strong>“{deleting.name}”</strong> will be deleted with{' '}
+            {deleting.dates > 1 ? `all ${deleting.dates} sessions, their pages and the people who signed up` : 'its pages'}
             {deleting.live ? ', and its link will stop working' : ''}. This can’t be undone.
           </p>
+          {deleting.dates > 1 && <p>To delete just one session, open the webinar, pick the session and use its ⋯.</p>}
         </ConfirmDialog>
       )}
     </div>
@@ -217,12 +260,13 @@ function draftProgress(webinar) {
 
 // One webinar, as a full-width row like a 1:1 call: date, what it is and
 // where it's at on the left; what you can do on the right.
-// nextRun: on a past one, the newest webinar made from it with Run again, or null
-function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onEditPages, onOpenRun, onDelete, onRunAgain }) {
+// webinar: the date this row shows (the one its link opens)
+// dates: how many dates it has (2 or more shows "3 dates")
+// people: how many signed up for that date, or null for a draft
+function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onEditPages, onDelete, onRunAgain }) {
   const { answers } = webinar;
   const name = funnelName(webinar, TYPE);
   const status = webinarStatus(webinar, now);
-  const nextWhen = nextRun ? webinarWhen(nextRun.answers) : null;
   // 'join', 'start' or 'live' (data/webinar.js); only upcoming webinars have the button
   const meeting = status === 'upcoming' ? meetingState(answers, now) : null;
   const when = webinarWhen(answers);
@@ -278,12 +322,16 @@ function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onEditPages
             </>
           )}
           {status === 'past' && <span className="wb-badge">Ended</span>}
-          {/* Run again already: which one, so they can follow it */}
-          {nextRun && (
-            <button type="button" className="wb-row__next" onClick={() => onOpenRun(nextRun.id)}>
-              Ran again on {nextWhen ? `${nextWhen.weekday} ${nextWhen.day} ${nextWhen.month}` : 'a new date'}
-              <ArrowRight size={13} aria-hidden="true" />
-            </button>
+          {people !== null && (
+            <span className="wb-row__fact">
+              <Users size={14} aria-hidden="true" /> {people} signed up
+            </span>
+          )}
+          {/* More dates inside: the rest are on its page */}
+          {dates > 1 && (
+            <span className="wb-row__fact">
+              <CalendarRange size={14} aria-hidden="true" /> {dates} sessions
+            </span>
           )}
         </p>
       </div>
@@ -291,14 +339,14 @@ function WebinarRow({ webinar, now, nextRun, onOpen, onOpenOverview, onEditPages
       <div className="oh-row__actions">
         {status === 'past' ? (
           <>
-            {/* The next thing to do on one that's over, until it's been run again */}
+            {/* The next thing to do once every date is over */}
             <button
               type="button"
-              className={nextRun ? 'oh__edit' : 'oh__edit wb-row__again'}
+              className="oh__edit wb-row__again"
               onClick={onRunAgain}
-              aria-label={`Run ${name} again on a new date`}
+              aria-label={`Add another session of ${name}`}
             >
-              <RefreshCw size={15} aria-hidden="true" /> Run again on a new date
+              <Plus size={15} aria-hidden="true" /> Add another session
             </button>
             {editPages}
           </>

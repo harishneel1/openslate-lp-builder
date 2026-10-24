@@ -140,9 +140,11 @@ function LiveLink({ href, onOpen, copyRef }) {
 export default function FunnelOverview({
   funnel,
   webinarId,          // this webinar's id, for its live link
-  nextRun = null,     // the newest webinar made from this one with Run again, or null
+  webinarSlug = null, // its address name (every session shares it), for the same link
+  nextRun = null,     // this webinar's newest later session, or null
   onOpenRun,          // opens that one: onOpenRun(id)
-  onRunAgain,         // opens the Run again pop-up
+  onRunAgain,         // opens the Add another session pop-up
+  onOpenDetails = null, // "Go to your webinar": its page (sign-ups, Join), once published
   onStart,
   done = [],
   answers = {},
@@ -181,7 +183,7 @@ export default function FunnelOverview({
   // (visitors are told the link comes by email instead; see ThankYouDesign).
   const ready = pagesLeft === 0;
   // `funnel` is the type (its pages); the link needs this webinar's own id
-  const liveLink = published ? liveHref({ id: webinarId }) : null;
+  const liveLink = published ? liveHref({ id: webinarId, slug: webinarSlug }) : null;
 
   // Publish removes the button they just pressed, so move keyboard focus
   // to Copy link (the next thing they'll want), not back to the top of the page
@@ -193,7 +195,7 @@ export default function FunnelOverview({
   }, [published]);
 
   let title;
-  if (ended) title = 'This webinar has ended';
+  if (ended) title = 'This session has ended';
   // "Live" and "publish" sound like it's announced to the world. It isn't:
   // they just get a link, and nobody sees anything until they share it.
   else if (published) title = 'Your link is ready';
@@ -220,11 +222,11 @@ export default function FunnelOverview({
         {!published && ready &&
           'Check each page, then get your link below.'}
         {published && !ended &&
-          'Any change you make shows up on your link straight away.'}
+          'Any change you make shows up on your link straight away, and applies to every upcoming session.'}
         {ended && !nextRun &&
-          'Run it again on a new date. That makes a new webinar with its own link, and this one stays as it is.'}
+          'Add another session on a new date. Your link stays the same and opens the new session.'}
         {ended && nextRun &&
-          `You ran it again on ${nextRunDay}. This one stays as it was, with the people who signed up for it.`}
+          `Your next session is on ${nextRunDay}. This one stays as it was, with the people who signed up for it.`}
       </p>
       </div>
 
@@ -237,7 +239,7 @@ export default function FunnelOverview({
             {length ? ` · ${length}` : ''} ·{' '}
             <span className={price.isFree ? 'overview__when-free' : 'overview__when-price'}>{price.label}</span>
           </span>
-          {/* Shows the date isn't final. Not once it's over: that's Run again. */}
+          {/* Shows the date isn't final. Not once it's over: that's Add another session. */}
           {onChangeDate && !ended && (
             <button type="button" className="overview__when-change" onClick={onChangeDate} aria-label="Change the date and time">
               Change
@@ -419,25 +421,25 @@ export default function FunnelOverview({
       </div>
 
       {/* What to do with it, under the pages: publish, or once it's live the
-          link, start it or run it again. Below the cards so the pages read first. */}
+          link, start it or add another session. Below the cards so the pages read first. */}
       <div className="overview__actions">
         {/* Ended: the one thing to do next */}
         {ended && !nextRun && (
           <div className="overview__launch">
             <button type="button" className="overview__launch-primary" onClick={onRunAgain}>
-              <RefreshCw size={16} aria-hidden="true" /> Run again on a new date
+              <RefreshCw size={16} aria-hidden="true" /> Add another session
             </button>
           </div>
         )}
 
-        {/* Run again already: the new one comes first, another date second */}
+        {/* A later session already: go to it first, add another second */}
         {ended && nextRun && (
           <div className="overview__launch">
             <button type="button" className="overview__launch-primary" onClick={() => onOpenRun(nextRun.id)}>
               Go to {nextRunDay} <ArrowRight size={16} aria-hidden="true" />
             </button>
             <button type="button" className="overview__launch-link" onClick={onRunAgain}>
-              Run again on another date
+              Add another session
             </button>
           </div>
         )}
@@ -463,6 +465,19 @@ export default function FunnelOverview({
 
               {/* Ended: nobody can sign up on it any more, so no prompt to share it */}
               {published && !ended && <LiveLink href={liveLink} onOpen={onPreview} copyRef={copyRef} />}
+
+        {/* After copying the link, the next place to go: where sign-ups show
+            up and the webinar is started. The hint names those two things in
+            everyday words (a first-time coach doesn't know "sessions" yet).
+            Outlined, so Copy link stays the one filled button. */}
+        {published && !ended && onOpenDetails && (
+          <div className="overview__next">
+            <button type="button" className="overview__next-btn" onClick={onOpenDetails}>
+              Go to your webinar <ArrowRight size={16} aria-hidden="true" />
+            </button>
+            <p className="overview__next-hint">See who signs up, and start your webinar on the day.</p>
+          </div>
+        )}
 
         {!published && ready && (
           <section className="overview__launch" aria-labelledby="overview-launch-title">

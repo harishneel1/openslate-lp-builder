@@ -17,7 +17,7 @@ import LandingEditor from './screens/LandingEditor';
 import SignupStep from './screens/SignupStep';
 import { deleteService, getService, saveWebinarContract } from './data/mockServices';
 import { thankYouQuestions, firstMissing } from './data/thankYouQuestions';
-import { contractKey, laterRuns, ownContract, webinarContractFields, webinarStatus, webinarWhen } from './data/webinar';
+import { contractKey, currentRun, laterRuns, ownContract, seriesIdOf, upcomingSiblings, withSharedChanges, webinarContractFields, webinarStatus, webinarWhen, withSeriesIds } from './data/webinar';
 import RunAgainDialog from './components/RunAgainDialog';
 import ReminderEditor from './screens/ReminderEditor';
 import { withEmail, withOn } from './data/reminders';
@@ -32,6 +32,8 @@ import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
 import { makeSlug } from './utils/publish';
+import { accountHandle } from './data/myPage';
+import { getMockProfile } from './data/mockProfile';
 import { EDIT_REQUEST_KEY, editRequestId, takeEditParam } from './utils/editRequest';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
@@ -80,7 +82,10 @@ function restoreFunnel(f) {
     // Saves from before publishing existed have neither: not live yet
     publishedAt: Number.isFinite(f.publishedAt) ? f.publishedAt : null,
     slug: typeof f.slug === 'string' && f.slug ? f.slug : null,
-    // The webinar this one was run again from (data/webinar.js). Older
+    // The series it belongs to: every run of one webinar shares it and its
+    // link (data/webinar.js). Older saves get it in restore().
+    seriesId: typeof f.seriesId === 'string' && f.seriesId ? f.seriesId : null,
+    // The webinar this one was run again from: history only. Older
     // saves' `sessions` (runs kept inside one webinar) are dropped.
     copiedFrom: typeof f.copiedFrom === 'string' ? f.copiedFrom : null,
     // Reminder emails: on/off and the coach's own text (data/reminders.js)
@@ -90,9 +95,20 @@ function restoreFunnel(f) {
 
 // The whole save → safe starting values
 function restore(saved) {
-  const funnels = (Array.isArray(saved.funnels) ? saved.funnels : [])
-    .map(restoreFunnel)
-    .filter(Boolean);
+  // Saves from before series existed: each run joins the series of the
+  // first run up its copiedFrom chain
+  const withSeries = withSeriesIds(
+    (Array.isArray(saved.funnels) ? saved.funnels : [])
+      .map(restoreFunnel)
+      .filter(Boolean),
+  );
+  // Runs copied before series existed got their own slug ('…-2'): every run
+  // takes its series' first slug, so they all show the one shared address
+  const firstSlug = new Map();
+  [...withSeries]
+    .sort((x, y) => x.createdAt - y.createdAt)
+    .forEach((f) => f.slug && !firstSlug.has(f.seriesId) && firstSlug.set(f.seriesId, f.slug));
+  const funnels = withSeries.map((f) => (firstSlug.has(f.seriesId) ? { ...f, slug: firstSlug.get(f.seriesId) } : f));
   const openId = funnels.some((f) => f.id === saved.openId) ? saved.openId : null;
 
   return {
@@ -103,6 +119,10 @@ function restore(saved) {
     funnels: funnels.filter((f) => f.id === openId || !isEmptyFunnel(f)),
   };
 }
+
+// Addresses a webinar's slug can't take: the creators' own pages
+// (localhost:5173/<handle>), which main.jsx checks first
+const takenByPages = () => [accountHandle(), getMockProfile().creator.handle];
 
 function App() {
   // Read the save once, on first load
@@ -134,18 +154,23 @@ function App() {
   // Change the open funnel. Pass an object, or a function of the funnel
   // (use the function form when the change depends on what's already there).
   // touch: false → doesn't count as an edit ("Edited 5 min ago" stays the same).
-  const updateOpen = (change, { touch = true } = {}) => {
-    setFunnels((prev) =>
-      prev.map((f) =>
-        f.id === openId
-          ? {
-              ...f,
-              ...(typeof change === 'function' ? change(f) : change),
-              ...(touch ? { updatedAt: Date.now() } : {}),
-            }
-          : f,
-      ),
-    );
+  // A change to the pages, price or emails of a published session also
+  // goes to the webinar's other sessions still to come (withSharedChanges,
+  // data/webinar.js), so the coach edits once. Its date stays its own.
+  const updateOpen = (change, { touch = true } = {}) => updateRun(openId, change, { touch });
+
+  // The same, for any session by id (the Emails tab works on the next session)
+  const updateRun = (id, change, { touch = true } = {}) => {
+    setFunnels((prev) => {
+      const before = prev.find((f) => f.id === id);
+      if (!before) return prev;
+      const after = {
+        ...before,
+        ...(typeof change === 'function' ? change(before) : change),
+        ...(touch ? { updatedAt: Date.now() } : {}),
+      };
+      return withSharedChanges(prev, before, after);
+    });
   };
 
   const setStep = (next) => updateOpen({ step: next });
@@ -271,8 +296,10 @@ function App() {
 
   // ---------- Run again on a new date ----------
   // Makes a new webinar: a full copy on the new date, with its own pages,
-  // link, sign-up page (contract) and Zoom meeting. The earlier one stays
-  // exactly as it was, with its own people. The copy is ready to share
+  // sign-up page (contract) and Zoom meeting. It joins the same series, so
+  // it shares the earlier one's link: that link opens whichever run is
+  // current (data/webinar.js). The earlier one stays exactly as it was,
+  // with its own people. The copy is ready to share
   // straight away (its pages are already done) and opens on its details page.
   // Asked in a pop-up, from the list or the webinar's overview.
   const [runAgainId, setRunAgainId] = useState(null);
@@ -282,16 +309,18 @@ function App() {
     const f = runningAgain;
     if (!f) return;
     const now = Date.now();
-    const taken = funnels.filter((item) => item.slug).map((item) => item.slug);
+    const series = seriesIdOf(f, funnels);
+    const taken = [...takenByPages(), ...funnels.filter((item) => item.slug && seriesIdOf(item, funnels) !== series).map((item) => item.slug)];
     const copy = {
-      ...createFunnel(f.type), // new id, so a new link and a new Zoom meeting
+      ...createFunnel(f.type), // new id, so a new Zoom meeting and its own people
       step: 'details',
       answers: { ...f.answers, date, time },
       themeId: f.themeId,
       donePages: [...f.donePages],
       positions: f.positions ?? {},
       publishedAt: now,
-      slug: makeSlug(f.answers.headline, taken),
+      seriesId: series, // the same link as the earlier run
+      slug: f.slug ?? makeSlug(f.answers.headline, taken),
       copiedFrom: f.id,
       reminders: f.reminders ?? {}, // the same emails and switches; dates fill in fresh
     };
@@ -314,12 +343,19 @@ function App() {
   };
 
   // After that it follows the landing page: a new headline, date or price
-  // updates the contract a moment later. Only the webinar's own contract.
+  // updates the contract a moment later. Only the webinar's own contract,
+  // and those of its other sessions still to come, which just got the same
+  // headline and price (each keeps its own date).
   const syncKey =
     current && current.donePages.includes('registration') ? `${current.id}|${contractKey(current.answers)}` : null;
   useEffect(() => {
     if (!syncKey || !current || !ownContract(current)) return undefined;
-    const timer = setTimeout(() => saveContract(current), 400);
+    const timer = setTimeout(() => {
+      saveContract(current);
+      upcomingSiblings(current, funnels).forEach((f) => {
+        if (f.donePages.includes('registration') && ownContract(f)) saveContract(f);
+      });
+    }, 400);
     return () => clearTimeout(timer);
   }, [syncKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -327,8 +363,13 @@ function App() {
 
   // Publish the open funnel. The slug is made once, from the headline, and
   // kept after that, so editing the headline never breaks a link they've shared.
+  // Runs of the same series share a slug, so only other series' count as taken.
   const publishFunnel = () => {
-    const taken = funnels.filter((f) => f.id !== openId && f.slug).map((f) => f.slug);
+    const series = current ? seriesIdOf(current, funnels) : null;
+    const taken = [
+      ...takenByPages(),
+      ...funnels.filter((f) => f.id !== openId && f.slug && seriesIdOf(f, funnels) !== series).map((f) => f.slug),
+    ];
     updateOpen((f) => ({
       publishedAt: Date.now(),
       slug: f.slug ?? makeSlug(f.answers.headline, taken),
@@ -399,7 +440,8 @@ function App() {
           onOpenOverview={openWebinar}
           onEditPages={openPages}
           onRunAgain={setRunAgainId}
-          onDelete={deleteFunnel}
+          // A row is a whole webinar: every one of its dates goes
+          onDelete={(ids) => [].concat(ids).forEach(deleteFunnel)}
         />
       );
     }
@@ -411,22 +453,37 @@ function App() {
           key={openId}
           webinar={current}
           webinars={funnels.filter((f) => f.type === 'webinar')}
-          tab={current.detailsTab ?? 'people'}
+          tab={current.detailsTab === 'reminders' ? 'reminders' : 'sessions'}
           onTab={(detailsTab) => updateOpen({ detailsTab }, { touch: false })}
-          onToggleReminder={(id, on) => updateOpen((f) => ({ reminders: withOn(f.reminders, id, on) }))}
-          onEditReminder={(id) => updateOpen({ step: 'reminder-edit', editingReminder: id }, { touch: false })}
-          onEditPages={() => updateOpen({ step: 'overview' }, { touch: false })}
-          onChangeDate={() => {
-            setEditingId('eventDetails');
-            updateOpen({ step: 'review-edit', editReturn: 'details' }, { touch: false });
+          // Emails: the session the page names (the next one), not always the open one
+          onToggleReminder={(runId, id, on) => updateRun(runId, (f) => ({ reminders: withOn(f.reminders, id, on) }))}
+          onEditReminder={(runId, id) => {
+            setFunnels((prev) => prev.map((f) => (f.id === runId ? { ...f, step: 'reminder-edit', editingReminder: id } : f)));
+            setOpenId(runId);
           }}
-          onRunAgain={() => setRunAgainId(openId)}
-          onOpenRun={openWebinar}
-          // From its ⋯ menu: close it first, then delete (as from the list)
-          onDelete={() => {
-            const id = openId;
-            setOpenId(null);
+          onEditPages={(id) => openPages(id ?? openId)}
+          // From a session's side panel: just that session's event details, then back here
+          onChangeDate={(id) => {
+            setEditingId('eventDetails');
+            setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'review-edit', editReturn: 'details' } : f)));
+            setOpenId(id);
+          }}
+          // "Add another session": a copy of the session it names (the latest)
+          onRunAgain={(id) => setRunAgainId(id ?? openId)}
+          // Delete one session (its side panel). If it's the one open, stay on
+          // the webinar through another session; the list when none is left.
+          onDelete={(id) => {
+            const rest = funnels.filter((f) => f.id !== id && f.type === 'webinar');
+            const other = currentRun(seriesIdOf(current, funnels), rest);
             deleteFunnel(id);
+            if (id !== openId) return;
+            if (other) openWebinar(other.id);
+            else setOpenId(null);
+          }}
+          // Delete webinar (the page's own ⋯): every session, then back to the list
+          onDeleteWebinar={(ids) => {
+            setOpenId(null);
+            ids.forEach(deleteFunnel);
           }}
         />
       );
@@ -464,6 +521,8 @@ function App() {
         <FunnelOverview
           funnel={funnel}
           webinarId={openId}
+          webinarSlug={current.slug}
+          onOpenDetails={() => updateOpen({ step: 'details', returnTo: undefined, editReturn: undefined }, { touch: false })}
           // The newer run of this one, once it's been run again ("Ran again on …")
           nextRun={latestRun(current)}
           onOpenRun={openWebinar}
@@ -784,7 +843,7 @@ function App() {
                   }
                 : publishedAt && step !== 'details'
                 ? {
-                    exitLabel: 'Webinar details',
+                    exitLabel: 'Your webinar',
                     onExit: () => updateOpen({ step: 'details', returnTo: undefined, editReturn: undefined }, { touch: false }),
                   }
                 : { onExit: closeFunnel }),

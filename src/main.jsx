@@ -14,7 +14,12 @@ import ZoomMeetingPage from './screens/ZoomMeetingPage.jsx'
 import { accountHandle, savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
+import { seriesBySlug } from './data/webinar'
+import { loadSaved } from './utils/storage'
 
+// ?go=<seriesId> → a webinar's shared link: the landing page of whichever of its runs
+//   is current (on now, else the soonest to come, else the latest over; data/webinar.js).
+//   Stays the same when it's run again. Any run's id works here too.
 // ?preview=<funnelId> → full-screen preview of that funnel's landing page (new tab).
 // Add &page=thank-you for its thank you page.
 // ?mock=create-service → a new contract, in its own tab (ContractEditorTab).
@@ -34,6 +39,9 @@ import { isMyCall } from './data/myProfile'
 //   links in their confirmation email. Leave out action to offer both; &tz=<zone> for another clock.
 // ?mock=zoom&webinar=<id> → that webinar's Zoom meeting (a mock room). The meeting button
 //   on the Webinars tab opens it: Join meeting, Start webinar or Live now · Rejoin.
+// /<webinar slug> (e.g. localhost:5173/fix-the-vasthu-mistakes) → that webinar's shared
+//   link, as ?go= above: its current session's landing page. Checked after creator
+//   handles (handles can't have hyphens, and new slugs skip the account's handle).
 // /<handle> (e.g. localhost:5173/harishneel) → that creator's page: the one made
 //   in setup (saved in this browser), or Meera's at /meerajoshi. Unknown → not found.
 // /<handle>/<offering id> (e.g. /harishneel/my-call) → that offering's booking page,
@@ -42,6 +50,7 @@ import { isMyCall } from './data/myProfile'
 // Anything else → the Page Builder.
 const params = new URLSearchParams(window.location.search)
 const previewId = params.get('preview')
+const goId = params.get('go')
 // &page=signup for its sign-up page, &page=thank-you for its thank you page
 const previewPage = ['thank-you', 'signup'].includes(params.get('page')) ? params.get('page') : 'landing'
 const mock = params.get('mock')
@@ -52,10 +61,16 @@ const offeringId = segments[1] ? decodeURIComponent(segments[1]) : null
 
 function Root() {
   // A creator's page address, unless a ?mock= screen was asked for
-  if (handle && !mock && previewId === null) {
+  if (handle && !mock && previewId === null && goId === null) {
     // Their account's link: the one picked in setup, or their name until then
     const mine = handle === accountHandle()
-    if (!mine && handle !== getMockProfile().creator.handle) return <PageNotFound handle={handle} />
+    if (!mine && handle !== getMockProfile().creator.handle) {
+      // Not a creator: maybe a webinar's link
+      const saved = loadSaved().funnels
+      const series = !offeringId && Array.isArray(saved) ? seriesBySlug(handle, saved) : null
+      if (series) return <PreviewPage linkId={series} />
+      return <PageNotFound handle={handle} />
+    }
     // One offering's own link. It only opens under the handle it belongs to,
     // so /someoneelse/my-call doesn't show this creator's call. Their calls
     // work on their own, like Calendly events, page or no page.
@@ -112,6 +127,7 @@ function Root() {
         bookingId={params.get('booking')}
       />
     )
+  if (goId !== null) return <PreviewPage linkId={goId} />
   if (previewId !== null) return <PreviewPage funnelId={previewId} page={previewPage} />
   return <App />
 }

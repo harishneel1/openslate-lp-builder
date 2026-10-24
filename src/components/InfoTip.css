@@ -1,0 +1,63 @@
+/* The (i) beside a label (InfoTip.jsx) */
+.info-tip {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-tip__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.info-tip__btn:hover,
+.info-tip--open .info-tip__btn {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+}
+
+.info-tip__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Grows right and down from the icon (start), or left (end), away from the nearest edge */
+.info-tip__tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -4px;
+  min-width: 220px;
+  font-weight: 500;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+}
+
+.info-tip:hover .info-tip__tip,
+.info-tip__btn:focus-visible + .info-tip__tip,
+.info-tip--open .info-tip__tip {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .info-tip__tip {
+    transition: opacity 0.15s, visibility 0.15s;
+  }
+}
+
+.info-tip--end .info-tip__tip {
+  right: -4px;
+  left: auto;
+}

@@ -300,3 +300,13 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+/* "23 signed up", "3 dates": quiet facts beside the status tag */
+.wb-row__fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wb-row__fact svg {
+  flex: none;
+}
