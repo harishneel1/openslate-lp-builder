@@ -16,7 +16,7 @@ import {
   getAllServices,
   serviceDate,
 } from '../data/mockServices';
-import { ownerOf, tiedTo } from '../data/tiedProducts';
+import { lockedWords, ownerOf, tiedTo } from '../data/tiedProducts';
 import { signupCounts } from '../data/contractSignups';
 import { BOOKINGS_CHANGED_EVENT } from '../data/bookingsStore';
 import { formatMoney } from '../data/contractPricing';
@@ -62,7 +62,8 @@ import './ContractsPage.css';
 // A contract a 1:1 call or a webinar made for itself follows it
 // (ownerOf in tiedProducts.js). Its row looks like any other, but Edit
 // (the button, the ⋯ menu, or a click on its name) opens a pop-up that
-// says it's changed on the call or webinar, with a button straight there.
+// says it can't be edited, which call or webinar it's linked to, and what
+// to change there, with a button straight to it.
 // A 1:1 call's contract shows the call's own name, price and description
 // (callContracts.js). Every other contract (courses, ones made here) is
 // changed here as before.
@@ -153,7 +154,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
   const [notice, setNotice] = useState(null); // { text, tone } shown at the bottom for a moment
   // The contract screen, when it's open: { id } to change one, { id: null } for a new one
   const [editing, setEditing] = useState(null);
-  // The "Edit this in your 1:1 call" pop-up: { contract, owner } (ownerOf)
+  // The "You can't edit this contract" pop-up: { contract, owner } (ownerOf)
   const [owned, setOwned] = useState(null);
 
   // A short note at the bottom of the screen after an action
@@ -356,7 +357,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
         </section>
       )}
 
-      {owned && <OwnedDialog contract={owned.contract} owner={owned.owner} onCancel={() => setOwned(null)} onConfirm={openOwner} />}
+      {owned && <OwnedDialog owner={owned.owner} onCancel={() => setOwned(null)} onConfirm={openOwner} />}
 
       {deleting && (
         <DeleteDialog
@@ -403,33 +404,16 @@ function CreateButton({ onClick }) {
   );
 }
 
-// What a pop-up says about the call or webinar that owns a contract
-const OWNERS = {
-  call: {
-    title: 'Edit this in your 1:1 call',
-    page: 'checkout page',
-    what: 'the call',
-    fields: 'name, price, description or booking questions',
-    button: 'Edit the call',
-  },
-  webinar: {
-    title: 'Edit this in your webinar',
-    page: 'sign-up page',
-    what: 'the webinar',
-    fields: 'name, date, price or description',
-    button: 'Edit the webinar',
-  },
-};
-
-// "Edit this in your 1:1 call": a contract its call or webinar keeps
-// matching itself. Says why, what to change where, and goes straight there.
-function OwnedDialog({ contract, owner, onCancel, onConfirm }) {
-  const words = OWNERS[owner.kind];
+// "You can't edit this contract": a contract its call or webinar keeps
+// matching itself. Says which one it's linked to, what to change there,
+// and goes straight there (lockedWords in tiedProducts.js).
+function OwnedDialog({ owner, onCancel, onConfirm }) {
+  const w = lockedWords(owner);
   return (
-    <ConfirmDialog title={words.title} confirmLabel={words.button} onCancel={onCancel} onConfirm={onConfirm}>
+    <ConfirmDialog title={w.title} confirmLabel={w.button} onCancel={onCancel} onConfirm={onConfirm}>
       <p>
-        This contract is the {words.page} for <strong>{owner.name || contract.title}</strong>, so it always matches{' '}
-        {words.what}. To change its {words.fields}, edit {words.what}. This contract updates by itself.
+        This contract is linked to your {w.kind} <strong>{w.name}</strong>. To change its {w.fields}, open {w.what} and
+        edit it there.
       </p>
     </ConfirmDialog>
   );

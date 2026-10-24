@@ -12,7 +12,7 @@ import {
   getService,
   updateContract,
 } from '../data/mockServices';
-import { ownerOf } from '../data/tiedProducts';
+import { lockedWords, ownerOf } from '../data/tiedProducts';
 import { CURRENCIES, GST_PERCENT, currencyOf, formatMoney, gstOn } from '../data/contractPricing';
 import { photoSize, readPhoto } from '../utils/readPhoto';
 import { isWebLink, withScheme } from '../utils/links';
@@ -76,24 +76,21 @@ export default function ContractEditor({ contractId = null, backLabel = 'Contrac
 
   const owner = ownerOf(contract);
   if (owner) {
-    const isCall = owner.kind === 'call';
-    const what = isCall ? 'the call' : 'the webinar';
-    const open = isCall ? onOpenCall : onOpenWebinar;
+    const w = lockedWords(owner);
+    const open = owner.kind === 'call' ? onOpenCall : onOpenWebinar;
     return (
       <EditPlaceholder
-        title={isCall ? 'Edit this in your 1:1 call' : 'Edit this in your webinar'}
+        title={w.title}
         sub={
-          `This contract is the ${isCall ? 'checkout' : 'sign-up'} page for ${owner.name || contract.title}, so it always matches ${what}. ` +
-          `To change its ${isCall ? 'name, price, description or booking questions' : 'name, date, price or description'}, ` +
-          (open ? `edit ${what}.` : `open ${isCall ? '1:1 calls' : 'Webinars'} and edit ${what}.`) +
-          ' This contract updates by itself.'
+          `This contract is linked to your ${w.kind} ${w.name}. To change its ${w.fields}, ` +
+          (open ? `open ${w.what} and edit it there.` : `go to ${w.where}, open ${w.name} and edit it there.`)
         }
         onBack={onBack}
         backLabel={backLabel}
       >
         {open && (
           <button type="button" className="es__btn es__btn--primary" onClick={() => open(owner.id)}>
-            {isCall ? 'Edit the call' : 'Edit the webinar'}
+            {w.button}
           </button>
         )}
       </EditPlaceholder>

@@ -8,6 +8,10 @@ import {
 import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildBookingsJson, shortDay } from '../data/buildBookingsJson';
+import { webinarEnd, webinarStart } from '../data/webinar';
+import { isPublished } from '../utils/publish';
+import { loadSaved } from '../utils/storage';
+import { formatTime, zoned } from '../utils/slots';
 import UpdatesBell from './UpdatesBell';
 import './AppLayout.css';
 
@@ -22,29 +26,62 @@ const sidebarItems = [
   { id: 'services', label: 'Contracts', icon: Briefcase },
   // Their storefront (the offerings page): set up once and shared, so it
   // sits last. The id is still 'my-page'. Bookings has no item here: the
-  // "Your bookings" card at the top is the way in.
+  // "Your calendar" card at the top is the way in.
   { id: 'my-page', label: 'Storefront', icon: Store },
 ];
 
-// Today, for the "Your bookings" card: how many calls are left and when
-// the next one is. Follows new bookings (even from another tab) and the
-// clock, so it moves on as calls end.
-function todayOf() {
-  const page = buildBookingsJson({ bookings: loadBookings() });
-  const { next, today, upcomingToday: left } = page;
-  // Two short lines, so neither gets cut off in the narrow card
-  let line;
+// Published webinars that aren't over yet, soonest first: { start, end }
+// (ms). Drafts aren't on the calendar until they're published.
+function webinarsAhead(now) {
+  const { funnels } = loadSaved();
+  return (Array.isArray(funnels) ? funnels : [])
+    .filter((f) => f?.type === 'webinar' && isPublished(f))
+    .map((f) => ({ start: webinarStart(f.answers ?? {}), end: webinarEnd(f.answers ?? {}) }))
+    .filter((w) => w.start !== null && w.end > now)
+    .sort((a, b) => a.start - b.start);
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+// Today, for the "Your calendar" card: what's left today, one short line
+// each for calls and webinars (each fits the narrow card on its own), then
+// what's next. Follows new bookings (even from another tab) and the clock,
+// so it moves on as things end.
+//   "2 calls left today" / "1 webinar left today" / "Next: webinar at 7:00 pm"
+//   "Nothing left today" / "Next: tomorrow, 10:00 am"
+//   "Nothing coming up"
+function todayOf(now = Date.now()) {
+  const page = buildBookingsJson({ bookings: loadBookings(), now });
+  const { zone, today, next: call, upcomingToday: callsLeft } = page;
+
+  const webinars = webinarsAhead(now);
+  const webinarsLeft = webinars.filter((w) => zoned(w.start, zone).date === today).length;
+
+  // The next thing of either kind: { kind, start, live }
+  const nextCall = call ? { kind: 'call', start: Date.parse(call.start), live: call.state === 'live' } : null;
+  const nextWebinar = webinars[0] ? { kind: 'webinar', start: webinars[0].start, live: webinars[0].start <= now } : null;
+  const next = [nextCall, nextWebinar].filter(Boolean).sort((a, b) => a.start - b.start)[0] ?? null;
+
+  const lines = [];
+  if (callsLeft > 0) lines.push(`${plural(callsLeft, 'call')} left today`);
+  if (webinarsLeft > 0) lines.push(`${plural(webinarsLeft, 'webinar')} left today`);
+
   let nextLine = null;
-  if (left > 0) {
-    line = `${left} ${left === 1 ? 'call' : 'calls'} left today`;
-    nextLine = next.state === 'live' ? 'One is on now' : `Next at ${next.time}`;
+  if (next?.live) {
+    nextLine = next.kind === 'call' ? 'A call is on now' : 'Your webinar is on now';
   } else if (next) {
-    line = 'No calls today';
-    nextLine = `Next: ${shortDay(next.date, today).toLowerCase()}, ${next.time}`;
-  } else {
-    line = 'No calls coming up';
+    const time = formatTime(next.start, zone);
+    const date = zoned(next.start, zone).date;
+    if (date === today) {
+      // Say which kind only when today has both
+      nextLine = callsLeft > 0 && webinarsLeft > 0 ? `Next: ${next.kind} at ${time}` : `Next at ${time}`;
+    } else {
+      nextLine = `Next: ${shortDay(date, today).toLowerCase()}, ${time}`;
+    }
   }
-  return { left, line, nextLine };
+
+  if (lines.length === 0) lines.push(next ? 'Nothing left today' : 'Nothing coming up');
+  return { busy: callsLeft + webinarsLeft > 0, lines, nextLine };
 }
 
 function useToday() {
@@ -98,35 +135,41 @@ function FocusBar({ title, onExit, saveFailed }) {
   );
 }
 
-// "Your bookings": pinned above the nav, because what's on today is what a
+// "Your calendar": pinned above the nav, because what's on today is what a
 // coach opens the app for. Collapsed it's a calendar icon, with a dot when
-// calls are left today; expanded it says how many and when the next one is,
-// with Open calendar. The whole card opens the calendar (Bookings).
-function BookingsCard({ active, onOpen }) {
-  const { left, line, nextLine } = useToday();
+// something is left today; expanded it says what's left today (calls and
+// webinars) and what's next, with Open. The whole card opens the calendar
+// (Bookings); Open is there to show it can be clicked. One icon: the
+// calendar on the left.
+function CalendarCard({ active, onOpen }) {
+  const { busy, lines, nextLine } = useToday();
   return (
     <div className={`mypage bkcard ${active ? 'mypage--active' : ''}`}>
       <button
         type="button"
         className="mypage__main"
         onClick={onOpen}
-        title="Your bookings"
-        aria-label={`Your bookings: ${line}${nextLine ? `. ${nextLine}` : ''}. Open calendar`}
+        title="Your calendar"
+        aria-label={`Your calendar: ${[...lines, nextLine].filter(Boolean).join('. ')}. Open`}
       >
         <span className="mypage__avatar bkcard__icon">
           <CalendarCheck size={17} aria-hidden="true" />
-          {left > 0 && <span className="bkcard__dot" aria-hidden="true" />}
+          {busy && <span className="bkcard__dot" aria-hidden="true" />}
         </span>
-        <span className="mypage__text">
-          <span className="mypage__label">Your bookings</span>
-          <span className="mypage__link">{line}</span>
+        <span className="mypage__text bkcard__text">
+          <span className="mypage__label">Your calendar</span>
+          {lines.map((line) => (
+            <span key={line} className="mypage__link">
+              {line}
+            </span>
+          ))}
           {nextLine && <span className="mypage__link bkcard__next">{nextLine}</span>}
         </span>
       </button>
 
       <div className="mypage__actions">
         <button type="button" className="mypage__action" onClick={onOpen} tabIndex={-1} aria-hidden="true">
-          <CalendarCheck size={14} /> Open calendar
+          Open
         </button>
       </div>
     </div>
@@ -169,7 +212,7 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, focus 
               <input placeholder="Search..." />
             </div>
 
-            <BookingsCard active={activeNav === 'bookings'} onOpen={() => onNavigate('bookings')} />
+            <CalendarCard active={activeNav === 'bookings'} onOpen={() => onNavigate('bookings')} />
 
             <nav className="sidebar__nav">
               {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => {

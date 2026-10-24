@@ -401,9 +401,25 @@
   letter-spacing: 0;
   background: var(--color-primary);
 }
-/* ---------- "Your bookings" card ----------
+/* ---------- "Your calendar" card ----------
    Built on the card above (.mypage), in the same spot: a calendar icon in
-   place of the avatar, today's line in place of the link. */
+   place of the avatar, today's lines in place of the link. More room above
+   and below than the plain card, so it doesn't feel squeezed. Only the
+   top and bottom grow, so the collapsed icon stays on the nav icons' line. */
+.mypage.bkcard {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+}
+
+/* A little air between the title and each line under it */
+.bkcard__text {
+  gap: 3px;
+}
+
+.sidebar:hover .bkcard .mypage__actions {
+  margin-top: 14px;
+}
 .bkcard__icon {
   position: relative;
   overflow: visible;

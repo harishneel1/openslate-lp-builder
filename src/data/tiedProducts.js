@@ -71,3 +71,26 @@ export function ownerOf(contract) {
   }
   return null;
 }
+
+// What to tell someone who tries to edit a contract its call or webinar
+// owns (the Contracts page's pop-up and the contract screen say the same):
+// you can't, which call or webinar it's linked to, what changes there, and
+// a button straight to it. The button names it, unless the name is too
+// long for a button.
+// → { title, kind: '1:1 call' | 'webinar', name, fields, button, what, where }
+//   where: how to get there by hand ('1:1 calls'), for the contract's own tab
+const BUTTON_NAME_MAX = 24;
+export function lockedWords(owner) {
+  const isCall = owner.kind === 'call';
+  const name = String(owner.name ?? '').trim() || (isCall ? 'your call' : 'your webinar');
+  const fits = name.length <= BUTTON_NAME_MAX && String(owner.name ?? '').trim() !== '';
+  return {
+    title: 'You can’t edit this contract',
+    kind: isCall ? '1:1 call' : 'webinar',
+    name,
+    fields: isCall ? 'price, description or booking questions' : 'date, price or description',
+    button: fits ? `Open ${name}` : isCall ? 'Open the call' : 'Open the webinar',
+    what: isCall ? 'the call' : 'the webinar',
+    where: isCall ? '1:1 calls' : 'Webinars',
+  };
+}
