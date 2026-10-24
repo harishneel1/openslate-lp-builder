@@ -13,7 +13,8 @@ import { funnelName } from '../utils/funnelName';
 //              since they'd break if it went)
 // Courses are never tied, so they aren't looked up here.
 //
-// Only used when deleting: the Contracts page doesn't show these on its rows.
+// Used when deleting, and to find the contracts a 1:1 call owns, which
+// follow that call (callContracts.js).
 // Reads this browser's saves for now; in the real product it comes from the server.
 //
 // tiedProducts() → { [contractId]: [{ kind: 'call' | 'webinar', id, name }] }
@@ -56,3 +57,17 @@ export function tiedProducts() {
 
 // What's tied to one contract, read fresh (an empty list when nothing is)
 export const tiedTo = (contractId) => tiedProducts()[contractId] ?? [];
+// The 1:1 call or webinar that owns a contract and keeps it matching
+// itself, so it's changed there and not on the contract screen, or null.
+//   a call's: marked with callId (callContracts.js)
+//   a webinar's: made by that webinar (webinarId), while it still exists
+// → { kind: 'call' | 'webinar', id, name } or null
+export function ownerOf(contract) {
+  if (!contract) return null;
+  if (contract.callId) return { kind: 'call', id: contract.callId, name: contract.callName || contract.title };
+  if (contract.webinarId) {
+    const webinar = tiedTo(contract.id).find((t) => t.kind === 'webinar' && t.id === contract.webinarId);
+    if (webinar) return { kind: 'webinar', id: webinar.id, name: webinar.name };
+  }
+  return null;
+}

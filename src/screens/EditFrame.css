@@ -570,3 +570,11 @@
   border: 0;
   box-shadow: none;
 }
+/* A placeholder screen's next step, under its words */
+.es__placeholder-next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}

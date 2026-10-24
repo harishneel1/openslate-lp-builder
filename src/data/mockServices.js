@@ -5,6 +5,8 @@
 // Mock data until the real services API is wired up.
 import { mockAccount } from './myPage';
 import { formatMoney, payAmount } from './contractPricing';
+import { asCallContract, callContracts } from './callContracts';
+import { ownerOf } from './tiedProducts';
 
 // Contracts made or edited on the contract screen (ContractEditor.jsx) are
 // kept in this browser and listed alongside these.
@@ -13,6 +15,8 @@ import { formatMoney, payAmount } from './contractPricing';
 //   type: 'onetime' | 'subscription' | 'free'
 //   status: 'active' | 'inactive' (inactive ones can't be picked)
 //   createdAt: used to show the newest first
+//   signups: how many people have signed up (sample ones only, for the
+//            mock; see contractSignups.js)
 // and, from the contract screen (missing on older ones: see contractOf):
 //   cover: the cover image (a data URL for now), or null
 //   description: plain text; a blank line between paragraphs
@@ -29,7 +33,7 @@ export const CREATE_SERVICE_URL = '?mock=create-service';
 
 // Set to false to see the picker with no services at all
 // (services you create on the mock page still show)
-const SHOW_SAMPLE_SERVICES = true;
+const SHOW_SAMPLE_SERVICES = false;
 
 const CREATED_KEY = 'pagebuilder:mock-services';
 
@@ -49,6 +53,7 @@ export const mockServices = [
     startDate: '2026-10-28',
     status: 'active',
     createdAt: '2026-10-10',
+    signups: 38,
   },
   {
     id: 'svc-vasthu-qa',
@@ -58,6 +63,7 @@ export const mockServices = [
     startDate: '2026-10-21',
     status: 'active',
     createdAt: '2026-10-02',
+    signups: 112,
   },
   {
     id: 'svc-money-corner',
@@ -67,6 +73,7 @@ export const mockServices = [
     startDate: '2026-09-14',
     status: 'active',
     createdAt: '2026-08-30',
+    signups: 64,
   },
   {
     id: 'svc-vasthu-circle',
@@ -76,6 +83,7 @@ export const mockServices = [
     startDate: '2026-08-01',
     status: 'active',
     createdAt: '2026-07-20',
+    signups: 27,
   },
   {
     id: 'svc-home-reset',
@@ -85,6 +93,7 @@ export const mockServices = [
     startDate: '2026-07-05',
     status: 'active',
     createdAt: '2026-06-18',
+    signups: 19,
   },
   {
     id: 'svc-consultation',
@@ -94,6 +103,7 @@ export const mockServices = [
     startDate: '2026-05-01',
     status: 'active',
     createdAt: '2026-04-22',
+    signups: 46,
   },
   {
     id: 'svc-new-home-checklist',
@@ -103,6 +113,7 @@ export const mockServices = [
     startDate: '2026-03-12',
     status: 'active',
     createdAt: '2026-03-01',
+    signups: 203,
   },
   {
     id: 'svc-diwali-2025',
@@ -112,6 +123,7 @@ export const mockServices = [
     startDate: '2025-10-18',
     status: 'active',
     createdAt: '2025-10-01',
+    signups: 141,
   },
 ];
 
@@ -134,16 +146,23 @@ function loadChanges() {
   }
 }
 
-// Every service with this browser's edits on it, less the deleted ones
+// Every service with this browser's edits on it, less the deleted ones.
+// A 1:1 call's contract shows its call's values, with callId saying which
+// call it follows (callContracts.js): the call is where it's changed.
 function allServices() {
   const changes = loadChanges();
+  const byCall = callContracts();
   return [...(SHOW_SAMPLE_SERVICES ? mockServices : []), ...loadCreated()]
     .filter((s) => !changes[s.id]?.deleted)
     .map((s) => {
       const { deleted, ...edits } = changes[s.id] ?? {}; // eslint-disable-line no-unused-vars
-      return { ...s, ...edits };
+      const service = { ...s, ...edits };
+      return byCall[s.id] ? asCallContract(service, byCall[s.id]) : service;
     });
 }
+
+// A contract a 1:1 call owns (see callContracts.js): only that call changes it
+export const isCallContract = (service) => Boolean(service?.callId);
 
 // Saves one service's change. Returns true if it saved.
 function saveChange(id, change) {
@@ -168,11 +187,12 @@ export function deleteService(id) {
   return saveChange(id, { deleted: true });
 }
 
-// Services that can be picked, newest first.
+// Services that can be picked, newest first. Not a 1:1 call's own
+// contract: it belongs to that call, and sharing it would undo that.
 // Reads storage each time, so a service made in another tab shows up.
 export function getServices() {
   return allServices()
-    .filter((s) => s.status === 'active')
+    .filter((s) => s.status === 'active' && !isCallContract(s))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
@@ -323,7 +343,11 @@ export function createContract(fields) {
 }
 
 // Saves an edited contract (sample or made here). Returns true if it saved.
+// A contract a 1:1 call or a webinar owns isn't saved here: that call or
+// webinar is where it changes (ownerOf in tiedProducts.js). A webinar
+// saves its own through saveWebinarContract.
 export function updateContract(id, fields) {
+  if (ownerOf(getService(id))) return false;
   return saveChange(id, contractFields(fields));
 }
 // ------------------------------------------------------------

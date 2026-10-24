@@ -296,6 +296,19 @@ function App() {
     setBookingRequest({ id, n: Date.now() });
   };
 
+  // From a call's contract on the Contracts page: go to 1:1 calls with
+  // that call's editor open, since the call is where its contract changes.
+  // Cleared on the way to 1:1 calls from the sidebar, so that opens the list.
+  const [callRequest, setCallRequest] = useState(null);
+  const openCall = (id) => {
+    handleNavigate('calls');
+    setCallRequest({ id, n: Date.now() });
+  };
+  const navigateFromSidebar = (id) => {
+    setCallRequest(null);
+    handleNavigate(id);
+  };
+
   // ---------- Saving ----------
   // Save a moment after every change (not on every keystroke)
   const latest = useRef(null);
@@ -633,7 +646,7 @@ function App() {
   return (
     <AppLayout
       activeNav={activeNav}
-      onNavigate={handleNavigate}
+      onNavigate={navigateFromSidebar}
       onOpenBooking={openBooking}
       focus={
         activeNav === 'page-builder' && funnel
@@ -646,9 +659,9 @@ function App() {
       ) : activeNav === 'my-page' ? (
         <MyPageSetup />
       ) : activeNav === 'calls' ? (
-        <CallsPage />
+        <CallsPage openRequest={callRequest} />
       ) : activeNav === 'services' ? (
-        <ContractsPage onGoToOfferings={() => handleNavigate('calls')} onOpenWebinar={openFunnelFrom} />
+        <ContractsPage onGoToOfferings={() => handleNavigate('calls')} onOpenWebinar={openFunnelFrom} onOpenCall={openCall} />
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : (

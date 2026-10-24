@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   Copy,
+  ExternalLink,
   FileText,
-  MonitorPlay,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -16,10 +16,13 @@ import {
   getAllServices,
   serviceDate,
 } from '../data/mockServices';
-import { tiedTo } from '../data/tiedProducts';
-import { loadSaved } from '../utils/storage';
+import { ownerOf, tiedTo } from '../data/tiedProducts';
+import { signupCounts } from '../data/contractSignups';
+import { BOOKINGS_CHANGED_EVENT } from '../data/bookingsStore';
 import { formatMoney } from '../data/contractPricing';
 import ContractEditor from './ContractEditor';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { liveHref } from '../utils/publish';
 import { SETUP_CHANGED_EVENT } from '../data/myPage';
 import './ContractsPage.css';
 
@@ -27,19 +30,27 @@ import './ContractsPage.css';
 // Contracts: the pages people sign up and pay on. 1:1 calls, webinars and
 // courses each use one. A contract stands on its own; only 1:1 calls and
 // webinars are tied to theirs, so it can't be deleted while one uses it
-// (tiedProducts.js). Rows don't show what uses a contract: one contract
-// can be used by many products.
+// (tiedProducts.js). Rows don't list what uses a contract, since one can
+// be used by many products; only a contract one product owns says so (below).
 //
 //   ┌────────────────────────────────────────────────────────┐
 //   │ Contracts                        [+ Create new contract]│
 //   │ The checkout pages people sign up and pay on.           │
 //   │ ┌────────────────────────────────────────────────────┐ │
 //   │ │ [Search by name                    ]  All  Paid  Free │ │
-//   │ │ Contract                    Price      Start date      │ │
-//   │ │ (▣) Career clarity call     ₹1,500     30 Apr 2026  [Edit] [⋯]
-//   │ │                             One-time                   │ │
+//   │ │ Contract                 Price     Sign-ups  Start date     │ │
+//   │ │ (▣) Career clarity call  ₹1,500    24        30 Apr 2026 [Edit] [⋯]
+//   │ │                          One-time                           │ │
 //   │ └────────────────────────────────────────────────────┘ │
 //   └────────────────────────────────────────────────────────┘
+//
+// Sign-ups: everyone who has signed up on the contract, paid or free,
+// whether or not it has happened yet (contractSignups.js). "None yet"
+// at zero. On narrow screens it sits under the price, in words.
+//
+// The ↗ button opens the contract's live page in a new tab: a 1:1 call's
+// checkout, or a webinar's sign-up page. A contract with neither has no
+// page of its own yet, so the button is greyed out with a hint saying so.
 //
 // Create new contract, Edit and a click on a row open the contract screen
 // (ContractEditor.jsx) right here, with a back link to this list.
@@ -48,8 +59,17 @@ import './ContractsPage.css';
 // icons. Delete always asks first. When a 1:1 call or webinar is tied to the
 // contract, the pop-up says which one, and that it has to be deleted first.
 //
+// A contract a 1:1 call or a webinar made for itself follows it
+// (ownerOf in tiedProducts.js). Its row looks like any other, but Edit
+// (the button, the ⋯ menu, or a click on its name) opens a pop-up that
+// says it's changed on the call or webinar, with a button straight there.
+// A 1:1 call's contract shows the call's own name, price and description
+// (callContracts.js). Every other contract (courses, ones made here) is
+// changed here as before.
+//
 // onGoToOfferings(): to the 1:1 calls tab, where their calls are made and changed
 // onOpenWebinar(id): opens that webinar's funnel
+// onOpenCall(id): opens that 1:1 call's editor
 // The list reads the data fresh when they come back to the tab (a contract
 // made in the create tab shows straight away), so there's no Refresh button.
 // ------------------------------------------------------------
@@ -98,12 +118,6 @@ async function copyText(text) {
 
 // The contracts, read again whenever they might have changed: back on this
 // tab, a change in another tab, or the offerings setup saving.
-// Webinars that still exist, by id, so a contract a webinar made for
-// itself can say so (and point to it) instead of offering Edit
-function webinarIds() {
-  const { funnels } = loadSaved();
-  return new Set((Array.isArray(funnels) ? funnels : []).filter((f) => f?.type === 'webinar').map((f) => f.id));
-}
 
 function useContracts() {
   const read = () => getAllServices();
@@ -115,11 +129,13 @@ function useContracts() {
     window.addEventListener('focus', refresh);
     window.addEventListener('storage', refresh);
     window.addEventListener(SETUP_CHANGED_EVENT, refresh);
+    window.addEventListener(BOOKINGS_CHANGED_EVENT, refresh); // a new booking is a new sign-up
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('focus', refresh);
       window.removeEventListener('storage', refresh);
       window.removeEventListener(SETUP_CHANGED_EVENT, refresh);
+      window.removeEventListener(BOOKINGS_CHANGED_EVENT, refresh);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -127,7 +143,7 @@ function useContracts() {
   return [data, refresh];
 }
 
-export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
+export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCall }) {
   const [contracts, refresh] = useContracts();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -137,6 +153,8 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
   const [notice, setNotice] = useState(null); // { text, tone } shown at the bottom for a moment
   // The contract screen, when it's open: { id } to change one, { id: null } for a new one
   const [editing, setEditing] = useState(null);
+  // The "Edit this in your 1:1 call" pop-up: { contract, owner } (ownerOf)
+  const [owned, setOwned] = useState(null);
 
   // A short note at the bottom of the screen after an action
   const noticeTimer = useRef(null);
@@ -152,7 +170,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
   }, []);
 
   // Read with the list, so it's as fresh as the contracts are
-  const webinars = useMemo(() => webinarIds(), [contracts]);
+  const signups = useMemo(() => signupCounts(contracts), [contracts]);
 
   const counts = useMemo(
     () => Object.fromEntries(FILTERS.map((f) => [f.id, contracts.filter(f.test).length])),
@@ -172,6 +190,21 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
     setMenuFor(null);
     const ok = await copyText(contract.id);
     tell(ok ? 'Contract ID copied' : 'We couldn’t copy it. Select the ID and copy it instead.', ok ? 'ok' : 'error');
+  };
+
+  // Edit: the contract screen, or, when a call or webinar owns it (read
+  // fresh), the pop-up pointing there
+  const edit = (contract) => {
+    setMenuFor(null);
+    const owner = ownerOf(contract);
+    if (owner) setOwned({ contract, owner });
+    else setEditing({ id: contract.id });
+  };
+  const openOwner = () => {
+    const { owner } = owned;
+    setOwned(null);
+    if (owner.kind === 'call') onOpenCall?.(owner.id);
+    else onOpenWebinar?.(owner.id);
   };
 
   // Delete: what's tied to it is read fresh, so the pop-up is never out of date
@@ -216,6 +249,8 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
           contractId={editing.id}
           backLabel="Contracts"
           onBack={backToList}
+          onOpenCall={onOpenCall}
+          onOpenWebinar={onOpenWebinar}
           onCreated={(made) => {
             backToList();
             tell(`“${made.title}” created`);
@@ -298,6 +333,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
               <div className="ct__cols" aria-hidden="true">
                 <span>Contract</span>
                 <span>Price</span>
+                <span>Sign-ups</span>
                 <span>Start date</span>
                 <span />
               </div>
@@ -306,15 +342,11 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
                   <ContractRow
                     key={c.id}
                     contract={c}
-                    managed={Boolean(c.webinarId) && webinars.has(c.webinarId)}
-                    onOpenWebinar={() => onOpenWebinar?.(c.webinarId)}
+                    signups={signups[c.id] ?? 0}
                     menuOpen={menuFor === c.id}
                     onMenu={(open) => setMenuFor(open ? c.id : null)}
                     onCopyId={() => copyId(c)}
-                    onEdit={() => {
-                      setMenuFor(null);
-                      setEditing({ id: c.id });
-                    }}
+                    onEdit={() => edit(c)}
                     onDelete={() => askDelete(c)}
                   />
                 ))}
@@ -323,6 +355,8 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar }) {
           )}
         </section>
       )}
+
+      {owned && <OwnedDialog contract={owned.contract} owner={owned.owner} onCancel={() => setOwned(null)} onConfirm={openOwner} />}
 
       {deleting && (
         <DeleteDialog
@@ -369,13 +403,58 @@ function CreateButton({ onClick }) {
   );
 }
 
-// One contract: name, price, start date, Edit and ⋯.
-// managed: a webinar made it from its event details and keeps it up to
-// date, so changing it here would be undone. It says so, and opens the
-// webinar instead of the contract screen.
-function ContractRow({ contract, managed = false, onOpenWebinar, menuOpen, onMenu, onCopyId, onEdit, onDelete }) {
+// What a pop-up says about the call or webinar that owns a contract
+const OWNERS = {
+  call: {
+    title: 'Edit this in your 1:1 call',
+    page: 'checkout page',
+    what: 'the call',
+    fields: 'name, price, description or booking questions',
+    button: 'Edit the call',
+  },
+  webinar: {
+    title: 'Edit this in your webinar',
+    page: 'sign-up page',
+    what: 'the webinar',
+    fields: 'name, date, price or description',
+    button: 'Edit the webinar',
+  },
+};
+
+// "Edit this in your 1:1 call": a contract its call or webinar keeps
+// matching itself. Says why, what to change where, and goes straight there.
+function OwnedDialog({ contract, owner, onCancel, onConfirm }) {
+  const words = OWNERS[owner.kind];
+  return (
+    <ConfirmDialog title={words.title} confirmLabel={words.button} onCancel={onCancel} onConfirm={onConfirm}>
+      <p>
+        This contract is the {words.page} for <strong>{owner.name || contract.title}</strong>, so it always matches{' '}
+        {words.what}. To change its {words.fields}, edit {words.what}. This contract updates by itself.
+      </p>
+    </ConfirmDialog>
+  );
+}
+
+// Where a contract can be seen live, in a new tab, or null when it has no
+// page of its own (only calls' and webinars' contracts do, for now):
+//   a 1:1 call's   its checkout, with no time picked (as "View contract" in the call)
+//   a webinar's    its sign-up page
+function liveLinkOf(contract) {
+  const owner = ownerOf(contract);
+  if (owner?.kind === 'call') {
+    return `${window.location.pathname}?mock=checkout&service=${encodeURIComponent(owner.id)}&preview=1`;
+  }
+  if (owner?.kind === 'webinar') return `${liveHref({ id: owner.id })}&page=signup`;
+  return null;
+}
+
+// One contract: name, price, sign-ups, start date, Edit, ↗ and ⋯. Every row
+// looks the same; Edit decides (in the list) whether it opens the contract
+// screen or the pop-up for one a call or webinar owns.
+// signups: how many people have signed up on it
+function ContractRow({ contract, signups = 0, menuOpen, onMenu, onCopyId, onEdit, onDelete }) {
   const free = isFree(contract);
-  const open = managed ? onOpenWebinar : onEdit;
+  const live = liveLinkOf(contract);
 
   return (
     <li className={`ct-row ${menuOpen ? 'ct-row--menu' : ''}`}>
@@ -385,10 +464,9 @@ function ContractRow({ contract, managed = false, onOpenWebinar, menuOpen, onMen
         </span>
         {/* The name opens it; the whole row is clickable through it */}
         <span className="ct-row__name">
-          <button type="button" className="ct-row__title" onClick={open}>
+          <button type="button" className="ct-row__title" onClick={onEdit}>
             {contract.title}
           </button>
-          {managed && <span className="ct-row__managed">Managed by your webinar</span>}
         </span>
       </div>
 
@@ -398,29 +476,61 @@ function ContractRow({ contract, managed = false, onOpenWebinar, menuOpen, onMen
         {!free && <span className="ct-row__type">{typeLabel(contract)}</span>}
       </div>
 
+      {/* The number under its heading; in words where the headings are hidden
+          (narrow screens). Only one of the two shows, so it's read once. */}
+      <div className="ct-row__signups">
+        <span className={`ct-row__signups-short ${signups === 0 ? 'ct-row__signups--none' : ''}`}>
+          <span className="sr-only">Sign-ups: </span>
+          {signups === 0 ? 'None yet' : signups.toLocaleString('en-IN')}
+        </span>
+        <span className="ct-row__signups-long">
+          {signups === 0 ? 'No sign-ups yet' : `${signups.toLocaleString('en-IN')} ${signups === 1 ? 'sign-up' : 'sign-ups'}`}
+        </span>
+      </div>
+
       <div className="ct-row__date">
         <span className="sr-only">Starts </span>
         {serviceDate(contract)}
       </div>
 
       <div className="ct-row__actions">
-        {managed ? (
-          <button type="button" className="ct-btn ct-btn--quiet ct-btn--small" onClick={onOpenWebinar}>
-            <MonitorPlay size={15} aria-hidden="true" />
-            Open webinar
-            <span className="sr-only"> for {contract.title}</span>
-          </button>
+        <button type="button" className="ct-btn ct-btn--quiet ct-btn--small" onClick={onEdit}>
+          <Pencil size={15} aria-hidden="true" />
+          Edit
+          <span className="sr-only"> {contract.title}</span>
+        </button>
+        {live ? (
+          <a
+            className="ct-icon-btn"
+            href={live}
+            target="_blank"
+            rel="noopener"
+            aria-label={`View live page for ${contract.title} (opens in a new tab)`}
+            data-tip="View live page"
+            data-tip-align="end"
+          >
+            <ExternalLink size={16} aria-hidden="true" />
+          </a>
         ) : (
-          <button type="button" className="ct-btn ct-btn--quiet ct-btn--small" onClick={onEdit}>
-            <Pencil size={15} aria-hidden="true" />
-            Edit
-            <span className="sr-only"> {contract.title}</span>
+          // Not there: looks off and does nothing, with a hint saying why.
+          // aria-disabled (not disabled) so it can still be hovered and focused.
+          <button
+            type="button"
+            className="ct-icon-btn"
+            aria-disabled="true"
+            aria-label={`No live page yet for ${contract.title}`}
+            data-tip="No live page yet. Only 1:1 call and webinar contracts have one for now."
+            data-tip-align="end"
+            onClick={(e) => e.preventDefault()}
+          >
+            <ExternalLink size={16} aria-hidden="true" />
           </button>
         )}
         <RowMenu
           title={contract.title}
           open={menuOpen}
           onOpenChange={onMenu}
+          onEdit={onEdit}
           onCopyId={onCopyId}
           onDelete={onDelete}
         />
@@ -429,9 +539,10 @@ function ContractRow({ contract, managed = false, onOpenWebinar, menuOpen, onMen
   );
 }
 
-// ⋯ : the less common actions, in words. Closes on a click outside or Escape.
+// ⋯ : Edit (as the button does), then the less common actions, in words.
+// Closes on a click outside or Escape.
 // Delete always opens the pop-up, which says if something is holding the contract.
-function RowMenu({ title, open, onOpenChange, onCopyId, onDelete }) {
+function RowMenu({ title, open, onOpenChange, onEdit, onCopyId, onDelete }) {
   const wrap = useRef(null);
   const button = useRef(null);
   const menuId = useRef(`ct-menu-${Math.random().toString(36).slice(2)}`).current;
@@ -484,6 +595,10 @@ function RowMenu({ title, open, onOpenChange, onCopyId, onDelete }) {
 
       {open && (
         <div className="ct-menu__list" id={menuId} role="menu" aria-label={`More for ${title}`} onKeyDown={onMenuKey}>
+          <button type="button" role="menuitem" className="ct-menu__item" onClick={onEdit}>
+            <Pencil size={16} aria-hidden="true" />
+            Edit
+          </button>
           <button type="button" role="menuitem" className="ct-menu__item" onClick={onCopyId}>
             <Copy size={16} aria-hidden="true" />
             Copy contract ID

@@ -45,13 +45,24 @@ import './CallsPage.css';
 //
 // Add ?calendar=lost to the address to see the calendar as if Google
 // had stopped letting us in (only when one is connected).
+//
+// openRequest: { id, n } from elsewhere (a call's contract on the
+// Contracts page): open that call's editor. n opens it again on a second
+// click of the same one.
 // ------------------------------------------------------------
-export default function CallsPage() {
+export default function CallsPage({ openRequest = null }) {
   const [answers, setAnswers] = useSetupAnswers();
   // 'list' ↔ 'edit' (one call, in the editor: its Edit button, or a click
   // anywhere on its row) or 'new' (the guided flow)
-  const [view, setView] = useState('list');
-  const [editingId, setEditingId] = useState(null);
+  const [view, setView] = useState(openRequest ? 'edit' : 'list');
+  const [editingId, setEditingId] = useState(openRequest?.id ?? null);
+
+  // Asked to open a call: its editor, in place of the list
+  useEffect(() => {
+    if (!openRequest) return;
+    setEditingId(openRequest.id);
+    setView('edit');
+  }, [openRequest?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   const [justAddedId, setJustAddedId] = useState(null);
   const [said, setSaid] = useState(''); // for screen readers: what just changed
   const [menuFor, setMenuFor] = useState(null); // the call whose ⋯ menu is open

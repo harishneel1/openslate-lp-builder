@@ -12,6 +12,7 @@ import {
   getService,
   updateContract,
 } from '../data/mockServices';
+import { ownerOf } from '../data/tiedProducts';
 import { CURRENCIES, GST_PERCENT, currencyOf, formatMoney, gstOn } from '../data/contractPricing';
 import { photoSize, readPhoto } from '../utils/readPhoto';
 import { isWebLink, withScheme } from '../utils/links';
@@ -43,12 +44,18 @@ import './ContractEditor.css';
 // the screen on a long step until they scroll down to it.
 // Nothing else: no advanced settings for now.
 //
+// A contract a 1:1 call or a webinar owns isn't changed here: it follows
+// that call or webinar (ownerOf in tiedProducts.js), so this says so and
+// points there instead.
+//
 // contractId: the contract to change, or null for a new one
 // backLabel: the back link's words ("Contracts", or "Close" in its own tab)
 // onBack(): leave (after asking, if there are changes)
 // onCreated(contract): a new one was made
+// onOpenCall(id) / onOpenWebinar(id): open that call or webinar. Not given
+//   in its own tab, where it says where to go instead.
 // ------------------------------------------------------------
-export default function ContractEditor({ contractId = null, backLabel = 'Contracts', onBack, onCreated }) {
+export default function ContractEditor({ contractId = null, backLabel = 'Contracts', onBack, onCreated, onOpenCall, onOpenWebinar }) {
   // Read again after each save, so the screen starts from what's saved
   const [version, setVersion] = useState(0);
   const contract = useMemo(
@@ -64,6 +71,32 @@ export default function ContractEditor({ contractId = null, backLabel = 'Contrac
         onBack={onBack}
         backLabel={backLabel}
       />
+    );
+  }
+
+  const owner = ownerOf(contract);
+  if (owner) {
+    const isCall = owner.kind === 'call';
+    const what = isCall ? 'the call' : 'the webinar';
+    const open = isCall ? onOpenCall : onOpenWebinar;
+    return (
+      <EditPlaceholder
+        title={isCall ? 'Edit this in your 1:1 call' : 'Edit this in your webinar'}
+        sub={
+          `This contract is the ${isCall ? 'checkout' : 'sign-up'} page for ${owner.name || contract.title}, so it always matches ${what}. ` +
+          `To change its ${isCall ? 'name, price, description or booking questions' : 'name, date, price or description'}, ` +
+          (open ? `edit ${what}.` : `open ${isCall ? '1:1 calls' : 'Webinars'} and edit ${what}.`) +
+          ' This contract updates by itself.'
+        }
+        onBack={onBack}
+        backLabel={backLabel}
+      >
+        {open && (
+          <button type="button" className="es__btn es__btn--primary" onClick={() => open(owner.id)}>
+            {isCall ? 'Edit the call' : 'Edit the webinar'}
+          </button>
+        )}
+      </EditPlaceholder>
     );
   }
 

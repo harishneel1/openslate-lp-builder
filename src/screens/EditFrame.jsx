@@ -345,7 +345,8 @@ export function EditSection({
 }
 
 // The "Add a new offering" placeholder and any other simple page in the same frame
-export function EditPlaceholder({ title, sub, onBack, backLabel = 'Your storefront' }) {
+// children: an optional next step under the words (a button, say)
+export function EditPlaceholder({ title, sub, onBack, backLabel = 'Your storefront', children = null }) {
   return (
     <div className="es">
       <div className="es__content">
@@ -354,6 +355,7 @@ export function EditPlaceholder({ title, sub, onBack, backLabel = 'Your storefro
         </button>
         <h1 className="es__title">{title}</h1>
         <p className="es__sub">{sub}</p>
+        {children && <div className="es__placeholder-next">{children}</div>}
       </div>
     </div>
   );
