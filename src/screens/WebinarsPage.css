@@ -38,9 +38,16 @@
   border-radius: inherit;
 }
 
-.wb-row:has(.wb-row__open:hover) {
-  border-color: #d6d6d6;
+/* Hover anywhere on the card, like the 1:1 calls list: it lifts, and
+   its title underlines */
+.wb-row:hover {
+  border-color: #dcdcdc;
   box-shadow: var(--shadow-hover, 0 6px 20px rgba(0, 0, 0, 0.08));
+}
+
+.wb-row:hover .wb-row__open {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .wb-row:has(.wb-row__open:focus-visible) {
