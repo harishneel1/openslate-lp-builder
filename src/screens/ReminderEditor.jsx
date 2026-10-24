@@ -11,7 +11,7 @@ import {
   fillIn,
   reminderById,
   timeline,
-  whenLabel,
+  emailStatus,
 } from '../data/reminders';
 import './ReminderEditor.css';
 
@@ -345,19 +345,14 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
     setAsk(null);
   };
 
-  // When it goes out, and who it went to: here rather than in the list
-  const when = row.at === null ? null : whenLabel(row.at, webinar.answers, now).replace(', ', ' at ');
-  const n = (count) => `${count} ${count === 1 ? 'person' : 'people'}`;
-  let status;
-  if (row.at === null) status = row.on ? 'Goes to each person as they register' : 'Off: this email won’t be sent';
-  else if (!row.past) status = row.on ? `Goes out ${when}` : 'Off: this email won’t be sent';
-  else if (!row.on) status = `Was off at ${when}, so it wasn’t sent`;
-  else status = row.sentTo ? `Sent to ${n(row.sentTo)} · ${when}` : `Went out ${when}, before anyone registered`;
+  // When it goes out, and who it went to: the same words as the Emails
+  // list's hover hint (emailStatus in data/reminders.js)
+  const status = emailStatus(row, webinar.answers, now).full;
 
   // Already gone out for this date: say where changes will be used
   const usedLater = ended
     ? 'This webinar has ended. Your changes will be used when you run it again.'
-    : row.past && row.at !== null
+    : row.past && row.at !== null && !row.skipped
       ? 'Already sent for this date. Your changes will be used when you run this webinar again.'
       : null;
 

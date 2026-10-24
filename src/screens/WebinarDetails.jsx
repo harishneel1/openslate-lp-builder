@@ -276,6 +276,8 @@ export default function WebinarDetails({
             <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
               <WebinarReminders
                 webinar={webinar}
+                people={people}
+                now={now}
                 onToggle={onToggleReminder}
                 onEdit={onEditReminder}
               />

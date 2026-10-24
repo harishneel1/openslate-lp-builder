@@ -153,6 +153,39 @@ export function withEmail(reminders = {}, id, { subject, body }) {
 
 export const withOn = (reminders = {}, id, on) => ({ ...reminders, [id]: { ...(reminders[id] ?? {}), on } });
 
+// One email's status, from its timeline row, in two lengths that always
+// agree: short for the Emails list's Status column ("38 sent",
+// "Today, 1 pm"), full for its hover hint and the editor's status line.
+//   { short, full, tone: 'next' | 'off' | null }
+export function emailStatus(row, answers, now = Date.now()) {
+  const people = (count) => `${count} ${count === 1 ? 'person' : 'people'}`;
+  const ended = (webinarEnd(answers) ?? Infinity) <= now;
+  const label = row.at === null ? null : whenLabel(row.at, answers, now);
+  // In a sentence: "today at 1:00 pm", "Fri 23 Oct at 2:00 pm"
+  const when = label?.replace(', ', ' at ').replace(/^(Today|Tomorrow|Yesterday)/, (w) => w.toLowerCase());
+  const short = label?.replace(':00 ', ' '); // "Today, 1 pm"
+
+  if (row.at === null) {
+    // The confirmation: goes out as each person registers
+    if (!row.on) return { short: 'Off', full: 'Off: this email won’t be sent', tone: 'off' };
+    const full = ended
+      ? `Sent to ${people(row.sentTo)}`
+      : row.sentTo
+        ? `Goes to each person as they register. Sent to ${people(row.sentTo)} so far`
+        : 'Goes to each person as they register';
+    return { short: row.sentTo ? `${row.sentTo} sent` : 'None yet', full, tone: null };
+  }
+  if (row.skipped) return { short: 'Skipped', full: 'Skipped: the webinar was set up after this time', tone: 'off' };
+  if (!row.past) {
+    if (!row.on) return { short: 'Off', full: 'Off: this email won’t be sent', tone: 'off' };
+    return { short, full: `Goes out ${when}`, tone: row.next ? 'next' : null };
+  }
+  if (!row.on) return { short: 'Not sent', full: `It was off, so it wasn’t sent ${when}`, tone: 'off' };
+  return row.sentTo
+    ? { short: `${row.sentTo} sent`, full: `Sent to ${people(row.sentTo)} · ${when}`, tone: null }
+    : { short: '0 sent', full: `Went out ${when}, before anyone registered`, tone: null };
+}
+
 // When a reminder goes out (ms), or null for the one sent at registration
 export function sendTime(answers, id) {
   const r = reminderById(id);
@@ -162,17 +195,21 @@ export function sendTime(answers, id) {
 }
 
 // Each reminder's status for the timeline:
-//   { id, at (ms or null), past, sentTo (people), on, next }
+//   { id, at (ms or null), past, sentTo (people), on, skipped, next }
 //   sentTo: people who had registered by the time it went out (all of
 //   them for the confirmation). A reminder turned off sends to no one.
+//   skipped: its time had passed before the webinar was published (set
+//   up 2 hours before, say: the 1-day reminder never had a chance).
 export function timeline(webinar, people, now = Date.now()) {
+  const live = Number.isFinite(webinar.publishedAt) ? webinar.publishedAt : null;
   const rows = REMINDERS.map((r) => {
     const { on } = emailOf(webinar, r.id);
     const at = sendTime(webinar.answers, r.id);
-    if (at === null) return { id: r.id, at, past: true, on, sentTo: on ? people.length : 0 };
+    if (at === null) return { id: r.id, at, past: true, on, skipped: false, sentTo: on ? people.length : 0 };
     const past = at <= now;
-    const sentTo = past && on ? people.filter((p) => p.registeredAt <= at).length : 0;
-    return { id: r.id, at, past, on, sentTo };
+    const skipped = live !== null && at < live;
+    const sentTo = past && on && !skipped ? people.filter((p) => p.registeredAt <= at).length : 0;
+    return { id: r.id, at, past, on, skipped, sentTo };
   });
   const next = rows.find((row) => !row.past && row.on);
   return rows.map((row) => ({ ...row, next: row === next }));
