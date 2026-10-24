@@ -148,6 +148,7 @@ export default function FunnelOverview({
   // Coming back to edit (they've been to the webinar page): just the pages.
   // The link, Join and "Go to your webinar" live on the webinar page.
   editing = false,
+  onEditSignup = null, // the sign-up page's Edit: the event details and price it's made from
   onStart,
   done = [],
   answers = {},
@@ -225,7 +226,14 @@ export default function FunnelOverview({
           `${pagesLeft} more ${pagesLeft === 1 ? 'page' : 'pages'} and your webinar is ready.`}
         {!published && ready &&
           'Check each page, then get your link below.'}
-        {published && !ended &&
+        {published && !ended && editing && (
+          <>
+            Pick a page to change it.
+            <br />
+            Changes show up on your link straight away, for every upcoming session.
+          </>
+        )}
+        {published && !ended && !editing &&
           'Changes show up on your link straight away, for every upcoming session.'}
         {editing && ended &&
           'This session has ended. Changes here are used for the next session you add.'}
@@ -334,6 +342,7 @@ export default function FunnelOverview({
                         </div>
                       )}
                       <div className="overview__page-actions">
+                        {onEditSignup && <EditButton name={page.name} onClick={onEditSignup} />}
                         {previewHref && (
                           <a
                             className="overview__page-action overview__page-action--preview"
@@ -380,9 +389,7 @@ export default function FunnelOverview({
                         </p>
                       )}
                       <div className="overview__page-actions">
-                        <button type="button" className="overview__page-action" onClick={onEditThankYou}>
-                          <Pencil size={16} /> Edit
-                        </button>
+                        <EditButton name={page.name} onClick={onEditThankYou} />
                         {previewHref && (
                           <a
                             className="overview__page-action overview__page-action--preview"
@@ -406,8 +413,8 @@ export default function FunnelOverview({
                       <span className="overview__service-name">Style</span>
                       <span className="overview__service-price">{getTheme(resolvedThemeId)?.name ?? 'Recommended'}</span>
                     </div>
-                    {/* One way in: the preview tab, which has "Edit page" in its top bar */}
                     <div className="overview__page-actions">
+                      <EditButton name={page.name} onClick={onEdit} />
                       {previewHref ? (
                         <a
                           className="overview__page-action overview__page-action--preview"
@@ -415,15 +422,11 @@ export default function FunnelOverview({
                           target="_blank"
                           rel="noopener"
                           onClick={onPreview}
-                          aria-label="Preview and edit your landing page (opens in a new tab)"
+                          aria-label="Preview your landing page (opens in a new tab)"
                         >
-                          <ExternalLink size={16} /> Preview &amp; edit
+                          <ExternalLink size={16} /> Preview
                         </a>
-                      ) : (
-                        <button type="button" className="overview__page-action" onClick={onEdit}>
-                          <Pencil size={16} /> Edit
-                        </button>
-                      )}
+                      ) : null}
                     </div>
                     </>
                   )}
@@ -521,5 +524,18 @@ export default function FunnelOverview({
       </div>
       )}
     </div>
+  );
+}
+
+// A done page's Edit: an outlined button as wide as the card, the same on
+// all three, so the way to change a page is obvious and the same each
+// time. Its click area covers the whole card (.overview__page-edit::after),
+// so clicking the page's picture edits it too; Preview and other small
+// controls sit above that (z-index), so they still work.
+function EditButton({ name, onClick }) {
+  return (
+    <button type="button" className="overview__page-edit" onClick={onClick} aria-label={`Edit your ${name.toLowerCase()}`}>
+      <Pencil size={16} aria-hidden="true" /> Edit
+    </button>
   );
 }

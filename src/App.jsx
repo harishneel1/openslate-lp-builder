@@ -535,6 +535,10 @@ function App() {
           webinarId={openId}
           webinarSlug={current.slug}
           // Any session of it counts: sessions added before this was remembered don't have it
+          onEditSignup={() => {
+            setEditingId('signup');
+            updateOpen({ step: 'review-edit', editReturn: 'overview' }, { touch: false });
+          }}
           editing={
             Boolean(publishedAt) &&
             funnels.some((f) => f.seenDetails && seriesIdOf(f, funnels) === seriesIdOf(current, funnels))
@@ -584,7 +588,9 @@ function App() {
     if (step === 'review-edit') {
       const backToReview = () =>
         updateOpen((f) => ({ step: f.editReturn ?? 'review', editReturn: undefined }), { touch: false });
-      const screens = editGroup(editingId);
+      // The sign-up page's Edit: the two screens it's made from (date and price)
+      const screens =
+        editingId === 'signup' ? [...editGroup('eventDetails'), ...editGroup('pricing')] : editGroup(editingId);
       if (screens.length > 0) {
         return (
           <QuestionFlow
