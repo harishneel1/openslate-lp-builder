@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarPlus, CalendarRange, MonitorPlay, Pencil, Plus, Share2, Trash2, Users, Video } from 'lucide-react';
+import { ArrowRight, CalendarDays, CalendarPlus, Eye, MonitorPlay, Pencil, Plus, Share2, Trash2, Users, Video } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
+import RowMenu from '../components/RowMenu';
 import ShareDialog from '../components/ShareDialog';
 import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
@@ -11,10 +12,8 @@ import {
   currentRun,
   runsOf,
   seriesIdOf,
-  lengthLabel,
   meetingHref,
   meetingState,
-  startsIn,
   webinarPrice,
   webinarStart,
   webinarStatus,
@@ -32,14 +31,14 @@ import './WebinarsPage.css';
 //
 //   Webinars                                                [+ Create a webinar]
 //   ┌ Upcoming 2 ───────────────────────────────────────────────────────────────┐
-//   │ [NOV 7] Fix the Vasthu…  [Join meeting] [Share] [Edit webinar] [🗑]        │
-//   │         Sat 7 Nov, 7:00 pm IST · 60 min · ₹499                            │
-//   │         ● Link ready  Starts in 16 days  👥 23 signed up  📅 3 dates       │
+//   │ [NOV 7] Fix the Vasthu…  [Join meeting] [Share] [Edit webinar] [⋯]         │
+//   │         [📅 Sat 7 Nov, 7:00 pm IST]  👥 23 signed up  ₹499                │
 //   ├ Drafts 1 ─────────────────────────────────────────────────────┤
-//   │ [ — ]   Untitled webinar · 1 of 3 pages done  [Continue]  [🗑] │
+//   │ [ — ]   Untitled webinar             [Continue setting up]  [⋯] │
+//   │         [Draft]  1 of 3 pages done                            │
 //   ├ Past 1 ───────────────────────────────────────────────────────────────────┤
-//   │ [OCT 31] Fix the Vasthu mistakes…   [Add another session] [Edit webinar] [🗑] │
-//   │          Ended  👥 41 signed up                                           │
+//   │ [OCT 31] Fix the Vasthu mistakes…   [Add another session] [Edit webinar] [⋯] │
+//   │          [📅 Sat 31 Oct, 7:00 pm IST]  👥 41 signed up  ₹499              │
 //   └────────────────────────────────────────────────────────────────────────────┘
 //
 // One row per webinar, however many times it has run. Run again makes a
@@ -47,8 +46,13 @@ import './WebinarsPage.css';
 // (data/webinar.js). The row shows the date that link opens (currentRun:
 // on now, else the soonest to come, else the latest that's over), so a
 // webinar sits in Upcoming while it has a date to come and in Past once
-// all its dates are over. "3 dates" says there's more inside; the other
-// dates are on its page (WebinarDetails).
+// all its dates are over. The row shows one session (only one is ever
+// coming up at a time); the others are on its page (WebinarDetails).
+//
+// Under the name, one line: the session's date and time in a grey pill,
+// then how many signed up and the price, in small grey text. No
+// "Starts in…" or "Ended": the date and the group (Upcoming / Past)
+// already say it.
 //
 // Upcoming: soonest first. Drafts: not published, last edited first.
 // Past: latest first. Empty groups don't show.
@@ -58,8 +62,10 @@ import './WebinarsPage.css';
 // webinar opens the same details page. Share (upcoming only: a past
 // webinar's link just says it has ended) opens a pop-up with WhatsApp and
 // the link (ShareDialog), its message ready-made (utils/shareMessage.js).
-// Delete removes the
-// whole webinar, every date (one date is deleted from its own page).
+// ⋯ holds the less common actions: Preview (the in-app preview with
+// Mobile/Desktop, in a new tab; not on drafts, whose pages aren't done)
+// and Delete webinar, which removes the whole webinar, every date (one
+// date is deleted from its own page).
 //
 // Every upcoming webinar has its meeting button, always in the same place
 // (Zoom is built in, so there's always a meeting). It changes with the clock:
@@ -68,13 +74,14 @@ import './WebinarsPage.css';
 //   ● Live now         while it's on
 // The landing page link is behind Share, in a pop-up that names it, so
 // it's never mistaken for the meeting link.
-// The list re-reads the clock every 30 seconds, so the button, the
-// "Starts in" line and the groups move on while the page sits open.
+// The list re-reads the clock every 30 seconds, so the button and the
+// groups move on while the page sits open.
 //
 // webinars: the saved records (App.jsx)
 // onCreate(), onOpen(id) (where they left off: Continue setting up),
 // onOpenOverview(id) (a click on the row, and Edit webinar),
-// onDelete(ids) (every date of one webinar), onRunAgain(id)
+// onDelete(ids) (every date of one webinar), onRunAgain(id),
+// onPreview() (just before a preview tab opens: App saves first)
 // ------------------------------------------------------------
 
 const TYPE = funnelTypes.find((t) => t.id === 'webinar');
@@ -97,10 +104,11 @@ function useSignupsTick() {
   return tick;
 }
 
-export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain }) {
+export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain, onPreview }) {
   const [deleting, setDeleting] = useState(null); // { ids, name, dates, live } while the pop-up asks
   const [said, setSaid] = useState(''); // for screen readers: what just changed
   const [sharing, setSharing] = useState(null); // the webinar (the date its row shows) while Share is open
+  const [menuId, setMenuId] = useState(null); // the row whose ⋯ menu is open
   const now = useNow();
   useSignupsTick();
 
@@ -150,19 +158,27 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
   const rowProps = ({ webinar: w, runs }) => ({
     webinar: w,
     now,
-    dates: runs.length,
+    menuOpen: menuId === w.id,
+    onMenu: (open) => setMenuId(open ? w.id : null),
+    onPreview: () => {
+      setMenuId(null);
+      onPreview?.();
+      window.open(`?preview=${encodeURIComponent(w.id)}`, '_blank', 'noopener');
+    },
     people: w.publishedAt ? peopleOf(w.id).length : null,
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
     onShare: () => setSharing(w),
     onRunAgain: () => onRunAgain(w.id),
-    onDelete: () =>
+    onDelete: () => {
+      setMenuId(null);
       setDeleting({
         ids: runs.map((r) => r.id),
         name: funnelName(w, TYPE),
         dates: runs.length,
         live: Boolean(w.publishedAt),
-      }),
+      });
+    },
   });
 
   return (
@@ -289,9 +305,9 @@ function draftProgress(webinar) {
 // One webinar, as a full-width row like a 1:1 call: date, what it is and
 // where it's at on the left; what you can do on the right.
 // webinar: the date this row shows (the one its link opens)
-// dates: how many dates it has (2 or more shows "3 dates")
 // people: how many signed up for that date, or null for a draft
-function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onShare, onDelete, onRunAgain }) {
+// menuOpen / onMenu(open): its ⋯ menu (the page keeps which one is open)
+function WebinarRow({ webinar, now, people, menuOpen, onMenu, onOpen, onOpenOverview, onShare, onPreview, onDelete, onRunAgain }) {
   const { answers } = webinar;
   const name = funnelName(webinar, TYPE);
   const status = webinarStatus(webinar, now);
@@ -299,12 +315,6 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onSha
   const meeting = status === 'upcoming' ? meetingState(answers, now) : null;
   const when = webinarWhen(answers);
   const price = webinarPrice(answers);
-  const length = lengthLabel(answers);
-  const landingDone = webinar.donePages.includes('landing');
-
-  // Draft: the details only once there are some (a brand-new one has none)
-  const details = [when?.line, length].filter(Boolean).join(' · ');
-  const showPrice = landingDone || status !== 'draft';
 
   // The webinar's details page (same place a click on the row goes)
   const editWebinar = (
@@ -313,8 +323,14 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onSha
     </button>
   );
 
+  // ⋯: Preview once it's published, and Delete
+  const menuItems = [
+    status !== 'draft' && { label: 'Preview', icon: Eye, onSelect: onPreview },
+    { label: 'Delete webinar', icon: Trash2, danger: true, onSelect: onDelete },
+  ].filter(Boolean);
+
   return (
-    <li className={`oh-row wb-row ${status === 'past' ? 'wb-row--past' : ''}`}>
+    <li className={`oh-row wb-row ${status === 'past' ? 'wb-row--past' : ''} ${menuOpen ? 'oh-row--menu' : ''}`}>
       <DateTile when={when} />
 
       <div className="oh-row__text">
@@ -324,42 +340,29 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onSha
             {name}
           </button>
         </h3>
-        {(details || showPrice) && (
-          <p className="oh-row__detail">
-            {details}
-            {details && showPrice && ' · '}
-            {showPrice && (
-              <span className={price.isFree ? 'oh-row__price oh-row__price--free' : 'oh-row__price'}>{price.label}</span>
-            )}
-          </p>
-        )}
 
+        {/* One line: [📅 date] then people and price (the date already says when;
+            on the day, the meeting button turns into Start webinar) */}
         <p className="wb-row__status">
-          {status === 'upcoming' && (
-            <>
-              <span className="wb-badge wb-badge--live">
-                <span className="wb-badge__dot" aria-hidden="true" /> Link ready
-              </span>
-              <span>{startsIn(answers, now)}</span>
-            </>
-          )}
-          {status === 'draft' && (
+          {status === 'draft' ? (
             <>
               <span className="wb-badge">Draft</span>
               <span>{draftProgress(webinar)}</span>
             </>
-          )}
-          {status === 'past' && <span className="wb-badge">Ended</span>}
-          {people !== null && (
-            <span className="wb-row__fact">
-              <Users size={14} aria-hidden="true" /> {people} signed up
-            </span>
-          )}
-          {/* More dates inside: the rest are on its page */}
-          {dates > 1 && (
-            <span className="wb-row__fact">
-              <CalendarRange size={14} aria-hidden="true" /> {dates} sessions
-            </span>
+          ) : (
+            <>
+              {when && (
+                <span className="wb-badge wb-badge--when">
+                  <CalendarDays size={13} aria-hidden="true" /> {when.line}
+                </span>
+              )}
+              {people !== null && (
+                <span className="wb-row__fact">
+                  <Users size={14} aria-hidden="true" /> {people} signed up
+                </span>
+              )}
+              <span className="wb-row__price">{price.label}</span>
+            </>
           )}
         </p>
       </div>
@@ -391,17 +394,7 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onSha
             {editWebinar}
           </>
         )}
-        {/* Delete was the only thing left in the ⋯ menu, so it's its own button */}
-        <button
-          type="button"
-          className="wb-row__icon wb-row__icon--delete"
-          onClick={onDelete}
-          aria-label={`Delete ${name}`}
-          data-tip="Delete"
-          data-tip-align="end"
-        >
-          <Trash2 size={17} aria-hidden="true" />
-        </button>
+        <RowMenu title={name} open={menuOpen} onOpenChange={onMenu} items={menuItems} />
       </div>
     </li>
   );

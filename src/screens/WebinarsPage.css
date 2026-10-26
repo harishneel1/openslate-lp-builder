@@ -80,41 +80,6 @@
   border-color: #c4c4c9;
 }
 
-/* ---------- Square icon buttons: Delete, and Copy link beside Start ---------- */
-.wb-row__icon {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.wb-row__icon:hover {
-  background: #f3f3f5;
-  border-color: #c4c4c9;
-}
-
-.wb-row__icon--delete {
-  color: var(--color-text-muted);
-}
-
-.wb-row__icon--delete:hover {
-  color: #b42318;
-  background: #fdf2f2;
-  border-color: #e8b4b4;
-}
-
-.wb-row__icon:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 .wb-row--past .wb-tile,
 .wb-row--past .oh-row__name {
   opacity: 0.7;
@@ -165,8 +130,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
-  margin-top: 4px;
+  gap: 6px 12px;
+  margin-top: 8px; /* straight under the name now */
   font-size: 13px;
   color: var(--color-text-muted);
 }
@@ -186,6 +151,18 @@
 .wb-badge--live {
   color: var(--color-success);
   background: var(--color-success-tint);
+}
+
+/* The session's date and time: a grey pill, as a date isn't a status */
+.wb-badge--when {
+  gap: 5px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.wb-badge--when svg {
+  flex: none;
+  color: var(--color-text-muted);
 }
 
 .wb-badge__dot {
@@ -300,7 +277,7 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
-/* "23 signed up", "3 dates": quiet facts beside the status tag */
+/* "23 signed up": a quiet fact on the status line */
 .wb-row__fact {
   display: inline-flex;
   align-items: center;
@@ -309,4 +286,8 @@
 
 .wb-row__fact svg {
   flex: none;
+}
+/* The price: the same small grey text as the rest of the line */
+.wb-row__price {
+  white-space: nowrap;
 }
