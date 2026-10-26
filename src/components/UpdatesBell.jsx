@@ -3,10 +3,13 @@ import { Bell } from 'lucide-react';
 import GuestInitials from './GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates';
+import { buildSignupUpdates } from '../data/signupUpdates';
+import { onSignupsChange } from '../data/webinarSignups';
 import './UpdatesBell.css';
 
 // ------------------------------------------------------------
-// The bell in the top bar: what students did with the creator's calls.
+// The bell in the top bar: what students did with the creator's calls,
+// and who signed up for their webinars.
 //
 //   (bell)•2   an orange count while there's something they haven't seen.
 //              A plain icon at rest, a grey circle on hover, tinted orange
@@ -17,20 +20,28 @@ import './UpdatesBell.css';
 //   │ (TK) Tarun cancelled          12 min ago│  unread: tinted
 //   │      Discovery call, Wed 21 Oct, 10 am  │
 //   │      “Something came up at work”        │
+//   │ (AS) Asha and 11 others signed up  1 hr ago│
+//   │      Webinar name, Mon 9 Nov, 7:00 pm IST│
 //   │ Earlier                                 │
 //   │ (PR) Priya booked              Yesterday│
 //   └─────────────────────────────────────────┘
 //
 // Opening it clears the count. What was new stays tinted while the list
-// is open, so they can see which ones they hadn't seen. Clicking an
-// update opens that call on the Bookings page (onOpenBooking).
-// Follows bookings as they change, even from another tab.
+// is open, so they can see which ones they hadn't seen. Clicking a call's
+// update opens that call on the Bookings page (onOpenBooking); clicking
+// a sign-up line opens that webinar with the session's people showing
+// (onOpenWebinar). Sign-ups for one session on one day are one line
+// (data/signupUpdates.js), which counts once in the badge.
+// Follows bookings and sign-ups as they change, even from another tab.
+//
+// webinars: every webinar session (the sign-up lines name them)
 // ------------------------------------------------------------
 
 const TICK_MS = 60_000; // keeps "12 min ago" moving
 
-export default function UpdatesBell({ onOpenBooking }) {
+export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebinar }) {
   const [bookings, setBookings] = useState(loadBookings);
+  const [signupsTick, setSignupsTick] = useState(0); // a new sign-up rebuilds the list
   const [lastSeen, setLastSeen] = useState(loadLastSeen);
   const [now, setNow] = useState(() => Date.now());
   const [open, setOpen] = useState(false);
@@ -41,12 +52,22 @@ export default function UpdatesBell({ onOpenBooking }) {
   const button = useRef(null);
 
   useEffect(() => onBookingsChange(() => setBookings(loadBookings())), []);
+  useEffect(() => onSignupsChange(() => setSignupsTick((n) => n + 1)), []);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(id);
   }, []);
 
-  const updates = useMemo(() => buildUpdates({ bookings, lastSeen, now }), [bookings, lastSeen, now]);
+  // Calls and sign-ups in one list, newest first
+  const updates = useMemo(
+    () =>
+      [...buildUpdates({ bookings, lastSeen, now }), ...buildSignupUpdates({ webinars, lastSeen, now })].sort(
+        (a, b) => b.at - a.at,
+      ),
+    // signupsTick: sign-ups live outside React, so a change bumps it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bookings, webinars, lastSeen, now, signupsTick],
+  );
   const unread = updates.filter((u) => u.unread).length;
 
   // Something new came in while they're here: one small wiggle, then still.
@@ -129,7 +150,9 @@ export default function UpdatesBell({ onOpenBooking }) {
           <h2 className="upd__title">Updates</h2>
 
           {groups.length === 0 ? (
-            <p className="upd__empty">When students book, reschedule or cancel, you'll see it here.</p>
+            <p className="upd__empty">
+              When students book, reschedule or cancel a call, or sign up for a webinar, you'll see it here.
+            </p>
           ) : (
             <div className="upd__scroll">
               {groups.map((g) => (
@@ -143,14 +166,21 @@ export default function UpdatesBell({ onOpenBooking }) {
                           className={`upd__item ${isNew(u) ? 'upd__item--new' : ''}`}
                           onClick={() => {
                             close(false);
-                            onOpenBooking?.(u.bookingId);
+                            if (u.kind === 'signups') onOpenWebinar?.(u.webinarId);
+                            else onOpenBooking?.(u.bookingId);
                           }}
                         >
                           <GuestInitials name={u.name} />
                           <span className="upd__text">
                             <span className="upd__head">
                               <span className="upd__what">
-                                <strong>{u.first}</strong> {VERBS[u.kind]}
+                                {u.kind === 'signups' ? (
+                                  <SignedUp update={u} />
+                                ) : (
+                                  <>
+                                    <strong>{u.first}</strong> {VERBS[u.kind]}
+                                  </>
+                                )}
                               </span>
                               <span className="upd__ago">{u.ago}</span>
                             </span>
@@ -193,3 +223,26 @@ const VERBS = {
   rescheduled: 'rescheduled',
   cancelled: 'cancelled',
 };
+
+// 'Priya signed up', 'Priya and Rahul signed up', 'Priya and 11 others signed up'
+function SignedUp({ update: u }) {
+  if (u.second) {
+    return (
+      <>
+        <strong>{u.first}</strong> and <strong>{u.second}</strong> signed up
+      </>
+    );
+  }
+  if (u.others > 0) {
+    return (
+      <>
+        <strong>{u.first}</strong> and {u.others} {u.others === 1 ? 'other' : 'others'} signed up
+      </>
+    );
+  }
+  return (
+    <>
+      <strong>{u.first}</strong> signed up
+    </>
+  );
+}

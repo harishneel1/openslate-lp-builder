@@ -108,6 +108,8 @@ import './WebinarDetails.css';
 // onEditPages(id), onSaveSession(id, changes) (Edit session: date, time,
 // title, price), onRunAgain(id) (copies that session),
 // onDelete(id) (one session), onPreview() (just before the preview tab opens)
+// openSession: { id, n } from the bell's sign-up line: open that session's
+//   people in the side panel on arrival; onSessionOpened() once it has
 // onToggleReminder(sessionId, id, on), onEditReminder(sessionId, id): the Emails tab
 // ------------------------------------------------------------
 
@@ -202,6 +204,8 @@ export default function WebinarDetails({
   onRunAgain,
   onDelete,
   onPreview,
+  openSession = null,
+  onSessionOpened,
   onToggleReminder,
   onEditReminder,
 }) {
@@ -226,6 +230,15 @@ export default function WebinarDetails({
   const opened = sessions.find((r) => r.id === openId) ?? null;
   const [deleting, setDeleting] = useState(null); // the session being deleted
   const [sharing, setSharing] = useState(false); // the Share webinar pop-up
+
+  // From the bell: that session's people, open (its panel starts on Manage people)
+  useEffect(() => {
+    if (!openSession) return;
+    if (sessions.some((r) => r.id === openSession.id)) setOpenId(openSession.id);
+    onSessionOpened?.();
+    // Only when a new request comes in (n)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSession?.n]);
 
   useEffect(() => {
     document.title = name;

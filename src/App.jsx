@@ -288,6 +288,21 @@ function App() {
     setOpenId(id);
   };
 
+  // From the bell: a webinar's sign-up line. That session's details page,
+  // on Sessions, with its people open in the side panel. The request is
+  // cleared once the page has opened the panel, so opening the webinar
+  // again later (from its row) doesn't open the panel by itself.
+  const [sessionRequest, setSessionRequest] = useState(null);
+  const openSignups = (id) => {
+    if (!funnels.some((f) => f.id === id)) return;
+    setFunnels((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, step: f.publishedAt ? 'details' : 'overview', detailsTab: 'sessions' } : f)),
+    );
+    setActiveNav('page-builder');
+    setOpenId(id);
+    setSessionRequest({ id, n: Date.now() });
+  };
+
   // Edit webinar pages: the three page cards, where each page is edited
   const openPages = (id) => {
     setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'overview' } : f)));
@@ -493,6 +508,9 @@ function App() {
           }}
           // 👁 on the landing page picture: save first, so the preview tab shows the latest
           onPreview={saveNow}
+          // A sign-up line in the bell: open this session's people
+          openSession={sessionRequest}
+          onSessionOpened={() => setSessionRequest(null)}
         />
       );
     }
@@ -840,6 +858,9 @@ function App() {
       activeNav={activeNav}
       onNavigate={navigateFromSidebar}
       onOpenBooking={openBooking}
+      // The bell's webinar sign-ups
+      webinars={funnels.filter((f) => f.type === 'webinar')}
+      onOpenWebinar={openSignups}
       focus={
         activeNav === 'page-builder' && funnel
           ? {

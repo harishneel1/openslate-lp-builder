@@ -201,7 +201,10 @@ function CalendarCard({ active, onOpen }) {
 }
 
 // onOpenBooking(id): an update in the bell was clicked; open that call on Bookings
-export default function AppLayout({ activeNav, onNavigate, onOpenBooking, focus = null, children }) {
+// onOpenWebinar(id): a sign-up line in the bell was clicked; open that
+//   webinar session with its people showing
+// webinars: every webinar session, for the bell's sign-up lines
+export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpenWebinar, webinars = [], focus = null, children }) {
   const hasStorefront = useHasStorefront();
 
   if (focus) {
@@ -223,7 +226,7 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, focus 
 
         {/* Updates, then their profile */}
         <div className="topnav__actions">
-          <UpdatesBell onOpenBooking={onOpenBooking} />
+          <UpdatesBell webinars={webinars} onOpenBooking={onOpenBooking} onOpenWebinar={onOpenWebinar} />
           <div className="topnav__avatar" title="Your profile">H</div>
         </div>
       </header>
