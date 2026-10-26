@@ -3,10 +3,11 @@ import {
   CalendarClock,
   Check,
   ChevronRight,
-  Copy,
   Download,
-  ExternalLink,
+  Eye,
   Link2,
+  Share2,
+  Lock,
   MessageCircle,
   Pencil,
   Plus,
@@ -17,7 +18,8 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Drawer from '../components/Drawer';
-import RowMenu from '../components/RowMenu';
+import PageThumbnail from '../components/PageThumbnail';
+import ShareDialog from '../components/ShareDialog';
 import { useCopy } from './OfferingsHome';
 import WebinarReminders from './WebinarReminders';
 import { MeetingButton, useNow } from './WebinarsPage';
@@ -41,6 +43,7 @@ import {
 import { onSignupsChange, peopleCsv, peopleOf } from '../data/webinarSignups';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
+import { webinarShareMessage } from '../utils/shareMessage';
 import { whatsappHref } from '../utils/whatsapp';
 import './OfferingsHome.css'; // panels and buttons
 import './CallsPage.css'; // the empty state
@@ -53,14 +56,19 @@ import './WebinarDetails.css';
 // each session (a run, data/webinar.js) has its own date and people, and
 // all of them share one link.
 //
-//   Fix the Vasthu mistakes that block money        [✎ Edit webinar pages] [⋯]
-//   Landing Page URL
-//   [🔗 localhost:5173/fix-the-vasthu-mistakes ↗ | Copy]
-//   One link for every session. It opens Sat 31 Oct.
-//   ┌ Next session ─────────────────────────────────────────────────────┐
-//   │ Sat 31 Oct, 2:00 pm IST          23           [Join meeting]      │
-//   │ Starts in 7 days              signed up                           │
-//   └───────────────────────────────────────────────────────────────────┘
+//   ════ white band, the width of the page ══════════════════════════════
+//   Fix the Vasthu mistakes that block     ┌ ● ● ● 🔒 site/slug        👁 ┐
+//   money in your home…                    │                             │
+//                                          │  their landing page, as on  │
+//   [↗ Share webinar]  [🔗 Copy link]      │  a laptop, under a wash     │
+//                                          │                             │
+//   ┌ Next session ─────────────────────┐  │                             │
+//   │ Sat 31 Oct, 2:00 pm IST           │  │                             │
+//   │ Starts in 7 days                  │  │   [✎ Edit webinar pages]    │
+//   │ 23 signed up · See people >  [Join meeting] │                     │
+//   └───────────────────────────────────┘  └─────────────────────────────┘
+//   ══════════════════════════════════════════════════════════════════════
+//   (grey from here)
 //   ┌ Sessions 2 | Emails ──────────────────────────────────────────────┐
 //   │ Session             Status                  Signed up             │
 //   │ Sat 31 Oct 2:00 pm  ● Coming up  🔗 link        0    See people > │
@@ -73,6 +81,16 @@ import './WebinarDetails.css';
 // day). Every session is a row; a click opens its people in a side panel
 // (SessionDrawer), where that session's own actions are too.
 //
+// The header is a white band across the page: the webinar's name, its
+// link and its next session on the left, its landing page on the right.
+// The next session is the one light-orange card, with the one filled
+// orange button (Join meeting); it looks the same every day. Below the
+// band, on grey: Sessions and Emails.
+// On the right, the landing page as it looks on a laptop (LandingThumb).
+// A click on it opens the three page cards; 👁 opens the preview in a new
+// tab (with its Mobile/Desktop switch). Deleting the whole webinar is on
+// the Webinars list.
+//
 // Edit webinar pages and Emails open the next session (what the link
 // shows), or the latest once every session is over. There's one set of
 // pages, price and emails: a change goes to every session still to come
@@ -82,7 +100,7 @@ import './WebinarDetails.css';
 // tab: 'sessions' or 'reminders' (the Emails tab; App keeps it, so coming
 //      back from the email editor lands on it); onTab(tab)
 // onEditPages(id), onChangeDate(id), onRunAgain(id) (copies that session),
-// onDelete(id) (one session), onDeleteWebinar(ids) (every session)
+// onDelete(id) (one session), onPreview() (just before the preview tab opens)
 // onToggleReminder(sessionId, id, on), onEditReminder(sessionId, id): the Emails tab
 // ------------------------------------------------------------
 
@@ -176,7 +194,7 @@ export default function WebinarDetails({
   onChangeDate,
   onRunAgain,
   onDelete,
-  onDeleteWebinar = onDelete,
+  onPreview,
   onToggleReminder,
   onEditReminder,
 }) {
@@ -199,21 +217,12 @@ export default function WebinarDetails({
 
   const [openId, setOpenId] = useState(null); // the session whose people are open in the side panel
   const opened = sessions.find((r) => r.id === openId) ?? null;
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [deleting, setDeleting] = useState(null); // 'webinar', or the session being deleted
+  const [deleting, setDeleting] = useState(null); // the session being deleted
+  const [sharing, setSharing] = useState(false); // the Share webinar pop-up
 
   useEffect(() => {
     document.title = name;
   }, [name]);
-
-  const pick = (fn) => () => {
-    setMenuOpen(false);
-    fn();
-  };
-  const menuItems = [
-    { label: 'Add another session', icon: Plus, onSelect: pick(() => onRunAgain(latest.id)) },
-    { label: 'Delete webinar', icon: Trash2, danger: true, onSelect: pick(() => setDeleting('webinar')) },
-  ];
 
   return (
     <div className="oh wd">
@@ -221,17 +230,18 @@ export default function WebinarDetails({
       <header className="wd__head">
         <div className="wd__intro">
           <h1 className="wd__title">{name}</h1>
-          <LandingLink webinar={webinar} url={url} opens={next} />
+          <LinkActions url={url} onShare={next ? () => setSharing(true) : null} />
+          <NextSession run={next} name={name} now={now} onOpen={() => setOpenId(next.id)} onAdd={() => onRunAgain(latest.id)} />
         </div>
-        <div className="wd__actions">
-          <button type="button" className="oh__edit" onClick={() => onEditPages(current.id)}>
-            <Pencil size={15} aria-hidden="true" /> Edit webinar pages
-          </button>
-          <RowMenu title={name} open={menuOpen} onOpenChange={setMenuOpen} items={menuItems} />
-        </div>
+        <LandingThumb
+          run={current}
+          address={webinar.slug ? `${window.location.host}/${webinar.slug}` : shortLink(url)}
+          name={name}
+          onEdit={() => onEditPages(current.id)}
+          previewHref={`?preview=${encodeURIComponent(current.id)}`}
+          onPreview={onPreview}
+        />
       </header>
-
-      <NextSession run={next} name={name} now={now} onOpen={() => setOpenId(next.id)} onAdd={() => onRunAgain(latest.id)} />
 
       <section className="oh__panel wd__main" aria-label={shownTab === 'reminders' ? 'Emails' : 'Sessions'}>
         <div className="oh__panel-head wd__people-head">
@@ -265,7 +275,18 @@ export default function WebinarDetails({
         />
       )}
 
-      {deleting && deleting !== 'webinar' && (
+      {sharing && next && (
+        <ShareDialog
+          heading="Share webinar"
+          name={name}
+          meta={[webinarWhen(next.answers ?? {})?.line, webinarPrice(next.answers ?? {}).label].filter(Boolean).join(' · ')}
+          url={url}
+          message={webinarShareMessage(next, name, url)}
+          onClose={() => setSharing(false)}
+        />
+      )}
+
+      {deleting && (
         <ConfirmDialog
           title="Delete this session?"
           confirmLabel="Delete session"
@@ -283,26 +304,6 @@ export default function WebinarDetails({
             people who signed up for it. This can’t be undone.
           </p>
           <p>Your link and the other sessions stay as they are.</p>
-        </ConfirmDialog>
-      )}
-      {deleting === 'webinar' && (
-        <ConfirmDialog
-          title="Delete this webinar?"
-          confirmLabel="Delete webinar"
-          danger
-          onCancel={() => setDeleting(null)}
-          onConfirm={() => {
-            setDeleting(null);
-            onDeleteWebinar(sessions.map((r) => r.id));
-          }}
-        >
-          <p>
-            <strong>“{name}”</strong> will be deleted with{' '}
-            {sessions.length > 1
-              ? `all ${sessions.length} sessions, their pages and the people who signed up`
-              : 'its pages and the people who signed up'}
-            {next ? ', and its link will stop working' : ''}. This can’t be undone.
-          </p>
         </ConfirmDialog>
       )}
     </div>
@@ -327,30 +328,33 @@ function useSignupsTick() {
   useEffect(() => onSignupsChange(() => setTick((n) => n + 1)), []);
 }
 
-// ---------- The next session: the one thing checked every day ----------
-// A card under the link, outlined in orange. The sign-up count is the
-// way into that session's people.
+// ---------- The next session: a card in the header, under the link ----------
+// Light orange, the same every day: the one thing coaches check daily.
+// Join meeting is the one filled orange button in the header (the button
+// itself turns into Start webinar / Live now near the time, as on the list).
 //
-//   ┌ Next session ────────────────────────────────────────────────────┐
-//   │ Sat 31 Oct, 2:00 pm IST        23            [Join meeting]      │
-//   │ Starts in 7 days            signed up                            │
-//   │                            See people >                          │
-//   └──────────────────────────────────────────────────────────────────┘
+//   ┌ Next session ────────────────────────────────┐
+//   │ Sat 31 Oct, 2:00 pm IST                      │
+//   │ Starts in 7 days                             │
+//   │ ──────────────────────────────────────────── │
+//   │ 23 signed up · See people >   [Join meeting] │
+//   └──────────────────────────────────────────────┘
 //
-// With nothing coming up, it says so and offers to add a session.
+// With nothing coming up, the same card says so and offers to add a session.
 function NextSession({ run, name, now, onOpen, onAdd }) {
   if (!run) {
     return (
       <section className="wd__next wd__next--none" aria-labelledby="wd-next-title">
-        <div className="wd__next-main">
-          <h2 className="wd__next-title" id="wd-next-title">
-            No session coming up
-          </h2>
-          <p className="wd__next-text">Your link tells visitors this webinar has ended. Add a session to open sign-ups again.</p>
+        <h2 className="wd__next-title" id="wd-next-title">
+          No session coming up
+        </h2>
+        <p className="wd__next-text">Your link tells visitors this webinar has ended. Add a session to open sign-ups again.</p>
+        <div className="wd__next-foot">
+          <span />
+          <button type="button" className="oh__add" onClick={onAdd}>
+            <Plus size={16} aria-hidden="true" /> Add another session
+          </button>
         </div>
-        <button type="button" className="oh__add" onClick={onAdd}>
-          <Plus size={16} aria-hidden="true" /> Add another session
-        </button>
       </section>
     );
   }
@@ -359,28 +363,28 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
   const count = peopleOf(run.id).length;
   return (
     <section className="wd__next" aria-labelledby="wd-next-title">
-      <div className="wd__next-main">
-        <p className="wd__next-label">Next session</p>
-        <h2 className="wd__next-title" id="wd-next-title">
-          {dayOfRun(run) ?? 'No date yet'}
-          {timeOfRun(run) ? `, ${timeOfRun(run)}` : ''}
-        </h2>
-        {today ? (
-          <div className="wd__next-count-down">
-            <Countdown day={today} />
-          </div>
-        ) : (
-          <p className="wd__next-text wd__next-text--soon">{startsIn(answers, now)}</p>
-        )}
+      <p className="wd__next-label">Next session</p>
+      <h2 className="wd__next-title" id="wd-next-title">
+        {dayOfRun(run) ?? 'No date yet'}
+        {timeOfRun(run) ? `, ${timeOfRun(run)}` : ''}
+      </h2>
+      {today ? (
+        <div className="wd__next-count-down">
+          <Countdown day={today} />
+        </div>
+      ) : (
+        <p className="wd__next-text wd__next-text--soon">{startsIn(answers, now)}</p>
+      )}
+      <div className="wd__next-foot">
+        {/* The count is a button: it opens this session's people */}
+        <button type="button" className="wd__next-people" onClick={onOpen}>
+          <span className="wd__next-num">{count}</span> signed up
+          <span className="wd__next-see">
+            See people <ChevronRight size={14} aria-hidden="true" />
+          </span>
+        </button>
+        <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />
       </div>
-      <button type="button" className="wd__next-people" onClick={onOpen}>
-        <span className="wd__next-num">{count}</span>
-        <span className="wd__next-num-label">signed up</span>
-        <span className="wd__next-see">
-          See people <ChevronRight size={14} aria-hidden="true" />
-        </span>
-      </button>
-      <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />
     </section>
   );
 }
@@ -633,68 +637,97 @@ function Countdown({ day }) {
   );
 }
 
-// ---------- The landing page link ----------
-// A small box under the date, like a read-only field with Copy attached
-// (the "copy invite link" pattern people know from Google Meet). The box
-// makes it one thing you act on; "Copy" in words says what it does.
+// ---------- The landing page, as a small desktop window ----------
+// Drawn at laptop width and scaled down (PageThumbnail), in the same
+// browser frame as the example page in the storefront setup
+// (ProfileExample). Only the landing page: it stands for all three.
 //
-//   Landing Page URL
-//   ┌──────────────────────────────────┬──────┐
-//   │ 🔗 localhost:5173/fix-the-vasthu ↗ │ Copy │
-//   └──────────────────────────────────┴──────┘
+// The page sits under a dark wash with a white "Edit webinar pages" pill
+// in the middle, as on the building step (BuildingStep.css), so it's
+// plainly a button. Hover or focus darkens it and lifts the pill. The
+// whole page area is that one button; 👁 in the address bar opens the
+// full preview in a new tab, where a browser keeps its own controls.
 //
-// It shows the short address (the page's name), easier to read than the
-// preview code. Copy and ↗ use the working link. When real hosting
-// arrives, liveHref() becomes the short address and the two are the same.
-// opens: the session the link opens now, or null once every session is over
-function LandingLink({ webinar, url, opens = null }) {
-  const [copy, copyLink] = useCopy();
-  const copied = copy === 'copied';
-  const shown = webinar.slug ? `${window.location.host}/${webinar.slug}` : shortLink(url);
+// The frame stretches to the height of the left column, so its top
+// lines up with the title and its bottom with the line under the link.
+// run: the session the pages belong to (the next one, else the latest)
+// address: the link as the bar shows it
+function LandingThumb({ run, address, name, onEdit, previewHref, onPreview }) {
   return (
-    <div className="wd__share">
-      <span className="wd__share-label" id="wd-share-label">
-        Landing Page URL
-      </span>
-      <div className="wd__share-box" role="group" aria-labelledby="wd-share-label">
-        <Link2 size={16} aria-hidden="true" className="wd__share-icon" />
-        <span className="wd__share-url" title={url}>
-          {shown}
+    <div className="wd-thumb">
+      <div className="wd-thumb__bar">
+        <span className="wd-thumb__dots" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+        <span className="wd-thumb__url" aria-hidden="true">
+          <Lock size={10} /> {address}
         </span>
         <a
-          className="wd__share-open"
-          href={url}
+          className="wd-thumb__preview"
+          href={previewHref}
           target="_blank"
           rel="noopener"
-          aria-label="Open the landing page in a new tab"
-          data-tip="Open"
+          onClick={onPreview}
+          aria-label="Preview the landing page (opens in a new tab)"
+          data-tip="Preview"
+          data-tip-align="end"
         >
-          <ExternalLink size={15} aria-hidden="true" />
+          <Eye size={16} aria-hidden="true" />
         </a>
-        <button
-          type="button"
-          className={`wd__share-copy ${copied ? 'wd__share-copy--done' : ''}`}
-          onClick={() => copyLink(url)}
-          aria-label={copied ? 'Landing page URL copied' : 'Copy landing page URL'}
-        >
-          {copied ? <Check size={15} strokeWidth={3} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
-          {copied ? 'Copied' : 'Copy'}
+      </div>
+      <div className="wd-thumb__view">
+        <PageThumbnail answers={run.answers ?? {}} themeId={run.themeId ?? null} />
+        <button type="button" className="wd-thumb__edit" onClick={onEdit} aria-label={`Edit the pages of ${name}`}>
+          <span className="wd-thumb__pill">
+            <Pencil size={16} aria-hidden="true" /> Edit webinar pages
+          </span>
         </button>
       </div>
-      <p className="wd__share-note">
-        {opens
-          ? `One link for every session. It opens ${(() => {
-              const w = webinarWhen(opens.answers ?? {});
-              return w ? `${w.weekday} ${w.day} ${w.month}` : 'the next session';
-            })()}.`
-          : 'Every session is over. Your link says so until you add another session.'}
-      </p>
+    </div>
+  );
+}
+
+// ---------- Share and copy: two buttons under the title ----------
+// The address itself isn't shown here: it's already in the picture's
+// address bar (and 👁 opens it). These are just the two things coaches
+// do with it.
+//
+//   [↗ Share webinar]  [🔗 Copy link]
+//
+// Share webinar opens the same pop-up as on the list (WhatsApp, the
+// link and Copy, with a ready-made message). Copy link is one click,
+// since coaches copy it often; it turns into "✓ Copied" for a moment.
+// Share is left out once every session is over (the link then says the
+// webinar has ended); Copy link stays.
+function LinkActions({ url, onShare }) {
+  const [copy, copyLink] = useCopy();
+  const copied = copy === 'copied';
+  return (
+    <div className="wd__actions">
+      <div className="wd__actions-row">
+        {onShare && (
+          <button type="button" className="wd__act" onClick={onShare}>
+            <Share2 size={16} aria-hidden="true" /> Share webinar
+          </button>
+        )}
+        <button
+          type="button"
+          className={`wd__act wd__act--quiet ${copied ? 'wd__act--done' : ''}`}
+          onClick={() => copyLink(url)}
+          aria-label={copied ? 'Link copied' : 'Copy the landing page link'}
+        >
+          {copied ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
+          {copied ? 'Copied' : 'Copy link'}
+        </button>
+      </div>
       <span className="oh__sr-only" aria-live="polite">
-        {copied && 'Landing page URL copied'}
+        {copied && 'Link copied'}
       </span>
       {copy === 'failed' && (
         <p className="oh__copy-error wd__copy-error" role="alert">
-          Couldn’t copy. Open the page and copy the address from the browser.
+          Couldn’t copy. Open the page with 👁 and copy the address from the browser.
         </p>
       )}
     </div>

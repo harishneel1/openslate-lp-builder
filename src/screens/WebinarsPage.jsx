@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarPlus, CalendarRange, MonitorPlay, Pencil, Plus, Trash2, Users, Video } from 'lucide-react';
+import { ArrowRight, CalendarPlus, CalendarRange, MonitorPlay, Pencil, Plus, Share2, Trash2, Users, Video } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ShareDialog from '../components/ShareDialog';
 import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
+import { liveHref } from '../utils/publish';
+import { webinarShareMessage } from '../utils/shareMessage';
 import { onSignupsChange, peopleOf } from '../data/webinarSignups';
 import {
   currentRun,
@@ -29,13 +32,13 @@ import './WebinarsPage.css';
 //
 //   Webinars                                                [+ Create a webinar]
 //   ┌ Upcoming 2 ───────────────────────────────────────────────────────────────┐
-//   │ [NOV 7] Fix the Vasthu mistakes…  [Join meeting] [Edit webinar pages] [🗑] │
+//   │ [NOV 7] Fix the Vasthu…  [Join meeting] [Share] [Edit webinar] [🗑]        │
 //   │         Sat 7 Nov, 7:00 pm IST · 60 min · ₹499                            │
 //   │         ● Link ready  Starts in 16 days  👥 23 signed up  📅 3 dates       │
 //   ├ Drafts 1 ─────────────────────────────────────────────────────┤
 //   │ [ — ]   Untitled webinar · 1 of 3 pages done  [Continue]  [🗑] │
 //   ├ Past 1 ───────────────────────────────────────────────────────────────────┤
-//   │ [OCT 31] Fix the Vasthu mistakes…   [Run again on a new date] [Edit webinar pages] [🗑] │
+//   │ [OCT 31] Fix the Vasthu mistakes…   [Add another session] [Edit webinar] [🗑] │
 //   │          Ended  👥 41 signed up                                           │
 //   └────────────────────────────────────────────────────────────────────────────┘
 //
@@ -52,7 +55,10 @@ import './WebinarsPage.css';
 //
 // A click anywhere on a row opens the date it shows (App.jsx: its details
 // page once it's published, the setup screen while it's a draft). Edit
-// webinar pages opens that date's three page cards. Delete removes the
+// webinar opens the same details page. Share (upcoming only: a past
+// webinar's link just says it has ended) opens a pop-up with WhatsApp and
+// the link (ShareDialog), its message ready-made (utils/shareMessage.js).
+// Delete removes the
 // whole webinar, every date (one date is deleted from its own page).
 //
 // Every upcoming webinar has its meeting button, always in the same place
@@ -60,14 +66,14 @@ import './WebinarsPage.css';
 //   Join meeting       more than 15 minutes away (quiet, outlined)
 //   ● Start webinar    from 15 minutes before (orange, pulsing dot)
 //   ● Live now         while it's on
-// The link to share is on the details page, not here, so it's never
-// mistaken for the meeting link.
+// The landing page link is behind Share, in a pop-up that names it, so
+// it's never mistaken for the meeting link.
 // The list re-reads the clock every 30 seconds, so the button, the
 // "Starts in" line and the groups move on while the page sits open.
 //
 // webinars: the saved records (App.jsx)
 // onCreate(), onOpen(id) (where they left off: Continue setting up),
-// onOpenOverview(id) (a click on the row), onEditPages(id),
+// onOpenOverview(id) (a click on the row, and Edit webinar),
 // onDelete(ids) (every date of one webinar), onRunAgain(id)
 // ------------------------------------------------------------
 
@@ -91,8 +97,10 @@ function useSignupsTick() {
   return tick;
 }
 
-export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain }) {  const [deleting, setDeleting] = useState(null); // { ids, name, dates, live } while the pop-up asks
+export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain }) {
+  const [deleting, setDeleting] = useState(null); // { ids, name, dates, live } while the pop-up asks
   const [said, setSaid] = useState(''); // for screen readers: what just changed
+  const [sharing, setSharing] = useState(null); // the webinar (the date its row shows) while Share is open
   const now = useNow();
   useSignupsTick();
 
@@ -146,6 +154,7 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
     people: w.publishedAt ? peopleOf(w.id).length : null,
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
+    onShare: () => setSharing(w),
     onRunAgain: () => onRunAgain(w.id),
     onDelete: () =>
       setDeleting({
@@ -211,6 +220,8 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
         {said}
       </p>
 
+      {sharing && <WebinarShare webinar={sharing} onClose={() => setSharing(null)} />}
+
       {deleting && (
         <ConfirmDialog
           title="Delete this webinar?"
@@ -228,6 +239,25 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
         </ConfirmDialog>
       )}
     </div>
+  );
+}
+
+// Share webinar: the pop-up for one webinar. Its link is the one for
+// every session; the date in it is the one the row shows.
+function WebinarShare({ webinar, onClose }) {
+  const name = funnelName(webinar, TYPE);
+  const url = liveHref(webinar);
+  const when = webinarWhen(webinar.answers ?? {});
+  const meta = [when?.line, webinarPrice(webinar.answers ?? {}).label].filter(Boolean).join(' · ');
+  return (
+    <ShareDialog
+      heading="Share webinar"
+      name={name}
+      meta={meta}
+      url={url}
+      message={webinarShareMessage(webinar, name, url)}
+      onClose={onClose}
+    />
   );
 }
 
@@ -261,7 +291,8 @@ function draftProgress(webinar) {
 // webinar: the date this row shows (the one its link opens)
 // dates: how many dates it has (2 or more shows "3 dates")
 // people: how many signed up for that date, or null for a draft
-function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onDelete, onRunAgain }) {  const { answers } = webinar;
+function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onShare, onDelete, onRunAgain }) {
+  const { answers } = webinar;
   const name = funnelName(webinar, TYPE);
   const status = webinarStatus(webinar, now);
   // 'join', 'start' or 'live' (data/webinar.js); only upcoming webinars have the button
@@ -275,8 +306,7 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onDel
   const details = [when?.line, length].filter(Boolean).join(' · ');
   const showPrice = landingDone || status !== 'draft';
 
-  // The three page cards, where each page is edited
-    // The webinar's details page (same place a click on the row goes)
+  // The webinar's details page (same place a click on the row goes)
   const editWebinar = (
     <button type="button" className="oh__edit" onClick={onOpenOverview} aria-label={`Edit ${name}`}>
       <Pencil size={15} aria-hidden="true" /> Edit webinar
@@ -355,6 +385,9 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onDel
         ) : (
           <>
             <MeetingButton state={meeting} href={meetingHref(webinar.id)} name={name} />
+            <button type="button" className="oh__edit" onClick={onShare} aria-label={`Share ${name}`}>
+              <Share2 size={15} aria-hidden="true" /> Share
+            </button>
             {editWebinar}
           </>
         )}

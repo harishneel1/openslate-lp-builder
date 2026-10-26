@@ -31,3 +31,10 @@ export function whatsappHref(phone, message = '') {
   if (!number) return null;
   return message ? `https://wa.me/${number}?text=${encodeURIComponent(message)}` : `https://wa.me/${number}`;
 }
+// A link that opens WhatsApp with a message ready, and lets them pick who
+// to send it to (no number needed): https://wa.me/?text=…
+// On a phone it opens the app's chat picker; on a computer, WhatsApp
+// Desktop or WhatsApp Web. Used by Share webinar (ShareDialog).
+export function whatsappShareHref(message) {
+  return `https://wa.me/?text=${encodeURIComponent(String(message ?? ''))}`;
+}

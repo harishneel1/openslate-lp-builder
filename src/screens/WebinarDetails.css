@@ -2,13 +2,38 @@
    from OfferingsHome.css, the meeting button and badges from
    WebinarsPage.css; only what's new is here. */
 
-/* ---------- Header: what it is on the left, what to do on the right ---------- */
+/* ---------- Header: a white band across the page ----------
+   What the webinar is (name, link, pages), set apart from what's
+   happening (the grey below). The band runs edge to edge of the main
+   area: the border-image is painted past the sides (outset), which only
+   draws, so nothing scrolls sideways; .app__main clips it at its edges.
+   Its bottom pixel is the border line. It starts right under the focus
+   bar: -48px is .app__main's 32px padding plus .oh's 16px. */
 .wd__head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start; /* the buttons line up with the top, not the link */
-  gap: 16px 32px;
-  padding-top: 8px;
+  grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); /* about 55 / 45 */
+  align-items: stretch; /* both columns as tall as the taller one */
+  gap: 28px 48px;
+  margin: -48px 0 32px;
+  padding: 44px 0;
+  border-image: linear-gradient(to top, var(--color-border) 0 1px, var(--color-surface) 1px) fill 0 / 0 / 0 100vmax;
+}
+
+/* Title, link, then the next session at the bottom: the title lines up
+   with the page picture's top, the card's bottom with its bottom */
+.wd__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.wd__intro .wd__actions {
+  margin-top: -4px; /* 20px under the title: the buttons belong to it */
+}
+
+.wd__intro .wd__next {
+  margin-top: auto;
 }
 
 .wd__status {
@@ -22,123 +47,240 @@
   line-height: 1.25;
 }
 
-.wd__actions {
+/* ---------- The landing page, as a small desktop window ----------
+   The same browser frame as the storefront's example page
+   (ProfileExample.css). The page sits under a dark wash with a white
+   pill in the middle, as on the building step (BuildingStep.css), so it
+   reads as a button; hover or focus darkens it and lifts the pill. */
+.wd-thumb {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-/* ⋯ the same height as the buttons beside it */
-.wd__actions .row-menu__button {
-  width: 42px;
-  height: 42px;
-}
-
-/* Wide enough for "Run again on a new date" on one line */
-.wd__actions .row-menu__list {
-  width: 250px;
-}
-
-/* ---------- The landing page link: a small box with Copy attached ---------- */
-.wd__share {
-  margin-top: 16px;
-}
-
-.wd__share-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-/* Looks like a read-only field: one edge around the address and Copy */
-.wd__share-box {
-  display: flex;
-  align-items: center;
-  width: 440px;
-  max-width: 100%;
-  height: 42px;
+  flex-direction: column;
+  min-height: 320px;
   overflow: hidden;
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.wd__share-icon {
-  flex: none;
-  margin: 0 8px 0 12px;
-  color: var(--color-text-muted);
+.wd-thumb:has(.wd-thumb__edit:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
 }
 
-.wd__share-url {
+.wd-thumb__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: #f6f6f6;
+}
+
+.wd-thumb__dots {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 5px;
+}
+
+.wd-thumb__dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dcdcdc;
+}
+
+/* The address, as a browser shows it */
+.wd-thumb__url {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   min-width: 0;
+  padding: 3px 10px;
   overflow: hidden;
-  font-size: 14px;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-radius: var(--radius-pill);
 }
 
-.wd__share-open {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  margin: 0 4px;
+.wd-thumb__url svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* 👁 at the end of the bar, where a browser keeps its own controls */
+.wd-thumb__preview {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
   color: var(--color-text-muted);
   border-radius: var(--radius-sm);
   transition: background 0.15s, color 0.15s;
 }
 
-.wd__share-open:hover {
+.wd-thumb__preview:hover {
   color: var(--color-text);
-  background: #f3f3f5;
+  background: #e7e7e7;
 }
 
-/* Copy: part of the box, divided by a line, tinted like other copy buttons */
-.wd__share-copy {
+.wd-thumb__preview:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* The page fills whatever height the frame has; it's drawn by width, so
+   a taller frame just shows more of it */
+.wd-thumb__view {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--color-bg);
+}
+
+.wd-thumb__view .thumb {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  border-bottom: 0;
+}
+
+/* The whole page area is the Edit button: a dark wash, the pill near
+   the bottom so the top of their page stays easy to see */
+.wd-thumb__edit {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  width: 100%;
+  padding: 24px;
+  font: inherit;
+  background: rgba(17, 17, 17, 0.28);
+  border: 0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.wd-thumb__pill {
   display: inline-flex;
-  flex: none;
   align-items: center;
-  gap: 6px;
-  height: 100%;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  background: var(--color-surface);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wd-thumb__pill svg {
+  color: var(--color-primary);
+}
+
+.wd-thumb__edit:hover,
+.wd-thumb__edit:focus-visible {
+  background: rgba(17, 17, 17, 0.42);
+}
+
+.wd-thumb__edit:hover .wd-thumb__pill,
+.wd-thumb__edit:focus-visible .wd-thumb__pill {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+.wd-thumb__edit:focus-visible {
+  outline: none;
+}
+
+.wd-thumb__edit:focus-visible .wd-thumb__pill {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-thumb,
+  .wd-thumb__edit,
+  .wd-thumb__pill {
+    transition: none;
+  }
+
+  .wd-thumb:has(.wd-thumb__edit:hover),
+  .wd-thumb__edit:hover .wd-thumb__pill,
+  .wd-thumb__edit:focus-visible .wd-thumb__pill {
+    transform: none;
+  }
+}
+
+/* ---------- Share and copy: two buttons under the title ----------
+   Plain controls at their own width, so they read as actions on the
+   title, not as a block between it and the card. */
+.wd__actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Share webinar: an outlined button */
+.wd__act {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
   padding: 0 16px;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-primary-hover);
-  background: var(--color-primary-tint);
-  border: 0;
-  border-left: 1px solid var(--color-border);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #e2e2e4;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.wd__share-copy:hover {
-  background: #fbe4d1;
+.wd__act:hover {
+  border-color: #c9c9ce;
 }
 
-.wd__share-copy--done {
+/* Copy link: quieter, no edge until hover */
+.wd__act--quiet {
+  min-width: 118px; /* "Copy link" ↔ "Copied" doesn't shift anything */
+  padding: 0 12px;
+  color: var(--color-text-muted);
+  border-color: transparent;
+}
+
+.wd__act--quiet:hover {
+  color: var(--color-text);
+  background: #f3f3f5;
+  border-color: transparent;
+}
+
+.wd__act--done,
+.wd__act--done:hover {
   color: var(--color-success);
   background: var(--color-success-tint);
 }
 
-.wd__share-copy--done:hover {
-  background: var(--color-success-tint);
-}
-
-.wd__share-open:focus-visible,
-.wd__share-copy:focus-visible {
+.wd__act:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 
-.wd__share .wd__copy-error {
-  margin: 6px 0 0;
+.wd__actions .wd__copy-error {
+  margin: 8px 0 0;
 }
 
 /* ---------- On the day: the countdown tag ----------
@@ -318,10 +460,20 @@
 @media (max-width: 860px) {
   .wd__head {
     grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding: 32px 0;
   }
 
-  .wd__actions {
-    justify-content: flex-start;
+  /* One column: the picture goes under the link, at a laptop's shape */
+  .wd-thumb {
+    width: 100%;
+    max-width: 420px;
+    min-height: 0;
+  }
+
+  .wd-thumb__view {
+    flex: none;
+    aspect-ratio: 16 / 10;
   }
 }
 
@@ -335,10 +487,6 @@
     width: 100%;
   }
 
-  .wd__share-box {
-    width: 100%;
-  }
-
   .wd__wa {
     width: auto;
     padding: 0 14px;
@@ -346,32 +494,14 @@
 
 }
 
-/* "One link for every session. It opens Sat 7 Nov." */
-.wd__share-note {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-/* ---------- The next session: a card under the link ----------
-   Outlined in orange: the one thing coaches check every day. Date on the
-   left, the sign-up count in the middle (the way into its people), the
-   meeting button on the right. */
+/* ---------- The next session: a card in the header ----------
+   Light orange and the same every day: the most important card on the
+   page. Join meeting in it is the one filled orange button. */
 .wd__next {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 16px 32px;
-  margin-top: 28px;
-  padding: 20px 24px;
-  background: var(--color-surface);
-  border: 2px solid var(--color-primary);
+  padding: 20px 22px;
+  background: var(--color-primary-tint);
+  border: 1.5px solid var(--color-primary);
   border-radius: var(--radius-lg);
-}
-
-.wd__next--none {
-  grid-template-columns: minmax(0, 1fr) auto;
-  border: 1px dashed var(--color-border);
 }
 
 .wd__next-label {
@@ -407,15 +537,28 @@
   margin: 0;
 }
 
-/* The count is a button: it opens this session's people */
+/* Signed up on the left, the meeting button on the right */
+.wd__next-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* "23 signed up · See people >": opens this session's people */
 .wd__next-people {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  min-width: 120px;
-  padding: 8px 16px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: -6px -8px;
+  padding: 6px 8px;
   font: inherit;
-  color: var(--color-text);
+  font-size: 14px;
+  color: var(--color-text-muted);
   background: transparent;
   border: 0;
   border-radius: var(--radius-sm);
@@ -424,7 +567,7 @@
 }
 
 .wd__next-people:hover {
-  background: #f3f3f5;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .wd__next-people:focus-visible {
@@ -433,30 +576,36 @@
 }
 
 .wd__next-num {
-  font-size: 30px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 1.1;
+  color: var(--color-text);
   font-variant-numeric: tabular-nums;
-}
-
-.wd__next-num-label {
-  font-size: 13px;
-  color: var(--color-text-muted);
 }
 
 .wd__next-see {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-top: 4px;
-  font-size: 13px;
+  margin-left: 6px;
   font-weight: 600;
   color: var(--color-primary-hover);
 }
 
+/* Join meeting, filled orange here (on the list it stays outlined) */
+.wd__next .wb-row__join {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.wd__next .wb-row__join:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
 /* ---------- Sessions | Emails ---------- */
 .wd__main {
-  margin-top: 24px;
+  margin-top: 0; /* the band's bottom margin is the gap */
 }
 
 /* ---------- Sessions: a full-width table; each row a button ---------- */
@@ -698,10 +847,6 @@ button.wd__st-row:focus-visible {
 }
 
 @media (max-width: 900px) {
-  .wd__next {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
   .wd__st-row {
     grid-template-columns: minmax(140px, 1fr) minmax(0, 1.4fr) 80px 110px;
     padding-left: 16px;

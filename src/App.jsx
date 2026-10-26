@@ -491,11 +491,8 @@ function App() {
             if (other) openWebinar(other.id);
             else setOpenId(null);
           }}
-          // Delete webinar (the page's own ⋯): every session, then back to the list
-          onDeleteWebinar={(ids) => {
-            setOpenId(null);
-            ids.forEach(deleteFunnel);
-          }}
+          // 👁 on the landing page picture: save first, so the preview tab shows the latest
+          onPreview={saveNow}
         />
       );
     }

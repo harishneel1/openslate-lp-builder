@@ -1,0 +1,204 @@
+/* Share pop-up (ShareDialog.jsx): like YouTube's. Same frame as ConfirmDialog. */
+.share-dialog {
+  width: min(460px, calc(100vw - 32px));
+  margin: auto;
+  padding: 24px 28px 28px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.share-dialog:focus,
+.share-dialog:focus-visible {
+  outline: none;
+}
+
+.share-dialog::backdrop {
+  background: rgba(17, 17, 17, 0.4);
+}
+
+.share-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.share-dialog__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.share-dialog__close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: -8px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.share-dialog__close:hover {
+  color: var(--color-text);
+  background: #f3f3f5;
+}
+
+/* What's being shared */
+.share-dialog__what {
+  margin-top: 12px;
+}
+
+.share-dialog__name {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.share-dialog__meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- The apps: round icons with their names under them ---------- */
+.share-dialog__apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.share-dialog__app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 72px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.share-dialog__app-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  color: #fff;
+  border-radius: 50%;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.share-dialog__app--whatsapp .share-dialog__app-icon {
+  background: #25d366;
+}
+
+.share-dialog__app:hover .share-dialog__app-icon {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.share-dialog__app:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- The link, with Copy attached (as on the details page) ---------- */
+.share-dialog__link {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin-top: 24px;
+  overflow: hidden;
+  background: #f7f7f8;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.share-dialog__url {
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  user-select: all; /* one click selects it, if Copy fails */
+}
+
+.share-dialog__copy {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.share-dialog__copy:hover {
+  background: var(--color-primary-hover);
+}
+
+.share-dialog__copy--done,
+.share-dialog__copy--done:hover {
+  background: var(--color-success);
+}
+
+.share-dialog__copy:focus-visible,
+.share-dialog__close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.share-dialog__error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #b42318;
+}
+
+.share-dialog__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-dialog__close,
+  .share-dialog__app-icon,
+  .share-dialog__copy {
+    transition: none;
+  }
+
+  .share-dialog__app:hover .share-dialog__app-icon {
+    transform: none;
+  }
+}
