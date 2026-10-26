@@ -450,7 +450,6 @@ function App() {
           onOpen={setOpenId}
           // A click on the row: straight to its overview (the three page cards)
           onOpenOverview={openWebinar}
-          onEditPages={openPages}
           onRunAgain={setRunAgainId}
           // A row is a whole webinar: every one of its dates goes
           onDelete={(ids) => [].concat(ids).forEach(deleteFunnel)}

@@ -91,8 +91,7 @@ function useSignupsTick() {
   return tick;
 }
 
-export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onEditPages = onOpenOverview, onDelete, onRunAgain }) {
-  const [deleting, setDeleting] = useState(null); // { ids, name, dates, live } while the pop-up asks
+export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOverview = onOpen, onDelete, onRunAgain }) {  const [deleting, setDeleting] = useState(null); // { ids, name, dates, live } while the pop-up asks
   const [said, setSaid] = useState(''); // for screen readers: what just changed
   const now = useNow();
   useSignupsTick();
@@ -147,7 +146,6 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
     people: w.publishedAt ? peopleOf(w.id).length : null,
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
-    onEditPages: () => onEditPages(w.id),
     onRunAgain: () => onRunAgain(w.id),
     onDelete: () =>
       setDeleting({
@@ -263,8 +261,7 @@ function draftProgress(webinar) {
 // webinar: the date this row shows (the one its link opens)
 // dates: how many dates it has (2 or more shows "3 dates")
 // people: how many signed up for that date, or null for a draft
-function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onEditPages, onDelete, onRunAgain }) {
-  const { answers } = webinar;
+function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onDelete, onRunAgain }) {  const { answers } = webinar;
   const name = funnelName(webinar, TYPE);
   const status = webinarStatus(webinar, now);
   // 'join', 'start' or 'live' (data/webinar.js); only upcoming webinars have the button
@@ -279,9 +276,10 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onEdi
   const showPrice = landingDone || status !== 'draft';
 
   // The three page cards, where each page is edited
-  const editPages = (
-    <button type="button" className="oh__edit" onClick={onEditPages} aria-label={`Edit the pages of ${name}`}>
-      <Pencil size={15} aria-hidden="true" /> Edit webinar pages
+    // The webinar's details page (same place a click on the row goes)
+  const editWebinar = (
+    <button type="button" className="oh__edit" onClick={onOpenOverview} aria-label={`Edit ${name}`}>
+      <Pencil size={15} aria-hidden="true" /> Edit webinar
     </button>
   );
 
@@ -348,7 +346,7 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onEdi
             >
               <Plus size={15} aria-hidden="true" /> Add another session
             </button>
-            {editPages}
+            {editWebinar}
           </>
         ) : status === 'draft' ? (
           <button type="button" className="oh__edit wb-row__continue" onClick={onOpen} aria-label={`Continue setting up ${name}`}>
@@ -357,7 +355,7 @@ function WebinarRow({ webinar, now, dates, people, onOpen, onOpenOverview, onEdi
         ) : (
           <>
             <MeetingButton state={meeting} href={meetingHref(webinar.id)} name={name} />
-            {editPages}
+            {editWebinar}
           </>
         )}
         {/* Delete was the only thing left in the ⋯ menu, so it's its own button */}
