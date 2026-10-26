@@ -23,7 +23,7 @@ import './ReminderEditor.css';
 // webinar's details slotted in.
 //
 //   ← Emails
-//   Confirmation email after registering   Reset to template  [Send me a test]  [Save changes]
+//   Confirmation email after registering   Reset to default template  [Send me a test]  [Save changes]
 //   Goes to each person after they register
 //   ┌ the email (wider: the thing you work on) ┐  ╭━━━━━━━━━ • ━━━━━━━━━━╮
 //   │ Subject  [You're in: (Webinar title)]    │  ┃ ┌──────────────────┐ ┃
@@ -58,7 +58,7 @@ import './ReminderEditor.css';
 //   too. Saving goes back to the Emails list (App does that).
 // - Send me a test sits beside it, always: an address box, filled with
 //   the last one used. It sends what's on screen, saved or not.
-// - Reset to template is a quiet text button, shown only once the text
+// - Reset to default template is a quiet text button, shown only once the text
 //   differs from the template; it asks first.
 // - Pasting brings in plain text only.
 // The text boxes use the browser's own editing (contentEditable); a
@@ -380,7 +380,7 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
         <div className="re__actions">
           {!isTemplate && (
             <button type="button" className="re__reset" onClick={() => setAsk('reset')}>
-              <RotateCcw size={14} aria-hidden="true" /> Reset to template
+              <RotateCcw size={14} aria-hidden="true" /> Reset to default template
             </button>
           )}
           <button
@@ -610,13 +610,15 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
       )}
       {ask === 'reset' && (
         <ConfirmDialog
-          title="Go back to the template?"
-          confirmLabel="Use the template"
-          cancelLabel="Keep my version"
+          title="Go back to the default template?"
+          confirmLabel="Use default template"
+          // Closes only on Cancel, ✕ or Escape, never on a stray click outside
+          stayOpen
+          closeButton
           onCancel={() => setAsk(null)}
           onConfirm={reset}
         >
-          <p>Your changes to this email will be replaced with the original text. Nothing is saved until you press Save.</p>
+          <p>Your changes to this email will be replaced with the default template. Nothing is saved until you press Save.</p>
         </ConfirmDialog>
       )}
     </div>
