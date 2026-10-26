@@ -269,7 +269,13 @@ export default function WebinarDetails({
         </div>
         {shownTab === 'sessions' ? (
           <div id="wd-panel-sessions" role="tabpanel" aria-labelledby="wd-tab-sessions">
-            <SessionsTable sessions={sessions} now={now} onOpen={setOpenId} onAdd={() => onRunAgain(latest.id)} />
+            <SessionsTable
+              sessions={sessions}
+              linkRunId={next?.id ?? null}
+              now={now}
+              onOpen={setOpenId}
+              onAdd={() => onRunAgain(latest.id)}
+            />
           </div>
         ) : (
           <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
@@ -363,13 +369,17 @@ function useSignupsTick() {
 // Join meeting is the one filled orange button in the header (the button
 // itself turns into Start webinar / Live now near the time, as on the list).
 //
-//   ┌ (Upcoming session) ─────────────────────────────────────────────┐
+//   ┌ (● Registrations open) ─────────────────────────────────────────┐
 //   │ Sat 31 Oct, 2:00 pm IST                                         │
 //   │ Starts in 7 days                                                │
 //   │ ─────────────────────────────────────────────────────────────── │
 //   │ 23 signed up · ₹22,977 collected  Manage people > [Join meeting]│
 //   └─────────────────────────────────────────────────────────────────┘
 //
+// The pill says what the sessions table's badge says for this session
+// (it's the one the landing page shows): Registrations open, or Live now
+// while it's on. Same words and orange dot, so the card and the table's
+// orange row read as one session.
 // "collected" only for a paid session: what its people paid in all.
 // With nothing coming up, the same card says so and offers to add a session.
 function NextSession({ run, name, now, onOpen, onAdd }) {
@@ -395,7 +405,10 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
   const paid = !webinarPrice(answers).isFree;
   return (
     <section className="wd__next" aria-labelledby="wd-next-title">
-      <p className="wd__next-label">Upcoming session</p>
+      <p className="wd__next-label">
+        <span className="wb-badge__dot" aria-hidden="true" />
+        {isOnNow(answers, now) ? 'Live now' : 'Registrations open'}
+      </p>
       <h2 className="wd__next-title" id="wd-next-title">
         {dayOfRun(run) ?? 'No date yet'}
         {timeOfRun(run) ? `, ${timeOfRun(run)}` : ''}
@@ -429,20 +442,46 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 
 // ---------- Sessions: every date, as a full-width table ----------
 // Coming up first (soonest at the top), then past ones (latest first).
-// A whole row is one button: it opens that session in a side panel
-// (Manage people, Edit session). The last row adds a session.
+// Clicking a row opens that session in a side panel (Manage people, Edit
+// session); its Manage session button does the same from the keyboard.
+// The last row adds a session.
 //
-//   Session              Status        Signed up  Collected
-//   Sat 31 Oct 2:00 pm   ● Coming up       12     ₹11,988    Manage session >
-//   Sat 24 Oct 2:00 pm   Ended              2     Free       Manage session >
+//   Session              Status                    Signed up  Collected
+// ▌ Mon 9 Nov 7:00 pm    ● Registrations open (i)      12     ₹11,988   Manage session >
+//   Mon 16 Nov 7:00 pm   Scheduled                      0     ₹0        Manage session >
+//   Mon 2 Nov 7:00 pm    Ended                          2     Free      Manage session >
 //   + Add another session
+//
+// The session the landing page link takes registrations for (linkRunId)
+// is the one marked: the only orange badge, on a light orange row with an
+// orange edge, like the upcoming session card. Its (i) says what the
+// landing page shows now: "Your landing page shows this session: Mon 9 Nov,
+// 7:00 pm IST · ₹999". While it's on, it says Live now instead. Every
+// later one is Scheduled, in grey.
+//
+// With GROUP_AT sessions or more, the rows come in groups: Next up (or
+// Happening now), Later · 10, and Ended · 4, which starts folded away.
 //
 // Collected (what each session's people paid in all) shows once any
 // session is paid, or anyone has paid; a free session's row says Free.
-function SessionsTable({ sessions, now, onOpen, onAdd }) {
+const GROUP_AT = 10;
+
+function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
+  const [endedOpen, setEndedOpen] = useState(false);
   const isPast = (r) => webinarStatus(r, now) === 'past';
-  const order = [...sessions.filter((r) => !isPast(r)), ...sessions.filter(isPast).reverse()];
+  const upcoming = sessions.filter((r) => !isPast(r));
+  const ended = sessions.filter(isPast).reverse();
   const money = sessions.some((r) => !webinarPrice(r.answers ?? {}).isFree || collectedOf(r.id) > 0);
+  const linkRun = upcoming.find((r) => r.id === linkRunId) ?? null;
+  const later = upcoming.filter((r) => r.id !== linkRunId);
+  const linkLive = linkRun ? isOnNow(linkRun.answers ?? {}, now) : false;
+
+  const row = (r) => (
+    <SessionRow key={r.id} run={r} now={now} isLink={r.id === linkRunId} money={money} onOpen={onOpen} />
+  );
+
+  const grouped = sessions.length >= GROUP_AT;
+
   return (
     <div className={`wd__st ${money ? 'wd__st--money' : ''}`}>
       <div className="wd__st-row wd__st-row--head" aria-hidden="true">
@@ -452,50 +491,120 @@ function SessionsTable({ sessions, now, onOpen, onAdd }) {
         {money && <span>Collected</span>}
         <span />
       </div>
-      <ul className="wd__st-list">
-        {order.map((r) => {
-          const answers = r.answers ?? {};
-          const live = isOnNow(answers, now);
-          const past = isPast(r);
-          const label = live ? 'Live now' : past ? 'Ended' : 'Coming up';
-          const tone = live ? 'wd__st-badge--live' : past ? '' : 'wb-badge--live';
-          const count = peopleOf(r.id).length;
-          const collected = collectedOf(r.id);
-          const free = webinarPrice(answers).isFree && collected === 0;
-          const moneyText = money ? (free ? 'Free' : rupees(collected)) : null;
-          const day = dayOfRun(r) ?? 'No date yet';
-          return (
-            <li key={r.id}>
-              <button
-                type="button"
-                className="wd__st-row"
-                onClick={() => onOpen(r.id)}
-                aria-label={`${day}, ${label}, ${count} signed up${moneyText ? `, ${free ? 'free' : `${moneyText} collected`}` : ''}. Manage session`}
-              >
-                <span className="wd__st-when">
-                  <span className="wd__st-day">{day}</span>
-                  <span className="wd__st-time">{timeOfRun(r)}</span>
-                </span>
-                <span className="wd__st-status">
-                  <span className={`wb-badge ${tone}`}>
-                    {!past && <span className="wb-badge__dot" aria-hidden="true" />}
-                    {label}
-                  </span>
-                </span>
-                <span className="wd__st-count">{count}</span>
-                {money && <span className={`wd__st-money ${free ? 'wd__st-money--free' : ''}`}>{moneyText}</span>}
-                <span className="wd__st-go">
-                  Manage session <ChevronRight size={15} aria-hidden="true" />
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+
+      {grouped ? (
+        <>
+          {linkRun && (
+            <section aria-label={linkLive ? 'Happening now' : 'Next up'}>
+              <h3 className="wd__st-group">{linkLive ? 'Happening now' : 'Next up'}</h3>
+              <ul className="wd__st-list">{row(linkRun)}</ul>
+            </section>
+          )}
+          {later.length > 0 && (
+            <section aria-label="Later">
+              <h3 className="wd__st-group">
+                Later <span className="wd__st-group-count">· {later.length}</span>
+              </h3>
+              <ul className="wd__st-list">{later.map(row)}</ul>
+            </section>
+          )}
+          {ended.length > 0 && (
+            <section aria-label="Ended">
+              <h3 className="wd__st-group wd__st-group--toggle">
+                <button
+                  type="button"
+                  className="wd__st-group-btn"
+                  aria-expanded={endedOpen}
+                  aria-controls="wd-st-ended"
+                  onClick={() => setEndedOpen((o) => !o)}
+                >
+                  Ended <span className="wd__st-group-count">· {ended.length}</span>
+                  <ChevronRight
+                    size={15}
+                    aria-hidden="true"
+                    className={`wd__st-group-chev ${endedOpen ? 'wd__st-group-chev--open' : ''}`}
+                  />
+                </button>
+              </h3>
+              {endedOpen && (
+                <ul className="wd__st-list" id="wd-st-ended">
+                  {ended.map(row)}
+                </ul>
+              )}
+            </section>
+          )}
+        </>
+      ) : (
+        <ul className="wd__st-list">{[...upcoming, ...ended].map(row)}</ul>
+      )}
+
       <button type="button" className="wd__st-add" onClick={onAdd}>
         <Plus size={16} aria-hidden="true" /> Add another session
       </button>
     </div>
+  );
+}
+
+// One session's row. The row is clickable as a whole; Manage session is the
+// real button (for the keyboard and screen readers), so the (i) inside the
+// row can be a button of its own.
+function SessionRow({ run: r, now, isLink, money, onOpen }) {
+  const answers = r.answers ?? {};
+  const live = isOnNow(answers, now);
+  const past = webinarStatus(r, now) === 'past';
+  const label = live ? 'Live now' : past ? 'Ended' : isLink ? 'Registrations open' : 'Scheduled';
+  const tone = live || isLink ? 'wd__st-badge--link' : '';
+  const count = peopleOf(r.id).length;
+  const collected = collectedOf(r.id);
+  const free = webinarPrice(answers).isFree && collected === 0;
+  const moneyText = money ? (free ? 'Free' : rupees(collected)) : null;
+  const day = dayOfRun(r) ?? 'No date yet';
+  const open = () => onOpen(r.id);
+  // The (i) beside Registrations open: what the landing page shows now
+  const linkTip = (
+    <>
+      Your landing page shows this session:
+      <strong className="wd__st-tip-line">
+        {[webinarWhen(answers)?.line, webinarPrice(answers).label].filter(Boolean).join(' · ')}
+      </strong>
+    </>
+  );
+  return (
+    <li>
+      <div className={`wd__st-row wd__st-row--click ${isLink ? 'wd__st-row--link' : ''}`} onClick={open}>
+        <span className="wd__st-when">
+          <span className="wd__st-day">{day}</span>
+          <span className="wd__st-time">{timeOfRun(r)}</span>
+        </span>
+        <span className="wd__st-status">
+          <span className={`wb-badge ${tone}`}>
+            {(live || isLink) && <span className="wb-badge__dot" aria-hidden="true" />}
+            {label}
+          </span>
+          {isLink && !live && (
+            // A click on the (i) explains; it doesn't open the session
+            <span className="wd__st-tip" onClick={(e) => e.stopPropagation()}>
+              <InfoTip label="Registrations open" text={linkTip} />
+            </span>
+          )}
+        </span>
+        <span className="wd__st-count">{count}</span>
+        {money && <span className={`wd__st-money ${free ? 'wd__st-money--free' : ''}`}>{moneyText}</span>}
+        <button
+          type="button"
+          className="wd__st-go"
+          onClick={(e) => {
+            e.stopPropagation();
+            open();
+          }}
+          aria-label={`Manage session: ${day}, ${label}, ${count} signed up${
+            moneyText ? `, ${free ? 'free' : `${moneyText} collected`}` : ''
+          }`}
+        >
+          Manage session <ChevronRight size={15} aria-hidden="true" />
+        </button>
+      </div>
+    </li>
   );
 }
 

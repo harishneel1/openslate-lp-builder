@@ -504,9 +504,11 @@
   border-radius: var(--radius-lg);
 }
 
-/* "Upcoming session": a pill, a shade deeper than the card */
+/* "● Registrations open" (or Live now): a pill, a shade deeper than the card */
 .wd__next-label {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 10px;
   padding: 3px 12px;
   font-size: 14px;
@@ -630,22 +632,89 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-button.wd__st-row {
+.wd__st-row--click {
   cursor: pointer;
   transition: background 0.15s;
 }
 
-button.wd__st-row:hover {
+.wd__st-row--click:hover {
   background: #fafafb;
 }
 
-button.wd__st-row:hover .wd__st-go {
+.wd__st-row--click:hover .wd__st-go {
   color: var(--color-primary-hover);
 }
 
-button.wd__st-row:focus-visible {
+/* The keyboard reaches the row through its Manage session button */
+.wd__st-go:focus-visible {
+  color: var(--color-primary-hover);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The session the link takes registrations for: light orange with an
+   orange edge, like the upcoming session card */
+.wd__st-row--link {
+  background: var(--color-primary-tint);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.wd__st-row--link:hover {
+  background: #fbe8d8;
+}
+
+/* Groups, with 10 sessions or more: Next up, Later · 10, Ended · 4 */
+.wd__st-group {
+  margin: 0;
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: #fafafb;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wd__st-group-count {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.wd__st-group--toggle {
+  padding: 0;
+}
+
+.wd__st-group-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 24px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.wd__st-group-btn:hover {
+  background: #f3f3f5;
+}
+
+.wd__st-group-btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+.wd__st-group-chev {
+  margin-left: 2px;
+  color: var(--color-text-muted);
+  transition: transform 0.15s;
+}
+
+.wd__st-group-chev--open {
+  transform: rotate(90deg);
 }
 
 .wd__st-row--head {
@@ -685,9 +754,25 @@ button.wd__st-row:focus-visible {
   gap: 6px 12px;
 }
 
-.wd__st-badge--live {
+/* Registrations open (and Live now): the only orange badge in the list.
+   A shade deeper than the row's tint, so it shows on it */
+.wd__st-badge--link {
   color: var(--color-primary-hover);
-  background: var(--color-primary-tint);
+  background: #fbe0c8;
+}
+
+/* The (i) beside Registrations open */
+.wd__st-tip {
+  display: inline-flex;
+  margin-left: -6px;
+}
+
+/* Its second line: the date and price, as the page shows them */
+.wd__st-tip-line {
+  display: block;
+  margin-top: 2px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .wd__st-count {
@@ -717,8 +802,14 @@ button.wd__st-row:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
+  justify-self: end;
   gap: 2px;
+  padding: 6px 0;
+  font: inherit;
   font-size: 14px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
   font-weight: 600;
   color: var(--color-text-muted);
   transition: color 0.15s;
@@ -1072,7 +1163,8 @@ button.wd__st-row:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .wd__next-people,
-  button.wd__st-row,
+  .wd__st-row--click,
+  .wd__st-group-chev,
   .wd__st-go,
   .wd__st-add {
     transition: none;
