@@ -1,155 +1,265 @@
-/* The hours panel (HoursDrawer.jsx). The panel is already the white
-   surface, so the weekly hours sheet drops its own card here. */
-.hd .wh__card {
-  background: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
+/* ------------------------------------------------------------
+   An email opened in a desktop inbox (InboxPreview.jsx): Gmail's look,
+   without its name or logo. Gmail's own sizes and greys, so it reads as
+   "this is what lands in their inbox" rather than part of this app.
+
+     ←  ▢  🗑  ✉                                   the bar
+     You're in: Fix the Vasthu…  [Inbox]          the subject
+     (H) Harish            4:07 PM  ☆ ↩ ⋮          sender row
+         to me
+         Hi Harish, …                              the email, 600px wide
+         [ Join webinar ]
+         ───────────────
+         You're getting this because…             small print
+
+   Shown on its own it's a white card; the email editor puts it on a
+   tablet screen and drops the card's edge (see ReminderEditor.css).
+   ------------------------------------------------------------ */
+
+.ib {
+  --ib-ink: #202124;
+  --ib-ink-2: #5f6368;
+  --ib-line: #e0e0e0;
+  --ib-icon: #444746;
+  padding: 12px 20px 28px;
+  font-family: 'Google Sans', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ib-ink);
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--ib-line);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.15);
 }
 
-.hd .wh__head {
-  padding: 0 0 8px;
-}
-
-.hd .wh__days {
-  padding: 8px 0;
-}
-
-.hd .wh__foot {
-  padding: 14px 0 0;
-}
-
-/* ---------- Booking rules ---------- */
-.hd-rules {
-  margin-top: 28px;
-  padding-top: 24px;
-  border-top: 1px solid var(--color-border);
-}
-
-.hd-rules__title {
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.hd-rules__list {
+/* ---------- The bar: back, archive, delete, mark unread ---------- */
+.ib__bar {
   display: flex;
-  flex-direction: column;
-  margin-top: 8px;
+  align-items: center;
+  gap: 22px;
+  height: 40px;
+  padding: 0 4px;
+  margin-bottom: 8px;
+  color: var(--ib-icon);
+  border-bottom: 1px solid #f1f3f4;
 }
 
-.hd-rule {
+.ib__bar svg {
+  flex: none;
+}
+
+/* A little more room after back, as in Gmail */
+.ib__bar svg:first-child {
+  margin-right: 10px;
+}
+
+/* ---------- Subject, with the Inbox tag after it ---------- */
+.ib__subject-row {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 16px 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 0 16px 56px; /* lines up with the sender's name */
 }
 
-.hd-rule + .hd-rule {
-  border-top: 1px solid var(--color-border);
+.ib__subject {
+  margin: 0;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--ib-ink);
+  overflow-wrap: anywhere;
 }
 
-.hd-rule__text {
+.ib__tag {
+  flex: none;
+  padding: 1px 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ib-ink-2);
+  background: #e8eaed;
+  border-radius: 4px;
+}
+
+/* ---------- The message: avatar, then everything else ---------- */
+.ib__msg {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.ib__avatar {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #fff;
+  background: #e8710a; /* one of Gmail's own avatar colours, close to the brand */
+  border-radius: 50%;
+}
+
+.ib__main {
   min-width: 0;
 }
 
-.hd-rule__head {
+.ib__from-row {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.hd-rule__label {
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.hd-rule__hint {
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
-}
-
-/* The worked example: a soft box, the part that changes in bold */
-.hd-rule__example {
-  margin-top: 6px;
-  padding: 8px 10px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-text);
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
-}
-
-.hd-rule__example-tag {
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.hd-rule__example strong {
-  font-weight: 600;
-  color: var(--color-primary-hover);
-}
-
-.hd-rule__select {
-  flex-shrink: 0;
-  min-width: 150px;
-  padding: 9px 12px;
-  font: inherit;
+.ib__from {
+  margin: 0;
   font-size: 14px;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+  color: var(--ib-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.hd-rule__select:hover {
-  border-color: #d6d6d6;
+.ib__from b {
+  font-weight: 700;
 }
 
-.hd-rule__select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-/* ---------- Where days off live ---------- */
-.hd-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 24px;
-  padding: 12px 14px;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
-}
-
-.hd-note svg {
+.ib__time {
+  display: inline-flex;
   flex: none;
-  margin-top: 2px;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--ib-ink-2);
+  white-space: nowrap;
 }
 
-/* ---------- Footer ---------- */
-.hd__status {
-  flex: 1 1 200px;
+.ib__time svg {
+  color: var(--ib-icon);
+}
+
+/* The time, then a bit more room before the icons */
+.ib__time svg:first-of-type {
+  margin-left: 4px;
+}
+
+.ib__to {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ib-ink-2);
+}
+
+/* ---------- The email itself, at the usual email width ---------- */
+.ib__email {
+  max-width: 600px;
+  margin-top: 20px;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
+  line-height: 1.55;
+  color: var(--ib-ink);
 }
 
-.hd__status strong {
-  color: var(--color-text);
+.ib__body {
+  overflow-wrap: anywhere;
 }
 
-.hd__actions {
-  display: flex;
-  gap: 10px;
-  margin-left: auto;
+.ib__body p {
+  margin: 0 0 14px;
+}
+
+.ib__body p:last-child {
+  margin-bottom: 0;
+}
+
+.ib__body strong,
+.ib__body b {
+  font-weight: 700;
+}
+
+.ib__body ul,
+.ib__body ol {
+  margin: 0 0 14px;
+  padding-left: 24px;
+}
+
+.ib__body li {
+  margin: 0 0 4px;
+}
+
+.ib__body a {
+  color: #1a73e8;
+  text-decoration: underline;
+}
+
+/* An empty line the editor left behind takes a line's height */
+.ib__body p:empty::before {
+  content: '\00a0';
+}
+
+/* The Join button: the brand's orange, as the email sends it */
+.ib__join {
+  display: inline-block;
+  margin-top: 22px;
+  padding: 12px 24px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+  text-decoration: none;
+  background: #ef8a3c; /* --color-primary: an email can't read the app's tokens */
+  border-radius: 6px;
+}
+
+.ib__join:hover {
+  background: #e07a2c;
+}
+
+.ib__join:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 2px;
+}
+
+/* The small print, under a thin line */
+.ib__foot {
+  margin: 28px 0 0;
+  padding-top: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ib-ink-2);
+  border-top: 1px solid var(--ib-line);
+}
+
+/* ---------- Narrow: the icons and avatar take less room ---------- */
+@media (max-width: 520px) {
+  .ib {
+    padding: 8px 14px 20px;
+  }
+
+  .ib__subject-row {
+    padding-left: 0;
+  }
+
+  .ib__subject {
+    font-size: 19px;
+  }
+
+  .ib__msg {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .ib__avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+
+  .ib__time {
+    gap: 10px;
+  }
 }

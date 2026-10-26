@@ -187,9 +187,12 @@
   top: 16px;
 }
 
-/* Above the tablet: what it shows, and that one email serves everyone */
+/* Under the tablet, centred like a figure's caption: what it shows,
+   and that one email serves everyone. Kept off the top so the tablet
+   starts on the same line as the email's card. */
 .re__preview-caption {
-  margin: 0 4px 12px;
+  margin: 14px 12px 0;
+  text-align: center;
 }
 
 .re__preview-title {

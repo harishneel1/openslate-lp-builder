@@ -24,19 +24,23 @@ import './ReminderEditor.css';
 //
 //   ← Emails
 //   Confirmation email after registering   Reset to template  [Send me a test]  [Save changes]
-//   Goes to each person as they register. Changes apply to every upcoming session.
-//   ┌ the email (wider: the thing you work on) ┐   How Priya will see it
-//   │ Subject  [You're in: (Webinar title)]    │  ╭━━━━━━━━━ • ━━━━━━━━━━╮
-//   │ B I 🔗 •                 + Insert detail │  ┃ ┌──────────────────┐ ┃
-//   │ Hi (First name), …                       │  ┃ │ the inbox, on a  │ ┃
-//   │ [ Join webinar ]                         │  ┃ │ tablet's screen  │ ┃
-//   └──────────────────────────────────────────┘  ┃ └──────────────────┘ ┃
-//                                                 ╰━━━━━━━━━━━━━━━━━━━━━━╯
+//   Goes to each person after they register
+//   ┌ the email (wider: the thing you work on) ┐  ╭━━━━━━━━━ • ━━━━━━━━━━╮
+//   │ Subject  [You're in: (Webinar title)]    │  ┃ ┌──────────────────┐ ┃
+//   │ B I 🔗 •                 + Insert detail │  ┃ │ the inbox, on a  │ ┃
+//   │ Hi (First name), …                       │  ┃ │ tablet's screen  │ ┃
+//   │ [ Join webinar ]                         │  ┃ └──────────────────┘ ┃
+//   └──────────────────────────────────────────┘  ╰━━━━━━━━━━━━━━━━━━━━━━╯
+//                                                  How it will look in their
+//                                                  inbox (a caption, centred)
+//
+// The card and the tablet start on the same line; the preview's caption
+// sits under the tablet, so nothing pushes the tablet down.
 //
 // For laptops and desktops only (the tool isn't used on phones).
 // - Which webinar this email belongs to (title and date) is in the app's
 //   top bar (App.jsx passes `when`); each webinar keeps its own copy of
-//   these emails, and the status line says so.
+//   these emails.
 // - Left: the email with placeholders: fill-in fields are chips with
 //   their name ("First name"); hovering says what they fill in. Saved as
 //   markers ({{first_name}}); the sending system fills them in.
@@ -347,7 +351,12 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
 
   // When it goes out, and who it went to: the same words as the Emails
   // list's hover hint (emailStatus in data/reminders.js)
-  const status = emailStatus(row, webinar.answers, now).full;
+  // The confirmation says only that, while sessions are still to come: its
+  // sent count is on the Emails list
+  const status =
+    row.at === null && row.on && !ended
+      ? 'Goes to each person after they register'
+      : emailStatus(row, webinar.answers, now).full;
 
   // Already gone out for this session: say where changes will be used
   // (every session still to come gets them; see withSharedChanges)
@@ -366,7 +375,7 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
       <header className="re__head">
         <div className="re__intro">
           <h1 className="re__title">{reminder.name}</h1>
-          <p className="re__status">{status}. Changes apply to every upcoming session.</p>
+          <p className="re__status">{status}</p>
         </div>
         <div className="re__actions">
           {!isTemplate && (
@@ -560,12 +569,6 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
 
       {/* ---------- Right: how it lands in their inbox ---------- */}
       <section className="re__preview" aria-label="Preview">
-        <div className="re__preview-caption">
-          <p className="re__preview-title">How it will look in their inbox</p>
-          <p className="re__preview-note">
-            Everyone gets this same email with their own first name. {SAMPLE.name} is an example.
-          </p>
-        </div>
         <div className="re__tablet">
           <span className="re__tablet-camera" aria-hidden="true" />
           <div className="re__screen">
@@ -579,6 +582,13 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
               footer={`You’re getting this because you registered for ${values.webinar_title}.`}
             />
           </div>
+        </div>
+        {/* Under the tablet, so its top lines up with the email's card */}
+        <div className="re__preview-caption">
+          <p className="re__preview-title">How it will look in their inbox</p>
+          <p className="re__preview-note">
+            Everyone gets this same email with their own first name. {SAMPLE.name} is an example.
+          </p>
         </div>
       </section>
       </div>

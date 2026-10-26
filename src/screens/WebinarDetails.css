@@ -557,8 +557,9 @@
 /* "23 signed up  Manage people >": opens this session's people */
 .wd__next-people {
   display: inline-flex;
+  flex-wrap: wrap; /* "Manage people" drops below on a narrow card */
   align-items: baseline;
-  gap: 6px;
+  gap: 2px 6px;
   margin: -6px -8px;
   padding: 6px 8px;
   font: inherit;
@@ -689,18 +690,27 @@ button.wd__st-row:focus-visible {
   background: var(--color-primary-tint);
 }
 
-.wd__st-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
 .wd__st-count {
   font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* Collected: a fifth column, once any session is paid */
+.wd__st--money .wd__st-row {
+  grid-template-columns: minmax(170px, 1.1fr) minmax(0, 1.2fr) 100px 130px 140px;
+}
+
+.wd__st-money {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wd__st-money--free {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
 .wd__st-go {
@@ -1053,6 +1063,10 @@ button.wd__st-row:focus-visible {
     grid-template-columns: minmax(140px, 1fr) minmax(0, 1.4fr) 80px 110px;
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .wd__st--money .wd__st-row {
+    grid-template-columns: minmax(130px, 1fr) minmax(0, 1fr) 72px 100px 120px;
   }
 }
 

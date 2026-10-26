@@ -269,7 +269,7 @@ export default function WebinarDetails({
         </div>
         {shownTab === 'sessions' ? (
           <div id="wd-panel-sessions" role="tabpanel" aria-labelledby="wd-tab-sessions">
-            <SessionsTable sessions={sessions} linkRunId={next?.id ?? null} now={now} onOpen={setOpenId} onAdd={() => onRunAgain(latest.id)} />
+            <SessionsTable sessions={sessions} now={now} onOpen={setOpenId} onAdd={() => onRunAgain(latest.id)} />
           </div>
         ) : (
           <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
@@ -343,6 +343,15 @@ function timeOfRun(run) {
   return w ? w.line.split(', ').slice(1).join(', ') : null;
 }
 
+// What a session's people paid in all, after any discount (rupees).
+// Refunds aren't tracked, so it's what they paid when they signed up.
+function collectedOf(runId) {
+  return peopleOf(runId).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+}
+
+// '₹11,988'
+const rupees = (n) => `₹${n.toLocaleString('en-IN')}`;
+
 // Re-renders when someone signs up, here or in another tab
 function useSignupsTick() {
   const [, setTick] = useState(0);
@@ -354,13 +363,14 @@ function useSignupsTick() {
 // Join meeting is the one filled orange button in the header (the button
 // itself turns into Start webinar / Live now near the time, as on the list).
 //
-//   ┌ (Upcoming session) ──────────────────────────┐
-//   │ Sat 31 Oct, 2:00 pm IST                      │
-//   │ Starts in 7 days                             │
-//   │ ──────────────────────────────────────────── │
-//   │ 23 signed up  Manage people > [Join meeting] │
-//   └──────────────────────────────────────────────┘
+//   ┌ (Upcoming session) ─────────────────────────────────────────────┐
+//   │ Sat 31 Oct, 2:00 pm IST                                         │
+//   │ Starts in 7 days                                                │
+//   │ ─────────────────────────────────────────────────────────────── │
+//   │ 23 signed up · ₹22,977 collected  Manage people > [Join meeting]│
+//   └─────────────────────────────────────────────────────────────────┘
 //
+// "collected" only for a paid session: what its people paid in all.
 // With nothing coming up, the same card says so and offers to add a session.
 function NextSession({ run, name, now, onOpen, onAdd }) {
   if (!run) {
@@ -382,6 +392,7 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
   const answers = run.answers ?? {};
   const today = dayOf(answers, now);
   const count = peopleOf(run.id).length;
+  const paid = !webinarPrice(answers).isFree;
   return (
     <section className="wd__next" aria-labelledby="wd-next-title">
       <p className="wd__next-label">Upcoming session</p>
@@ -400,6 +411,12 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
         {/* The count is a button: it opens this session's people */}
         <button type="button" className="wd__next-people" onClick={onOpen}>
           <span className="wd__next-num">{count}</span> signed up
+          {paid && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="wd__next-num">{rupees(collectedOf(run.id))}</span> collected
+            </>
+          )}
           <span className="wd__next-see">
             Manage people <ChevronRight size={14} aria-hidden="true" />
           </span>
@@ -415,19 +432,24 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 // A whole row is one button: it opens that session in a side panel
 // (Manage people, Edit session). The last row adds a session.
 //
-//   Session              Status                Signed up
-//   Sat 31 Oct 2:00 pm   ● Coming up  🔗 link     0      Manage session >
-//   Sat 24 Oct 2:00 pm   Ended                    2      Manage session >
+//   Session              Status        Signed up  Collected
+//   Sat 31 Oct 2:00 pm   ● Coming up       12     ₹11,988    Manage session >
+//   Sat 24 Oct 2:00 pm   Ended              2     Free       Manage session >
 //   + Add another session
-function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
+//
+// Collected (what each session's people paid in all) shows once any
+// session is paid, or anyone has paid; a free session's row says Free.
+function SessionsTable({ sessions, now, onOpen, onAdd }) {
   const isPast = (r) => webinarStatus(r, now) === 'past';
   const order = [...sessions.filter((r) => !isPast(r)), ...sessions.filter(isPast).reverse()];
+  const money = sessions.some((r) => !webinarPrice(r.answers ?? {}).isFree || collectedOf(r.id) > 0);
   return (
-    <div className="wd__st">
+    <div className={`wd__st ${money ? 'wd__st--money' : ''}`}>
       <div className="wd__st-row wd__st-row--head" aria-hidden="true">
         <span>Session</span>
         <span>Status</span>
         <span>Signed up</span>
+        {money && <span>Collected</span>}
         <span />
       </div>
       <ul className="wd__st-list">
@@ -438,6 +460,9 @@ function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
           const label = live ? 'Live now' : past ? 'Ended' : 'Coming up';
           const tone = live ? 'wd__st-badge--live' : past ? '' : 'wb-badge--live';
           const count = peopleOf(r.id).length;
+          const collected = collectedOf(r.id);
+          const free = webinarPrice(answers).isFree && collected === 0;
+          const moneyText = money ? (free ? 'Free' : rupees(collected)) : null;
           const day = dayOfRun(r) ?? 'No date yet';
           return (
             <li key={r.id}>
@@ -445,7 +470,7 @@ function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
                 type="button"
                 className="wd__st-row"
                 onClick={() => onOpen(r.id)}
-                aria-label={`${day}, ${label}, ${count} signed up. Manage session`}
+                aria-label={`${day}, ${label}, ${count} signed up${moneyText ? `, ${free ? 'free' : `${moneyText} collected`}` : ''}. Manage session`}
               >
                 <span className="wd__st-when">
                   <span className="wd__st-day">{day}</span>
@@ -456,13 +481,9 @@ function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
                     {!past && <span className="wb-badge__dot" aria-hidden="true" />}
                     {label}
                   </span>
-                  {r.id === linkRunId && (
-                    <span className="wd__st-link">
-                      <Link2 size={13} aria-hidden="true" /> Your link opens this
-                    </span>
-                  )}
                 </span>
                 <span className="wd__st-count">{count}</span>
+                {money && <span className={`wd__st-money ${free ? 'wd__st-money--free' : ''}`}>{moneyText}</span>}
                 <span className="wd__st-go">
                   Manage session <ChevronRight size={15} aria-hidden="true" />
                 </span>

@@ -171,8 +171,8 @@ export function emailStatus(row, answers, now = Date.now()) {
     const full = ended
       ? `Sent to ${people(row.sentTo)}`
       : row.sentTo
-        ? `Goes to each person as they register. Sent to ${people(row.sentTo)} so far`
-        : 'Goes to each person as they register';
+        ? `Goes to each person after they register. Sent to ${people(row.sentTo)} so far`
+        : 'Goes to each person after they register';
     return { short: row.sentTo ? `${row.sentTo} sent` : 'None yet', full, tone: null };
   }
   if (row.skipped) return { short: 'Skipped', full: 'Skipped: the webinar was set up after this time', tone: 'off' };
