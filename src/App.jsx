@@ -453,6 +453,8 @@ function App() {
           onRunAgain={setRunAgainId}
           // A row is a whole webinar: every one of its dates goes
           onDelete={(ids) => [].concat(ids).forEach(deleteFunnel)}
+          // Preview in ⋯: save first, so the new tab shows the latest
+          onPreview={saveNow}
         />
       );
     }
@@ -473,12 +475,10 @@ function App() {
             setOpenId(runId);
           }}
           onEditPages={(id) => openPages(id ?? openId)}
-          // From a session's side panel: just that session's event details, then back here
-          onChangeDate={(id) => {
-            setEditingId('eventDetails');
-            setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'review-edit', editReturn: 'details' } : f)));
-            setOpenId(id);
-          }}
+          // Edit session (a session's side panel): its date and time, and the
+          // title and price, which updateRun passes on to the sessions still
+          // to come (withSharedChanges)
+          onSaveSession={(id, changes) => updateRun(id, (f) => ({ answers: { ...f.answers, ...changes } }))}
           // "Add another session": a copy of the session it names (the latest)
           onRunAgain={(id) => setRunAgainId(id ?? openId)}
           // Delete one session (its side panel). If it's the one open, stay on

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CalendarClock,
   Check,
   ChevronRight,
   Download,
@@ -11,15 +10,20 @@ import {
   MessageCircle,
   Pencil,
   Plus,
+  Save,
   Search,
   Trash2,
   Users,
   X,
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
+import DatePicker from '../components/DatePicker';
 import Drawer from '../components/Drawer';
+import InfoTip from '../components/InfoTip';
+import { PriceWithDiscount } from '../components/CallDetailsInput';
 import PageThumbnail from '../components/PageThumbnail';
 import ShareDialog from '../components/ShareDialog';
+import TimePicker from '../components/TimePicker';
 import { useCopy } from './OfferingsHome';
 import WebinarReminders from './WebinarReminders';
 import { MeetingButton, useNow } from './WebinarsPage';
@@ -27,6 +31,7 @@ import { funnelTypes } from '../data/funnelTypes';
 import {
   currentRun,
   durationMins,
+  isFuture,
   isOnNow,
   runsOf,
   seriesIdOf,
@@ -48,6 +53,7 @@ import { whatsappHref } from '../utils/whatsapp';
 import './OfferingsHome.css'; // panels and buttons
 import './CallsPage.css'; // the empty state
 import './WebinarsPage.css'; // the meeting button and badges, as on the list
+import '../components/QuestionInput.css'; // the price boxes, as in the webinar's own price screen
 import './WebinarDetails.css';
 
 // ------------------------------------------------------------
@@ -78,8 +84,8 @@ import './WebinarDetails.css';
 //
 // One page for the whole webinar, whichever session App opened it on.
 // The next session gets its own card (it's what coaches check every
-// day). Every session is a row; a click opens its people in a side panel
-// (SessionDrawer), where that session's own actions are too.
+// day). Every session is a row; a click opens it in a side panel
+// (SessionDrawer) with two tabs: Manage people and Edit session.
 //
 // The header is a white band across the page: the webinar's name, its
 // link and its next session on the left, its landing page on the right.
@@ -99,7 +105,8 @@ import './WebinarDetails.css';
 // webinar: any session of it (the one App has open); webinars: all of them
 // tab: 'sessions' or 'reminders' (the Emails tab; App keeps it, so coming
 //      back from the email editor lands on it); onTab(tab)
-// onEditPages(id), onChangeDate(id), onRunAgain(id) (copies that session),
+// onEditPages(id), onSaveSession(id, changes) (Edit session: date, time,
+// title, price), onRunAgain(id) (copies that session),
 // onDelete(id) (one session), onPreview() (just before the preview tab opens)
 // onToggleReminder(sessionId, id, on), onEditReminder(sessionId, id): the Emails tab
 // ------------------------------------------------------------
@@ -191,7 +198,7 @@ export default function WebinarDetails({
   tab = 'sessions',
   onTab,
   onEditPages,
-  onChangeDate,
+  onSaveSession,
   onRunAgain,
   onDelete,
   onPreview,
@@ -270,7 +277,8 @@ export default function WebinarDetails({
           name={name}
           now={now}
           onClose={() => setOpenId(null)}
-          onChangeDate={() => onChangeDate(opened.id)}
+          onSave={(changes) => onSaveSession(opened.id, changes)}
+          onPreview={onPreview}
           onDelete={sessions.length > 1 ? () => setDeleting(opened) : null}
         />
       )}
@@ -333,11 +341,11 @@ function useSignupsTick() {
 // Join meeting is the one filled orange button in the header (the button
 // itself turns into Start webinar / Live now near the time, as on the list).
 //
-//   ┌ Next session ────────────────────────────────┐
+//   ┌ (Upcoming session) ──────────────────────────┐
 //   │ Sat 31 Oct, 2:00 pm IST                      │
 //   │ Starts in 7 days                             │
 //   │ ──────────────────────────────────────────── │
-//   │ 23 signed up · See people >   [Join meeting] │
+//   │ 23 signed up  Manage people > [Join meeting] │
 //   └──────────────────────────────────────────────┘
 //
 // With nothing coming up, the same card says so and offers to add a session.
@@ -363,7 +371,7 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
   const count = peopleOf(run.id).length;
   return (
     <section className="wd__next" aria-labelledby="wd-next-title">
-      <p className="wd__next-label">Next session</p>
+      <p className="wd__next-label">Upcoming session</p>
       <h2 className="wd__next-title" id="wd-next-title">
         {dayOfRun(run) ?? 'No date yet'}
         {timeOfRun(run) ? `, ${timeOfRun(run)}` : ''}
@@ -380,7 +388,7 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
         <button type="button" className="wd__next-people" onClick={onOpen}>
           <span className="wd__next-num">{count}</span> signed up
           <span className="wd__next-see">
-            See people <ChevronRight size={14} aria-hidden="true" />
+            Manage people <ChevronRight size={14} aria-hidden="true" />
           </span>
         </button>
         <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />
@@ -391,12 +399,12 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 
 // ---------- Sessions: every date, as a full-width table ----------
 // Coming up first (soonest at the top), then past ones (latest first).
-// A whole row is one button: it opens that session's people in a side
-// panel. The last row adds a session.
+// A whole row is one button: it opens that session in a side panel
+// (Manage people, Edit session). The last row adds a session.
 //
 //   Session              Status                Signed up
-//   Sat 31 Oct 2:00 pm   ● Coming up  🔗 link     0      See people >
-//   Sat 24 Oct 2:00 pm   Ended                    2      See people >
+//   Sat 31 Oct 2:00 pm   ● Coming up  🔗 link     0      Manage session >
+//   Sat 24 Oct 2:00 pm   Ended                    2      Manage session >
 //   + Add another session
 function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
   const isPast = (r) => webinarStatus(r, now) === 'past';
@@ -424,7 +432,7 @@ function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
                 type="button"
                 className="wd__st-row"
                 onClick={() => onOpen(r.id)}
-                aria-label={`${day}, ${label}, ${count} signed up. See people`}
+                aria-label={`${day}, ${label}, ${count} signed up. Manage session`}
               >
                 <span className="wd__st-when">
                   <span className="wd__st-day">{day}</span>
@@ -443,7 +451,7 @@ function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
                 </span>
                 <span className="wd__st-count">{count}</span>
                 <span className="wd__st-go">
-                  See people <ChevronRight size={15} aria-hidden="true" />
+                  Manage session <ChevronRight size={15} aria-hidden="true" />
                 </span>
               </button>
             </li>
@@ -457,19 +465,65 @@ function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
   );
 }
 
-// ---------- One session's people, in a side panel ----------
-// Opened from its row (or "See people" on the next session). Its own
-// actions sit under the title (Join meeting, Change date); Delete session
-// waits quietly in the footer, beside Download Excel.
-// Each person is one line: name, then email and phone; when they signed
-// up and WhatsApp on the right. Download Excel stays at the bottom.
-function SessionDrawer({ run, name, now, onClose, onChangeDate, onDelete }) {
+// ---------- One session, in a side panel ----------
+// Opened from its row (or Manage people on the upcoming session card).
+// Its meeting button sits under the title; under that, two tabs:
+//
+//   Session on Mon 9 Nov                                   ✕
+//   7:00 pm IST · 60 min · Free · Starts in 14 days
+//   [Join meeting]
+//   ────────────────────────────────────────────────────────
+//    Manage people 3  |  Edit session
+//
+// Manage people: everyone who signed up, one line each (name, email and
+// phone; when they signed up and WhatsApp on the right). The footer has
+// Download Excel, and Delete session waiting quietly on the right.
+// Edit session: the quick edit (SessionEdit). Its footer has Cancel and
+// Save changes. Past sessions only have Manage people: they're a record
+// of what happened.
+// Edits stay while switching tabs; closing with unsaved edits asks first.
+// Saving shows a small pop-up that points them at the landing page:
+//
+//   ✓ Changes saved
+//   Your landing page is updated. Take a look to see how it reads.
+//                                   [Close] [View landing page]
+//
+// View landing page opens this session's preview in a new tab (as 👁 on
+// the thumbnail does); the panel stays open on Edit session. A click
+// outside doesn't close the pop-up; Close and Escape do.
+//
+// onSave(changes): { date, time, headline, subheadline, pricing, price, oldPrice }
+// onPreview(): just before the preview tab opens
+function SessionDrawer({ run, name, now, onClose, onSave, onDelete, onPreview }) {
   const people = usePeople(run.id);
   const answers = run.answers ?? {};
   const ended = webinarStatus(run, now) === 'past';
   const price = webinarPrice(answers);
   const day = dayOfRun(run);
   const [query, setQuery] = useState('');
+  const [tab, setTab] = useState('people'); // 'people' | 'edit'
+  const shownTab = ended ? 'people' : tab;
+
+  // The edit form's values: what's saved, until they change something
+  const savedKey = JSON.stringify(editValues(answers));
+  const saved = useMemo(() => JSON.parse(savedKey), [savedKey]);
+  const [form, setForm] = useState(saved);
+  const [formKey, setFormKey] = useState(0); // a new one resets the price boxes' own tick
+  const [savedPopup, setSavedPopup] = useState(false); // "Changes saved" pop-up
+  const [asking, setAsking] = useState(false); // "Discard your changes?"
+  // A save (or a change made elsewhere) brings the form back in line
+  useEffect(() => setForm(saved), [saved]);
+
+  const dirty = !ended && changedKeys(saved, form).length > 0;
+  const problem = editProblem(answers, form);
+
+  const save = () => {
+    if (!dirty || problem) return;
+    onSave(cleanValues(form));
+    setSavedPopup(true);
+    setFormKey((k) => k + 1);
+  };
+  const close = () => (dirty ? setAsking(true) : onClose());
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -499,120 +553,429 @@ function SessionDrawer({ run, name, now, onClose, onChangeDate, onDelete }) {
     .filter(Boolean)
     .join(' · ');
 
+  const peopleFooter =
+    people.length > 0 || onDelete ? (
+      <>
+        {people.length > 0 ? (
+          <button type="button" className="oh__edit" onClick={download}>
+            <Download size={15} aria-hidden="true" /> Download Excel
+          </button>
+        ) : (
+          <span />
+        )}
+        {onDelete && (
+          <button type="button" className="wd-drawer__delete" onClick={onDelete}>
+            <Trash2 size={15} aria-hidden="true" /> Delete session
+          </button>
+        )}
+      </>
+    ) : null;
+
+  const editFooter = (
+    <>
+      <div className="wd-edit__buttons">
+        <button
+          type="button"
+          className="oh__edit"
+          onClick={() => {
+            setForm(saved);
+            setFormKey((k) => k + 1);
+          }}
+          disabled={!dirty}
+        >
+          Cancel
+        </button>
+        <button type="button" className="oh__add" onClick={save} disabled={!dirty || Boolean(problem)}>
+          <Save size={15} aria-hidden="true" /> Save changes
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <Drawer
       className="wd-drawer"
       title={`Session on ${day ?? 'a date to be set'}`}
       sub={sub}
-      onClose={onClose}
+      onClose={close}
       extra={
         ended ? null : (
-        <div className="wd-drawer__actions">
-          {!ended && <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />}
-          {!ended && (
-            <button type="button" className="oh__edit" onClick={onChangeDate}>
-              <CalendarClock size={15} aria-hidden="true" /> Change date
-            </button>
-          )}
-        </div>
+          <div className="wd-drawer__actions">
+            <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />
+          </div>
         )
       }
-      // Download on the left; Delete, rarely needed, quiet on the right
-      footer={
-        people.length > 0 || onDelete ? (
-          <>
-            {people.length > 0 ? (
-              <button type="button" className="oh__edit" onClick={download}>
-                <Download size={15} aria-hidden="true" /> Download Excel
-              </button>
-            ) : (
-              <span />
-            )}
-            {onDelete && (
-              <button type="button" className="wd-drawer__delete" onClick={onDelete}>
-                <Trash2 size={15} aria-hidden="true" /> Delete session
-              </button>
-            )}
-          </>
-        ) : null
-      }
+      footer={shownTab === 'edit' ? editFooter : peopleFooter}
     >
-      <div className="wd-drawer__top">
-        <h3 className="wd-drawer__count">
-          {people.length} {people.length === 1 ? 'person' : 'people'} signed up
-        </h3>
-        {people.length > 5 && (
-          <label className="wd__search wd-drawer__search">
-            <Search size={16} aria-hidden="true" />
-            <span className="oh__sr-only">Search people</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, email or phone"
-            />
-          </label>
-        )}
-      </div>
+      <SessionTabs tab={shownTab} onTab={setTab} people={people.length} canEdit={!ended} />
 
-      {people.length === 0 ? (
-        <div className="calls__empty">
-          <span className="calls__empty-icon" aria-hidden="true">
-            <Users size={22} />
-          </span>
-          <h3 className="calls__empty-title">{ended ? 'No one signed up for this session' : 'No one has signed up yet'}</h3>
-          {!ended && <p className="calls__empty-text">Share your landing page link. People who sign up will show up here.</p>}
-        </div>
-      ) : shown.length === 0 ? (
-        <div className="calls__empty">
-          <h3 className="calls__empty-title">No one matches “{query.trim()}”</h3>
-          <button type="button" className="oh__edit" onClick={() => setQuery('')}>
-            <X size={15} aria-hidden="true" /> Clear search
-          </button>
+      {shownTab === 'edit' ? (
+        <div id="wd-drawer-panel-edit" role="tabpanel" aria-labelledby="wd-drawer-tab-edit">
+          <SessionEdit
+            key={formKey}
+            answers={answers}
+            saved={saved}
+            form={form}
+            onForm={setForm}
+            problem={problem}
+            day={day}
+            people={people.length}
+            onSubmit={save}
+          />
         </div>
       ) : (
-        <ul className="wd-people">
-          {shown.map((p) => {
-            const first = p.name.split(/\s+/)[0] || p.name;
-            const chat = whatsappHref(p.phone, `Hi ${first}, `);
-            return (
-              <li key={p.id} className="wd-person">
-                <div className="wd-person__text">
-                  <p className="wd-person__name">{p.name}</p>
-                  <p className="wd-person__contact">
-                    <a className="wd__email" href={`mailto:${p.email}`}>
-                      {p.email}
+        <div id="wd-drawer-panel-people" role="tabpanel" aria-labelledby="wd-drawer-tab-people">
+          {people.length > 5 && (
+            <div className="wd-drawer__top">
+              <label className="wd__search wd-drawer__search">
+                <Search size={16} aria-hidden="true" />
+                <span className="oh__sr-only">Search people</span>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search name, email or phone"
+                />
+              </label>
+            </div>
+          )}
+
+        {people.length === 0 ? (
+          <div className="calls__empty">
+            <span className="calls__empty-icon" aria-hidden="true">
+              <Users size={22} />
+            </span>
+            <h3 className="calls__empty-title">{ended ? 'No one signed up for this session' : 'No one has signed up yet'}</h3>
+            {!ended && <p className="calls__empty-text">Share your landing page link. People who sign up will show up here.</p>}
+          </div>
+        ) : shown.length === 0 ? (
+          <div className="calls__empty">
+            <h3 className="calls__empty-title">No one matches “{query.trim()}”</h3>
+            <button type="button" className="oh__edit" onClick={() => setQuery('')}>
+              <X size={15} aria-hidden="true" /> Clear search
+            </button>
+          </div>
+        ) : (
+          <ul className="wd-people">
+            {shown.map((p) => {
+              const first = p.name.split(/\s+/)[0] || p.name;
+              const chat = whatsappHref(p.phone, `Hi ${first}, `);
+              return (
+                <li key={p.id} className="wd-person">
+                  <div className="wd-person__text">
+                    <p className="wd-person__name">{p.name}</p>
+                    <p className="wd-person__contact">
+                      <a className="wd__email" href={`mailto:${p.email}`}>
+                        {p.email}
+                      </a>
+                      {p.phone && <span> · {p.phone}</span>}
+                    </p>
+                  </div>
+                  <div className="wd-person__side">
+                    <span className="wd-person__when">{registeredWhen(p.registeredAt, now)}</span>
+                    {!price.isFree && p.amount > 0 && (
+                      <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>
+                    )}
+                  </div>
+                  {chat ? (
+                    <a
+                      className="wd__wa"
+                      href={chat}
+                      target="_blank"
+                      rel="noopener"
+                      aria-label={`Message ${p.name} on WhatsApp`}
+                      data-tip="WhatsApp"
+                      data-tip-align="end"
+                    >
+                      <MessageCircle size={17} aria-hidden="true" />
                     </a>
-                    {p.phone && <span> · {p.phone}</span>}
-                  </p>
-                </div>
-                <div className="wd-person__side">
-                  <span className="wd-person__when">{registeredWhen(p.registeredAt, now)}</span>
-                  {!price.isFree && p.amount > 0 && (
-                    <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>
+                  ) : (
+                    <span />
                   )}
-                </div>
-                {chat ? (
-                  <a
-                    className="wd__wa"
-                    href={chat}
-                    target="_blank"
-                    rel="noopener"
-                    aria-label={`Message ${p.name} on WhatsApp`}
-                    data-tip="WhatsApp"
-                    data-tip-align="end"
-                  >
-                    <MessageCircle size={17} aria-hidden="true" />
-                  </a>
-                ) : (
-                  <span />
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        </div>
+      )}
+
+      {asking && (
+        <ConfirmDialog
+          title="Discard your changes?"
+          confirmLabel="Discard changes"
+          cancelLabel="Keep editing"
+          danger
+          onCancel={() => setAsking(false)}
+          onConfirm={() => {
+            setAsking(false);
+            onClose();
+          }}
+        >
+          <p>You changed this session but haven’t saved it.</p>
+        </ConfirmDialog>
+      )}
+
+      {savedPopup && (
+        <ConfirmDialog
+          title={
+            <span className="wd-saved__title">
+              <span className="wd-saved__tick" aria-hidden="true">
+                <Check size={15} strokeWidth={3} />
+              </span>
+              Changes saved
+            </span>
+          }
+          form // a click outside doesn't close it; Close and Escape do
+          confirmLabel="View landing page"
+          cancelLabel="Close"
+          onCancel={() => setSavedPopup(false)}
+          onConfirm={() => {
+            setSavedPopup(false);
+            onPreview?.();
+            window.open(`?preview=${encodeURIComponent(run.id)}`, '_blank', 'noopener');
+          }}
+        >
+          <p>Your landing page is updated. Take a look to see how it reads.</p>
+        </ConfirmDialog>
       )}
     </Drawer>
+  );
+}
+
+// The two tabs at the top of the side panel. Past sessions have no
+// Edit session. Left and right arrows move between them.
+function SessionTabs({ tab, onTab, people, canEdit }) {
+  const items = [
+    { id: 'people', label: 'Manage people', count: people },
+    canEdit && { id: 'edit', label: 'Edit session', count: null },
+  ].filter(Boolean);
+  const onKey = (e) => {
+    if (items.length < 2 || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    const next = tab === 'people' ? 'edit' : 'people';
+    onTab(next);
+    requestAnimationFrame(() => document.getElementById(`wd-drawer-tab-${next}`)?.focus());
+  };
+  return (
+    <div className="wd__tabs wd-drawer__tabs" role="tablist" aria-label="Session" onKeyDown={onKey}>
+      {items.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          id={`wd-drawer-tab-${t.id}`}
+          aria-selected={tab === t.id}
+          aria-controls={`wd-drawer-panel-${t.id}`}
+          tabIndex={tab === t.id ? 0 : -1}
+          className="wd__tab"
+          onClick={() => onTab(t.id)}
+        >
+          {t.label} {t.count !== null && <span className="oh__count">{t.count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ---------- Edit session: the quick edit ----------
+//
+//   Date [Mon, 9 Nov 2026 ▾]        Start time [7:00 pm IST ▾]
+//   Headline ⓘ    [Fix the Vasthu mistakes that block money…   ]
+//   Subheadline ⓘ [A webinar for families who want money to stay…]
+//   Price ⓘ  (Free) (Paid)
+//            Price ₹[999]   ☑ Discounted price ₹[499]
+//
+// One list, no groups: the (i) beside the landing page's fields says so. The
+// date and time are this session's own; the headline, subheadline and
+// price are the landing page's, shared by this session and the ones after
+// it (withSharedChanges in data/webinar.js), so App saves them the usual way.
+// The price boxes are the same as on the webinar's "Set your price" screen
+// and in Contracts (PriceWithDiscount): a price, and a discount only once
+// it's ticked. Saved as there: price = what people pay, oldPrice = the
+// price shown crossed out (or '').
+// Short notes show only when they matter: people already signed up and
+// the date or price changes. Enter in a one-line field saves.
+
+const PAGE_TIP = 'This changes your landing page for current and upcoming sessions.';
+
+// The form's values, from a session's answers (all strings)
+function editValues(answers) {
+  return {
+    date: String(answers.date ?? ''),
+    time: String(answers.time ?? '19:00'),
+    headline: String(answers.headline ?? ''),
+    subheadline: String(answers.subheadline ?? ''),
+    pricing: answers.pricing === 'Paid' ? 'Paid' : 'Free',
+    price: String(answers.price ?? ''),
+    oldPrice: String(answers.oldPrice ?? ''),
+  };
+}
+
+// Which values differ (a free webinar's price boxes don't count)
+function changedKeys(saved, form) {
+  return Object.keys(form).filter((key) => {
+    if ((key === 'price' || key === 'oldPrice') && form.pricing === 'Free' && saved.pricing === 'Free') return false;
+    return String(saved[key]).trim() !== String(form[key]).trim();
+  });
+}
+
+// What's saved: trimmed, and the price boxes only for a paid webinar
+function cleanValues(form) {
+  const out = {
+    date: form.date,
+    time: form.time,
+    headline: form.headline.trim(),
+    subheadline: form.subheadline.trim(),
+    pricing: form.pricing,
+  };
+  if (form.pricing === 'Paid') {
+    out.price = form.price.trim();
+    out.oldPrice = form.oldPrice.trim();
+  }
+  return out;
+}
+
+// The first thing that stops a save, or null: { text, quiet }. Quiet ones
+// are already said by the price boxes themselves, so they're not repeated.
+function editProblem(answers, form) {
+  const filled = /^\d{4}-\d{2}-\d{2}$/.test(form.date) && /^\d{2}:\d{2}$/.test(form.time);
+  if (!filled) return { text: 'Pick a date and a start time.' };
+  if (!isFuture(answers, form.date, form.time)) return { text: 'Pick a date and time in the future.' };
+  if (!form.headline.trim()) return { text: 'Add a headline.' };
+  if (form.pricing === 'Paid') {
+    const pay = Number(form.price) || 0;
+    const was = Number(form.oldPrice) || 0;
+    if (was > 0 && pay === 0) return { text: 'Add the discounted price, or untick it.', quiet: true };
+    if (pay === 0) return { text: 'Add a price.' };
+    if (was > 0 && pay >= was) return { text: 'The discounted price needs to be lower.', quiet: true };
+  }
+  return null;
+}
+
+// A field's name with its (i)
+function FieldLabel({ htmlFor, id, children, tip }) {
+  const Tag = htmlFor ? 'label' : 'span';
+  return (
+    <span className="wd-edit__label-row">
+      <Tag className="wd-edit__label" htmlFor={htmlFor} id={id}>
+        {children}
+      </Tag>
+      {tip && <InfoTip label={`About ${children}`} text={tip} />}
+    </span>
+  );
+}
+
+function SessionEdit({ answers, saved, form, onForm, problem, day, people, onSubmit }) {
+  const set = (key) => (value) => onForm((f) => ({ ...f, [key]: value }));
+  const zone = String(answers.timeZone ?? 'IST').split(' ')[0]; // 'IST', after the time
+  const changed = changedKeys(saved, form);
+  const dateMoved = changed.includes('date') || changed.includes('time');
+  const priceMoved = changed.some((k) => k === 'pricing' || k === 'price' || k === 'oldPrice');
+  // Only once they've changed something: no red text on a fresh form
+  const showProblem = changed.length > 0 && problem && !problem.quiet;
+  // Enter in a one-line field saves
+  const enterSaves = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSubmit();
+    }
+  };
+
+  return (
+    <form
+      className="wd-edit"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      <div className="wd-edit__row">
+        <div className="wd-edit__field">
+          <FieldLabel htmlFor="wd-edit-date">Date</FieldLabel>
+          <DatePicker id="wd-edit-date" value={form.date} onChange={set('date')} className="wd-edit__input" />
+        </div>
+        <div className="wd-edit__field">
+          <FieldLabel htmlFor="wd-edit-time">Start time</FieldLabel>
+          <TimePicker id="wd-edit-time" value={form.time} onChange={set('time')} zone={zone} className="wd-edit__input" />
+        </div>
+      </div>
+      {dateMoved && people > 0 && (
+        <p className="wd-edit__note">
+          {people === 1 ? '1 person' : `${people} people`} signed up for {day ?? 'this session'}. Let them know the new date.
+        </p>
+      )}
+
+      <div className="wd-edit__field">
+        <FieldLabel htmlFor="wd-edit-headline" tip={PAGE_TIP}>
+          Headline
+        </FieldLabel>
+        <textarea
+          id="wd-edit-headline"
+          className="wd-edit__input wd-edit__text"
+          rows={2}
+          maxLength={120}
+          value={form.headline}
+          onChange={(e) => set('headline')(e.target.value)}
+          onKeyDown={enterSaves}
+        />
+      </div>
+
+      <div className="wd-edit__field">
+        <FieldLabel htmlFor="wd-edit-subheadline" tip={PAGE_TIP}>
+          Subheadline
+        </FieldLabel>
+        <textarea
+          id="wd-edit-subheadline"
+          className="wd-edit__input wd-edit__text"
+          rows={3}
+          maxLength={200}
+          value={form.subheadline}
+          onChange={(e) => set('subheadline')(e.target.value)}
+          onKeyDown={enterSaves}
+        />
+      </div>
+
+      <div className="wd-edit__field">
+        <FieldLabel id="wd-edit-pricing" tip={PAGE_TIP}>
+          Price
+        </FieldLabel>
+        <div className="wd-edit__choice" role="radiogroup" aria-labelledby="wd-edit-pricing">
+          {['Free', 'Paid'].map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={form.pricing === option}
+              className="wd-edit__option"
+              onClick={() => set('pricing')(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+        {/* The same boxes as the webinar's "Set your price" screen */}
+        {form.pricing === 'Paid' && (
+          <div className="wd-edit__prices">
+            <PriceWithDiscount
+              answers={form}
+              onChange={(value, id) => set(id)(value)}
+              ids={{ price: 'price', compare: 'oldPrice' }}
+              label="Price"
+              example="999"
+            />
+          </div>
+        )}
+      </div>
+      {priceMoved && people > 0 && saved.pricing === 'Paid' && (
+        <p className="wd-edit__note">People who already paid keep what they paid.</p>
+      )}
+
+      <p className="wd-edit__error" role="alert">
+        {showProblem ? problem.text : ''}
+      </p>
+      {/* Lets Enter in the price boxes save */}
+      <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
+    </form>
   );
 }
 

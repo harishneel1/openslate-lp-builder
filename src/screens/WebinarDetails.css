@@ -504,11 +504,16 @@
   border-radius: var(--radius-lg);
 }
 
+/* "Upcoming session": a pill, a shade deeper than the card */
 .wd__next-label {
-  margin: 0 0 4px;
-  font-size: 13px;
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 3px 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-primary-hover);
+  background: #fbe0c8;
+  border-radius: var(--radius-pill);
 }
 
 .wd__next-title {
@@ -549,7 +554,7 @@
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* "23 signed up · See people >": opens this session's people */
+/* "23 signed up  Manage people >": opens this session's people */
 .wd__next-people {
   display: inline-flex;
   align-items: baseline;
@@ -783,23 +788,220 @@ button.wd__st-row:focus-visible {
 }
 
 .wd-drawer__top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   margin-bottom: 8px;
 }
 
-.wd-drawer__count {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
+.wd-drawer__search {
+  width: 100%;
 }
 
-.wd-drawer__search {
-  flex: 1;
-  max-width: 280px;
+/* The side panel's tabs: a strip across the top of the body, edge to
+   edge, with a clear gap before what's under them */
+.wd-drawer .wd-drawer__tabs {
+  margin: -24px -28px 24px;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wd-drawer .wd-drawer__tabs .wd__tab {
+  margin-bottom: -1px; /* the underline sits on the line */
+  padding: 16px 2px 13px;
+  font-size: 15px;
+}
+
+.wd-drawer .wd-drawer__tabs .wd__tab:focus-visible {
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .wd-drawer .wd-drawer__tabs {
+    margin: -24px -20px 24px;
+    padding: 0 20px;
+  }
+}
+
+/* ---------- Edit session: the quick edit ---------- */
+.wd-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wd-edit__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.wd-edit__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* A field's name and its (i) */
+.wd-edit__label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wd-edit__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* The same field look as Add another session (RunAgainDialog.css) */
+.wd-edit__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+}
+
+.wd-edit__input:focus,
+.wd-edit__input:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.wd-edit__text {
+  min-height: 0;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+/* Free | Paid: two buttons joined, the chosen one filled */
+.wd-edit__choice {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  background: #f0f0f2;
+  border-radius: var(--radius-sm);
+}
+
+.wd-edit__option {
+  min-width: 84px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.wd-edit__option[aria-checked='true'] {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.wd-edit__option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* The price boxes (PriceWithDiscount), sized down to this panel's fields */
+.wd-edit__prices .call__prices {
+  margin-top: 10px;
+}
+
+.wd-edit__prices .call__price-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wd-edit__prices .qinput__field {
+  gap: 6px;
+}
+
+.wd-edit__prices .qinput__text {
+  min-height: 44px;
+  padding: 10px 12px 10px 30px;
+  font-size: 15px;
+  border-color: #d6d6da;
+  border-radius: var(--radius-sm);
+}
+
+.wd-edit__prices .qinput__currency {
+  left: 12px;
+  font-size: 15px;
+}
+
+.wd-edit__prices .qinput__money {
+  max-width: none;
+}
+
+/* A heads-up when people have already signed up */
+.wd-edit__note {
+  margin: -8px 0 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #92400e;
+  background: #fef6e7;
+  border-radius: var(--radius-sm);
+}
+
+.wd-edit__error {
+  margin: -8px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b45309;
+}
+
+.wd-edit__error:empty {
+  display: none;
+}
+
+/* The "Changes saved" pop-up's title: a green tick, then the words */
+.wd-saved__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wd-saved__tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-success);
+  color: #fff;
+}
+
+/* Footer: Cancel and Save on the right */
+.wd-edit__buttons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.wd-edit__buttons button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .wd-edit__row,
+  .wd-edit__prices .call__price-fields {
+    grid-template-columns: 1fr;
+  }
 }
 
 .wd-people {
