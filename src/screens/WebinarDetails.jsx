@@ -266,16 +266,16 @@ export default function WebinarDetails({
       <section className="oh__panel wd__main" aria-label={shownTab === 'reminders' ? 'Emails' : 'Sessions'}>
         <div className="oh__panel-head wd__people-head">
           <Tabs tab={shownTab} onTab={onTab} sessions={sessions.length} />
+          {/* At the top, so it's in reach however long the list gets */}
+          {shownTab === 'sessions' && (
+            <button type="button" className="wd__st-new" onClick={() => onRunAgain(latest.id)}>
+              <Plus size={16} aria-hidden="true" /> Add session
+            </button>
+          )}
         </div>
         {shownTab === 'sessions' ? (
           <div id="wd-panel-sessions" role="tabpanel" aria-labelledby="wd-tab-sessions">
-            <SessionsTable
-              sessions={sessions}
-              linkRunId={next?.id ?? null}
-              now={now}
-              onOpen={setOpenId}
-              onAdd={() => onRunAgain(latest.id)}
-            />
+            <SessionsTable sessions={sessions} linkRunId={next?.id ?? null} now={now} onOpen={setOpenId} />
           </div>
         ) : (
           <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
@@ -444,13 +444,13 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 // Coming up first (soonest at the top), then past ones (latest first).
 // Clicking a row opens that session in a side panel (Manage people, Edit
 // session); its Manage session button does the same from the keyboard.
-// The last row adds a session.
+// Adding a session is the + Add session button at the top right of the
+// panel, beside the tabs, so it's in reach however long the list gets.
 //
 //   Session              Status                    Signed up  Collected
 // ▌ Mon 9 Nov 7:00 pm    ● Registrations open (i)      12     ₹11,988   Manage session >
 //   Mon 16 Nov 7:00 pm   Scheduled                      0     ₹0        Manage session >
 //   Mon 2 Nov 7:00 pm    Ended                          2     Free      Manage session >
-//   + Add another session
 //
 // The session the landing page link takes registrations for (linkRunId)
 // is the one marked: the only orange badge, on a light orange row with an
@@ -466,7 +466,7 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 // session is paid, or anyone has paid; a free session's row says Free.
 const GROUP_AT = 10;
 
-function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
+function SessionsTable({ sessions, linkRunId, now, onOpen }) {
   const [endedOpen, setEndedOpen] = useState(false);
   const isPast = (r) => webinarStatus(r, now) === 'past';
   const upcoming = sessions.filter((r) => !isPast(r));
@@ -537,10 +537,6 @@ function SessionsTable({ sessions, linkRunId, now, onOpen, onAdd }) {
       ) : (
         <ul className="wd__st-list">{[...upcoming, ...ended].map(row)}</ul>
       )}
-
-      <button type="button" className="wd__st-add" onClick={onAdd}>
-        <Plus size={16} aria-hidden="true" /> Add another session
-      </button>
     </div>
   );
 }

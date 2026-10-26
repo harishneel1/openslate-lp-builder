@@ -612,6 +612,34 @@
 }
 
 /* ---------- Sessions | Emails ---------- */
+/* + Add session, at the right of the tabs (Sessions only): outlined, so
+   Join meeting stays the one filled orange button on the page */
+.wd__st-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.wd__st-new:hover {
+  background: var(--color-primary-tint);
+}
+
+.wd__st-new:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .wd__main {
   margin-top: 0; /* the band's bottom margin is the gap */
 }
@@ -815,31 +843,17 @@
   transition: color 0.15s;
 }
 
-.wd__st-add {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 16px 24px;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: left;
-  color: var(--color-primary-hover);
-  background: transparent;
-  border: 0;
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  cursor: pointer;
-  transition: background 0.15s;
+/* The table's last line meets the panel's rounded bottom: no line of its
+   own, and its corners rounded (the orange row can be the last one) */
+.wd__st > ul:last-child > li:last-child > .wd__st-row,
+.wd__st > section:last-child > ul > li:last-child > .wd__st-row,
+.wd__st > section:last-child > .wd__st-group:last-child {
+  border-bottom: 0;
+  border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
 }
 
-.wd__st-add:hover {
-  background: var(--color-primary-tint);
-}
-
-.wd__st-add:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
+.wd__st-group-btn {
+  border-radius: inherit;
 }
 
 /* "Emails for the session on Sat 31 Oct…" above the emails */
@@ -1166,7 +1180,7 @@
   .wd__st-row--click,
   .wd__st-group-chev,
   .wd__st-go,
-  .wd__st-add {
+  .wd__st-new {
     transition: none;
   }
 }
