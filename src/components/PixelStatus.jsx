@@ -73,7 +73,7 @@ export default function PixelStatus({ variant = 'line' }) {
         button: 'Manage',
       },
       broken: {
-        text: 'Your Meta Pixel has stopped working. Replace your access token to fix it.',
+        text: 'Your Meta Pixel has stopped working. Change your access token to fix it.',
         button: 'Fix',
       },
     }[status];

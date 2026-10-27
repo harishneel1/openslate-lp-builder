@@ -13,15 +13,14 @@ import {
   cleanToken,
   dayLabel,
   loadPixel,
+  maskToken,
   onPixelChange,
   pixelIdProblem,
   pixelStatus,
   removePixel,
   savePixel,
   tokenProblem,
-  whenLabel,
 } from '../data/metaPixel';
-import { latestSignupAt, onSignupsChange } from '../data/webinarSignups';
 import '../screens/OfferingsHome.css'; // the buttons (oh__add, oh__edit), wherever the panel opens
 import './MetaPixelDrawer.css';
 
@@ -37,25 +36,24 @@ import './MetaPixelDrawer.css';
 //   Used for all your webinars, including new ones.
 //   ┌ ⚠ Your Meta Pixel has stopped working ────────────────┐  (broken only)
 //   │ Your access token stopped working on 27 Oct…          │
-//   │ [Replace access token]                                │
+//   │ [Change access token]                                 │
 //   └───────────────────────────────────────────────────────┘
 //   Pixel                 Harish Neel’s Pixel             Change
 //                         Pixel ID 1234567890123456
-//   Access token          ✓ Saved                         Replace
-//   Last sign-up sent     Today, 7:42 pm
-//   to Meta
+//   Access token          EAAGm0••••••m9ZD                Change
+//                         ✓ Working
 //   What Meta will see ▾
 //   ──────────────────────────────────────────────────────────
 //   🗑 Remove pixel                                        [Done]
 //
-// The token is never shown again once it's saved, not even as dots:
-// Replace asks for a new one. Change (the Pixel ID) clears the token too,
+// The token is shown only by its ends (maskToken), never whole. Change on
+// the token asks for a new one; Change on the pixel clears the token too,
 // since a token only works with the pixel it was made for.
 //
 // Both boxes are always required: a pixel without a working token isn't
 // half done, it doesn't work. The form has three modes:
 //   setup      first time: Pixel ID and access token
-//   token      replace the access token (the Pixel ID is fixed, with Change)
+//   token      change the access token (the Pixel ID is fixed, with Change)
 //   change-id  a new Pixel ID and a new token (the old token only works
 //              with the old pixel)
 // Save and check → "Checking with Meta" → connected, or the problem under
@@ -88,7 +86,7 @@ export default function MetaPixelDrawer({ onClose }) {
   const status = pixelStatus(record);
 
   // Where it opens: the form when there's nothing yet, Manage otherwise
-  // (Fix opens Manage too: the problem's on top, with Replace access token)
+  // (Fix opens Manage too: the problem's on top, with Change access token)
   const [initial] = useState(() => (loadPixel() ? { view: 'manage', mode: 'setup' } : { view: 'form', mode: 'setup' }));
   const [view, setView] = useState(initial.view); // 'manage' | 'form' | 'checking' | 'connected'
   const [mode, setMode] = useState(initial.mode); // the form's: 'setup' | 'token' | 'change-id'
@@ -219,7 +217,7 @@ export default function MetaPixelDrawer({ onClose }) {
   // ---------- Header and footer for each view ----------
   const formTitle = {
     setup: 'Connect your Meta Pixel',
-    token: 'Replace your access token',
+    token: 'Change your access token',
     'change-id': 'Change your Pixel ID',
   }[mode];
   const title = view === 'manage' ? 'Your Meta Pixel' : formTitle;
@@ -332,18 +330,9 @@ export default function MetaPixelDrawer({ onClose }) {
                   </dl>
                 </li>
                 <li>
-                  <strong>To check it’s working,</strong> wait for your next sign-up, then look in either place:
-                  {/* Two products, so each place is named: ours, then Meta's */}
-                  <ul className="mp-next__places">
-                    <li>
-                      <strong>On your Webinars page:</strong> click Manage next to Meta Pixel. It shows when the last
-                      sign-up was sent to Meta.
-                    </li>
-                    <li>
-                      <strong>In Meta Events Manager:</strong> open <strong>{pixelName}</strong>. The sign-up appears in
-                      its list of events received.
-                    </li>
-                  </ul>
+                  <strong>To check it’s working,</strong> wait for your next sign-up, then open{' '}
+                  <strong>{pixelName}</strong> in Meta Events Manager. The sign-up appears in its list of events
+                  received.
                 </li>
               </ol>
             </div>
@@ -513,20 +502,12 @@ export default function MetaPixelDrawer({ onClose }) {
 }
 
 // ---------- Manage: what's connected ----------
-// One row per thing, each with the one action it has. The token's row
-// says whether it works, never what it is.
+// One row per thing, laid out alike: the value, a line under it, Change.
+// The token's line says whether it works: ✓ Working, or (red) Stopped
+// working on <date>. Green carries no date: the server turns the pixel red
+// as soon as Meta refuses an event, so Working is always current.
 function Manage({ record, status, onChangeId, onToken }) {
   const broken = status === 'broken';
-
-  // Last sign-up Meta got from us: since it was connected, up to when it
-  // stopped working. Kept up to date as people sign up (here or elsewhere).
-  const lastSent = () =>
-    latestSignupAt({ after: record.connectedAt, before: broken ? record.brokenAt : Infinity });
-  const [last, setLast] = useState(lastSent);
-  useEffect(() => {
-    setLast(lastSent());
-    return onSignupsChange(() => setLast(lastSent()));
-  }, [record.connectedAt, record.brokenAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="mp-manage">
@@ -541,7 +522,7 @@ function Manage({ record, status, onChangeId, onToken }) {
             properly. This happens when the token is deleted, or your admin access to the pixel is removed.
           </p>
           <button type="button" className="oh__add mp-alert__fix" onClick={onToken}>
-            Replace access token
+            Change access token
           </button>
         </div>
       )}
@@ -561,44 +542,23 @@ function Manage({ record, status, onChangeId, onToken }) {
         <div className="mp-fact">
           <dt className="mp-fact__label">Access token</dt>
           <dd className="mp-fact__value">
+            {/* Laid out like the Pixel row: the value, then one line under it */}
+            <span className="mp-fact__main mp-fact__token">{maskToken(record.token)}</span>
             {broken ? (
-              <>
-                <span className="mp-fact__main mp-fact__main--bad">
-                  <AlertTriangle size={15} aria-hidden="true" /> Stopped working
-                </span>
-                <span className="mp-fact__sub">Since {dayLabel(record.brokenAt)}</span>
-              </>
+              <span className="mp-fact__sub mp-fact__sub--bad">
+                <AlertTriangle size={13} aria-hidden="true" /> Stopped working on {dayLabel(record.brokenAt)}
+              </span>
             ) : (
-              <>
-                <span className="mp-fact__main mp-fact__main--ok">
-                  <Check size={15} strokeWidth={3} aria-hidden="true" /> Saved
-                </span>
-                <span className="mp-fact__sub">Hidden for your safety. Replace it if you made a new one.</span>
-              </>
+              <span className="mp-fact__sub mp-fact__sub--ok">
+                {/* No date: any problem turns the pixel red, so green is always current */}
+                <Check size={13} strokeWidth={3} aria-hidden="true" /> Working
+              </span>
             )}
           </dd>
           <button type="button" className="mp-fact__action" onClick={onToken}>
-            Replace
+            Change
             <span className="mp-sr-only"> access token</span>
           </button>
-        </div>
-
-        <div className="mp-fact">
-          <dt className="mp-fact__label">Last sign-up sent to Meta</dt>
-          <dd className="mp-fact__value">
-            {last ? (
-              <span className="mp-fact__main">{whenLabel(last)}</span>
-            ) : (
-              <>
-                <span className="mp-fact__main">None yet</span>
-                <span className="mp-fact__sub">
-                  {broken
-                    ? 'No one signed up before it stopped working.'
-                    : 'The next person who signs up for any webinar will show here.'}
-                </span>
-              </>
-            )}
-          </dd>
         </div>
       </dl>
 

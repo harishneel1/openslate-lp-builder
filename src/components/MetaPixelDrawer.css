@@ -854,3 +854,24 @@ details[open] > summary .mp-chevron {
 .mp-next__places li + li {
   margin-top: 6px;
 }
+
+/* The access token's row, matched to the Pixel row: value, then a status line */
+.mp-fact__token {
+  letter-spacing: 0.02em;
+}
+
+.mp-fact__sub--ok,
+.mp-fact__sub--bad {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+.mp-fact__sub--ok {
+  color: var(--color-success);
+}
+
+.mp-fact__sub--bad {
+  color: #b42318;
+}

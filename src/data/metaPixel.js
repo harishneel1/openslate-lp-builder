@@ -167,6 +167,16 @@ export function whenLabel(ms, now = Date.now()) {
   return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
+// The access token as Manage shows it: its first 6 and last 4 characters,
+// dots between ("EAAGm0••••••m9ZD"). Enough to tell which token it is,
+// not enough to use. In production the server keeps just these two ends
+// for display; the whole token never comes back to the browser.
+export function maskToken(token) {
+  const t = String(token ?? '');
+  if (t.length <= 10) return '••••••••••';
+  return `${t.slice(0, 6)}••••••${t.slice(-4)}`;
+}
+
 // "27 Oct"
 export const dayLabel = (ms) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
@@ -260,7 +270,7 @@ export function checkPixel() {
 // ---------- ?pixel=broken: a connected pixel stops working ----------
 // Runs once, when the app loads: a saved, connected pixel is marked as
 // refused by Meta (as if its token had just been deleted). Fixing it
-// (Replace access token) clears that. Refreshing with the switch still
+// (Change access token) clears that. Refreshing with the switch still
 // in the address breaks it again, so take it off once you've seen it.
 (function mockBreak() {
   try {

@@ -20,7 +20,7 @@ import './MetaPixelRow.css';
 //
 // Every button opens the same panel (MetaPixelDrawer): the setup form when
 // there's nothing yet, Manage otherwise (Fix: with the problem on top, and
-// Replace access token). Just connected: the row glows green for a moment,
+// Change access token). Just connected: the row glows green for a moment,
 // so the coach sees where the status lives.
 // ------------------------------------------------------------
 export default function MetaPixelRow() {
@@ -51,7 +51,7 @@ export default function MetaPixelRow() {
               Your Meta Pixel has stopped working
             </p>
             <p className="mp-row__sub">
-              Your access token stopped working on {dayLabel(record.brokenAt)}. Replace it to send sign-ups to Meta
+              Your access token stopped working on {dayLabel(record.brokenAt)}. Change it to send sign-ups to Meta
               again.
             </p>
           </div>
