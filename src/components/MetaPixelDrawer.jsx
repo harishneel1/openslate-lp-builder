@@ -343,8 +343,9 @@ export default function MetaPixelDrawer({ onClose }) {
         {/* Kept mounted while checking (hidden), so what they typed stays put */}
         {(view === 'form' || view === 'checking') && (
           <div className="mp-form" hidden={view !== 'form'}>
-            {/* The video's for setting up from nothing; the steps' own help covers the rest */}
-            {mode === 'setup' && <VideoCard video={PIXEL_VIDEOS.overview} />}
+            {/* Every time the form opens: a coach changing the token months later
+                has likely forgotten the steps */}
+            <VideoCard video={PIXEL_VIDEOS.overview} />
 
             {mode === 'token' && status === 'broken' && (
               <p className="mp-alert mp-alert--quiet">
