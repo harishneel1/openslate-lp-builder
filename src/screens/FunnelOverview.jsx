@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { AlertCircle, ArrowRight, CalendarClock, Check, ChevronRight, Clock, Copy, ExternalLink, Pencil, Link2, Lock, Play, Plus, RefreshCw } from 'lucide-react';
 import PageThumbnail from '../components/PageThumbnail';
+import PixelStatus from '../components/PixelStatus';
 import { getTheme, recommendedThemeId } from '../data/themes';
 import { servicePrice } from '../data/mockServices';
 import { joinSummary } from '../data/thankYouQuestions';
@@ -72,6 +73,12 @@ async function copyText(text) {
 //   (🔗) Your webinar link                 [ openslate…/fix-the-vasthu ] [Copy link] [Open ↗]
 //        Put it in your Meta ads, Instagram
 //        bio or WhatsApp groups…
+//   ─────────────────────────────────────────────────────────────────────────────
+//   📣 Running Meta ads? Connect your Meta Pixel so Meta can see…          [Set up]
+//
+// The strip along the bottom is the Meta Pixel (PixelStatus): this is the
+// moment they get the link they'll put in their ads. One pixel for the
+// account, so it's the same as on the Webinars list and the webinar page.
 function LiveLink({ href, onOpen, copyRef }) {
   const [state, setState] = useState('idle'); // 'idle' | 'copied' | 'failed'
   const timer = useRef(null);
@@ -131,6 +138,8 @@ function LiveLink({ href, onOpen, copyRef }) {
           Couldn't copy. Select the link and copy it yourself.
         </p>
       )}
+
+      <PixelStatus variant="strip" />
     </section>
   );
 }

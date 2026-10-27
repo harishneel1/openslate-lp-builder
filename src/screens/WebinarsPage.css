@@ -10,6 +10,13 @@
   gap: 16px;
 }
 
+/* Settings for every webinar (Meta Pixel): one row, so it takes the
+   card's corners top and bottom */
+.wb-settings .oh__row {
+  border-top: 0;
+  border-radius: var(--radius-lg);
+}
+
 .webinars__empty-text {
   max-width: 46ch;
 }

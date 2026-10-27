@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CalendarDays, CalendarPlus, Eye, MonitorPlay, Pencil, Plus, Share2, Trash2, Users, Video } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
+import MetaPixelRow from '../components/MetaPixelRow';
+import { usePixel } from '../components/MetaPixelDrawer';
 import RowMenu from '../components/RowMenu';
 import ShareDialog from '../components/ShareDialog';
 import { funnelTypes } from '../data/funnelTypes';
@@ -30,6 +32,10 @@ import './WebinarsPage.css';
 // publish); this is where they come back to.
 //
 //   Webinars                                                [+ Create a webinar]
+//   ┌───────────────────────────────────────────────────────────────────────────┐
+//   │ Meta Pixel   Not set up                                          [Set up] │
+//   │              Running Facebook or Instagram ads? …                         │
+//   └───────────────────────────────────────────────────────────────────────────┘
 //   ┌ Upcoming 2 ───────────────────────────────────────────────────────────────┐
 //   │ [NOV 7] Fix the Vasthu…  [Join meeting] [Share] [Edit webinar] [⋯]         │
 //   │         [📅 Sat 7 Nov, 7:00 pm IST]  👥 23 signed up  ₹499                │
@@ -56,6 +62,10 @@ import './WebinarsPage.css';
 //
 // Upcoming: soonest first. Drafts: not published, last edited first.
 // Past: latest first. Empty groups don't show.
+//
+// Meta Pixel (MetaPixelRow): a setting for every webinar, so it sits above
+// them, like Google Calendar above the calls on 1:1 calls. It shows once
+// a webinar has a link (ads need one), or once a pixel is saved.
 //
 // A click anywhere on a row opens the date it shows (App.jsx: its details
 // page once it's published, the setup screen while it's a draft). Edit
@@ -111,6 +121,8 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
   const [menuId, setMenuId] = useState(null); // the row whose ⋯ menu is open
   const now = useNow();
   useSignupsTick();
+  const pixel = usePixel();
+  const showPixel = Boolean(pixel) || webinars.some((w) => w.publishedAt);
 
   useEffect(() => {
     document.title = 'Webinars';
@@ -194,6 +206,13 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
           </button>
         )}
       </div>
+
+      {/* Settings for every webinar */}
+      {showPixel && (
+        <section className="oh__panel wb-settings" aria-label="Settings for all your webinars">
+          <MetaPixelRow />
+        </section>
+      )}
 
       {webinars.length === 0 ? (
         <section className="oh__panel" aria-label="Your webinars">

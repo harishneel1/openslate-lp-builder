@@ -22,6 +22,7 @@ import Drawer from '../components/Drawer';
 import InfoTip from '../components/InfoTip';
 import { PriceWithDiscount } from '../components/CallDetailsInput';
 import PageThumbnail from '../components/PageThumbnail';
+import PixelStatus from '../components/PixelStatus';
 import ShareDialog from '../components/ShareDialog';
 import TimePicker from '../components/TimePicker';
 import { useCopy } from './OfferingsHome';
@@ -67,7 +68,7 @@ import './WebinarDetails.css';
 //   money in your home…                    │                             │
 //                                          │  their landing page, as on  │
 //   [↗ Share webinar]  [🔗 Copy link]      │  a laptop, under a wash     │
-//                                          │                             │
+//   📣 Running Meta ads? Connect your…     │                             │
 //   ┌ Next session ─────────────────────┐  │                             │
 //   │ Sat 31 Oct, 2:00 pm IST           │  │                             │
 //   │ Starts in 7 days                  │  │   [✎ Edit webinar pages]    │
@@ -1203,6 +1204,10 @@ function LandingThumb({ run, address, name, onEdit, previewHref, onPreview }) {
 // since coaches copy it often; it turns into "✓ Copied" for a moment.
 // Share is left out once every session is over (the link then says the
 // webinar has ended); Copy link stays.
+//
+// Under them, one quiet line: the Meta Pixel (PixelStatus), since this is
+// where coaches get the link they put in their ads. It's the account's one
+// pixel, the same as on the Webinars list.
 function LinkActions({ url, onShare }) {
   const [copy, copyLink] = useCopy();
   const copied = copy === 'copied';
@@ -1232,6 +1237,7 @@ function LinkActions({ url, onShare }) {
           Couldn’t copy. Open the page with 👁 and copy the address from the browser.
         </p>
       )}
+      <PixelStatus variant="line" />
     </div>
   );
 }

@@ -62,6 +62,18 @@ export function addSignup({ webinarId, name, email, phone, amount = 0 }) {
   return saveAll([...all, person]) ? person : null;
 }
 
+// When the latest person registered, for any webinar, between two moments
+// (ms), or null. The Meta Pixel panel uses it for "Last sign-up sent to
+// Meta": sign-ups after it was connected (and before it stopped working).
+export function latestSignupAt({ after = 0, before = Infinity } = {}) {
+  let latest = null;
+  loadAll().forEach((p) => {
+    const at = Number(p.registeredAt);
+    if (at >= after && at < before && (latest === null || at > latest)) latest = at;
+  });
+  return latest;
+}
+
 // A deleted webinar takes its people with it
 export function deleteSignupsOf(webinarId) {
   const all = loadAll();

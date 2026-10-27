@@ -1,0 +1,93 @@
+/* The Meta Pixel row (MetaPixelRow.jsx). Grid, padding and label come
+   from .oh__row (OfferingsHome.css), like the Google Calendar row. */
+
+.mp-row__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.mp-row__sub {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Stopped working: red, like Calendar's "Disconnected" row */
+.mp-row--broken {
+  background: #fef3f2;
+}
+
+.mp-row--broken .oh__row-label {
+  color: #7a1c14;
+}
+
+.mp-row__title--broken {
+  color: #7a1c14;
+}
+
+.mp-row__title--broken svg {
+  flex: none;
+  color: #b42318;
+}
+
+.mp-row--broken .mp-row__sub {
+  color: #5c3b38;
+}
+
+.mp-row__connected {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.mp-row__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mp-row__id {
+  letter-spacing: 0.02em;
+}
+
+/* A green dot and the word, as Calendar's Connected */
+.mp-row__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-success);
+}
+
+.mp-row__status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+/* Just connected: the same green glow as PixelStatus (px-flash), on the row */
+.mp-row--flash {
+  animation: mp-row-flash 2.4s ease-out;
+}
+
+@keyframes mp-row-flash {
+  0%,
+  35% {
+    background-color: var(--color-success-tint);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-row--flash {
+    animation: none;
+  }
+}

@@ -1,0 +1,856 @@
+/* Connect your Meta Pixel (MetaPixelDrawer.jsx). The panel itself comes
+   from Drawer.css, the buttons from OfferingsHome.css; the boxes match
+   Edit session's (WebinarDetails.css) and the how-to matches the
+   WhatsApp link screen's "Don't have a group yet?" (QuestionInput.css). */
+
+.mp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.mp-form[hidden] {
+  display: none;
+}
+
+/* ---------- The setup video ---------- */
+.mp-video {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+
+.mp-video__poster {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(239, 138, 60, 0.16), transparent 60%),
+    var(--color-primary-tint);
+  border: 1px solid #f6dcc6;
+  border-radius: var(--radius-md);
+}
+
+.mp-video__play {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  padding-left: 3px; /* the triangle looks centred */
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(239, 138, 60, 0.35);
+  transition: transform 0.15s, background 0.15s;
+}
+
+a.mp-video:hover .mp-video__play {
+  background: var(--color-primary-hover);
+  transform: scale(1.05);
+}
+
+a.mp-video:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* No link yet: the same card, quieter, with a note on it */
+.mp-video--soon .mp-video__play {
+  background: #e8b48a;
+  box-shadow: none;
+}
+
+.mp-video__soon {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a4b17;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-pill);
+}
+
+.mp-video__caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.mp-video__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mp-video__length {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- The two steps ---------- */
+.mp-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mp-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.mp-step__num {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+}
+
+.mp-step__body {
+  min-width: 0;
+}
+
+.mp-step__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.mp-step__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mp-step__tag {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-success);
+  background: var(--color-success-tint);
+  border-radius: var(--radius-pill);
+}
+
+.mp-step__desc {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.mp-step__field {
+  margin-top: 12px;
+}
+
+/* The same box look as Edit session (WebinarDetails.css) */
+.mp-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mp-input::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.mp-input:focus,
+.mp-input:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 4px var(--color-primary-tint);
+}
+
+.mp-input--error,
+.mp-input--error:focus,
+.mp-input--error:focus-visible {
+  border-color: #c0392b;
+}
+
+.mp-input--error:focus,
+.mp-input--error:focus-visible {
+  box-shadow: 0 0 0 4px #fdecea;
+}
+
+/* The access token: Show / Hide inside the box, on the right */
+.mp-secret {
+  position: relative;
+}
+
+.mp-secret__input {
+  padding-right: 84px;
+  /* Hidden, it's a row of dots; shown, a long code that shouldn't wrap the layout */
+  text-overflow: ellipsis;
+}
+
+.mp-secret__toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.mp-secret__toggle:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.mp-secret__toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.mp-step__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #b42318;
+}
+
+.mp-step__error svg {
+  flex: none;
+  margin-top: 3px;
+}
+
+/* ---------- How-to under each box (as QuestionInput's setup steps) ---------- */
+.mp-step__help-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+
+.mp-help {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+/* With a video link beside it, the toggle and the link share the line;
+   the open steps still take the full width (they're inside <details>) */
+.mp-step__help-row:has(.mp-step__video) .mp-help {
+  flex-basis: auto;
+}
+
+.mp-help__toggle,
+.mp-sees__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  list-style: none;
+  cursor: pointer;
+}
+
+.mp-help__toggle::-webkit-details-marker,
+.mp-sees__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.mp-help__toggle:hover,
+.mp-sees__toggle:hover {
+  color: #c4651c;
+}
+
+.mp-help__toggle:focus-visible,
+.mp-sees__toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.mp-chevron {
+  transition: transform 0.15s;
+}
+
+details[open] > summary .mp-chevron {
+  transform: rotate(180deg);
+}
+
+.mp-help__steps {
+  margin-top: 12px;
+  padding: 14px 16px 14px 34px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.mp-help__steps li + li {
+  margin-top: 6px;
+}
+
+.mp-help__note {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.mp-step__video {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-color: #d0d0d4;
+  text-underline-offset: 3px;
+}
+
+.mp-step__video:hover {
+  text-decoration-color: currentColor;
+}
+
+/* ---------- What Meta will see ---------- */
+.mp-sees {
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.mp-sees__toggle {
+  color: var(--color-text);
+}
+
+.mp-sees__toggle:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mp-sees__body {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.mp-sees__body ul {
+  margin: 8px 0 10px;
+  padding-left: 20px;
+}
+
+.mp-sees__body li + li {
+  margin-top: 4px;
+}
+
+/* ---------- Checking with Meta ---------- */
+.mp-checking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 72px 16px;
+  text-align: center;
+}
+
+.mp-checking__title {
+  margin-top: 8px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.mp-checking__sub {
+  max-width: 36ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.mp-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--color-primary-tint);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: mp-spin 0.8s linear infinite;
+}
+
+.mp-spinner--small {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+}
+
+@keyframes mp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- After saving: connected, or partly set up ---------- */
+.mp-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 0 8px;
+  text-align: center;
+  animation: mp-result-in 0.24s ease-out;
+}
+
+.mp-result__mark {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 18px;
+  border-radius: 50%;
+}
+
+.mp-result--ok .mp-result__mark {
+  color: #fff;
+  background: var(--color-success);
+}
+
+.mp-result__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.mp-result__title:focus {
+  outline: none;
+}
+
+.mp-result__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.mp-result__pixel {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 18px;
+  padding: 10px 18px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.mp-result__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.mp-result__id {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+@keyframes mp-result-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- Footer ---------- */
+.mp-foot__hint {
+  flex: 1 1 200px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.mp-foot__hint:empty {
+  display: none;
+}
+
+.mp-foot__buttons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.mp-foot__buttons button {
+  cursor: pointer;
+}
+
+.mp-foot__buttons button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* While checking, the filled button stays readable (not faded) */
+.mp-foot__save[aria-busy='true']:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
+@media (max-width: 480px) {
+  .mp-foot__buttons {
+    width: 100%;
+  }
+
+  .mp-foot__buttons button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .mp-step {
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-spinner {
+    animation-duration: 2.4s;
+  }
+
+  .mp-result {
+    animation: none;
+  }
+
+  .mp-video__play,
+  .mp-chevron {
+    transition: none;
+  }
+}
+
+/* ======================================================================
+   Manage: what's connected (Round 3)
+   ====================================================================== */
+.mp-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------- Stopped working: red, like Calendar's "Disconnected" row ---------- */
+.mp-alert {
+  padding: 16px 18px;
+  color: #5c3b38;
+  background: #fef3f2;
+  border: 1px solid #f7d4d0;
+  border-radius: var(--radius-md);
+}
+
+.mp-alert__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #7a1c14;
+}
+
+.mp-alert__title svg {
+  flex: none;
+  color: #b42318;
+}
+
+.mp-alert__text {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.mp-alert__fix {
+  margin-top: 14px;
+  cursor: pointer;
+}
+
+/* The same, as one line above the token box when replacing a broken one */
+.mp-alert--quiet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mp-alert--quiet svg {
+  flex: none;
+  margin-top: 2px;
+  color: #b42318;
+}
+
+/* ---------- The facts: label, value, its one action ---------- */
+.mp-facts {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.mp-fact {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 16px;
+  padding: 16px 18px;
+}
+
+.mp-fact + .mp-fact {
+  border-top: 1px solid var(--color-border);
+}
+
+.mp-fact__label {
+  padding-top: 1px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.mp-fact__value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+}
+
+.mp-fact__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mp-fact__main svg {
+  flex: none;
+}
+
+.mp-fact__main--ok {
+  color: var(--color-success);
+}
+
+.mp-fact__main--bad {
+  color: #b42318;
+}
+
+.mp-fact__sub {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.mp-fact__action {
+  padding: 2px 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.mp-fact__action:hover {
+  color: #c4651c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mp-fact__action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove pixel: a red text button, as Delete session in a session's panel */
+.mp-remove {
+  padding: 8px 4px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #c0362c;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.mp-remove:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mp-remove:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- The form, in its other modes ---------- */
+/* A line above a box, for what changed (a new pixel needs a new token) */
+.mp-step__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #8a4b0f;
+  background: #fffaf2;
+  border-radius: var(--radius-sm);
+}
+
+.mp-step__note svg {
+  flex: none;
+  margin-top: 3px;
+  color: #b45309;
+}
+
+/* The Pixel ID while adding a token: shown, not typed in */
+.mp-input--fixed,
+.mp-input--fixed:focus {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+@media (max-width: 480px) {
+  .mp-fact {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .mp-fact__label {
+    grid-column: 1 / -1;
+  }
+
+  /* The Remove / Done footer keeps them on one line */
+  .mp-drawer .drawer__foot:has(.mp-remove) .mp-foot__buttons {
+    width: auto;
+  }
+}
+
+/* ---------- Connected: what happens next ---------- */
+.mp-next {
+  align-self: stretch;
+  margin-top: 28px;
+  padding: 18px 20px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.mp-next__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.mp-next__steps {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.mp-next__steps li + li {
+  margin-top: 10px;
+}
+
+.mp-next__steps strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* If the webinar is free → Complete registration; if it's paid → Purchase */
+.mp-next__events {
+  margin: 8px 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.mp-next__events > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.mp-next__events > div + div {
+  border-top: 1px solid var(--color-border);
+}
+
+.mp-next__events dt {
+  color: var(--color-text-muted);
+}
+
+.mp-next__events dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Where to check: our Webinars page, then Meta Events Manager */
+.mp-next__places {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.mp-next__places li + li {
+  margin-top: 6px;
+}

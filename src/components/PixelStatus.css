@@ -1,0 +1,177 @@
+/* The Meta Pixel's status (PixelStatus.jsx): a quiet line on a
+   webinar's page, a strip along the bottom of "Your webinar link". */
+
+.px-mark {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.px-mark--broken {
+  color: #b42318;
+}
+
+/* Connected: the green dot, as on the Calendar and Meta Pixel rows */
+.px-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px;
+  background: var(--color-success);
+  border-radius: 50%;
+}
+
+/* ---------- 'line': under Share webinar and Copy link ---------- */
+.px-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  width: fit-content; /* so the green glow hugs the words */
+  max-width: 100%;
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.px-line--broken .px-line__text {
+  font-weight: 500;
+  color: #7a1c14;
+}
+
+.px-line__btn {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-color: #d0d0d4;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.px-line__btn:hover {
+  text-decoration-color: currentColor;
+}
+
+.px-line__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ---------- 'strip': the bottom of "Your webinar link" ----------
+   Spans the card's grid, under a hairline, so it reads as part of the
+   link card: the next thing to do with the link. */
+.px-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin: 2px -18px -14px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.px-strip--broken {
+  background: #fef3f2;
+}
+
+.px-strip--broken .px-strip__text {
+  color: #7a1c14;
+}
+
+.px-strip__text {
+  display: flex;
+  flex: 1 1 280px;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.px-strip__text .px-mark {
+  margin-top: 2px;
+}
+
+.px-strip__text .px-dot {
+  margin-top: 7px;
+}
+
+/* The same outlined button as the rows' (oh__btn), a little smaller */
+.px-strip__btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #e2e2e4;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.px-strip__btn:hover {
+  border-color: #c9c9ce;
+}
+
+.px-strip__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Just connected: a green glow that fades ----------
+   Shows where the status lives once the panel closes. */
+.px-flash {
+  animation: px-flash 2.4s ease-out;
+}
+
+/* The strip already fills the card's edge: colour only, no glow past it */
+.px-strip.px-flash {
+  animation-name: px-flash-fill;
+}
+
+@keyframes px-flash-fill {
+  0%,
+  35% {
+    background-color: var(--color-success-tint);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* The line has no box of its own: the glow reaches a little past it */
+.px-line--flash {
+  border-radius: 6px;
+}
+
+@keyframes px-flash {
+  0%,
+  35% {
+    background-color: var(--color-success-tint);
+    box-shadow: 0 0 0 6px var(--color-success-tint);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .px-flash {
+    animation: none;
+  }
+}
