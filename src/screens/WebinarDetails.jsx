@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CalendarClock,
   CalendarX,
@@ -73,21 +73,19 @@ import './WebinarDetails.css';
 // each session (a run, data/webinar.js) has its own date and people, and
 // all of them share one link.
 //
-//   ════ white band, the width of the page ══════════════════════════════
 //   Fix the Vasthu mistakes that block     ┌ ● ● ● 🔒 site/slug        👁 ┐
 //   money in your home…                    │                             │
 //                                          │  their landing page, as on  │
 //   [↗ Share webinar]  [🔗 Copy link]      │  a laptop, under a wash     │
 //   📣 Running Meta ads? Connect your…     │                             │
-//   ┌ Next session ─────────────────────┐  │                             │
-//   │ Sat 31 Oct, 2:00 pm IST           │  │                             │
-//   │ Starts in 7 days                  │  │   [✎ Edit webinar pages]    │
-//   │ 23 signed up · See people >  [Join meeting] │                     │
+//   ┌ 23            ₹22,977             ┐  │                             │
+//   │ Registered ›  Collected ›         │  │                             │
+//   │                                   │  │   [✎ Edit webinar pages]    │
+//   │ 📅 Sat 31 Oct, 2:00 pm IST · Starts in 7 days  [Join meeting]    │
 //   └───────────────────────────────────┘  └─────────────────────────────┘
-//   ══════════════════════════════════════════════════════════════════════
-//   (grey from here)
+//   (all on the page's grey, like every other page header)
 //   ┌ Sessions 2 | Emails ──────────────────────────────────────────────┐
-//   │ Session             Status                  Signed up             │
+//   │ Session             Status                  Registered            │
 //   │ Sat 31 Oct 2:00 pm  ● Coming up  🔗 link        0    See people > │
 //   │ Sat 24 Oct 2:00 pm  Ended                       2    See people > │
 //   │ + Add another session                                             │
@@ -429,18 +427,20 @@ function useRecordingsTick() {
 // Join meeting is the one filled orange button in the header (the button
 // itself turns into Start webinar / Live now near the time, as on the list).
 //
-//   ┌ (● Registrations open) ─────────────────────────────────────────┐
-//   │ Sat 31 Oct, 2:00 pm IST                                         │
-//   │ Starts in 7 days                                                │
+//   ┌─────────────────────────────────────────────────────────────────┐
+//   │ 23              ₹22,977                                         │
+//   │ Registered ›    Collected ›                                     │
 //   │ ─────────────────────────────────────────────────────────────── │
-//   │ 23 signed up · ₹22,977 collected  Manage people > [Join meeting]│
+//   │ 📅 Sat 31 Oct, 2:00 pm IST · Starts in 7 days    [Join meeting] │
 //   └─────────────────────────────────────────────────────────────────┘
 //
-// The pill says what the sessions table's badge says for this session
-// (it's the one the landing page shows): Registrations open, or Live now
-// while it's on. Same words and orange dot, so the card and the table's
-// orange row read as one session.
-// "collected" only for a paid session: what its people paid in all.
+// The numbers lead: they're what a coach checks every day. Each number
+// is a button that opens this session's people (Manage people), so
+// there's no separate link. No status pill either: "Starts in" says
+// registrations are open, and on the day the countdown turns to Live
+// now (the sessions table's badge still says it in words).
+// Collected only for a paid session: what its people paid in all. A free
+// one shows Registered alone, in the same row, so the card keeps its shape.
 // With nothing coming up, the same card says so and offers to add a session.
 function NextSession({ run, name, now, onOpen, onAdd }) {
   // Nothing coming up: a short, quiet card (white, grey edge), the text on
@@ -469,37 +469,46 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
   const today = dayOf(answers, now);
   const count = peopleOf(run.id).length;
   const paid = !webinarPrice(answers).isFree;
+  // The big numbers: Registered always, Collected for a paid session
+  const stats = [
+    { label: 'Registered', value: count.toLocaleString('en-IN') },
+    paid && { label: 'Collected', value: rupees(collectedOf(run.id)) },
+  ].filter(Boolean);
   return (
-    <section className="wd__next" aria-labelledby="wd-next-title">
-      <p className="wd__next-label">
-        <span className="wb-badge__dot" aria-hidden="true" />
-        {isOnNow(answers, now) ? 'Live now' : 'Registrations open'}
-      </p>
-      <h2 className="wd__next-title" id="wd-next-title">
-        {dayOfRun(run) ?? 'No date yet'}
-        {timeOfRun(run) ? `, ${timeOfRun(run)}` : ''}
-      </h2>
-      {today ? (
-        <div className="wd__next-count-down">
-          <Countdown day={today} />
-        </div>
-      ) : (
-        <p className="wd__next-text wd__next-text--soon">{startsIn(answers, now)}</p>
-      )}
+    <section className="wd__next" aria-label="Next session">
+      {/* The numbers are the buttons: each opens this session's people */}
+      <div className="wd__next-stats">
+        {stats.map((st) => (
+          <button
+            key={st.label}
+            type="button"
+            className="wd__next-stat"
+            onClick={onOpen}
+            aria-label={`${st.value} ${st.label.toLowerCase()}. Manage people`}
+          >
+            <span className="wd__next-value">{st.value}</span>
+            <span className="wd__next-key">
+              {st.label} <ChevronRight size={14} aria-hidden="true" />
+            </span>
+          </button>
+        ))}
+      </div>
       <div className="wd__next-foot">
-        {/* The count is a button: it opens this session's people */}
-        <button type="button" className="wd__next-people" onClick={onOpen}>
-          <span className="wd__next-num">{count}</span> signed up
-          {paid && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="wd__next-num">{rupees(collectedOf(run.id))}</span> collected
-            </>
-          )}
-          <span className="wd__next-see">
-            Manage people <ChevronRight size={14} aria-hidden="true" />
+        <div className="wd__next-when">
+          <CalendarClock size={16} aria-hidden="true" />
+          <span>
+            {dayOfRun(run) ?? 'No date yet'}
+            {timeOfRun(run) ? `, ${timeOfRun(run)}` : ''}
           </span>
-        </button>
+          {today ? (
+            <Countdown day={today} />
+          ) : (
+            <span className="wd__next-soon">
+              <span aria-hidden="true">· </span>
+              {startsIn(answers, now)}
+            </span>
+          )}
+        </div>
         <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />
       </div>
     </section>
@@ -513,7 +522,7 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 // Adding a session is the + Add session button at the top right of the
 // panel, beside the tabs, so it's in reach however long the list gets.
 //
-//   Session              Status                    Signed up  Collected
+//   Session              Status                   Registered  Collected
 // ▌ Mon 9 Nov 7:00 pm    ● Registrations open (i)      12     ₹11,988   Manage session >
 //   Mon 16 Nov 7:00 pm   Scheduled                      0     ₹0        Manage session >
 //   Mon 2 Nov 7:00 pm    Ended                          2     Free      Manage session >
@@ -558,7 +567,7 @@ function SessionsTable({ sessions, linkRunId, now, onOpen }) {
       <div className="wd__st-row wd__st-row--head" aria-hidden="true">
         <span>Session</span>
         <span>Status</span>
-        <span>Signed up</span>
+        <span>Registered</span>
         {money && <span>Collected</span>}
         <span />
       </div>
@@ -668,7 +677,7 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
             e.stopPropagation();
             open();
           }}
-          aria-label={`Manage session: ${day}, ${label}${recSaid}, ${count} signed up${
+          aria-label={`Manage session: ${day}, ${label}${recSaid}, ${count} registered${
             moneyText ? `, ${free ? 'free' : `${moneyText} collected`}` : ''
           }`}
         >
@@ -735,6 +744,16 @@ function RecordingChip({ status, onOpen }) {
 //   have (Edit session on a past session) opens Manage people instead
 // onSave(changes): { date, time, headline, subheadline, pricing, price, oldPrice }
 // onPreview(): just before the preview tab opens
+//
+// Just after a reschedule (from the email page, or at once with nobody
+// registered), a toast at the bottom says it's done:
+//   ┌───────────────────────────────────────────────────────┐
+//   │ ✓  Rescheduled to Sat 14 Nov, 8:30 pm IST           ✕ │
+//   │    Email sent to 1 person            View activity ›  │
+//   └───────────────────────────────────────────────────────┘
+// It stays until they switch tabs (View activity included) or close the
+// panel, or dismiss it with ✕. The full record (every move, who was
+// emailed) is on the Activity tab.
 function SessionDrawer({
   run,
   name,
@@ -774,6 +793,7 @@ function SessionDrawer({
   const [moving, setMoving] = useState(false); // the Reschedule pop-up
   const [menuFor, setMenuFor] = useState(null); // the person whose ⋯ menu is open
   const [refunding, setRefunding] = useState(null); // "Refund ₹999 to Priya?"
+  const moved = useMovedToast(run, shownTab);
   // A paid session's people each get a ⋯ with Refund (while they have something to refund)
   const canRefund = (p) => p.amount > 0 && !p.refundedAt;
   const refundsShown = people.some((p) => p.amount > 0);
@@ -921,13 +941,27 @@ function SessionDrawer({
               )
             )}
           </div>
-          {run.rescheduled && (
-            <MovedFrom from={run.rescheduled.from} emailedTo={run.rescheduled.emailedTo} timeZone={answers.timeZone} />
-          )}
           </>
         )
       }
       footer={shownTab === 'edit' ? editFooter : shownTab === 'people' ? peopleFooter : null}
+      notice={
+        moved.shown && (
+          <MovedToast
+            line={moved.shown.line}
+            emailedTo={moved.shown.emailedTo}
+            onActivity={
+              shownTab === 'activity'
+                ? null
+                : () => {
+                    setTab('activity');
+                    moved.dismiss();
+                  }
+            }
+            onClose={moved.dismiss}
+          />
+        )
+      }
     >
       <SessionTabs tab={shownTab} onTab={setTab} people={people.length} canEdit={!ended} />
 
@@ -1160,17 +1194,67 @@ function SessionDrawer({
   );
 }
 
-// A rescheduled session, under its buttons: where it was before its
-// latest move, and who was told.
-//   "Moved from Fri 13 Nov, 7:00 pm IST · Email sent to 23 people"
-function MovedFrom({ from, emailedTo = 0, timeZone }) {
-  const was = webinarWhen({ date: from?.date, time: from?.time, timeZone });
-  if (!was) return null;
+// ---------- "Rescheduled" toast ----------
+// A move shows its toast once: the first time a session's panel sees it,
+// and only while it's fresh (a minute), so reopening the session later,
+// or a reload, doesn't bring it back. Kept outside React so it survives
+// the panel being closed and opened again.
+// It stays put until the panel moves to another tab, the panel closes
+// (it goes with it), or ✕.
+const MOVE_FRESH_MS = 60_000;
+const movesShown = new Set();
+
+function useMovedToast(run, tab) {
+  const movedAt = run.rescheduled?.at ?? null;
+  const [shown, setShown] = useState(null); // { line, emailedTo }
+  useEffect(() => {
+    if (!movedAt || movesShown.has(movedAt) || Date.now() - movedAt > MOVE_FRESH_MS) return;
+    movesShown.add(movedAt);
+    const when = webinarWhen(run.answers ?? {});
+    setShown({ line: when?.line ?? dayOfRun(run) ?? 'the new date', emailedTo: run.rescheduled.emailedTo ?? 0 });
+    // Only for a new move
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [movedAt]);
+  // Another tab: it's done its job. The ref keeps the first render (and a
+  // dev double-run) from counting as a switch.
+  const lastTab = useRef(tab);
+  useEffect(() => {
+    if (lastTab.current === tab) return;
+    lastTab.current = tab;
+    setShown(null);
+  }, [tab]);
+  return { shown, dismiss: () => setShown(null) };
+}
+
+// line: the new date, "Sat 14 Nov, 8:30 pm IST"; emailedTo: how many were
+// told (0 leaves the line off); onActivity: null on the Activity tab itself
+function MovedToast({ line, emailedTo, onActivity, onClose }) {
   return (
-    <p className="wd-drawer__moved">
-      <CalendarClock size={14} aria-hidden="true" /> Moved from {was.line}
-      {emailedTo > 0 && ` · Email sent to ${emailedTo} ${emailedTo === 1 ? 'person' : 'people'}`}
-    </p>
+    <div className="wd-toast" role="status">
+      <span className="wd-toast__tick" aria-hidden="true">
+        <Check size={14} strokeWidth={3} />
+      </span>
+      <div className="wd-toast__text">
+        <strong className="wd-toast__title">Rescheduled to {line}</strong>
+        {(emailedTo > 0 || onActivity) && (
+          <span className="wd-toast__row">
+            {emailedTo > 0 && (
+              <span className="wd-toast__sub">
+                Email sent to {emailedTo} {emailedTo === 1 ? 'person' : 'people'}
+              </span>
+            )}
+            {onActivity && (
+              <button type="button" className="wd-toast__link" onClick={onActivity}>
+                View activity <ChevronRight size={14} aria-hidden="true" />
+              </button>
+            )}
+          </span>
+        )}
+      </div>
+      <button type="button" className="wd-toast__close" aria-label="Dismiss" onClick={onClose}>
+        <X size={16} aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 

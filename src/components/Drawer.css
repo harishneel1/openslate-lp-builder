@@ -117,6 +117,22 @@
   overscroll-behavior: contain;
 }
 
+/* ---------- Notice (a toast) ----------
+   Floats over the bottom of the body, just above the footer (or the
+   panel's bottom edge when there's none) */
+.drawer__notice {
+  position: relative;
+  z-index: 2;
+  height: 0;
+}
+
+.drawer__notice > * {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  left: 20px;
+}
+
 /* ---------- Footer ---------- */
 .drawer__foot {
   display: flex;

@@ -2,21 +2,16 @@
    from OfferingsHome.css, the meeting button and badges from
    WebinarsPage.css; only what's new is here. */
 
-/* ---------- Header: a white band across the page ----------
-   What the webinar is (name, link, pages), set apart from what's
-   happening (the grey below). The band runs edge to edge of the main
-   area: the border-image is painted past the sides (outset), which only
-   draws, so nothing scrolls sideways; .app__main clips it at its edges.
-   Its bottom pixel is the border line. It starts right under the focus
-   bar: -48px is .app__main's 32px padding plus .oh's 16px. */
+/* ---------- Header: name, link, pages ----------
+   Sits on the page's grey like every other page header (FunnelOverview,
+   WebinarsPage, ContractsPage); white is kept for cards. The 24px top
+   matches .overview--editing, so moving between the two doesn't jump. */
 .wd__head {
   display: grid;
   grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); /* about 55 / 45 */
   align-items: stretch; /* both columns as tall as the taller one */
   gap: 28px 48px;
-  margin: -48px 0 32px;
-  padding: 44px 0;
-  border-image: linear-gradient(to top, var(--color-border) 0 1px, var(--color-surface) 1px) fill 0 / 0 / 0 100vmax;
+  margin: 24px 0 32px;
 }
 
 /* Title, link, then the next session at the bottom: the title lines up
@@ -477,7 +472,6 @@
   .wd__head {
     grid-template-columns: minmax(0, 1fr);
     gap: 28px;
-    padding: 32px 0;
   }
 
   /* One column: the picture goes under the link, at a laptop's shape */
@@ -512,28 +506,99 @@
 
 /* ---------- The next session: a card in the header ----------
    Light orange and the same every day: the most important card on the
-   page. Join meeting in it is the one filled orange button. */
+   page. Join meeting in it is the one filled orange button.
+   The big numbers on top, then the date line with Join meeting. */
 .wd__next {
-  padding: 20px 22px;
+  padding: 18px 22px;
   background: var(--color-primary-tint);
   border: 1.5px solid var(--color-primary);
   border-radius: var(--radius-lg);
 }
 
-/* "● Registrations open" (or Live now): a pill, a shade deeper than the card */
-.wd__next-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  padding: 3px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-primary-hover);
-  background: #fbe0c8;
-  border-radius: var(--radius-pill);
+/* The big numbers: Registered, and Collected for a paid session. Each
+   number and its label is one button that opens the people; the › on
+   the label says so, and hover gives it a soft tint. A thin line
+   between the two. */
+.wd__next-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px 0;
 }
 
+.wd__next-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  margin: -6px -10px;
+  padding: 6px 10px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.wd__next-stat + .wd__next-stat {
+  position: relative;
+  margin-left: 54px; /* 32px each side of the line, less the padding */
+}
+
+.wd__next-stat + .wd__next-stat::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -22px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.wd__next-stat:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.wd__next-stat:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.wd__next-value {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.wd__next-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.wd__next-key svg {
+  transition: transform 0.15s;
+}
+
+.wd__next-stat:hover .wd__next-key {
+  color: var(--color-primary-hover);
+}
+
+.wd__next-stat:hover .wd__next-key svg {
+  transform: translateX(2px);
+}
+
+/* Used by the "No upcoming session" card */
 .wd__next-title {
   margin: 0;
   font-size: 22px;
@@ -579,20 +644,7 @@
   flex: none;
 }
 
-.wd__next-text--soon {
-  font-weight: 600;
-  color: var(--color-success);
-}
-
-.wd__next-count-down {
-  margin-top: 8px;
-}
-
-.wd__next-count-down .wd__status {
-  margin: 0;
-}
-
-/* Signed up on the left, the meeting button on the right */
+/* The date line on the left, Join meeting on the right */
 .wd__next-foot {
   display: flex;
   flex-wrap: wrap;
@@ -600,51 +652,34 @@
   justify-content: space-between;
   gap: 12px 16px;
   margin-top: 16px;
-  padding-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* "23 signed up  Manage people >": opens this session's people */
-.wd__next-people {
-  display: inline-flex;
-  flex-wrap: wrap; /* "Manage people" drops below on a narrow card */
-  align-items: baseline;
-  gap: 2px 6px;
-  margin: -6px -8px;
-  padding: 6px 8px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--color-text-muted);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.wd__next-people:hover {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.wd__next-people:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.wd__next-num {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.wd__next-see {
-  display: inline-flex;
+/* "📅 Sat 14 Nov, 7:30 pm IST · Starts in 16 days" (or the countdown) */
+.wd__next-when {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
-  margin-left: 6px;
+  gap: 4px 8px;
+  min-width: 0;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--color-primary-hover);
+  color: var(--color-text);
+}
+
+.wd__next-when svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.wd__next-soon {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.wd__next-when .wd__status {
+  margin: 0;
 }
 
 /* Join meeting, filled orange here (on the list it stays outlined) */
@@ -983,15 +1018,6 @@
 }
 
 /* A rescheduled session: where it was before, under the buttons */
-.wd-drawer__moved {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
 /* A cancelled session: what happened, under its title */
 .wd-drawer__cancelled {
   display: flex;
@@ -1343,12 +1369,145 @@
   }
 }
 
+/* ---------- "Rescheduled" toast, at the bottom of a session's panel ----------
+   Dark, so it stands apart from the white panel; a green tick */
+.wd-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 12px 14px 16px;
+  color: #fff;
+  background: #1c1c1e;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  animation: wd-toast-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes wd-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.wd-toast__tick {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  color: #fff;
+  background: #22a55a;
+  border-radius: 50%;
+}
+
+.wd-toast__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wd-toast__title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.wd-toast__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.wd-toast__sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.wd-toast__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffb27a;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-underline-offset: 3px;
+}
+
+.wd-toast__link:hover {
+  text-decoration: underline;
+}
+
+.wd-toast__close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -3px 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.wd-toast__close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.wd-toast__link:focus-visible,
+.wd-toast__close:focus-visible {
+  outline: 2px solid #ffb27a;
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .wd__next-people,
+  .wd-toast {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd__next-stat,
+  .wd__next-key svg,
   .wd__st-row--click,
   .wd__st-group-chev,
   .wd__st-go,
   .wd__st-new {
     transition: none;
+  }
+}
+
+
+/* Phones (after the card's own rules, so these win): the date line on top, Join meeting full width under it */
+@media (max-width: 520px) {
+  .wd__next-foot > a { /* Join meeting, or Start webinar near the time */
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .wd__next-stat + .wd__next-stat {
+    margin-left: 42px; /* about 26px each side of the line */
+  }
+
+  .wd__next-stat + .wd__next-stat::before {
+    left: -16px;
+  }
+
+  .wd__next-value {
+    font-size: 28px;
   }
 }

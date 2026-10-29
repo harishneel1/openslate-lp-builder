@@ -26,8 +26,10 @@ import './Drawer.css';
 // footer:  the panel's own actions
 // media:   optional, left of the title (e.g. a person's initials)
 // extra:   optional, under the title (e.g. buttons to contact them)
+// notice:  optional, a short-lived message (a toast) that floats over the
+//          bottom of the body, just above the footer
 // ------------------------------------------------------------
-export default function Drawer({ title, sub, media, extra, onClose, footer, className = '', children }) {
+export default function Drawer({ title, sub, media, extra, notice, onClose, footer, className = '', children }) {
   const ref = useRef(null);
   const titleId = useId();
   const subId = useId();
@@ -83,6 +85,10 @@ export default function Drawer({ title, sub, media, extra, onClose, footer, clas
         </header>
 
         <div className="drawer__body">{children}</div>
+
+        {/* A zero-height anchor between body and footer: the notice floats
+            up from it, over the body, without moving anything */}
+        {notice && <div className="drawer__notice">{notice}</div>}
 
         {footer && <footer className="drawer__foot">{footer}</footer>}
       </div>
