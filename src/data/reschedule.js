@@ -28,8 +28,12 @@ import {
 //     emailedTo: how many people were emailed the new date
 //     email:     { subject, body } as sent, or null (nobody signed up)
 //   }
-// Only the latest move is kept; each move emails from where people last
-// heard it was.
+//   moves: every move, oldest first, for the session's Activity tab:
+//     [{ at, from: { date, time }, to: { date, time }, emailedTo }]
+// `rescheduled` is the latest move (what the drawer's "Moved from" line
+// and the bell show); `moves` keeps them all. Sessions moved before moves
+// existed have only `rescheduled`: movesOf turns it into a one-move list.
+// Each move emails from where people last heard it was.
 //
 // What stops a move (moveProblem) and what's only worth knowing first
 // (moveWarnings) are worked out here, so the pop-up and App agree.
@@ -46,6 +50,15 @@ function spanAt(webinar, date, time) {
 }
 
 const overlaps = (a, b) => a.start < b.end && b.start < a.end;
+
+// Every move of a session, oldest first (see `moves` above)
+export function movesOf(webinar) {
+  if (Array.isArray(webinar?.moves) && webinar.moves.length > 0) return webinar.moves;
+  const r = webinar?.rescheduled;
+  if (!r || !Number.isFinite(r.at)) return [];
+  const answers = webinar.answers ?? {};
+  return [{ at: r.at, from: r.from, to: { date: answers.date, time: answers.time ?? '19:00' }, emailedTo: r.emailedTo ?? 0 }];
+}
 
 // Can it be moved at all? The same as cancelling: published, not
 // cancelled, and not started (so never while it's live)

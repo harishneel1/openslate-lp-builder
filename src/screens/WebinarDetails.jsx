@@ -27,6 +27,7 @@ import { PriceWithDiscount } from '../components/CallDetailsInput';
 import PageThumbnail from '../components/PageThumbnail';
 import PixelStatus from '../components/PixelStatus';
 import RecordingPanel from '../components/RecordingPanel';
+import ActivityPanel from '../components/ActivityPanel';
 import RescheduleDialog from '../components/RescheduleDialog';
 import ShareDialog from '../components/ShareDialog';
 import { useCopy } from './OfferingsHome';
@@ -730,7 +731,7 @@ function RecordingChip({ status, onOpen }) {
 // the thumbnail does); the panel stays open on Edit session. A click
 // outside doesn't close the pop-up; Close and Escape do.
 //
-// initialTab: 'people' (default), 'edit' or 'recording'; one it doesn't
+// initialTab: 'people' (default), 'edit', 'recording' or 'activity'; one it doesn't
 //   have (Edit session on a past session) opens Manage people instead
 // onSave(changes): { date, time, headline, subheadline, pricing, price, oldPrice }
 // onPreview(): just before the preview tab opens
@@ -758,7 +759,7 @@ function SessionDrawer({
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState(initialTab); // 'people' | 'edit' | 'recording'
   const recording = recordingOf(run.id, now);
-  const tabs = ['people', !ended && 'edit', 'recording'].filter(Boolean);
+  const tabs = ['people', !ended && 'edit', 'recording', 'activity'].filter(Boolean);
   const shownTab = tabs.includes(tab) ? tab : 'people';
 
   // The edit form's values: what's saved, until they change something
@@ -926,11 +927,15 @@ function SessionDrawer({
           </>
         )
       }
-      footer={shownTab === 'edit' ? editFooter : shownTab === 'recording' ? null : peopleFooter}
+      footer={shownTab === 'edit' ? editFooter : shownTab === 'people' ? peopleFooter : null}
     >
       <SessionTabs tab={shownTab} onTab={setTab} people={people.length} canEdit={!ended} />
 
-      {shownTab === 'recording' ? (
+      {shownTab === 'activity' ? (
+        <div id="wd-drawer-panel-activity" role="tabpanel" aria-labelledby="wd-drawer-tab-activity">
+          <ActivityPanel run={run} people={people} now={now} onOpen={setTab} />
+        </div>
+      ) : shownTab === 'recording' ? (
         <div id="wd-drawer-panel-recording" role="tabpanel" aria-labelledby="wd-drawer-tab-recording">
           <RecordingPanel recording={recording} ended={ended} cancelled={cancelled} title={name} day={day} />
         </div>
@@ -1195,12 +1200,13 @@ function CancelledSummary({ cancelled }) {
 }
 
 // The tabs at the top of the side panel. Past sessions have no Edit
-// session; Recording is always there. Left and right arrows move between them, wrapping round.
+// session; Recording and Activity are always there. Left and right arrows move between them, wrapping round.
 function SessionTabs({ tab, onTab, people, canEdit }) {
   const items = [
     { id: 'people', label: 'Manage people', count: people },
     canEdit && { id: 'edit', label: 'Edit session', count: null },
     { id: 'recording', label: 'Recording', count: null },
+    { id: 'activity', label: 'Activity', count: null },
   ].filter(Boolean);
   const onKey = (e) => {
     if (items.length < 2 || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;

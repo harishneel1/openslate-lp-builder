@@ -23,7 +23,7 @@ import RunAgainDialog from './components/RunAgainDialog';
 import ReminderEditor from './screens/ReminderEditor';
 import CancelSession from './screens/CancelSession';
 import RescheduleSession from './screens/RescheduleSession';
-import { canReschedule, moveProblem, moveWarnings } from './data/reschedule';
+import { canReschedule, moveProblem, moveWarnings, movesOf } from './data/reschedule';
 import { withEmail, withOn } from './data/reminders';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
@@ -103,6 +103,8 @@ function restoreFunnel(f) {
     cancelled: isObject(f.cancelled) && Number.isFinite(f.cancelled.at) ? f.cancelled : null,
     // Its latest move to a new date: when, and from where (data/reschedule.js)
     rescheduled: isObject(f.rescheduled) && Number.isFinite(f.rescheduled.at) ? f.rescheduled : null,
+    // Every move, oldest first, for its Activity tab
+    moves: Array.isArray(f.moves) ? f.moves.filter((m) => isObject(m) && Number.isFinite(m.at)) : [],
   };
 }
 
@@ -279,10 +281,11 @@ function App() {
     const run = funnels.find((f) => f.id === id);
     if (!run || !canCancel(run)) return false;
     const paid = !webinarPrice(run.answers ?? {}).isFree;
-    const refunded = refund && paid ? refundAll(id) : null;
+    const at = Date.now(); // the refunds share it, so Activity shows them as part of the cancel
+    const refunded = refund && paid ? refundAll(id, at) : null;
     updateRun(id, {
       cancelled: {
-        at: Date.now(),
+        at,
         emailedTo: peopleOf(id).length,
         email,
         refund: refunded && refunded.count > 0 ? refunded : null,
@@ -305,17 +308,17 @@ function App() {
     const run = funnels.find((f) => f.id === id);
     const all = funnels.filter((f) => f.type === 'webinar');
     if (!run || !canReschedule(run) || moveProblem(run, all, date, time)) return false;
+    const at = Date.now();
+    const from = { date: run.answers.date, time: run.answers.time ?? '19:00' };
+    const emailedTo = email ? peopleOf(id).length : 0;
     const moved = {
       ...run,
       answers: { ...run.answers, date, time },
-      rescheduled: {
-        at: Date.now(),
-        from: { date: run.answers.date, time: run.answers.time ?? '19:00' },
-        emailedTo: email ? peopleOf(id).length : 0,
-        email,
-      },
+      rescheduled: { at, from, emailedTo, email },
+      // Every move, for its Activity tab (older saves start from their latest)
+      moves: [...movesOf(run), { at, from, to: { date, time }, emailedTo }],
     };
-    updateRun(id, { answers: moved.answers, rescheduled: moved.rescheduled });
+    updateRun(id, { answers: moved.answers, rescheduled: moved.rescheduled, moves: moved.moves });
     if (run.donePages.includes('registration') && ownContract(run)) saveContract(moved);
     return true;
   };

@@ -1,0 +1,121 @@
+/* ------------------------------------------------------------
+   A session's Activity tab (ActivityPanel.jsx): day headings, then one
+   line per thing that happened, joined by a thin rail so it reads as a
+   timeline. Quiet on purpose: it's a record, not a call to action.
+   Cancelled is the one line with colour (red icon), since it ends the
+   session; everything else is grey on white.
+   ------------------------------------------------------------ */
+.act {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.act__day-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.act__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The rail: a thin line through the icons, from one to the next */
+.act__item {
+  position: relative;
+}
+
+.act__item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 38px;
+  bottom: -6px;
+  left: 23px; /* through the middle of the 30px icon (8px in) */
+  width: 1px;
+  background: var(--color-border);
+}
+
+.act__line {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+/* Lines that open something (sign-ups, refunds, the recording) */
+.act__line--link {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.act__line--link:hover {
+  background: #f6f6f7;
+}
+
+.act__line--link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.act__icon {
+  position: relative;
+  z-index: var(--z-raised); /* over the rail */
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--color-text-muted);
+  background: #f0f0f2;
+  border-radius: 50%;
+}
+
+.act__item--cancelled .act__icon {
+  color: #b42318;
+  background: #fdecec;
+}
+
+.act__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 5px;
+}
+
+.act__title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.act__detail {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.act__time {
+  padding-top: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .act__line--link {
+    transition: none;
+  }
+}
