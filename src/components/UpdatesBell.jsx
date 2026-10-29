@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Video } from 'lucide-react';
 import GuestInitials from './GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates';
 import { buildSignupUpdates } from '../data/signupUpdates';
+import { buildRecordingUpdates } from '../data/recordingUpdates';
+import { onRecordingsChange } from '../data/recordings';
 import { onSignupsChange } from '../data/webinarSignups';
 import './UpdatesBell.css';
 
 // ------------------------------------------------------------
 // The bell in the top bar: what students did with the creator's calls,
-// and who signed up for their webinars.
+// who signed up for their webinars, and recordings that are ready.
 //
 //   (bell)•2   an orange count while there's something they haven't seen.
 //              A plain icon at rest, a grey circle on hover, tinted orange
@@ -22,6 +24,8 @@ import './UpdatesBell.css';
 //   │      “Something came up at work”        │
 //   │ (AS) Asha and 11 others signed up  1 hr ago│
 //   │      Webinar name, Mon 9 Nov, 7:00 pm IST│
+//   │ (▶)  Your recording is ready      2 hr ago│
+//   │      Webinar name, Sat 7 Nov, 7:00 pm IST│
 //   │ Earlier                                 │
 //   │ (PR) Priya booked              Yesterday│
 //   └─────────────────────────────────────────┘
@@ -32,7 +36,11 @@ import './UpdatesBell.css';
 // a sign-up line opens that webinar with the session's people showing
 // (onOpenWebinar). Sign-ups for one session on one day are one line
 // (data/signupUpdates.js), which counts once in the badge.
-// Follows bookings and sign-ups as they change, even from another tab.
+// A recording line (data/recordingUpdates.js) opens that session on its
+// Recording tab: onOpenWebinar(id, { tab: 'recording' }).
+// Follows bookings, sign-ups and recordings as they change, even from
+// another tab. A recording turns ready with time rather than an event, so
+// the minute tick (and opening the bell) picks it up.
 //
 // webinars: every webinar session (the sign-up lines name them)
 // ------------------------------------------------------------
@@ -42,6 +50,7 @@ const TICK_MS = 60_000; // keeps "12 min ago" moving
 export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebinar }) {
   const [bookings, setBookings] = useState(loadBookings);
   const [signupsTick, setSignupsTick] = useState(0); // a new sign-up rebuilds the list
+  const [recordingsTick, setRecordingsTick] = useState(0); // so does a recording starting or stopping
   const [lastSeen, setLastSeen] = useState(loadLastSeen);
   const [now, setNow] = useState(() => Date.now());
   const [open, setOpen] = useState(false);
@@ -53,20 +62,23 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
 
   useEffect(() => onBookingsChange(() => setBookings(loadBookings())), []);
   useEffect(() => onSignupsChange(() => setSignupsTick((n) => n + 1)), []);
+  useEffect(() => onRecordingsChange(() => setRecordingsTick((n) => n + 1)), []);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(id);
   }, []);
 
-  // Calls and sign-ups in one list, newest first
+  // Calls, sign-ups and recordings in one list, newest first
   const updates = useMemo(
     () =>
-      [...buildUpdates({ bookings, lastSeen, now }), ...buildSignupUpdates({ webinars, lastSeen, now })].sort(
-        (a, b) => b.at - a.at,
-      ),
-    // signupsTick: sign-ups live outside React, so a change bumps it
+      [
+        ...buildUpdates({ bookings, lastSeen, now }),
+        ...buildSignupUpdates({ webinars, lastSeen, now }),
+        ...buildRecordingUpdates({ webinars, lastSeen, now }),
+      ].sort((a, b) => b.at - a.at),
+    // signupsTick, recordingsTick: they live outside React, so a change bumps them
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bookings, webinars, lastSeen, now, signupsTick],
+    [bookings, webinars, lastSeen, now, signupsTick, recordingsTick],
   );
   const unread = updates.filter((u) => u.unread).length;
 
@@ -151,7 +163,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
 
           {groups.length === 0 ? (
             <p className="upd__empty">
-              When students book, reschedule or cancel a call, or sign up for a webinar, you'll see it here.
+              When students book, reschedule or cancel a call, or sign up for a webinar, or a recording is ready,
+              you'll see it here.
             </p>
           ) : (
             <div className="upd__scroll">
@@ -167,15 +180,27 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                           onClick={() => {
                             close(false);
                             if (u.kind === 'signups') onOpenWebinar?.(u.webinarId);
+                            else if (u.kind === 'recording') onOpenWebinar?.(u.webinarId, { tab: 'recording' });
                             else onOpenBooking?.(u.bookingId);
                           }}
                         >
-                          <GuestInitials name={u.name} />
+                          {/* A recording isn't a person: a video icon in the same circle */}
+                          {u.kind === 'recording' ? (
+                            <span className="bk-face" aria-hidden="true">
+                              <Video size={17} />
+                            </span>
+                          ) : (
+                            <GuestInitials name={u.name} />
+                          )}
                           <span className="upd__text">
                             <span className="upd__head">
                               <span className="upd__what">
                                 {u.kind === 'signups' ? (
                                   <SignedUp update={u} />
+                                ) : u.kind === 'recording' ? (
+                                  <>
+                                    <strong>Your recording</strong> is ready
+                                  </>
                                 ) : (
                                   <>
                                     <strong>{u.first}</strong> {VERBS[u.kind]}

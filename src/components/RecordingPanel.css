@@ -1,0 +1,242 @@
+/* ------------------------------------------------------------
+   A session's recording (RecordingPanel.jsx), in its side panel.
+   The messages reuse the empty state (.calls__empty, CallsPage.css)
+   and the button reuses .oh__edit (OfferingsHome.css).
+   ------------------------------------------------------------ */
+
+/* ---------- Messages: recording now, processing, not recorded ---------- */
+.rec-panel__message {
+  padding-top: 40px;
+}
+
+/* Recording now: red, as Zoom marks it */
+.rec-panel__icon--live {
+  background: #fdecec;
+}
+
+.rec-panel__live-dot {
+  width: 12px;
+  height: 12px;
+  background: #e02828;
+  border-radius: 50%;
+  animation: rec-blink 1.6s ease-in-out infinite;
+}
+
+/* Not recorded: nothing to celebrate, so grey */
+.rec-panel__icon--quiet {
+  color: var(--color-text-muted);
+  background: #f0f0f2;
+}
+
+@keyframes rec-blink {
+  50% { opacity: 0.35; }
+}
+
+/* ---------- Ready ---------- */
+.rec-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rec-panel__info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.rec-panel__meta {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.rec-panel__private {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.rec-panel__note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.rec-panel__note:empty {
+  display: none;
+}
+
+/* ---------- The sample player ---------- */
+.rec-player {
+  overflow: hidden;
+  background: #202024;
+  border-radius: var(--radius-md);
+}
+
+.rec-player__frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  color: #fff;
+  background: radial-gradient(120% 90% at 50% 40%, #34343a, #202024);
+}
+
+/* Says plainly there's no picture, so nobody waits for one */
+.rec-player__sample {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c9c9cf;
+  border: 1px solid #45454c;
+  border-radius: var(--radius-pill);
+}
+
+.rec-player__big {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  color: #fff;
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.rec-player__big:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.04);
+}
+
+/* The play triangle looks off-centre without a nudge */
+.rec-player__frame:not(.rec-player__frame--playing) .rec-player__big svg {
+  margin-left: 3px;
+}
+
+/* While it plays, the big button steps back */
+.rec-player__frame--playing .rec-player__big {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.rec-player__frame--playing .rec-player__big:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.rec-player__caption {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-player__title {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rec-player__day {
+  font-size: 12px;
+  color: #b9b9bf;
+}
+
+.rec-player__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  color: #fff;
+  background: #18181b;
+}
+
+.rec-player__small {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.rec-player__small:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.rec-player__time {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #d6d6db;
+}
+
+/* The scrubber: orange for what's played, grey for the rest */
+.rec-player__seek {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  margin: 0;
+  background: linear-gradient(
+    to right,
+    var(--color-primary) var(--seek, 0%),
+    #4a4a52 var(--seek, 0%)
+  );
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  appearance: none;
+}
+
+.rec-player__seek::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+  appearance: none;
+}
+
+.rec-player__seek::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+}
+
+.rec-player button:focus-visible,
+.rec-player__seek:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-panel__live-dot {
+    animation: none;
+  }
+  .rec-player__big {
+    transition: none;
+  }
+  .rec-player__big:hover {
+    transform: none;
+  }
+}

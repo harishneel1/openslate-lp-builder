@@ -109,6 +109,34 @@
   50% { opacity: 0.35; }
 }
 
+/* Recording: on by default, so always shown while they're in the room.
+   Zoom's own red, as its recording indicator looks */
+.zm__rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffb4b4;
+  background: rgba(224, 40, 40, 0.16);
+  border-radius: 999px;
+}
+
+.zm__rec-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--zm-red);
+  border-radius: 50%;
+  animation: zm-blink 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zm__rec-dot {
+    animation: none;
+  }
+}
+
 /* Before it starts */
 .zm__notice {
   padding: 10px 16px;
@@ -362,6 +390,12 @@
 .zm__message-text {
   margin-bottom: 24px;
   color: var(--zm-muted);
+}
+
+/* After End: where the recording goes */
+.zm__message-rec {
+  margin-top: -12px; /* close under the line above: one message */
+  font-size: 13px;
 }
 
 .zm__message-actions {

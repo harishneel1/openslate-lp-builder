@@ -789,6 +789,34 @@
   background: #fbe0c8;
 }
 
+/* View recording, beside the status once it's ready (RecordingChip):
+   outlined like the panel's other buttons */
+.wd__rec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #dcdcdf;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wd__rec-chip:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.wd__rec-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* The (i) beside Registrations open */
 .wd__st-tip {
   display: inline-flex;

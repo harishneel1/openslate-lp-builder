@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, Mic, MicOff, PhoneOff, Users, Video, VideoOff, X } from 'lucide-react';
 import { funnelTypes } from '../data/funnelTypes';
 import { mockAccount } from '../data/myPage';
+import { HEARTBEAT_MS, endSegment, heartbeat, startSegment } from '../data/recordings';
 import { isOnNow, webinarEnd, webinarStart, webinarWhen, zoomMeetingId } from '../data/webinar';
 import { funnelName } from '../utils/funnelName';
 import { initials } from '../utils/initials';
@@ -24,6 +25,12 @@ import './ZoomMeetingPage.css';
 // Looks like Zoom on purpose (its dark room and blue), not like our app:
 // this is where the coach thinks they've gone. Mute, video and the
 // participants list work; End leaves, with Rejoin to come back.
+//
+// Recording is on by default, as Zoom's cloud auto-recording would be:
+// it starts when they're in the room and stops when they End (or close
+// the tab). The red "Recording" in the top bar says so, so it's never a
+// surprise; the recording then shows on the session's Recording tab
+// (data/recordings.js). There's no switch to turn it off in this version.
 //
 // webinarId: the saved webinar's id
 // ------------------------------------------------------------
@@ -82,6 +89,22 @@ export default function ZoomMeetingPage({ webinarId }) {
     document.title = webinar ? `Zoom · ${webinar.name}` : 'Zoom';
   }, [webinar]);
 
+  // In the room: recording. Every so often it says it's still there, so a
+  // tab closed without End still ends its recording (at the last check).
+  // Leaving (End), closing the tab or going elsewhere stops it.
+  useEffect(() => {
+    if (!webinar || left) return undefined;
+    startSegment(webinarId);
+    const beat = setInterval(() => heartbeat(webinarId), HEARTBEAT_MS);
+    const stop = () => endSegment(webinarId);
+    window.addEventListener('pagehide', stop);
+    return () => {
+      clearInterval(beat);
+      window.removeEventListener('pagehide', stop);
+      stop();
+    };
+  }, [webinar, webinarId, left]);
+
   if (!webinar) {
     return (
       <div className="zm zm--center">
@@ -113,6 +136,10 @@ export default function ZoomMeetingPage({ webinarId }) {
               ? 'Your webinar is still on. People who joined are waiting for you.'
               : `Meeting ID ${meetingId}. You can come back to it any time.`}
           </p>
+          <p className="zm__message-text zm__message-rec">
+            Recording stopped. Rejoin and it carries on; otherwise you'll find it on your webinar page, on this
+            session's Recording tab, once Zoom has processed it.
+          </p>
           <div className="zm__message-actions">
             <button type="button" className="zm__primary" onClick={() => setLeft(false)}>
               Rejoin
@@ -134,6 +161,11 @@ export default function ZoomMeetingPage({ webinarId }) {
         </span>
         <h1 className="zm__title">{webinar.name}</h1>
         <p className="zm__meta">
+          {/* On by default: always shown while they're in the room */}
+          <span className="zm__rec">
+            <span className="zm__rec-dot" aria-hidden="true" />
+            Recording
+          </span>
           <span>Meeting ID {meetingId}</span>
           <span className={session.live ? 'zm__status zm__status--live' : 'zm__status'}>
             {session.live && <span className="zm__live-dot" aria-hidden="true" />}

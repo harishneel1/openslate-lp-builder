@@ -5,6 +5,7 @@ import WebinarsPage from './screens/WebinarsPage';
 import FunnelOverview from './screens/FunnelOverview';
 import WebinarDetails from './screens/WebinarDetails';
 import { deleteSignupsOf, peopleOf } from './data/webinarSignups';
+import { deleteRecordingsOf, seedDemoRecordings } from './data/recordings';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
 import SectionProgress from './components/SectionProgress';
@@ -247,6 +248,7 @@ function App() {
     const own = gone ? ownContract(gone) : null;
     if (own) deleteService(own.id);
     deleteSignupsOf(id); // its people go with it
+    deleteRecordingsOf(id); // and its recording
     setFunnels((prev) => prev.filter((f) => f.id !== id));
   };
 
@@ -288,19 +290,20 @@ function App() {
     setOpenId(id);
   };
 
-  // From the bell: a webinar's sign-up line. That session's details page,
-  // on Sessions, with its people open in the side panel. The request is
-  // cleared once the page has opened the panel, so opening the webinar
-  // again later (from its row) doesn't open the panel by itself.
+  // From the bell: a webinar's sign-up line, or a recording that's ready.
+  // That session's details page, on Sessions, with it open in the side
+  // panel: on its people, or on its Recording tab ({ tab: 'recording' }).
+  // The request is cleared once the page has opened the panel, so opening
+  // the webinar again later (from its row) doesn't open the panel by itself.
   const [sessionRequest, setSessionRequest] = useState(null);
-  const openSignups = (id) => {
+  const openSignups = (id, { tab = 'people' } = {}) => {
     if (!funnels.some((f) => f.id === id)) return;
     setFunnels((prev) =>
       prev.map((f) => (f.id === id ? { ...f, step: f.publishedAt ? 'details' : 'overview', detailsTab: 'sessions' } : f)),
     );
     setActiveNav('page-builder');
     setOpenId(id);
-    setSessionRequest({ id, n: Date.now() });
+    setSessionRequest({ id, n: Date.now(), tab });
   };
 
   // Edit webinar pages: the three page cards, where each page is edited
@@ -360,6 +363,13 @@ function App() {
     setActiveNav('page-builder');
     setOpenId(copy.id);
   };
+
+  // Demo only: one ended session gets a ready recording, so the Recording
+  // tab can be seen without running a meeting (data/recordings.js).
+  // Remove for production.
+  useEffect(() => {
+    seedDemoRecordings(funnels.filter((f) => f.type === 'webinar'));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The first visit to a published webinar's page: remember it, so its
   // pages screen turns into just the pages (FunnelOverview's editing)

@@ -9,6 +9,7 @@ import {
   Lock,
   MessageCircle,
   Pencil,
+  Play,
   Plus,
   Save,
   Search,
@@ -23,6 +24,7 @@ import InfoTip from '../components/InfoTip';
 import { PriceWithDiscount } from '../components/CallDetailsInput';
 import PageThumbnail from '../components/PageThumbnail';
 import PixelStatus from '../components/PixelStatus';
+import RecordingPanel from '../components/RecordingPanel';
 import ShareDialog from '../components/ShareDialog';
 import TimePicker from '../components/TimePicker';
 import { useCopy } from './OfferingsHome';
@@ -47,6 +49,7 @@ import {
   webinarWhen,
 } from '../data/webinar';
 import { onSignupsChange, peopleCsv, peopleOf } from '../data/webinarSignups';
+import { onRecordingsChange, recordingOf } from '../data/recordings';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
 import { webinarShareMessage } from '../utils/shareMessage';
@@ -86,7 +89,8 @@ import './WebinarDetails.css';
 // One page for the whole webinar, whichever session App opened it on.
 // The next session gets its own card (it's what coaches check every
 // day). Every session is a row; a click opens it in a side panel
-// (SessionDrawer) with two tabs: Manage people and Edit session.
+// (SessionDrawer) with its tabs: Manage people, Edit session (until it
+// ends) and Recording.
 //
 // The header is a white band across the page: the webinar's name, its
 // link and its next session on the left, its landing page on the right.
@@ -109,8 +113,9 @@ import './WebinarDetails.css';
 // onEditPages(id), onSaveSession(id, changes) (Edit session: date, time,
 // title, price), onRunAgain(id) (copies that session),
 // onDelete(id) (one session), onPreview() (just before the preview tab opens)
-// openSession: { id, n } from the bell's sign-up line: open that session's
-//   people in the side panel on arrival; onSessionOpened() once it has
+// openSession: { id, n, tab } from the bell: open that session in the side
+//   panel on arrival, on Manage people (a sign-up line) or on Recording
+//   (tab: 'recording', a recording line); onSessionOpened() once it has
 // onToggleReminder(sessionId, id, on), onEditReminder(sessionId, id): the Emails tab
 // ------------------------------------------------------------
 
@@ -212,6 +217,7 @@ export default function WebinarDetails({
 }) {
   const now = useNow(15_000); // the countdown moves on every minute
   useSignupsTick(); // counts follow sign-ups, here or in another tab
+  useRecordingsTick(); // recordings follow the Zoom room, in its own tab
   const name = funnelName(webinar, TYPE);
   const url = liveHref(webinar);
   // Every session of this webinar, and the one its link opens now
@@ -227,15 +233,23 @@ export default function WebinarDetails({
   const emailPeople = usePeople(current.id);
   const shownTab = tab === 'reminders' ? 'reminders' : 'sessions';
 
-  const [openId, setOpenId] = useState(null); // the session whose people are open in the side panel
+  const [openId, setOpenId] = useState(null); // the session open in the side panel
+  const [openTab, setOpenTab] = useState('people'); // the tab it opened on
   const opened = sessions.find((r) => r.id === openId) ?? null;
+  // Opens a session's side panel: on Manage people, or on another tab
+  // (the recording chip on its row, the bell's recording line)
+  const openAt = (id, at = 'people') => {
+    setOpenTab(at);
+    setOpenId(id);
+  };
   const [deleting, setDeleting] = useState(null); // the session being deleted
   const [sharing, setSharing] = useState(false); // the Share webinar pop-up
 
-  // From the bell: that session's people, open (its panel starts on Manage people)
+  // From the bell: that session, open on Manage people (a sign-up line)
+  // or on Recording (a recording line)
   useEffect(() => {
     if (!openSession) return;
-    if (sessions.some((r) => r.id === openSession.id)) setOpenId(openSession.id);
+    if (sessions.some((r) => r.id === openSession.id)) openAt(openSession.id, openSession.tab ?? 'people');
     onSessionOpened?.();
     // Only when a new request comes in (n)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -252,7 +266,7 @@ export default function WebinarDetails({
         <div className="wd__intro">
           <h1 className="wd__title">{name}</h1>
           <LinkActions url={url} onShare={next ? () => setSharing(true) : null} />
-          <NextSession run={next} name={name} now={now} onOpen={() => setOpenId(next.id)} onAdd={() => onRunAgain(latest.id)} />
+          <NextSession run={next} name={name} now={now} onOpen={() => openAt(next.id)} onAdd={() => onRunAgain(latest.id)} />
         </div>
         <LandingThumb
           run={current}
@@ -276,7 +290,7 @@ export default function WebinarDetails({
         </div>
         {shownTab === 'sessions' ? (
           <div id="wd-panel-sessions" role="tabpanel" aria-labelledby="wd-tab-sessions">
-            <SessionsTable sessions={sessions} linkRunId={next?.id ?? null} now={now} onOpen={setOpenId} />
+            <SessionsTable sessions={sessions} linkRunId={next?.id ?? null} now={now} onOpen={openAt} />
           </div>
         ) : (
           <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
@@ -293,7 +307,10 @@ export default function WebinarDetails({
 
       {opened && (
         <SessionDrawer
+          // A new tab to open on (the bell, while it's open) starts it afresh
+          key={`${opened.id}:${openTab}`}
           run={opened}
+          initialTab={openTab}
           name={name}
           now={now}
           onClose={() => setOpenId(null)}
@@ -363,6 +380,14 @@ const rupees = (n) => `₹${n.toLocaleString('en-IN')}`;
 function useSignupsTick() {
   const [, setTick] = useState(0);
   useEffect(() => onSignupsChange(() => setTick((n) => n + 1)), []);
+}
+
+// Re-renders when a recording starts or stops (the Zoom room is its own
+// tab). Processing turning into ready needs no event: the page's clock
+// (useNow) moves on and recordingOf works it out again.
+function useRecordingsTick() {
+  const [, setTick] = useState(0);
+  useEffect(() => onRecordingsChange(() => setTick((n) => n + 1)), []);
 }
 
 // ---------- The next session: a card in the header, under the link ----------
@@ -465,6 +490,11 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 //
 // Collected (what each session's people paid in all) shows once any
 // session is paid, or anyone has paid; a free session's row says Free.
+//
+// Once a session's recording is ready, its row says so beside its status:
+//   Mon 2 Nov 7:00 pm    Ended  [▶ View recording]   2   Free   Manage session >
+// A button that opens the side panel on its Recording tab. Until it's
+// ready, nothing here; the tab itself says it isn't ready yet.
 const GROUP_AT = 10;
 
 function SessionsTable({ sessions, linkRunId, now, onOpen }) {
@@ -556,7 +586,9 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
   const free = webinarPrice(answers).isFree && collected === 0;
   const moneyText = money ? (free ? 'Free' : rupees(collected)) : null;
   const day = dayOfRun(r) ?? 'No date yet';
+  const rec = recordingOf(r.id, now);
   const open = () => onOpen(r.id);
+  const recSaid = rec.status === 'ready' ? ', recording ready' : '';
   // The (i) beside Registrations open: what the landing page shows now
   const linkTip = (
     <>
@@ -584,6 +616,7 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
               <InfoTip label="Registrations open" text={linkTip} />
             </span>
           )}
+          <RecordingChip status={rec.status} onOpen={() => onOpen(r.id, 'recording')} />
         </span>
         <span className="wd__st-count">{count}</span>
         {money && <span className={`wd__st-money ${free ? 'wd__st-money--free' : ''}`}>{moneyText}</span>}
@@ -594,7 +627,7 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
             e.stopPropagation();
             open();
           }}
-          aria-label={`Manage session: ${day}, ${label}, ${count} signed up${
+          aria-label={`Manage session: ${day}, ${label}${recSaid}, ${count} signed up${
             moneyText ? `, ${free ? 'free' : `${moneyText} collected`}` : ''
           }`}
         >
@@ -605,9 +638,30 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
   );
 }
 
+// View recording, once the recording is ready (Zoom can take hours or
+// days); nothing before that. The drawer's Recording tab says when it
+// isn't ready. It stops the click reaching the row, so it opens on
+// Recording rather than Manage people.
+function RecordingChip({ status, onOpen }) {
+  if (status !== 'ready') return null;
+  return (
+    <button
+      type="button"
+      className="wd__rec-chip"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen();
+      }}
+    >
+      <Play size={11} fill="currentColor" aria-hidden="true" /> View recording
+    </button>
+  );
+}
+
 // ---------- One session, in a side panel ----------
-// Opened from its row (or Manage people on the upcoming session card).
-// Its meeting button sits under the title; under that, two tabs:
+// Opened from its row (or Manage people on the upcoming session card,
+// the recording chip on its row, or a line in the bell).
+// Its meeting button sits under the title; under that, its tabs:
 //
 //   Session on Mon 9 Nov                                   ✕
 //   7:00 pm IST · 60 min · Free · Starts in 14 days
@@ -619,8 +673,12 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
 // phone; when they signed up and WhatsApp on the right). The footer has
 // Download Excel, and Delete session waiting quietly on the right.
 // Edit session: the quick edit (SessionEdit). Its footer has Cancel and
-// Save changes. Past sessions only have Manage people: they're a record
+// Save changes. Past sessions have no Edit session: they're a record
 // of what happened.
+// Recording: the session's Zoom recording (RecordingPanel). Always there:
+// the recording once it's ready, else a short message saying where it is
+// (coming after the session, recording now, not ready yet, not recorded).
+// Only the coach sees it.
 // Edits stay while switching tabs; closing with unsaved edits asks first.
 // Saving shows a small pop-up that points them at the landing page:
 //
@@ -632,17 +690,21 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
 // the thumbnail does); the panel stays open on Edit session. A click
 // outside doesn't close the pop-up; Close and Escape do.
 //
+// initialTab: 'people' (default), 'edit' or 'recording'; one it doesn't
+//   have (Edit session on a past session) opens Manage people instead
 // onSave(changes): { date, time, headline, subheadline, pricing, price, oldPrice }
 // onPreview(): just before the preview tab opens
-function SessionDrawer({ run, name, now, onClose, onSave, onDelete, onPreview }) {
+function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave, onDelete, onPreview }) {
   const people = usePeople(run.id);
   const answers = run.answers ?? {};
   const ended = webinarStatus(run, now) === 'past';
   const price = webinarPrice(answers);
   const day = dayOfRun(run);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState('people'); // 'people' | 'edit'
-  const shownTab = ended ? 'people' : tab;
+  const [tab, setTab] = useState(initialTab); // 'people' | 'edit' | 'recording'
+  const recording = recordingOf(run.id, now);
+  const tabs = ['people', !ended && 'edit', 'recording'].filter(Boolean);
+  const shownTab = tabs.includes(tab) ? tab : 'people';
 
   // The edit form's values: what's saved, until they change something
   const savedKey = JSON.stringify(editValues(answers));
@@ -745,11 +807,15 @@ function SessionDrawer({ run, name, now, onClose, onSave, onDelete, onPreview })
           </div>
         )
       }
-      footer={shownTab === 'edit' ? editFooter : peopleFooter}
+      footer={shownTab === 'edit' ? editFooter : shownTab === 'recording' ? null : peopleFooter}
     >
       <SessionTabs tab={shownTab} onTab={setTab} people={people.length} canEdit={!ended} />
 
-      {shownTab === 'edit' ? (
+      {shownTab === 'recording' ? (
+        <div id="wd-drawer-panel-recording" role="tabpanel" aria-labelledby="wd-drawer-tab-recording">
+          <RecordingPanel recording={recording} ended={ended} title={name} day={day} />
+        </div>
+      ) : shownTab === 'edit' ? (
         <div id="wd-drawer-panel-edit" role="tabpanel" aria-labelledby="wd-drawer-tab-edit">
           <SessionEdit
             key={formKey}
@@ -883,16 +949,19 @@ function SessionDrawer({ run, name, now, onClose, onSave, onDelete, onPreview })
   );
 }
 
-// The two tabs at the top of the side panel. Past sessions have no
-// Edit session. Left and right arrows move between them.
+// The tabs at the top of the side panel. Past sessions have no Edit
+// session; Recording is always there. Left and right arrows move between them, wrapping round.
 function SessionTabs({ tab, onTab, people, canEdit }) {
   const items = [
     { id: 'people', label: 'Manage people', count: people },
     canEdit && { id: 'edit', label: 'Edit session', count: null },
+    { id: 'recording', label: 'Recording', count: null },
   ].filter(Boolean);
   const onKey = (e) => {
     if (items.length < 2 || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
-    const next = tab === 'people' ? 'edit' : 'people';
+    const at = Math.max(0, items.findIndex((t) => t.id === tab));
+    const step = e.key === 'ArrowRight' ? 1 : -1;
+    const next = items[(at + step + items.length) % items.length].id;
     onTab(next);
     requestAnimationFrame(() => document.getElementById(`wd-drawer-tab-${next}`)?.focus());
   };
