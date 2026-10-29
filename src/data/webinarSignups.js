@@ -9,8 +9,9 @@
 //   phone:  '<code> <number>', as checkout saves it ('+91 98765 43210')
 //   amount: what they paid in rupees, 0 when it's free
 //   registeredAt: when they registered (ms)
-//   refundedAt, refunded: when and how much they were refunded (rupees),
-//     once their session was cancelled (refundAll); missing otherwise
+//   refundedAt, refunded: when and how much they were refunded (rupees):
+//     everyone at once when a session is cancelled (refundAll), or one
+//     person by hand (refundOne); missing otherwise
 //
 // The same email registering twice for one webinar counts once: the
 // second time just returns the first.
@@ -93,6 +94,23 @@ export function refundAll(webinarId, at = Date.now()) {
   if (count > 0) saveAll(next);
   return { count, total };
 }
+
+// One person's refund, by hand: the coach refunds someone who asked (say,
+// they can't make a session's new date). Marked like refundAll: in full,
+// once. In the prototype no money moves. Returns the refunded person, or
+// null when there's nothing to refund (not found, didn't pay, already
+// refunded) or it couldn't be saved.
+export function refundOne(webinarId, personId, at = Date.now()) {
+  const all = loadAll();
+  const person = all.find((p) => p.webinarId === webinarId && p.id === personId);
+  if (!person || !(person.amount > 0) || person.refundedAt) return null;
+  const refunded = { ...person, refundedAt: at, refunded: person.amount };
+  return saveAll(all.map((p) => (p === person ? refunded : p))) ? refunded : null;
+}
+
+// What someone paid that they still have paid: what they paid, less any
+// refund (rupees)
+export const keptOf = (person) => Math.max(0, (Number(person.amount) || 0) - (Number(person.refunded) || 0));
 
 // A deleted webinar takes its people with it
 export function deleteSignupsOf(webinarId) {

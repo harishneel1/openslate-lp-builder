@@ -24,8 +24,8 @@ import { meetingHref, webinarEnd, webinarStart, webinarWhen } from './webinar';
 
 // The fill-in fields the editor's "Insert detail" menu offers
 //   hint: what it fills in with, for the hover hint in the editor
-//   only: 'cancel' for a field only the cancellation email has (its menu
-//         offers it; the reminders' menu doesn't: REMINDER_FIELDS)
+//   only: 'cancel' or 'reschedule' for a field only that one email has
+//         (its menu offers it; the reminders' menu doesn't: REMINDER_FIELDS)
 export const FIELDS = [
   { key: 'first_name', label: 'First name', hint: 'Fills in each person’s first name' },
   { key: 'webinar_title', label: 'Webinar title', hint: 'Fills in the webinar’s title' },
@@ -39,6 +39,8 @@ export const FIELDS = [
     hint: 'Says their payment is being refunded. Left out when Refund everyone is unticked',
     only: 'cancel',
   },
+  { key: 'old_date', label: 'Old date', hint: 'Fills in the date it was on before', only: 'reschedule' },
+  { key: 'old_time', label: 'Old time', hint: 'Fills in the time it was at before', only: 'reschedule' },
 ];
 
 // What the reminders' editor offers
@@ -63,6 +65,28 @@ export function cancelTemplate({ paid = false } = {}) {
       '<p>I’m sorry, but I’ve had to cancel <b>{{webinar_title}}</b> on <b>{{date}} at {{time}}</b>.</p>' +
       (paid ? '<p>{{refund_note}}</p>' : '') +
       '<p>Thank you for understanding, and sorry for the change of plans.</p>' +
+      '<p>{{your_name}}</p>',
+  };
+}
+
+// ------------------------------------------------------------
+// The reschedule email: sent once, to everyone who signed up for a
+// session the coach moves (App.jsx rescheduleSession). Edited in the
+// reschedule flow (RescheduleSession.jsx) and, like the cancellation
+// email, not saved as a template. {{date}} and {{time}} are the new ones;
+// {{old_date}} and {{old_time}} where it was. It keeps the Join webinar
+// button: the join link doesn't change. A paid session's version asks
+// anyone who can't make it to reply (the coach refunds them by hand).
+// ------------------------------------------------------------
+export function rescheduleTemplate({ paid = false } = {}) {
+  return {
+    subject: 'New date: {{webinar_title}} is now on {{date}}',
+    body:
+      '<p>Hi {{first_name}},</p>' +
+      '<p>I’ve had to move <b>{{webinar_title}}</b>. It’s now on <b>{{date}} at {{time}}</b>, instead of {{old_date}} at {{old_time}}.</p>' +
+      '<p>Your place is saved. The button below still takes you straight in on the day.</p>' +
+      (paid ? '<p>Can’t make the new date? Reply to this email.</p>' : '') +
+      '<p>Sorry for the change, and see you there.</p>' +
       '<p>{{your_name}}</p>',
   };
 }

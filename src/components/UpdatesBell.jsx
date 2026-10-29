@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarX, Video } from 'lucide-react';
+import { Bell, CalendarClock, CalendarX, Video } from 'lucide-react';
 import GuestInitials from './GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates';
 import { buildSignupUpdates } from '../data/signupUpdates';
 import { buildRecordingUpdates } from '../data/recordingUpdates';
-import { buildCancelUpdates } from '../data/cancelUpdates';
+import { buildCancelUpdates, buildRescheduleUpdates } from '../data/cancelUpdates';
 import { onRecordingsChange } from '../data/recordings';
 import { onSignupsChange } from '../data/webinarSignups';
 import './UpdatesBell.css';
@@ -80,6 +80,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
         ...buildSignupUpdates({ webinars, lastSeen, now }),
         ...buildRecordingUpdates({ webinars, lastSeen, now }),
         ...buildCancelUpdates({ webinars, now }),
+        ...buildRescheduleUpdates({ webinars, now }),
       ].sort((a, b) => b.at - a.at),
     // signupsTick, recordingsTick: they live outside React, so a change bumps them
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,7 +135,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
   }, [open]);
 
   // Shown in this open: tinted if it was new when the list opened
-  const isNew = (u) => u.kind !== 'cancelled-session' && u.at > seenBefore;
+  // The coach's own changes (cancelled, rescheduled) are records, never new
+  const isNew = (u) => u.kind !== 'cancelled-session' && u.kind !== 'rescheduled-session' && u.at > seenBefore;
   const groups = [
     { id: 'today', label: 'Today', items: updates.filter((u) => u.today) },
     { id: 'earlier', label: 'Earlier', items: updates.filter((u) => !u.today) },
@@ -184,7 +186,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                           className={`upd__item ${isNew(u) ? 'upd__item--new' : ''}`}
                           onClick={() => {
                             close(false);
-                            if (u.kind === 'signups' || u.kind === 'cancelled-session') onOpenWebinar?.(u.webinarId);
+                            if (u.kind === 'signups' || u.kind === 'cancelled-session' || u.kind === 'rescheduled-session')
+                              onOpenWebinar?.(u.webinarId);
                             else if (u.kind === 'recording') onOpenWebinar?.(u.webinarId, { tab: 'recording' });
                             else onOpenBooking?.(u.bookingId);
                           }}
@@ -198,6 +201,10 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                             <span className="bk-face" aria-hidden="true">
                               <CalendarX size={17} />
                             </span>
+                          ) : u.kind === 'rescheduled-session' ? (
+                            <span className="bk-face" aria-hidden="true">
+                              <CalendarClock size={17} />
+                            </span>
                           ) : (
                             <GuestInitials name={u.name} />
                           )}
@@ -209,6 +216,13 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                                 ) : u.kind === 'cancelled-session' ? (
                                   <>
                                     <strong>Session cancelled</strong>
+                                    {u.emailedTo > 0
+                                      ? ` · ${u.emailedTo} ${u.emailedTo === 1 ? 'person' : 'people'} emailed`
+                                      : ''}
+                                  </>
+                                ) : u.kind === 'rescheduled-session' ? (
+                                  <>
+                                    <strong>Session rescheduled</strong>
                                     {u.emailedTo > 0
                                       ? ` · ${u.emailedTo} ${u.emailedTo === 1 ? 'person' : 'people'} emailed`
                                       : ''}
@@ -233,6 +247,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                                     Was <s>{u.was}</s>
                                   </span>
                                 </>
+                              ) : u.kind === 'rescheduled-session' ? (
+                                `${u.title}, now ${u.when}`
                               ) : (
                                 `${u.title}, ${u.when}`
                               )}

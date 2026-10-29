@@ -1,0 +1,30 @@
+/* ------------------------------------------------------------
+   The Reschedule pop-up (RescheduleDialog.jsx). Its layout is "Add
+   another session"'s (RunAgainDialog.css); only the warnings are new:
+   worth knowing, not stopping it, so amber rather than red.
+   ------------------------------------------------------------ */
+.reschedule__warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reschedule__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #8a5300;
+  background: #fff4e0;
+  border-radius: var(--radius-sm);
+}
+
+.reschedule__warning svg {
+  flex: none;
+  margin-top: 2px;
+}

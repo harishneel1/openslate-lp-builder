@@ -1,0 +1,20 @@
+/* ------------------------------------------------------------
+   Rescheduling a session (RescheduleSession.jsx). Its layout is the
+   cancel page's (CancelSession.css) on the email editor's
+   (ReminderEditor.css); its main button is the usual orange one
+   (.oh__add), since moving a session isn't a loss like cancelling.
+   ------------------------------------------------------------ */
+.rs__move {
+  border: 0;
+  cursor: pointer;
+}
+
+.rs__move:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rs__move:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

@@ -22,6 +22,8 @@ import { canCancel, contractKey, currentRun, laterRuns, linkAfterCancel, ownCont
 import RunAgainDialog from './components/RunAgainDialog';
 import ReminderEditor from './screens/ReminderEditor';
 import CancelSession from './screens/CancelSession';
+import RescheduleSession from './screens/RescheduleSession';
+import { canReschedule, moveProblem, moveWarnings } from './data/reschedule';
 import { withEmail, withOn } from './data/reminders';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
@@ -39,7 +41,7 @@ import { getMockProfile } from './data/mockProfile';
 import { EDIT_REQUEST_KEY, editRequestId, takeEditParam } from './utils/editRequest';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
-const STEPS = ['details', 'reminder-edit', 'cancel-session', 'overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
+const STEPS = ['details', 'reminder-edit', 'cancel-session', 'reschedule-session', 'overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -60,6 +62,7 @@ function restoreFunnel(f) {
   if (step === 'details' && !Number.isFinite(f.publishedAt)) step = 'overview'; // only published ones have a details page
   if (step === 'reminder-edit') step = 'details'; // an email being edited → back to the webinar (unsaved changes are gone)
   if (step === 'cancel-session') step = 'details'; // halfway through cancelling → back to the webinar, not cancelled
+  if (step === 'reschedule-session') step = 'details'; // halfway through moving it → back to the webinar, not moved
   if (step === 'edit') step = 'checkpoint'; // editing one answer → back to the checkpoint
   if (step === 'review-edit') step = 'review'; // editing one screen → back to "Edit your landing page"
   if (step === 'review-design') step = 'review'; // changing the style from there → back to it
@@ -98,6 +101,8 @@ function restoreFunnel(f) {
     reminders: isObject(f.reminders) ? f.reminders : {},
     // Cancelled: when, who was emailed, what was refunded (data/webinar.js)
     cancelled: isObject(f.cancelled) && Number.isFinite(f.cancelled.at) ? f.cancelled : null,
+    // Its latest move to a new date: when, and from where (data/reschedule.js)
+    rescheduled: isObject(f.rescheduled) && Number.isFinite(f.rescheduled.at) ? f.rescheduled : null,
   };
 }
 
@@ -283,6 +288,35 @@ function App() {
         refund: refunded && refunded.count > 0 ? refunded : null,
       },
     });
+    return true;
+  };
+
+  // ---------- Rescheduling a session ----------
+  // Moves one session to a new date and time (the only way its date
+  // changes once published). Its people, payments, Zoom meeting and pages
+  // stay; reminders follow the new date by themselves. Only before it
+  // starts (canReschedule), and only to a time moveProblem allows.
+  // Its sign-up page record (contract) gets the new date here, since the
+  // session may not be the one open (the sync below follows the open one).
+  // email: { subject, body } sent to everyone who signed up (the reschedule
+  // page, RescheduleSession.jsx), or null when nobody had.
+  // Returns false when it can't be moved.
+  const rescheduleSession = (id, { date, time, email = null }) => {
+    const run = funnels.find((f) => f.id === id);
+    const all = funnels.filter((f) => f.type === 'webinar');
+    if (!run || !canReschedule(run) || moveProblem(run, all, date, time)) return false;
+    const moved = {
+      ...run,
+      answers: { ...run.answers, date, time },
+      rescheduled: {
+        at: Date.now(),
+        from: { date: run.answers.date, time: run.answers.time ?? '19:00' },
+        emailedTo: email ? peopleOf(id).length : 0,
+        email,
+      },
+    };
+    updateRun(id, { answers: moved.answers, rescheduled: moved.rescheduled });
+    if (run.donePages.includes('registration') && ownContract(run)) saveContract(moved);
     return true;
   };
 
@@ -534,9 +568,9 @@ function App() {
             setOpenId(runId);
           }}
           onEditPages={(id) => openPages(id ?? openId)}
-          // Edit session (a session's side panel): its date and time, and the
-          // title and price, which updateRun passes on to the sessions still
-          // to come (withSharedChanges)
+          // Edit session (a session's side panel): the title and price, which
+          // updateRun passes on to the sessions still to come
+          // (withSharedChanges). The date moves with Reschedule instead.
           onSaveSession={(id, changes) => updateRun(id, (f) => ({ answers: { ...f.answers, ...changes } }))}
           // "Add another session": a copy of the session it names (the latest)
           onRunAgain={(id) => setRunAgainId(id ?? openId)}
@@ -559,9 +593,47 @@ function App() {
             setOpenId(id);
           }}
           onCancelNow={(id) => cancelSession(id)}
+          // Reschedule (a session's side panel): a new date and time. With
+          // nobody signed up it moves at once; with people, the reschedule
+          // page comes first (the email they're sent), at step 'reschedule-session'
+          onReschedule={(id, when) => rescheduleSession(id, when)}
+          onStartReschedule={(id, when) => {
+            setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'reschedule-session', movingTo: when } : f)));
+            setOpenId(id);
+          }}
           // A sign-up line in the bell: open this session's people
           openSession={sessionRequest}
           onSessionOpened={() => setSessionRequest(null)}
+        />
+      );
+    }
+
+    // Rescheduling one session people signed up for, with the email they're
+    // sent. Moving it or going back both land on the webinar with that
+    // session open in its side panel.
+    if (step === 'reschedule-session' && publishedAt && current.movingTo) {
+      const to = current.movingTo;
+      const back = () => {
+        updateOpen({ movingTo: undefined }, { touch: false });
+        openSignups(openId);
+      };
+      const now = Date.now();
+      return (
+        <RescheduleSession
+          key={`${openId}-${to.date}-${to.time}`}
+          run={current}
+          to={to}
+          people={peopleOf(openId)}
+          hostName={answers.hostName}
+          now={now}
+          warnings={moveWarnings(current, funnels.filter((f) => f.type === 'webinar'), to.date, to.time, now)}
+          guardRef={leaveGuard}
+          onConfirm={({ email }) => {
+            const ok = rescheduleSession(openId, { ...to, email });
+            if (ok) back();
+            return ok;
+          }}
+          onClose={back}
         />
       );
     }
@@ -944,7 +1016,9 @@ function App() {
               saveFailed,
               // Its details page shows the title big already, and edits nothing;
               // the email editor has its own heading and Save
-              minimal: (step === 'details' || step === 'reminder-edit' || step === 'cancel-session') && Boolean(publishedAt),
+              minimal:
+                (step === 'details' || step === 'reminder-edit' || step === 'cancel-session' || step === 'reschedule-session') &&
+                Boolean(publishedAt),
               // Editing an automatic email: back to the Emails tab, asking first about changes.
               // Editing a published webinar's pages: back to its details page. Otherwise the list.
               ...(publishedAt && step === 'reminder-edit'
@@ -957,7 +1031,7 @@ function App() {
                       updateOpen({ step: 'details', editingReminder: undefined, detailsTab: 'reminders' }, { touch: false });
                     },
                   }
-                : publishedAt && step === 'cancel-session'
+                : publishedAt && (step === 'cancel-session' || step === 'reschedule-session')
                 ? {
                     exitLabel: 'Your webinar',
                     when: webinarWhen(current.answers)?.line ?? null,

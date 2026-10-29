@@ -972,6 +972,26 @@
   border-color: var(--color-border);
 }
 
+/* Reschedule: beside the meeting button, like the panel's other buttons */
+.wd-drawer__move[aria-disabled='true'] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.wd-drawer__move[aria-disabled='true']:hover {
+  border-color: var(--color-border);
+}
+
+/* A rescheduled session: where it was before, under the buttons */
+.wd-drawer__moved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
 /* A cancelled session: what happened, under its title */
 .wd-drawer__cancelled {
   display: flex;
@@ -1254,6 +1274,26 @@
   gap: 12px;
   padding: 14px 0;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* A paid session: a fourth column for each person's ⋯ (Refund) */
+.wd-people--refunds .wd-person {
+  grid-template-columns: minmax(0, 1fr) auto 36px 36px;
+}
+
+/* The ⋯ here is lighter than on other pages' rows: no box until it's
+   hovered or open, so it sits quietly beside the WhatsApp icon */
+.wd-person .row-menu__button {
+  width: 36px;
+  height: 36px;
+  color: var(--color-text-muted);
+  border-color: transparent;
+}
+
+.wd-person .row-menu__button:hover,
+.wd-person .row-menu__button[aria-expanded='true'] {
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 
 .wd-person__name {

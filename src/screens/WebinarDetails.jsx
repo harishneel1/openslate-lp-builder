@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  CalendarClock,
   CalendarX,
   Check,
   ChevronRight,
@@ -12,6 +13,7 @@ import {
   Pencil,
   Play,
   Plus,
+  RotateCcw,
   Save,
   Search,
   Trash2,
@@ -19,15 +21,14 @@ import {
   X,
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
-import DatePicker from '../components/DatePicker';
 import Drawer from '../components/Drawer';
 import InfoTip from '../components/InfoTip';
 import { PriceWithDiscount } from '../components/CallDetailsInput';
 import PageThumbnail from '../components/PageThumbnail';
 import PixelStatus from '../components/PixelStatus';
 import RecordingPanel from '../components/RecordingPanel';
+import RescheduleDialog from '../components/RescheduleDialog';
 import ShareDialog from '../components/ShareDialog';
-import TimePicker from '../components/TimePicker';
 import { useCopy } from './OfferingsHome';
 import WebinarReminders from './WebinarReminders';
 import { LinkMoves } from './CancelSession';
@@ -38,7 +39,6 @@ import {
   durationMins,
   canCancel,
   isCancelled,
-  isFuture,
   isOnNow,
   linkAfterCancel,
   runsOf,
@@ -53,7 +53,8 @@ import {
   webinarStatus,
   webinarWhen,
 } from '../data/webinar';
-import { onSignupsChange, peopleCsv, peopleOf } from '../data/webinarSignups';
+import { keptOf, onSignupsChange, peopleCsv, peopleOf, refundOne } from '../data/webinarSignups';
+import RowMenu from '../components/RowMenu';
 import { onRecordingsChange, recordingOf } from '../data/recordings';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
@@ -115,13 +116,17 @@ import './WebinarDetails.css';
 // webinar: any session of it (the one App has open); webinars: all of them
 // tab: 'sessions' or 'reminders' (the Emails tab; App keeps it, so coming
 //      back from the email editor lands on it); onTab(tab)
-// onEditPages(id), onSaveSession(id, changes) (Edit session: date, time,
-// title, price), onRunAgain(id) (copies that session),
+// onEditPages(id), onSaveSession(id, changes) (Edit session: title and
+// price; the date moves with Reschedule), onRunAgain(id) (copies that session),
 // onDelete(id) (one session), onPreview() (just before the preview tab opens)
 // openSession: { id, n, tab } from the bell: open that session in the side
 //   panel on arrival, on Manage people (a sign-up line) or on Recording
 //   (tab: 'recording', a recording line); onSessionOpened() once it has
 // onToggleReminder(sessionId, id, on), onEditReminder(sessionId, id): the Emails tab
+// onReschedule(id, { date, time }): Reschedule with nobody signed up: moves
+//   it at once; returns false if it couldn't be moved
+// onStartReschedule(id, { date, time }): with people signed up: the
+//   reschedule page (the email they're sent) comes first
 // onCancelSession(id): Cancel session with people signed up: the cancel
 //   page (with the email); onCancelNow(id): with nobody, cancels at once
 // ------------------------------------------------------------
@@ -223,6 +228,8 @@ export default function WebinarDetails({
   onEditReminder,
   onCancelSession,
   onCancelNow,
+  onReschedule,
+  onStartReschedule,
 }) {
   const now = useNow(15_000); // the countdown moves on every minute
   useSignupsTick(); // counts follow sign-ups, here or in another tab
@@ -334,6 +341,9 @@ export default function WebinarDetails({
             const to = linkAfterCancel(opened, webinars.length > 0 ? webinars : sessions, now);
             return to ? dayOfRun(to) : null;
           })()}
+          all={webinars.length > 0 ? webinars : sessions}
+          onReschedule={(when) => onReschedule(opened.id, when)}
+          onStartReschedule={(when) => onStartReschedule(opened.id, when)}
           onCancelSession={() => onCancelSession(opened.id)}
           onCancelNow={() => onCancelNow(opened.id)}
         />
@@ -390,10 +400,10 @@ function timeOfRun(run) {
   return w ? w.line.split(', ').slice(1).join(', ') : null;
 }
 
-// What a session's people paid in all, after any discount (rupees).
-// Refunds aren't tracked, so it's what they paid when they signed up.
+// What a session's people paid in all, after any discount and less any
+// refunds (rupees): what the coach keeps
 function collectedOf(runId) {
-  return peopleOf(runId).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  return peopleOf(runId).reduce((sum, p) => sum + keptOf(p), 0);
 }
 
 // '₹11,988'
@@ -735,6 +745,9 @@ function SessionDrawer({
   onPreview,
   onCancelSession,
   onCancelNow,
+  onReschedule,
+  onStartReschedule,
+  all = [],
   nextDay = null,
 }) {
   const people = usePeople(run.id);
@@ -757,6 +770,12 @@ function SessionDrawer({
   // "Discard your changes?", before closing ('close') or cancelling ('cancel')
   const [asking, setAsking] = useState(null);
   const [cancelEmpty, setCancelEmpty] = useState(false); // "Cancel this session?" with nobody signed up
+  const [moving, setMoving] = useState(false); // the Reschedule pop-up
+  const [menuFor, setMenuFor] = useState(null); // the person whose ⋯ menu is open
+  const [refunding, setRefunding] = useState(null); // "Refund ₹999 to Priya?"
+  // A paid session's people each get a ⋯ with Refund (while they have something to refund)
+  const canRefund = (p) => p.amount > 0 && !p.refundedAt;
+  const refundsShown = people.some((p) => p.amount > 0);
   const cancelled = isCancelled(run);
   const live = !cancelled && isOnNow(answers, now);
   // A save (or a change made elsewhere) brings the form back in line
@@ -780,6 +799,8 @@ function SessionDrawer({
     else setCancelEmpty(true);
   };
   const askCancel = () => (dirty ? setAsking('cancel') : startCancel());
+  // Reschedule: the pop-up with the date and time. Unsaved edits ask first.
+  const askMove = () => (dirty ? setAsking('reschedule') : setMoving(true));
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -861,8 +882,26 @@ function SessionDrawer({
         cancelled ? (
           <CancelledSummary cancelled={run.cancelled} />
         ) : ended ? null : (
+          <>
           <div className="wd-drawer__actions">
             <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />
+            {live ? (
+              // Can't move it while it's on: says why on hover and focus
+              <button
+                type="button"
+                className="oh__edit wd-drawer__move"
+                aria-disabled="true"
+                data-tip="It’s happening now, so it can’t be moved."
+              >
+                <CalendarClock size={15} aria-hidden="true" /> Reschedule
+              </button>
+            ) : (
+              canCancel(run, now) && (
+                <button type="button" className="oh__edit wd-drawer__move" onClick={askMove}>
+                  <CalendarClock size={15} aria-hidden="true" /> Reschedule
+                </button>
+              )
+            )}
             {live ? (
               // Can't cancel while it's on: says why on hover and focus
               <button
@@ -881,6 +920,10 @@ function SessionDrawer({
               )
             )}
           </div>
+          {run.rescheduled && (
+            <MovedFrom from={run.rescheduled.from} emailedTo={run.rescheduled.emailedTo} timeZone={answers.timeZone} />
+          )}
+          </>
         )
       }
       footer={shownTab === 'edit' ? editFooter : shownTab === 'recording' ? null : peopleFooter}
@@ -940,7 +983,7 @@ function SessionDrawer({
             </button>
           </div>
         ) : (
-          <ul className="wd-people">
+          <ul className={`wd-people ${refundsShown ? 'wd-people--refunds' : ''}`}>
             {shown.map((p) => {
               const first = p.name.split(/\s+/)[0] || p.name;
               const chat = whatsappHref(p.phone, `Hi ${first}, `);
@@ -979,6 +1022,29 @@ function SessionDrawer({
                   ) : (
                     <span />
                   )}
+                  {/* Refund, by hand: for someone who asked (say, they can't
+                      make a new date). Tucked in ⋯ so it's never pressed by accident. */}
+                  {refundsShown &&
+                    (canRefund(p) ? (
+                      <RowMenu
+                        title={p.name}
+                        open={menuFor === p.id}
+                        onOpenChange={(open) => setMenuFor(open ? p.id : null)}
+                        items={[
+                          {
+                            label: `Refund ₹${p.amount.toLocaleString('en-IN')}`,
+                            icon: RotateCcw,
+                            danger: true,
+                            onSelect: () => {
+                              setMenuFor(null);
+                              setRefunding(p);
+                            },
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <span />
+                    ))}
                 </li>
               );
             })}
@@ -997,15 +1063,49 @@ function SessionDrawer({
           onConfirm={() => {
             const next = asking;
             setAsking(null);
-            if (next === 'cancel') {
+            if (next === 'cancel' || next === 'reschedule') {
               setForm(saved);
               setFormKey((k) => k + 1);
-              startCancel();
+              if (next === 'cancel') startCancel();
+              else setMoving(true);
             } else onClose();
           }}
         >
           <p>You changed this session but haven’t saved it.</p>
         </ConfirmDialog>
+      )}
+
+      {refunding && (
+        <ConfirmDialog
+          title={`Refund ₹${refunding.amount.toLocaleString('en-IN')} to ${refunding.name}?`}
+          confirmLabel="Refund"
+          cancelLabel="Go back"
+          danger
+          // A stray click outside doesn't close it; Go back and Escape do
+          stayOpen
+          onCancel={() => setRefunding(null)}
+          onConfirm={() => {
+            refundOne(run.id, refunding.id);
+            setRefunding(null);
+          }}
+        >
+          <p>They get it back in full. It usually reaches them in 5 to 7 working days.</p>
+        </ConfirmDialog>
+      )}
+
+      {moving && (
+        <RescheduleDialog
+          run={run}
+          all={all}
+          people={people.length}
+          onCancel={() => setMoving(false)}
+          onConfirm={(when) => {
+            setMoving(false);
+            // With people signed up, the email page first; with nobody, at once
+            if (people.length > 0) onStartReschedule(when);
+            else onReschedule(when);
+          }}
+        />
       )}
 
       {cancelEmpty && (
@@ -1052,6 +1152,20 @@ function SessionDrawer({
         </ConfirmDialog>
       )}
     </Drawer>
+  );
+}
+
+// A rescheduled session, under its buttons: where it was before its
+// latest move, and who was told.
+//   "Moved from Fri 13 Nov, 7:00 pm IST · Email sent to 23 people"
+function MovedFrom({ from, emailedTo = 0, timeZone }) {
+  const was = webinarWhen({ date: from?.date, time: from?.time, timeZone });
+  if (!was) return null;
+  return (
+    <p className="wd-drawer__moved">
+      <CalendarClock size={14} aria-hidden="true" /> Moved from {was.line}
+      {emailedTo > 0 && ` · Email sent to ${emailedTo} ${emailedTo === 1 ? 'person' : 'people'}`}
+    </p>
   );
 }
 
@@ -1139,10 +1253,10 @@ function SessionTabs({ tab, onTab, people, canEdit }) {
 const PAGE_TIP = 'This changes your landing page for current and upcoming sessions.';
 
 // The form's values, from a session's answers (all strings)
+// The date and time aren't here: a session is moved with Reschedule, which
+// tells the people who signed up (data/reschedule.js)
 function editValues(answers) {
   return {
-    date: String(answers.date ?? ''),
-    time: String(answers.time ?? '19:00'),
     headline: String(answers.headline ?? ''),
     subheadline: String(answers.subheadline ?? ''),
     pricing: answers.pricing === 'Paid' ? 'Paid' : 'Free',
@@ -1162,8 +1276,6 @@ function changedKeys(saved, form) {
 // What's saved: trimmed, and the price boxes only for a paid webinar
 function cleanValues(form) {
   const out = {
-    date: form.date,
-    time: form.time,
     headline: form.headline.trim(),
     subheadline: form.subheadline.trim(),
     pricing: form.pricing,
@@ -1178,9 +1290,6 @@ function cleanValues(form) {
 // The first thing that stops a save, or null: { text, quiet }. Quiet ones
 // are already said by the price boxes themselves, so they're not repeated.
 function editProblem(answers, form) {
-  const filled = /^\d{4}-\d{2}-\d{2}$/.test(form.date) && /^\d{2}:\d{2}$/.test(form.time);
-  if (!filled) return { text: 'Pick a date and a start time.' };
-  if (!isFuture(answers, form.date, form.time)) return { text: 'Pick a date and time in the future.' };
   if (!form.headline.trim()) return { text: 'Add a headline.' };
   if (form.pricing === 'Paid') {
     const pay = Number(form.price) || 0;
@@ -1207,9 +1316,7 @@ function FieldLabel({ htmlFor, id, children, tip }) {
 
 function SessionEdit({ answers, saved, form, onForm, problem, day, people, onSubmit }) {
   const set = (key) => (value) => onForm((f) => ({ ...f, [key]: value }));
-  const zone = String(answers.timeZone ?? 'IST').split(' ')[0]; // 'IST', after the time
   const changed = changedKeys(saved, form);
-  const dateMoved = changed.includes('date') || changed.includes('time');
   const priceMoved = changed.some((k) => k === 'pricing' || k === 'price' || k === 'oldPrice');
   // Only once they've changed something: no red text on a fresh form
   const showProblem = changed.length > 0 && problem && !problem.quiet;
@@ -1229,22 +1336,6 @@ function SessionEdit({ answers, saved, form, onForm, problem, day, people, onSub
         onSubmit();
       }}
     >
-      <div className="wd-edit__row">
-        <div className="wd-edit__field">
-          <FieldLabel htmlFor="wd-edit-date">Date</FieldLabel>
-          <DatePicker id="wd-edit-date" value={form.date} onChange={set('date')} className="wd-edit__input" />
-        </div>
-        <div className="wd-edit__field">
-          <FieldLabel htmlFor="wd-edit-time">Start time</FieldLabel>
-          <TimePicker id="wd-edit-time" value={form.time} onChange={set('time')} zone={zone} className="wd-edit__input" />
-        </div>
-      </div>
-      {dateMoved && people > 0 && (
-        <p className="wd-edit__note">
-          {people === 1 ? '1 person' : `${people} people`} signed up for {day ?? 'this session'}. Let them know the new date.
-        </p>
-      )}
-
       <div className="wd-edit__field">
         <FieldLabel htmlFor="wd-edit-headline" tip={PAGE_TIP}>
           Headline
