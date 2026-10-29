@@ -9,7 +9,16 @@ import { funnelTypes } from '../data/funnelTypes';
 import { loadSaved } from '../utils/storage';
 import { funnelName } from '../utils/funnelName';
 import { requestEdit } from '../utils/editRequest';
-import { currentRun, lengthLabel, nextOpenRun, webinarEnd, webinarPrice, webinarWhen, withSeriesIds } from '../data/webinar';
+import {
+  currentRun,
+  isCancelled,
+  lengthLabel,
+  nextOpenRun,
+  webinarEnd,
+  webinarPrice,
+  webinarWhen,
+  withSeriesIds,
+} from '../data/webinar';
 import { addSignup } from '../data/webinarSignups';
 import './PreviewPage.css';
 
@@ -29,6 +38,11 @@ import './PreviewPage.css';
 // instead (EndedPage), so nobody signs up for a date that's gone. If the
 // coach has run it again, that page points to the new date. The top bar
 // keeps "See the page anyway", since the coach previews here too.
+//
+// A cancelled session is over too: its pages say "This session was
+// cancelled" (the same EndedPage, in other words), and the link skips it
+// for the next session (currentRun). Someone who had its sign-up page open
+// when it was cancelled can't register: the save checks again first.
 //
 // While a published webinar is still to come, its link works end to end:
 // the landing page's button opens the sign-up page, and registering there
@@ -71,6 +85,7 @@ function readFunnel(id, fromLink = false) {
     donePages: Array.isArray(f.donePages) ? f.donePages : [],
     name: funnelName({ answers }, type),
     publishedAt: Number.isFinite(f.publishedAt) ? f.publishedAt : null,
+    cancelled: isCancelled(f),
     nextRun: next ? { id: next.id, answers: nextAnswers } : null,
   };
 }
@@ -115,6 +130,8 @@ export default function PreviewPage({ funnelId: runId = null, linkId = null, pag
   const funnelId = funnel?.id ?? runId;
   const [mode, setMode] = useState('desktop');
   const [showAnyway, setShowAnyway] = useState(false); // the coach looking past "This webinar has ended"
+  // Cancelled while this page was open (found when they tried to register)
+  const [cancelledNow, setCancelledNow] = useState(false);
 
   // Tab title: "Preview: <their headline>"
   useEffect(() => {
@@ -145,16 +162,26 @@ export default function PreviewPage({ funnelId: runId = null, linkId = null, pag
     funnel.themeId ?? recommendedThemeId(String(funnel.answers.category ?? '').trim());
   const page = buildPageJson(funnel.answers, resolvedId);
 
-  // Published and over: visitors can't sign up any more (the thank you page is only seen after signing up)
+  // Published and over (or cancelled): visitors can't sign up any more
+  // (the thank you page is only seen after signing up)
   const end = webinarEnd(funnel.answers);
-  const ended = Boolean(funnel.publishedAt) && end !== null && end <= Date.now() && !isThankYou;
+  const cancelled = funnel.cancelled || cancelledNow;
+  const over = Boolean(funnel.publishedAt) && (cancelled || (end !== null && end <= Date.now()));
+  const ended = over && !isThankYou;
   // Published and still to come: people can register from here
-  const open = Boolean(funnel.publishedAt) && (end === null || end > Date.now());
+  const open = Boolean(funnel.publishedAt) && !over;
   const pageHref = (id) => `?preview=${encodeURIComponent(funnelId)}&page=${id}`;
   const canRegister = open && funnel.donePages.includes('registration');
 
   // Saves them to People, then shows the thank you page. false if it couldn't save.
   const register = ({ name, email, phone }) => {
+    // The coach may have cancelled it since this page opened: check the
+    // latest save first, and show the cancelled page instead of saving
+    if (readFunnel(funnelId)?.cancelled) {
+      setCancelledNow(true);
+      setShowAnyway(false);
+      return true; // not a save failure: the page changes instead
+    }
     const price = webinarPrice(funnel.answers);
     const amount = price.isFree ? 0 : Number(funnel.answers.price) || 0;
     const person = addSignup({ webinarId: funnelId, name, email, phone, amount });
@@ -204,7 +231,7 @@ export default function PreviewPage({ funnelId: runId = null, linkId = null, pag
       <main className="preview__stage">
         <div className="preview__page">
           {ended && !showAnyway ? (
-            <EndedPage name={funnel.name} answers={funnel.answers} nextRun={funnel.nextRun} />
+            <EndedPage name={funnel.name} answers={funnel.answers} nextRun={funnel.nextRun} cancelled={cancelled} />
           ) : isThankYou ? (
             <ThankYouDesign answers={funnel.answers} theme={getTheme(resolvedId)} />
           ) : pageId === 'signup' ? (
@@ -218,15 +245,16 @@ export default function PreviewPage({ funnelId: runId = null, linkId = null, pag
   );
 }
 
-// What visitors see on an ended webinar's link. With a newer run that's
-// still to come, it points there; otherwise it just says it's over.
+// What visitors see on an ended (or cancelled) webinar's link. With a
+// newer run that's still to come, it points there; otherwise it just says
+// it's over. A cancelled session says so instead of "has ended".
 //   This webinar has ended
 //   "Fix the Vasthu mistakes…" was on Sat 31 Oct, 7:00 pm IST.
 //   ┌ A new date is open ──────────────────────┐
 //   │ Sat 7 Nov, 7:00 pm IST · 60 min · Free   │
 //   │ [Sign up for Sat 7 Nov →]                │
 //   └──────────────────────────────────────────┘
-function EndedPage({ name, answers, nextRun }) {
+function EndedPage({ name, answers, nextRun, cancelled = false }) {
   const was = webinarWhen(answers);
   const next = nextRun ? webinarWhen(nextRun.answers) : null;
   const nextDay = next ? `${next.weekday} ${next.day} ${next.month}` : null;
@@ -239,9 +267,11 @@ function EndedPage({ name, answers, nextRun }) {
       <span className="ended__icon" aria-hidden="true">
         <CalendarX size={24} />
       </span>
-      <h1 className="ended__title">This webinar has ended</h1>
+      <h1 className="ended__title">{cancelled ? 'This session was cancelled' : 'This webinar has ended'}</h1>
       <p className="ended__text">
-        “{name}” was on {was ? was.line : 'an earlier date'}.
+        {cancelled
+          ? `“${name}” on ${was ? was.line : 'this date'} won’t go ahead.`
+          : `“${name}” was on ${was ? was.line : 'an earlier date'}.`}
       </p>
 
       {nextRun ? (

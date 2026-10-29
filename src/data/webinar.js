@@ -79,11 +79,36 @@ export function webinarPrice(answers) {
   return { isFree: false, label: rupees(price), was: Number.isFinite(old) && old > price ? rupees(old) : null };
 }
 
+// ------------------------------------------------------------
+// Cancelling a session. A cancelled session stays as a record (its people,
+// what was emailed, what was refunded) but it's over: it counts as 'past'
+// everywhere (webinarStatus), so the link skips it, sign-ups and reminders
+// stop, shared edits pass it by, and its Zoom meeting is closed.
+//   cancelled: {
+//     at:        when (ms)
+//     emailedTo: how many people were sent the cancellation email
+//     email:     { subject, body } as the coach sent it, or null
+//     refund:    { count, total } refunded (rupees), or null (free, or not refunded)
+//   }
+// Only a session that hasn't started can be cancelled (canCancel): a live
+// one is ended in Zoom instead. There's no undo.
+// ------------------------------------------------------------
+
+export const isCancelled = (webinar) => Number.isFinite(webinar?.cancelled?.at);
+
+// Published, not cancelled, and not started yet (so never while it's live)
+export function canCancel(webinar, now = Date.now()) {
+  if (!webinar?.publishedAt || isCancelled(webinar)) return false;
+  const start = webinarStart(webinar.answers ?? {});
+  return start === null || now < start;
+}
+
 // 'draft'    not published yet
 // 'upcoming' published and not over (includes happening right now)
-// 'past'     published and over
+// 'past'     published and over, or cancelled
 export function webinarStatus(webinar, now = Date.now()) {
   if (!webinar.publishedAt) return 'draft';
+  if (isCancelled(webinar)) return 'past';
   const end = webinarEnd(webinar.answers ?? {});
   return end !== null && end <= now ? 'past' : 'upcoming';
 }
@@ -190,6 +215,9 @@ const startOf = (w) => webinarStart(w.answers ?? {}) ?? Infinity;
 //   1. the one on right now
 //   2. else the soonest one still to come
 //   3. else the latest one that's over (its page says it has ended)
+// Cancelled runs are skipped: they're never on now or to come, and an
+// ended run is shown before a cancelled one. Only when every run was
+// cancelled does the link open the latest of them (its page says so).
 // With nothing published yet, the run itself (the coach previewing).
 // null when there's no such webinar any more.
 export function currentRun(linkId, all, now = Date.now()) {
@@ -198,11 +226,22 @@ export function currentRun(linkId, all, now = Date.now()) {
   if (!anchor) return null;
   const runs = publishedRuns(anchor, list);
   if (runs.length === 0) return anchor;
-  const live = runs.find((w) => isOnNow(w.answers ?? {}, now));
+  const live = runs.find((w) => !isCancelled(w) && isOnNow(w.answers ?? {}, now));
   if (live) return live;
   const toCome = runs.filter((w) => webinarStatus(w, now) === 'upcoming').sort((a, b) => startOf(a) - startOf(b));
   if (toCome.length > 0) return toCome[0];
-  return [...runs].sort((a, b) => startOf(b) - startOf(a))[0];
+  const held = runs.filter((w) => !isCancelled(w));
+  return [...(held.length > 0 ? held : runs)].sort((a, b) => startOf(b) - startOf(a))[0];
+}
+
+// Where the main landing page link would go if this run were cancelled:
+// the run it would open without this one, when that's still to come;
+// null when there's none (the link then says the webinar has ended)
+export function linkAfterCancel(webinar, all, now = Date.now()) {
+  const list = all.filter(isRecord);
+  const others = list.filter((w) => w.id !== webinar.id);
+  const run = currentRun(seriesIdOf(webinar, list), others, now);
+  return run && webinarStatus(run, now) === 'upcoming' ? run : null;
 }
 
 // The other runs in this webinar's series that start after it, published
@@ -274,10 +313,11 @@ export function sharedChanges(before, after) {
 
 // The list with `after` (a new version of one session) in place, and what
 // changed in it copied to every other session of its webinar that's
-// still to come. Drafts and past sessions pass nothing on.
+// still to come. Drafts and cancelled sessions pass nothing on; past and
+// cancelled sessions take nothing in.
 export function withSharedChanges(list, before, after, now = Date.now()) {
   const placed = list.map((f) => (f.id === after.id ? after : f));
-  if (!after.publishedAt) return placed;
+  if (!after.publishedAt || isCancelled(after)) return placed;
   const change = sharedChanges(before, after);
   if (!change) return placed;
   const series = seriesIdOf(after, placed);

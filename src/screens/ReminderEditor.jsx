@@ -3,7 +3,7 @@ import { Bold, Check, ChevronDown, Italic, Link2, List, RotateCcw, Send, Video }
 import InboxPreview from '../components/InboxPreview';
 import ConfirmDialog from '../components/ConfirmDialog';
 import {
-  FIELDS,
+  REMINDER_FIELDS,
   emailOf,
   fieldHint,
   fieldLabel,
@@ -12,6 +12,7 @@ import {
   reminderById,
   timeline,
   emailStatus,
+  withoutEmptyParagraphs,
 } from '../data/reminders';
 import './ReminderEditor.css';
 
@@ -78,7 +79,7 @@ const TEST_KEY = 'pagebuilder:test-email'; // the last address a test went to
 // The example person the preview (and a test) is filled in for. Not a
 // real registrant: with hundreds, any one name is arbitrary, changes as
 // people sign up, and shows an attendee's name on a page coaches share.
-const SAMPLE = { name: 'Harish', email: 'harish@gmail.com' };
+export const SAMPLE = { name: 'Harish', email: 'harish@gmail.com' };
 
 // ---------- Between saved text and what's on screen ----------
 
@@ -149,30 +150,199 @@ const readBody = (el) =>
 export default function ReminderEditor({ webinar, id, people = [], hostName, now, ended = false, guardRef, onSave, onClose }) {
   const reminder = reminderById(id);
   const saved = emailOf(webinar, id); // what's saved now (or the template)
-  const subjectEl = useRef(null);
-  const bodyEl = useRef(null);
-  const range = useRef(null); // where the cursor last was, in either box
   const [draft, setDraft] = useState({ subject: saved.subject, body: saved.body });
-  const [menu, setMenu] = useState(false); // Insert detail
-  const [linking, setLinking] = useState(null); // the link box: { href }
+  // What the boxes are filled with: the saved email, or the template after
+  // Reset. A new cardKey fills them again.
+  const [start, setStart] = useState({ subject: saved.subject, body: saved.body });
+  const [cardKey, setCardKey] = useState(0);
   const [ask, setAsk] = useState(null); // 'leave' | 'reset'
-  const [test, setTest] = useState(null); // Send me a test: { to, sent }
+  const tester = useTestEmail();
 
   const dirty = draft.subject !== saved.subject || draft.body !== saved.body;
   const row = timeline(webinar, people, now).find((x) => x.id === id);
   // The preview's person: always the example, the same for every webinar
   const values = useMemo(() => fieldValues(webinar, SAMPLE, hostName), [webinar, hostName]);
 
-  // Fill the boxes once (after that the browser owns them)
-  const fill = (subject, body) => {
-    if (subjectEl.current) subjectEl.current.innerHTML = subjectToHtml(subject);
-    if (bodyEl.current) bodyEl.current.innerHTML = withChips(body);
-  };
+  // A new page: start at the top (the Reminders tab may have been scrolled)
   useEffect(() => {
-    // A new page: start at the top (the Reminders tab may have been scrolled)
     document.querySelector('.app__main')?.scrollTo?.(0, 0);
     window.scrollTo(0, 0);
-    fill(saved.subject, saved.body);
+  }, []);
+
+  // Leaving with changes asks first: here (the top bar) and on refresh
+  useEffect(() => {
+    if (!guardRef) return undefined;
+    guardRef.current = () => {
+      if (!dirty) return true;
+      setAsk('leave');
+      return false;
+    };
+    return () => {
+      guardRef.current = null;
+    };
+  }, [dirty, guardRef]);
+
+  useLeaveWarning(dirty);
+
+  const emptySubject = !draft.subject;
+
+  const save = () => {
+    if (!draft.subject) return;
+    onSave({ subject: draft.subject, body: draft.body });
+  };
+
+  // Ctrl/⌘+S saves
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (dirty && !emptySubject) save();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  const reset = () => {
+    const template = { subject: reminder.subject, body: reminder.body };
+    setStart(template);
+    setDraft(template);
+    setCardKey((k) => k + 1);
+    setAsk(null);
+  };
+
+  // When it goes out, and who it went to: the same words as the Emails
+  // list's hover hint (emailStatus in data/reminders.js)
+  // The confirmation says only that, while sessions are still to come: its
+  // sent count is on the Emails list
+  const status =
+    row.at === null && row.on && !ended
+      ? 'Goes to each person after they register'
+      : emailStatus(row, webinar.answers, now).full;
+
+  // Already gone out for this session: say where changes will be used
+  // (every session still to come gets them; see withSharedChanges)
+  const usedLater = ended
+    ? 'This session has ended. Your changes will be used for the next session you add.'
+    : row.past && row.at !== null && !row.skipped
+      ? 'Already sent for this session. Your changes will be used for the next sessions.'
+      : null;
+
+  const isTemplate = draft.subject === reminder.subject && draft.body === reminder.body;
+
+  return (
+    <div className="re">
+      <header className="re__head">
+        <div className="re__intro">
+          <h1 className="re__title">{reminder.name}</h1>
+          <p className="re__status">{status}</p>
+        </div>
+        <div className="re__actions">
+          {!isTemplate && (
+            <button type="button" className="re__reset" onClick={() => setAsk('reset')}>
+              <RotateCcw size={14} aria-hidden="true" /> Reset to default template
+            </button>
+          )}
+          {tester.button}
+          <button
+            type="button"
+            className="oh__add re__btn re__save"
+            onClick={save}
+            disabled={!dirty || emptySubject}
+          >
+            Save changes
+          </button>
+        </div>
+      </header>
+
+      {usedLater && <p className="re__note">{usedLater}</p>}
+
+      {tester.bar}
+
+      <div className="re__grid">
+        <EmailCard
+          key={cardKey}
+          initial={start}
+          onChange={setDraft}
+          fields={REMINDER_FIELDS}
+          join={reminder.join}
+        />
+        <EmailPreview
+          draft={draft}
+          values={values}
+          now={now}
+          join={reminder.join}
+          footer={`You’re getting this because you registered for ${values.webinar_title}.`}
+        />
+      </div>
+
+      {ask === 'leave' && (
+        <ConfirmDialog
+          title="Leave without saving?"
+          confirmLabel="Leave without saving"
+          cancelLabel="Keep editing"
+          danger
+          onCancel={() => setAsk(null)}
+          onConfirm={() => {
+            setAsk(null);
+            onClose();
+          }}
+        >
+          <p>Your changes to this email will be lost.</p>
+        </ConfirmDialog>
+      )}
+      {ask === 'reset' && (
+        <ConfirmDialog
+          title="Go back to the default template?"
+          confirmLabel="Use default template"
+          // Closes only on Cancel, ✕ or Escape, never on a stray click outside
+          stayOpen
+          closeButton
+          onCancel={() => setAsk(null)}
+          onConfirm={reset}
+        >
+          <p>Your changes to this email will be replaced with the default template. Nothing is saved until you press Save.</p>
+        </ConfirmDialog>
+      )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// The parts of the editor, shared with the cancel flow (CancelSession.jsx)
+// ------------------------------------------------------------
+
+// Refreshing or closing the tab with changes: the browser asks first
+export function useLeaveWarning(dirty) {
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const onUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onUnload);
+    return () => window.removeEventListener('beforeunload', onUnload);
+  }, [dirty]);
+}
+
+// ---------- The email, with placeholders (the left card) ----------
+// Subject, toolbar (bold, italic, link, bullets, + Insert detail) and the
+// body. Fills its boxes once from `initial`; after that the browser owns
+// them, and every change goes to onChange({ subject, body }). To fill
+// them again (Reset), give it a new key.
+// fields: what + Insert detail offers; join: show the Join webinar block
+export function EmailCard({ initial, onChange, fields = REMINDER_FIELDS, join = false }) {
+  const subjectEl = useRef(null);
+  const bodyEl = useRef(null);
+  const range = useRef(null); // where the cursor last was, in either box
+  const [menu, setMenu] = useState(false); // Insert detail
+  const [linking, setLinking] = useState(null); // the link box: { href }
+  const [emptySubject, setEmptySubject] = useState(!initial.subject);
+
+  // Fill the boxes once (after that the browser owns them)
+  useEffect(() => {
+    if (subjectEl.current) subjectEl.current.innerHTML = subjectToHtml(initial.subject);
+    if (bodyEl.current) bodyEl.current.innerHTML = withChips(initial.body);
     try {
       document.execCommand('defaultParagraphSeparator', false, 'p');
     } catch {
@@ -180,7 +350,11 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const read = () => setDraft({ subject: readSubject(subjectEl.current), body: readBody(bodyEl.current) });
+  const read = () => {
+    const subject = readSubject(subjectEl.current);
+    setEmptySubject(!subject);
+    onChange({ subject, body: readBody(bodyEl.current) });
+  };
 
   // Remember the cursor, so the toolbar and Insert detail act where it was
   useEffect(() => {
@@ -272,44 +446,164 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
     document.execCommand('insertText', false, text);
   };
 
-  // Leaving with changes asks first: here (the top bar) and on refresh
-  useEffect(() => {
-    if (!guardRef) return undefined;
-    guardRef.current = () => {
-      if (!dirty) return true;
-      setAsk('leave');
-      return false;
-    };
-    return () => {
-      guardRef.current = null;
-    };
-  }, [dirty, guardRef]);
+  return (
+    <section className="re__card" aria-label="Email">
+      <div className="re__line re__line--subject">
+        <span className="re__line-label" id="re-subject-label">
+          Subject
+        </span>
+        <div className="re__subject-wrap">
+          <div
+            ref={subjectEl}
+            className="re__subject"
+            role="textbox"
+            aria-labelledby="re-subject-label"
+            aria-invalid={emptySubject || undefined}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={read}
+            onPaste={onPaste(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.preventDefault(); // one line
+            }}
+          />
+          {emptySubject && <p className="re__error">Add a subject, so people know what it’s about.</p>}
+        </div>
+      </div>
 
-  useEffect(() => {
-    if (!dirty) return undefined;
-    const onUnload = (e) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', onUnload);
-    return () => window.removeEventListener('beforeunload', onUnload);
-  }, [dirty]);
+      <div className="re__toolbar" role="toolbar" aria-label="Format the email">
+        <ToolButton label="Bold" onClick={() => format('bold')}>
+          <Bold size={16} />
+        </ToolButton>
+        <ToolButton label="Italic" onClick={() => format('italic')}>
+          <Italic size={16} />
+        </ToolButton>
+        <ToolButton label="Link" onClick={openLink}>
+          <Link2 size={16} />
+        </ToolButton>
+        <ToolButton label="Bullet list" onClick={() => format('insertUnorderedList')}>
+          <List size={16} />
+        </ToolButton>
 
-  // Ctrl/⌘+S saves
-  useEffect(() => {
-    const onKey = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        if (dirty && !emptyNow()) save();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-  const emptyNow = () => !readSubject(subjectEl.current);
+        <div className="re__insert">
+          <button
+            type="button"
+            className="re__insert-btn"
+            aria-haspopup="menu"
+            aria-expanded={menu}
+            onMouseDown={(e) => e.preventDefault()} // keep the cursor where it is
+            onClick={() => setMenu((m) => !m)}
+          >
+            + Insert detail <ChevronDown size={14} aria-hidden="true" />
+          </button>
+          {menu && (
+            <div className="re__menu" role="menu" onKeyDown={(e) => e.key === 'Escape' && setMenu(false)}>
+              {fields.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  role="menuitem"
+                  className="re__menu-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => insertField(f.key)}
+                >
+                  {f.label}
+                  <span className="re__menu-eg">{f.hint}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-  // Send me a test: the address box, filled with the last one used
-  const openTest = () => {
+      {linking && (
+        <div className="re__linkbox">
+          <label className="oh__sr-only" htmlFor="re-link">
+            Link address
+          </label>
+          <input
+            id="re-link"
+            type="url"
+            value={linking.href}
+            autoFocus
+            onChange={(e) => setLinking({ href: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') addLink();
+              if (e.key === 'Escape') setLinking(null);
+            }}
+          />
+          <button type="button" className="oh__add re__btn" onClick={addLink}>
+            Add link
+          </button>
+          <button type="button" className="oh__edit re__btn" onClick={() => setLinking(null)}>
+            Cancel
+          </button>
+        </div>
+      )}
+
+      <div
+        ref={bodyEl}
+        className="re__body"
+        role="textbox"
+        aria-multiline="true"
+        aria-label="Email text"
+        contentEditable
+        suppressContentEditableWarning
+        onInput={read}
+        onPaste={onPaste(false)}
+      />
+
+      {/* The button, as it will look in the email: a link to their Zoom join address */}
+      {join && (
+        <div className="re__join">
+          <span className="re__join-btn" data-tip="Opens Zoom for each person" data-tip-align="start">
+            <Video size={15} aria-hidden="true" /> Join webinar
+          </span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------- How it lands in their inbox (the right side) ----------
+// draft: { subject, body } with markers; values: what fills them in (for
+// SAMPLE); join: show the Join webinar button; footer: the small print
+export function EmailPreview({ draft, values, now, join = false, footer }) {
+  return (
+    <section className="re__preview" aria-label="Preview">
+      <div className="re__tablet">
+        <span className="re__tablet-camera" aria-hidden="true" />
+        <div className="re__screen">
+          <InboxPreview
+            subject={fillIn(draft.subject, values)}
+            bodyHtml={withoutEmptyParagraphs(fillIn(draft.body, values, { html: true }))}
+            fromName={values.your_name}
+            toEmail={SAMPLE.email}
+            time={new Date(now).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+            join={join ? { label: 'Join webinar', href: values.join_link } : null}
+            footer={footer}
+          />
+        </div>
+      </div>
+      {/* Under the tablet, so its top lines up with the email's card */}
+      <div className="re__preview-caption">
+        <p className="re__preview-title">How it will look in their inbox</p>
+        <p className="re__preview-note">
+          Everyone gets this same email with their own first name. {SAMPLE.name} is an example.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ---------- Send me a test ----------
+// { button, bar }: the header's button, and the address bar it opens
+// (placed under the header). The address is filled with the last one used.
+// The real app sends what's on screen, saved or not, filled in for SAMPLE.
+export function useTestEmail() {
+  const [test, setTest] = useState(null); // { to, sent, error }
+
+  const open = () => {
     let last = '';
     try {
       last = localStorage.getItem(TEST_KEY) ?? '';
@@ -318,7 +612,8 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
     }
     setTest({ to: last, sent: null, error: null });
   };
-  const sendTest = () => {
+
+  const send = () => {
     const to = test.to.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       setTest({ ...test, error: 'Enter an email address, like you@gmail.com' });
@@ -329,300 +624,59 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
     } catch {
       // fine: it just won't be remembered
     }
-    // The real app sends what's on screen now (even unsaved), with the
-    // fields filled in for SAMPLE, so it matches the preview.
     setTest({ to, sent: to, error: null });
   };
 
-  const save = () => {
-    const subject = readSubject(subjectEl.current);
-    if (!subject) {
-      subjectEl.current.focus();
-      return;
-    }
-    onSave({ subject, body: readBody(bodyEl.current) });
-  };
+  const button = (
+    <button type="button" className="oh__edit re__btn" onClick={open} aria-expanded={Boolean(test)} aria-controls="re-test">
+      <Send size={15} aria-hidden="true" /> Send me a test
+    </button>
+  );
 
-  const reset = () => {
-    fill(reminder.subject, reminder.body);
-    setDraft({ subject: reminder.subject, body: reminder.body });
-    setAsk(null);
-  };
-
-  // When it goes out, and who it went to: the same words as the Emails
-  // list's hover hint (emailStatus in data/reminders.js)
-  // The confirmation says only that, while sessions are still to come: its
-  // sent count is on the Emails list
-  const status =
-    row.at === null && row.on && !ended
-      ? 'Goes to each person after they register'
-      : emailStatus(row, webinar.answers, now).full;
-
-  // Already gone out for this session: say where changes will be used
-  // (every session still to come gets them; see withSharedChanges)
-  const usedLater = ended
-    ? 'This session has ended. Your changes will be used for the next session you add.'
-    : row.past && row.at !== null && !row.skipped
-      ? 'Already sent for this session. Your changes will be used for the next sessions.'
-      : null;
-
-  const isTemplate = draft.subject === reminder.subject && draft.body === reminder.body;
-  const emptySubject = !draft.subject;
-
-
-  return (
-    <div className="re">
-      <header className="re__head">
-        <div className="re__intro">
-          <h1 className="re__title">{reminder.name}</h1>
-          <p className="re__status">{status}</p>
-        </div>
-        <div className="re__actions">
-          {!isTemplate && (
-            <button type="button" className="re__reset" onClick={() => setAsk('reset')}>
-              <RotateCcw size={14} aria-hidden="true" /> Reset to default template
-            </button>
-          )}
-          <button
-            type="button"
-            className="oh__edit re__btn"
-            onClick={openTest}
-            aria-expanded={Boolean(test)}
-            aria-controls="re-test"
-          >
-            <Send size={15} aria-hidden="true" /> Send me a test
+  const bar = test && (
+    <div className="re__test" id="re-test">
+      {test.sent ? (
+        <p className="re__test-done" role="status">
+          <Check size={15} strokeWidth={3} aria-hidden="true" /> Test sent to <b>{test.sent}</b>
+        </p>
+      ) : (
+        <>
+          <label className="re__test-label" htmlFor="re-test-to">
+            Send a test to
+          </label>
+          <input
+            id="re-test-to"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@gmail.com"
+            value={test.to}
+            autoFocus
+            aria-invalid={Boolean(test.error) || undefined}
+            aria-describedby={test.error ? 're-test-error' : undefined}
+            onChange={(e) => setTest({ ...test, to: e.target.value, error: null })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') send();
+              if (e.key === 'Escape') setTest(null);
+            }}
+          />
+          <button type="button" className="oh__add re__btn" onClick={send}>
+            <Send size={15} aria-hidden="true" /> Send
           </button>
-          <button
-            type="button"
-            className="oh__add re__btn re__save"
-            onClick={save}
-            disabled={!dirty || emptySubject}
-          >
-            Save changes
-          </button>
-        </div>
-      </header>
-
-      {usedLater && <p className="re__note">{usedLater}</p>}
-
-      {test && (
-        <div className="re__test" id="re-test">
-          {test.sent ? (
-            <p className="re__test-done" role="status">
-              <Check size={15} strokeWidth={3} aria-hidden="true" /> Test sent to <b>{test.sent}</b>
-            </p>
-          ) : (
-            <>
-              <label className="re__test-label" htmlFor="re-test-to">
-                Send a test to
-              </label>
-              <input
-                id="re-test-to"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                placeholder="you@gmail.com"
-                value={test.to}
-                autoFocus
-                aria-invalid={Boolean(test.error) || undefined}
-                aria-describedby={test.error ? 're-test-error' : undefined}
-                onChange={(e) => setTest({ ...test, to: e.target.value, error: null })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') sendTest();
-                  if (e.key === 'Escape') setTest(null);
-                }}
-              />
-              <button type="button" className="oh__add re__btn" onClick={sendTest}>
-                <Send size={15} aria-hidden="true" /> Send
-              </button>
-            </>
-          )}
-          <button type="button" className="re__test-close" onClick={() => setTest(null)}>
-            {test.sent ? 'Done' : 'Cancel'}
-          </button>
-          {test.error && (
-            <p className="re__error re__test-error" id="re-test-error">
-              {test.error}
-            </p>
-          )}
-        </div>
+        </>
       )}
-
-      <div className="re__grid">
-      {/* ---------- Left: the email, with placeholders ---------- */}
-      <section className="re__card" aria-label="Email">
-        <div className="re__line re__line--subject">
-          <span className="re__line-label" id="re-subject-label">
-            Subject
-          </span>
-          <div className="re__subject-wrap">
-            <div
-              ref={subjectEl}
-              className="re__subject"
-              role="textbox"
-              aria-labelledby="re-subject-label"
-              aria-invalid={emptySubject || undefined}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={read}
-              onPaste={onPaste(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.preventDefault(); // one line
-              }}
-            />
-            {emptySubject && <p className="re__error">Add a subject, so people know what it’s about.</p>}
-          </div>
-        </div>
-
-        <div className="re__toolbar" role="toolbar" aria-label="Format the email">
-          <ToolButton label="Bold" onClick={() => format('bold')}>
-            <Bold size={16} />
-          </ToolButton>
-          <ToolButton label="Italic" onClick={() => format('italic')}>
-            <Italic size={16} />
-          </ToolButton>
-          <ToolButton label="Link" onClick={openLink}>
-            <Link2 size={16} />
-          </ToolButton>
-          <ToolButton label="Bullet list" onClick={() => format('insertUnorderedList')}>
-            <List size={16} />
-          </ToolButton>
-
-          <div className="re__insert">
-            <button
-              type="button"
-              className="re__insert-btn"
-              aria-haspopup="menu"
-              aria-expanded={menu}
-              onMouseDown={(e) => e.preventDefault()} // keep the cursor where it is
-              onClick={() => setMenu((m) => !m)}
-            >
-              + Insert detail <ChevronDown size={14} aria-hidden="true" />
-            </button>
-            {menu && (
-              <div className="re__menu" role="menu" onKeyDown={(e) => e.key === 'Escape' && setMenu(false)}>
-                {FIELDS.map((f) => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    role="menuitem"
-                    className="re__menu-item"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => insertField(f.key)}
-                  >
-                    {f.label}
-                    <span className="re__menu-eg">{f.hint}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {linking && (
-          <div className="re__linkbox">
-            <label className="oh__sr-only" htmlFor="re-link">
-              Link address
-            </label>
-            <input
-              id="re-link"
-              type="url"
-              value={linking.href}
-              autoFocus
-              onChange={(e) => setLinking({ href: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') addLink();
-                if (e.key === 'Escape') setLinking(null);
-              }}
-            />
-            <button type="button" className="oh__add re__btn" onClick={addLink}>
-              Add link
-            </button>
-            <button type="button" className="oh__edit re__btn" onClick={() => setLinking(null)}>
-              Cancel
-            </button>
-          </div>
-        )}
-
-        <div
-          ref={bodyEl}
-          className="re__body"
-          role="textbox"
-          aria-multiline="true"
-          aria-label="Email text"
-          contentEditable
-          suppressContentEditableWarning
-          onInput={read}
-          onPaste={onPaste(false)}
-        />
-
-        {/* The button, as it will look in the email: a link to their Zoom join address */}
-        {reminder.join && (
-          <div className="re__join">
-            <span className="re__join-btn" data-tip="Opens Zoom for each person" data-tip-align="start">
-              <Video size={15} aria-hidden="true" /> Join webinar
-            </span>
-          </div>
-        )}
-
-      </section>
-
-      {/* ---------- Right: how it lands in their inbox ---------- */}
-      <section className="re__preview" aria-label="Preview">
-        <div className="re__tablet">
-          <span className="re__tablet-camera" aria-hidden="true" />
-          <div className="re__screen">
-            <InboxPreview
-              subject={fillIn(draft.subject, values)}
-              bodyHtml={fillIn(draft.body, values, { html: true })}
-              fromName={values.your_name}
-              toEmail={SAMPLE.email}
-              time={new Date(now).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-              join={reminder.join ? { label: 'Join webinar', href: values.join_link } : null}
-              footer={`You’re getting this because you registered for ${values.webinar_title}.`}
-            />
-          </div>
-        </div>
-        {/* Under the tablet, so its top lines up with the email's card */}
-        <div className="re__preview-caption">
-          <p className="re__preview-title">How it will look in their inbox</p>
-          <p className="re__preview-note">
-            Everyone gets this same email with their own first name. {SAMPLE.name} is an example.
-          </p>
-        </div>
-      </section>
-      </div>
-
-      {ask === 'leave' && (
-        <ConfirmDialog
-          title="Leave without saving?"
-          confirmLabel="Leave without saving"
-          cancelLabel="Keep editing"
-          danger
-          onCancel={() => setAsk(null)}
-          onConfirm={() => {
-            setAsk(null);
-            onClose();
-          }}
-        >
-          <p>Your changes to this email will be lost.</p>
-        </ConfirmDialog>
-      )}
-      {ask === 'reset' && (
-        <ConfirmDialog
-          title="Go back to the default template?"
-          confirmLabel="Use default template"
-          // Closes only on Cancel, ✕ or Escape, never on a stray click outside
-          stayOpen
-          closeButton
-          onCancel={() => setAsk(null)}
-          onConfirm={reset}
-        >
-          <p>Your changes to this email will be replaced with the default template. Nothing is saved until you press Save.</p>
-        </ConfirmDialog>
+      <button type="button" className="re__test-close" onClick={() => setTest(null)}>
+        {test.sent ? 'Done' : 'Cancel'}
+      </button>
+      {test.error && (
+        <p className="re__error re__test-error" id="re-test-error">
+          {test.error}
+        </p>
       )}
     </div>
   );
+
+  return { button, bar };
 }
 
 // A toolbar button that keeps the cursor in the text

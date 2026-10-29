@@ -4,7 +4,7 @@ import AppLayout from './components/AppLayout';
 import WebinarsPage from './screens/WebinarsPage';
 import FunnelOverview from './screens/FunnelOverview';
 import WebinarDetails from './screens/WebinarDetails';
-import { deleteSignupsOf, peopleOf } from './data/webinarSignups';
+import { deleteSignupsOf, peopleOf, refundAll } from './data/webinarSignups';
 import { deleteRecordingsOf, seedDemoRecordings } from './data/recordings';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
@@ -18,9 +18,10 @@ import LandingEditor from './screens/LandingEditor';
 import SignupStep from './screens/SignupStep';
 import { deleteService, getService, saveWebinarContract } from './data/mockServices';
 import { thankYouQuestions, firstMissing } from './data/thankYouQuestions';
-import { contractKey, currentRun, laterRuns, ownContract, seriesIdOf, upcomingSiblings, withSharedChanges, webinarContractFields, webinarStatus, webinarWhen, withSeriesIds } from './data/webinar';
+import { canCancel, contractKey, currentRun, laterRuns, linkAfterCancel, ownContract, seriesIdOf, upcomingSiblings, withSharedChanges, webinarContractFields, webinarPrice, webinarStatus, webinarWhen, withSeriesIds } from './data/webinar';
 import RunAgainDialog from './components/RunAgainDialog';
 import ReminderEditor from './screens/ReminderEditor';
+import CancelSession from './screens/CancelSession';
 import { withEmail, withOn } from './data/reminders';
 import { loadSaved, saveProgress, createFunnel } from './utils/storage';
 import { editGroup } from './utils/answerSummary';
@@ -38,7 +39,7 @@ import { getMockProfile } from './data/mockProfile';
 import { EDIT_REQUEST_KEY, editRequestId, takeEditParam } from './utils/editRequest';
 
 // ('design' is only kept so old saves on the removed creation-time picker restore cleanly)
-const STEPS = ['details', 'reminder-edit', 'overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
+const STEPS = ['details', 'reminder-edit', 'cancel-session', 'overview', 'review', 'review-edit', 'about', 'checkpoint', 'edit', 'transition', 'landing', 'design', 'building', 'review-design', 'registration', 'thank-you', 'thank-you-building'];
 
 // Stable empty values, so screens that memoise on answers don't recompute for nothing
 const NO_ANSWERS = {};
@@ -58,6 +59,7 @@ function restoreFunnel(f) {
   let step = STEPS.includes(f.step) ? f.step : 'overview';
   if (step === 'details' && !Number.isFinite(f.publishedAt)) step = 'overview'; // only published ones have a details page
   if (step === 'reminder-edit') step = 'details'; // an email being edited → back to the webinar (unsaved changes are gone)
+  if (step === 'cancel-session') step = 'details'; // halfway through cancelling → back to the webinar, not cancelled
   if (step === 'edit') step = 'checkpoint'; // editing one answer → back to the checkpoint
   if (step === 'review-edit') step = 'review'; // editing one screen → back to "Edit your landing page"
   if (step === 'review-design') step = 'review'; // changing the style from there → back to it
@@ -94,6 +96,8 @@ function restoreFunnel(f) {
     seenDetails: f.seenDetails === true,
     // Reminder emails: on/off and the coach's own text (data/reminders.js)
     reminders: isObject(f.reminders) ? f.reminders : {},
+    // Cancelled: when, who was emailed, what was refunded (data/webinar.js)
+    cancelled: isObject(f.cancelled) && Number.isFinite(f.cancelled.at) ? f.cancelled : null,
   };
 }
 
@@ -250,6 +254,36 @@ function App() {
     deleteSignupsOf(id); // its people go with it
     deleteRecordingsOf(id); // and its recording
     setFunnels((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  // ---------- Cancelling a session ----------
+  // One session only (a webinar is never cancelled whole), and only before
+  // it starts (canCancel). Its people stay, as a record. What happens:
+  //   - everyone who signed up is sent the cancellation email (the coach
+  //     edits it in the cancel flow; the prototype only records it)
+  //   - with refund on (the default) on a paid session, everyone who paid
+  //     is refunded in full, automatically (refundAll)
+  //   - it counts as over from here on (data/webinar.js): the link skips
+  //     it, sign-ups and reminders stop, its Zoom meeting closes
+  // email: { subject, body } or null; refund: true unless they unticked it
+  // Returns false when it can't be cancelled (gone, live, over, cancelled).
+  // Started from the session's side panel: with people signed up, through
+  // the cancel page (CancelSession.jsx, step 'cancel-session', where the
+  // email is edited); with nobody, straight from a pop-up there.
+  const cancelSession = (id, { email = null, refund = true } = {}) => {
+    const run = funnels.find((f) => f.id === id);
+    if (!run || !canCancel(run)) return false;
+    const paid = !webinarPrice(run.answers ?? {}).isFree;
+    const refunded = refund && paid ? refundAll(id) : null;
+    updateRun(id, {
+      cancelled: {
+        at: Date.now(),
+        emailedTo: peopleOf(id).length,
+        email,
+        refund: refunded && refunded.count > 0 ? refunded : null,
+      },
+    });
+    return true;
   };
 
   // ---------- The sign-up page (its contract) ----------
@@ -518,9 +552,41 @@ function App() {
           }}
           // 👁 on the landing page picture: save first, so the preview tab shows the latest
           onPreview={saveNow}
+          // Cancel session (a session's side panel): with people signed up,
+          // the cancel page, where the email is edited; with nobody, at once
+          onCancelSession={(id) => {
+            setFunnels((prev) => prev.map((f) => (f.id === id ? { ...f, step: 'cancel-session' } : f)));
+            setOpenId(id);
+          }}
+          onCancelNow={(id) => cancelSession(id)}
           // A sign-up line in the bell: open this session's people
           openSession={sessionRequest}
           onSessionOpened={() => setSessionRequest(null)}
+        />
+      );
+    }
+
+    // Cancelling one session, with its email. Cancelling or going back
+    // both land on the webinar with that session open in its side panel.
+    if (step === 'cancel-session' && publishedAt) {
+      const back = () => openSignups(openId); // its details page, with the session's panel open
+      const moveTo = linkAfterCancel(current, funnels.filter((f) => f.type === 'webinar'));
+      const moveWhen = moveTo ? webinarWhen(moveTo.answers ?? {}) : null;
+      return (
+        <CancelSession
+          key={openId}
+          run={current}
+          people={peopleOf(openId)}
+          nextDay={moveWhen ? `${moveWhen.weekday} ${moveWhen.day} ${moveWhen.month}` : null}
+          hostName={answers.hostName}
+          now={Date.now()}
+          guardRef={leaveGuard}
+          onConfirm={(choice) => {
+            const ok = cancelSession(openId, choice);
+            if (ok) back();
+            return ok;
+          }}
+          onClose={back}
         />
       );
     }
@@ -878,7 +944,7 @@ function App() {
               saveFailed,
               // Its details page shows the title big already, and edits nothing;
               // the email editor has its own heading and Save
-              minimal: (step === 'details' || step === 'reminder-edit') && Boolean(publishedAt),
+              minimal: (step === 'details' || step === 'reminder-edit' || step === 'cancel-session') && Boolean(publishedAt),
               // Editing an automatic email: back to the Emails tab, asking first about changes.
               // Editing a published webinar's pages: back to its details page. Otherwise the list.
               ...(publishedAt && step === 'reminder-edit'
@@ -889,6 +955,16 @@ function App() {
                     onExit: () => {
                       if (leaveGuard.current && leaveGuard.current() === false) return;
                       updateOpen({ step: 'details', editingReminder: undefined, detailsTab: 'reminders' }, { touch: false });
+                    },
+                  }
+                : publishedAt && step === 'cancel-session'
+                ? {
+                    exitLabel: 'Your webinar',
+                    when: webinarWhen(current.answers)?.line ?? null,
+                    // Asks first when the email was changed (CancelSession's guard)
+                    onExit: () => {
+                      if (leaveGuard.current && leaveGuard.current() === false) return;
+                      openSignups(openId);
                     },
                   }
                 : publishedAt && step !== 'details'

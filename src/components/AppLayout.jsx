@@ -8,7 +8,7 @@ import {
 import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildBookingsJson, shortDay } from '../data/buildBookingsJson';
-import { webinarEnd, webinarStart } from '../data/webinar';
+import { isCancelled, webinarEnd, webinarStart } from '../data/webinar';
 import { isPublished } from '../utils/publish';
 import { loadSaved } from '../utils/storage';
 import { formatTime, zoned } from '../utils/slots';
@@ -31,11 +31,12 @@ const sidebarItems = [
 ];
 
 // Published webinars that aren't over yet, soonest first: { start, end }
-// (ms). Drafts aren't on the calendar until they're published.
+// (ms). Drafts aren't on the calendar until they're published; cancelled
+// sessions are off it.
 function webinarsAhead(now) {
   const { funnels } = loadSaved();
   return (Array.isArray(funnels) ? funnels : [])
-    .filter((f) => f?.type === 'webinar' && isPublished(f))
+    .filter((f) => f?.type === 'webinar' && isPublished(f) && !isCancelled(f))
     .map((f) => ({ start: webinarStart(f.answers ?? {}), end: webinarEnd(f.answers ?? {}) }))
     .filter((w) => w.start !== null && w.end > now)
     .sort((a, b) => a.start - b.start);

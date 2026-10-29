@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Video } from 'lucide-react';
+import { Bell, CalendarX, Video } from 'lucide-react';
 import GuestInitials from './GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates';
 import { buildSignupUpdates } from '../data/signupUpdates';
 import { buildRecordingUpdates } from '../data/recordingUpdates';
+import { buildCancelUpdates } from '../data/cancelUpdates';
 import { onRecordingsChange } from '../data/recordings';
 import { onSignupsChange } from '../data/webinarSignups';
 import './UpdatesBell.css';
@@ -38,6 +39,9 @@ import './UpdatesBell.css';
 // (data/signupUpdates.js), which counts once in the badge.
 // A recording line (data/recordingUpdates.js) opens that session on its
 // Recording tab: onOpenWebinar(id, { tab: 'recording' }).
+// A cancelled session's line (data/cancelUpdates.js) is a record of what
+// the coach did: never new, so it doesn't count or ring. It opens that
+// session's people.
 // Follows bookings, sign-ups and recordings as they change, even from
 // another tab. A recording turns ready with time rather than an event, so
 // the minute tick (and opening the bell) picks it up.
@@ -75,6 +79,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
         ...buildUpdates({ bookings, lastSeen, now }),
         ...buildSignupUpdates({ webinars, lastSeen, now }),
         ...buildRecordingUpdates({ webinars, lastSeen, now }),
+        ...buildCancelUpdates({ webinars, now }),
       ].sort((a, b) => b.at - a.at),
     // signupsTick, recordingsTick: they live outside React, so a change bumps them
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,7 +134,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
   }, [open]);
 
   // Shown in this open: tinted if it was new when the list opened
-  const isNew = (u) => u.at > seenBefore;
+  const isNew = (u) => u.kind !== 'cancelled-session' && u.at > seenBefore;
   const groups = [
     { id: 'today', label: 'Today', items: updates.filter((u) => u.today) },
     { id: 'earlier', label: 'Earlier', items: updates.filter((u) => !u.today) },
@@ -179,7 +184,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                           className={`upd__item ${isNew(u) ? 'upd__item--new' : ''}`}
                           onClick={() => {
                             close(false);
-                            if (u.kind === 'signups') onOpenWebinar?.(u.webinarId);
+                            if (u.kind === 'signups' || u.kind === 'cancelled-session') onOpenWebinar?.(u.webinarId);
                             else if (u.kind === 'recording') onOpenWebinar?.(u.webinarId, { tab: 'recording' });
                             else onOpenBooking?.(u.bookingId);
                           }}
@@ -189,6 +194,10 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                             <span className="bk-face" aria-hidden="true">
                               <Video size={17} />
                             </span>
+                          ) : u.kind === 'cancelled-session' ? (
+                            <span className="bk-face" aria-hidden="true">
+                              <CalendarX size={17} />
+                            </span>
                           ) : (
                             <GuestInitials name={u.name} />
                           )}
@@ -197,6 +206,13 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                               <span className="upd__what">
                                 {u.kind === 'signups' ? (
                                   <SignedUp update={u} />
+                                ) : u.kind === 'cancelled-session' ? (
+                                  <>
+                                    <strong>Session cancelled</strong>
+                                    {u.emailedTo > 0
+                                      ? ` · ${u.emailedTo} ${u.emailedTo === 1 ? 'person' : 'people'} emailed`
+                                      : ''}
+                                  </>
                                 ) : u.kind === 'recording' ? (
                                   <>
                                     <strong>Your recording</strong> is ready

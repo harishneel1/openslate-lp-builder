@@ -9,6 +9,8 @@
 //   phone:  '<code> <number>', as checkout saves it ('+91 98765 43210')
 //   amount: what they paid in rupees, 0 when it's free
 //   registeredAt: when they registered (ms)
+//   refundedAt, refunded: when and how much they were refunded (rupees),
+//     once their session was cancelled (refundAll); missing otherwise
 //
 // The same email registering twice for one webinar counts once: the
 // second time just returns the first.
@@ -74,6 +76,24 @@ export function latestSignupAt({ after = 0, before = Infinity } = {}) {
   return latest;
 }
 
+// A cancelled session's refunds: everyone who paid (and isn't refunded
+// yet) is marked refunded with what they paid. In the prototype no money
+// moves; the real product asks the payment provider for each refund.
+// Returns { count, total } (rupees).
+export function refundAll(webinarId, at = Date.now()) {
+  const all = loadAll();
+  let count = 0;
+  let total = 0;
+  const next = all.map((p) => {
+    if (p.webinarId !== webinarId || !(p.amount > 0) || p.refundedAt) return p;
+    count += 1;
+    total += p.amount;
+    return { ...p, refundedAt: at, refunded: p.amount };
+  });
+  if (count > 0) saveAll(next);
+  return { count, total };
+}
+
 // A deleted webinar takes its people with it
 export function deleteSignupsOf(webinarId) {
   const all = loadAll();
@@ -105,7 +125,15 @@ export function peopleCsv(people, { paid = false } = {}) {
   };
   const when = (ms) =>
     new Date(ms).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-  const head = ['Name', 'Email', 'Phone', 'Registered', ...(paid ? ['Paid (₹)'] : [])];
-  const rows = people.map((p) => [p.name, p.email, p.phone, when(p.registeredAt), ...(paid ? [p.amount] : [])]);
+  const refunds = paid && people.some((p) => p.refundedAt);
+  const head = ['Name', 'Email', 'Phone', 'Registered', ...(paid ? ['Paid (₹)'] : []), ...(refunds ? ['Refunded (₹)'] : [])];
+  const rows = people.map((p) => [
+    p.name,
+    p.email,
+    p.phone,
+    when(p.registeredAt),
+    ...(paid ? [p.amount] : []),
+    ...(refunds ? [p.refunded ?? 0] : []),
+  ]);
   return `\uFEFF${[head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n')}`;
 }

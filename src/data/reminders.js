@@ -24,6 +24,8 @@ import { meetingHref, webinarEnd, webinarStart, webinarWhen } from './webinar';
 
 // The fill-in fields the editor's "Insert detail" menu offers
 //   hint: what it fills in with, for the hover hint in the editor
+//   only: 'cancel' for a field only the cancellation email has (its menu
+//         offers it; the reminders' menu doesn't: REMINDER_FIELDS)
 export const FIELDS = [
   { key: 'first_name', label: 'First name', hint: 'Fills in each person’s first name' },
   { key: 'webinar_title', label: 'Webinar title', hint: 'Fills in the webinar’s title' },
@@ -31,7 +33,43 @@ export const FIELDS = [
   { key: 'time', label: 'Time', hint: 'Fills in the webinar’s time' },
   { key: 'join_link', label: 'Join link', hint: 'Fills in each person’s own join link' },
   { key: 'your_name', label: 'Your name', hint: 'Fills in your name' },
+  {
+    key: 'refund_note',
+    label: 'Refund note',
+    hint: 'Says their payment is being refunded. Left out when Refund everyone is unticked',
+    only: 'cancel',
+  },
 ];
+
+// What the reminders' editor offers
+export const REMINDER_FIELDS = FIELDS.filter((f) => !f.only);
+
+// ------------------------------------------------------------
+// The cancellation email: sent once, to everyone who signed up for a
+// session the coach cancels (App.jsx cancelSession). The coach edits it
+// in the cancel flow (CancelSession.jsx); it isn't saved as a template,
+// each cancellation starts from this one. A paid session's version has
+// the Refund note, which fills in only while refunds are on, so the
+// email always matches what happens. No join link (there's nothing to
+// join) and no pointer to other sessions.
+// ------------------------------------------------------------
+export const REFUND_NOTE = 'Your payment is being refunded in full. It usually reaches your account within 5 to 7 working days.';
+
+export function cancelTemplate({ paid = false } = {}) {
+  return {
+    subject: 'Cancelled: {{webinar_title}} on {{date}}',
+    body:
+      '<p>Hi {{first_name}},</p>' +
+      '<p>I’m sorry, but I’ve had to cancel <b>{{webinar_title}}</b> on <b>{{date}} at {{time}}</b>.</p>' +
+      (paid ? '<p>{{refund_note}}</p>' : '') +
+      '<p>Thank you for understanding, and sorry for the change of plans.</p>' +
+      '<p>{{your_name}}</p>',
+  };
+}
+
+// The email as it reads once filled in: a paragraph left empty (the
+// Refund note with refunds off) is dropped, so no gap is left behind
+export const withoutEmptyParagraphs = (html) => String(html).replace(/<p>(\s|&nbsp;|<br>)*<\/p>/g, '');
 
 export const fieldHint = (key) => FIELDS.find((f) => f.key === key)?.hint ?? '';
 
@@ -159,7 +197,7 @@ export const withOn = (reminders = {}, id, on) => ({ ...reminders, [id]: { ...(r
 //   { short, full, tone: 'next' | 'off' | null }
 export function emailStatus(row, answers, now = Date.now()) {
   const people = (count) => `${count} ${count === 1 ? 'person' : 'people'}`;
-  const ended = (webinarEnd(answers) ?? Infinity) <= now;
+  const ended = row.closed || (webinarEnd(answers) ?? Infinity) <= now;
   const label = row.at === null ? null : whenLabel(row.at, answers, now);
   // In a sentence: "today at 1:00 pm", "Fri 23 Oct at 2:00 pm"
   const when = label?.replace(', ', ' at ').replace(/^(Today|Tomorrow|Yesterday)/, (w) => w.toLowerCase());
@@ -176,6 +214,7 @@ export function emailStatus(row, answers, now = Date.now()) {
     return { short: row.sentTo ? `${row.sentTo} sent` : 'None yet', full, tone: null };
   }
   if (row.skipped) return { short: 'Skipped', full: 'Skipped: the webinar was set up after this time', tone: 'off' };
+  if (row.stopped) return { short: 'Stopped', full: 'Stopped: this session was cancelled, so it won’t be sent', tone: 'off' };
   if (!row.past) {
     if (!row.on) return { short: 'Off', full: 'Off: this email won’t be sent', tone: 'off' };
     return { short, full: `Goes out ${when}`, tone: row.next ? 'next' : null };
@@ -200,18 +239,27 @@ export function sendTime(answers, id) {
 //   them for the confirmation). A reminder turned off sends to no one.
 //   skipped: its time had passed before the webinar was published (set
 //   up 2 hours before, say: the 1-day reminder never had a chance).
+//   stopped: the session was cancelled before its time, so it never goes
+//   out. closed (the confirmation): the session was cancelled, so nobody
+//   else can register for it.
 export function timeline(webinar, people, now = Date.now()) {
   const live = Number.isFinite(webinar.publishedAt) ? webinar.publishedAt : null;
+  const cancelledAt = Number.isFinite(webinar.cancelled?.at) ? webinar.cancelled.at : null;
   const rows = REMINDERS.map((r) => {
     const { on } = emailOf(webinar, r.id);
     const at = sendTime(webinar.answers, r.id);
-    if (at === null) return { id: r.id, at, past: true, on, skipped: false, sentTo: on ? people.length : 0 };
+    if (at === null) {
+      return { id: r.id, at, past: true, on, skipped: false, closed: cancelledAt !== null, sentTo: on ? people.length : 0 };
+    }
+    if (cancelledAt !== null && at > cancelledAt) {
+      return { id: r.id, at, past: false, on, skipped: false, stopped: true, sentTo: 0 };
+    }
     const past = at <= now;
     const skipped = live !== null && at < live;
     const sentTo = past && on && !skipped ? people.filter((p) => p.registeredAt <= at).length : 0;
     return { id: r.id, at, past, on, skipped, sentTo };
   });
-  const next = rows.find((row) => !row.past && row.on);
+  const next = rows.find((row) => !row.past && row.on && !row.stopped);
   return rows.map((row) => ({ ...row, next: row === next }));
 }
 

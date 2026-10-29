@@ -24,6 +24,7 @@ import './RecordingPanel.css';
 //
 // recording: from recordingOf (data/recordings.js)
 // ended:     the session is over
+// cancelled: the session was cancelled (there's no recording)
 // title:     the webinar's name; day: 'Sat 7 Nov' (or null)
 // ------------------------------------------------------------
 
@@ -49,8 +50,19 @@ function lengthOf(ms) {
 // '7:02 pm', on the coach's own clock
 const timeOf = (ms) => new Date(ms).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
 
-export default function RecordingPanel({ recording, ended = true, title, day }) {
+export default function RecordingPanel({ recording, ended = true, cancelled = false, title, day }) {
   const { status } = recording;
+
+  if (cancelled && status === 'none') {
+    return (
+      <Message
+        icon={<VideoOff size={22} />}
+        tone="quiet"
+        title="This session was cancelled"
+        text="It didn’t go ahead, so there’s no recording."
+      />
+    );
+  }
 
   // Not ready yet: before the session, or while Zoom gets it ready
   if ((status === 'none' && !ended) || status === 'processing') {

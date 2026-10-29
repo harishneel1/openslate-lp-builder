@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  CalendarX,
   Check,
   ChevronRight,
   Download,
@@ -29,13 +30,17 @@ import ShareDialog from '../components/ShareDialog';
 import TimePicker from '../components/TimePicker';
 import { useCopy } from './OfferingsHome';
 import WebinarReminders from './WebinarReminders';
+import { LinkMoves } from './CancelSession';
 import { MeetingButton, useNow } from './WebinarsPage';
 import { funnelTypes } from '../data/funnelTypes';
 import {
   currentRun,
   durationMins,
+  canCancel,
+  isCancelled,
   isFuture,
   isOnNow,
+  linkAfterCancel,
   runsOf,
   seriesIdOf,
   lengthLabel,
@@ -117,6 +122,8 @@ import './WebinarDetails.css';
 //   panel on arrival, on Manage people (a sign-up line) or on Recording
 //   (tab: 'recording', a recording line); onSessionOpened() once it has
 // onToggleReminder(sessionId, id, on), onEditReminder(sessionId, id): the Emails tab
+// onCancelSession(id): Cancel session with people signed up: the cancel
+//   page (with the email); onCancelNow(id): with nobody, cancels at once
 // ------------------------------------------------------------
 
 const TYPE = funnelTypes.find((t) => t.id === 'webinar');
@@ -214,6 +221,8 @@ export default function WebinarDetails({
   onSessionOpened,
   onToggleReminder,
   onEditReminder,
+  onCancelSession,
+  onCancelNow,
 }) {
   const now = useNow(15_000); // the countdown moves on every minute
   useSignupsTick(); // counts follow sign-ups, here or in another tab
@@ -226,8 +235,10 @@ export default function WebinarDetails({
   const linkRun = currentRun(seriesIdOf(webinar, webinars), webinars, now) ?? webinar;
   const next = webinarStatus(linkRun, now) !== 'past' ? linkRun : null; // null once every session is over
   const latest = sessions[sessions.length - 1]; // "Add another session" copies the latest
-  // Pages and emails: the next session's (what the link shows), else the latest's
-  const current = next ?? latest;
+  // Pages and emails: the next session's (what the link shows), else the
+  // latest that wasn't cancelled (a cancelled one sends nothing more)
+  const latestHeld = [...sessions].reverse().find((r) => !isCancelled(r)) ?? latest;
+  const current = next ?? latestHeld;
   const currentWhen = webinarWhen(current.answers ?? {});
   const currentDay = currentWhen ? `${currentWhen.weekday} ${currentWhen.day} ${currentWhen.month}` : 'the next session';
   const emailPeople = usePeople(current.id);
@@ -265,13 +276,14 @@ export default function WebinarDetails({
       <header className="wd__head">
         <div className="wd__intro">
           <h1 className="wd__title">{name}</h1>
-          <LinkActions url={url} onShare={next ? () => setSharing(true) : null} />
+          <LinkActions url={url} onShare={() => setSharing(true)} />
           <NextSession run={next} name={name} now={now} onOpen={() => openAt(next.id)} onAdd={() => onRunAgain(latest.id)} />
         </div>
         <LandingThumb
           run={current}
           address={webinar.slug ? `${window.location.host}/${webinar.slug}` : shortLink(url)}
           name={name}
+          ended={!next}
           onEdit={() => onEditPages(current.id)}
           previewHref={`?preview=${encodeURIComponent(current.id)}`}
           onPreview={onPreview}
@@ -317,16 +329,27 @@ export default function WebinarDetails({
           onSave={(changes) => onSaveSession(opened.id, changes)}
           onPreview={onPreview}
           onDelete={sessions.length > 1 ? () => setDeleting(opened) : null}
+          // The upcoming session the link moves to if this one is cancelled
+          nextDay={(() => {
+            const to = linkAfterCancel(opened, webinars.length > 0 ? webinars : sessions, now);
+            return to ? dayOfRun(to) : null;
+          })()}
+          onCancelSession={() => onCancelSession(opened.id)}
+          onCancelNow={() => onCancelNow(opened.id)}
         />
       )}
 
-      {sharing && next && (
+      {sharing && (
         <ShareDialog
           heading="Share webinar"
           name={name}
-          meta={[webinarWhen(next.answers ?? {})?.line, webinarPrice(next.answers ?? {}).label].filter(Boolean).join(' · ')}
+          meta={
+            next
+              ? [webinarWhen(next.answers ?? {})?.line, webinarPrice(next.answers ?? {}).label].filter(Boolean).join(' · ')
+              : 'No upcoming session'
+          }
           url={url}
-          message={webinarShareMessage(next, name, url)}
+          message={webinarShareMessage(next ?? current, name, url, { upcoming: Boolean(next) })}
           onClose={() => setSharing(false)}
         />
       )}
@@ -409,19 +432,25 @@ function useRecordingsTick() {
 // "collected" only for a paid session: what its people paid in all.
 // With nothing coming up, the same card says so and offers to add a session.
 function NextSession({ run, name, now, onOpen, onAdd }) {
+  // Nothing coming up: a short, quiet card (white, grey edge), the text on
+  // the left and the one orange button on the right. Being short, it keeps
+  // the hero (and the page picture beside it, which matches its height) compact.
+  //   ┌──────────────────────────────────────────────────────────────┐
+  //   │ No upcoming session                                           │
+  //   │ Your landing page shows that this webinar has ended. [+ Add session] │
+  //   └──────────────────────────────────────────────────────────────┘
   if (!run) {
     return (
       <section className="wd__next wd__next--none" aria-labelledby="wd-next-title">
-        <h2 className="wd__next-title" id="wd-next-title">
-          No session coming up
-        </h2>
-        <p className="wd__next-text">Your link tells visitors this webinar has ended. Add a session to open sign-ups again.</p>
-        <div className="wd__next-foot">
-          <span />
-          <button type="button" className="oh__add" onClick={onAdd}>
-            <Plus size={16} aria-hidden="true" /> Add another session
-          </button>
+        <div className="wd__next-none-text">
+          <h2 className="wd__next-title wd__next-title--none" id="wd-next-title">
+            No upcoming session
+          </h2>
+          <p className="wd__next-text">Your landing page shows that this webinar has ended.</p>
         </div>
+        <button type="button" className="oh__add wd__next-add" onClick={onAdd}>
+          <Plus size={16} aria-hidden="true" /> Add session
+        </button>
       </section>
     );
   }
@@ -577,9 +606,10 @@ function SessionsTable({ sessions, linkRunId, now, onOpen }) {
 // row can be a button of its own.
 function SessionRow({ run: r, now, isLink, money, onOpen }) {
   const answers = r.answers ?? {};
-  const live = isOnNow(answers, now);
+  const cancelled = isCancelled(r); // counts as past (data/webinar.js)
+  const live = !cancelled && isOnNow(answers, now);
   const past = webinarStatus(r, now) === 'past';
-  const label = live ? 'Live now' : past ? 'Ended' : isLink ? 'Registrations open' : 'Scheduled';
+  const label = cancelled ? 'Cancelled' : live ? 'Live now' : past ? 'Ended' : isLink ? 'Registrations open' : 'Scheduled';
   const tone = live || isLink ? 'wd__st-badge--link' : '';
   const count = peopleOf(r.id).length;
   const collected = collectedOf(r.id);
@@ -694,7 +724,19 @@ function RecordingChip({ status, onOpen }) {
 //   have (Edit session on a past session) opens Manage people instead
 // onSave(changes): { date, time, headline, subheadline, pricing, price, oldPrice }
 // onPreview(): just before the preview tab opens
-function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave, onDelete, onPreview }) {
+function SessionDrawer({
+  run,
+  name,
+  now,
+  initialTab = 'people',
+  onClose,
+  onSave,
+  onDelete,
+  onPreview,
+  onCancelSession,
+  onCancelNow,
+  nextDay = null,
+}) {
   const people = usePeople(run.id);
   const answers = run.answers ?? {};
   const ended = webinarStatus(run, now) === 'past';
@@ -712,7 +754,11 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
   const [form, setForm] = useState(saved);
   const [formKey, setFormKey] = useState(0); // a new one resets the price boxes' own tick
   const [savedPopup, setSavedPopup] = useState(false); // "Changes saved" pop-up
-  const [asking, setAsking] = useState(false); // "Discard your changes?"
+  // "Discard your changes?", before closing ('close') or cancelling ('cancel')
+  const [asking, setAsking] = useState(null);
+  const [cancelEmpty, setCancelEmpty] = useState(false); // "Cancel this session?" with nobody signed up
+  const cancelled = isCancelled(run);
+  const live = !cancelled && isOnNow(answers, now);
   // A save (or a change made elsewhere) brings the form back in line
   useEffect(() => setForm(saved), [saved]);
 
@@ -725,7 +771,15 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
     setSavedPopup(true);
     setFormKey((k) => k + 1);
   };
-  const close = () => (dirty ? setAsking(true) : onClose());
+  const close = () => (dirty ? setAsking('close') : onClose());
+
+  // Cancel session: with people signed up, the cancel page (the email);
+  // with nobody, a short "are you sure". Unsaved edits ask first.
+  const startCancel = () => {
+    if (people.length > 0) onCancelSession();
+    else setCancelEmpty(true);
+  };
+  const askCancel = () => (dirty ? setAsking('cancel') : startCancel());
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -751,12 +805,15 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
     setTimeout(() => URL.revokeObjectURL(href), 1000);
   };
 
-  const sub = [timeOfRun(run), lengthLabel(answers), price.label, ended ? 'Ended' : startsIn(answers, now)]
+  const sub = [timeOfRun(run), lengthLabel(answers), price.label, isCancelled(run) ? 'Cancelled' : ended ? 'Ended' : startsIn(answers, now)]
     .filter(Boolean)
     .join(' · ');
 
+  // Delete only while nobody has signed up: once people have, the session
+  // is cancelled instead (they're told, and refunded)
+  const canDelete = Boolean(onDelete) && people.length === 0;
   const peopleFooter =
-    people.length > 0 || onDelete ? (
+    people.length > 0 || canDelete ? (
       <>
         {people.length > 0 ? (
           <button type="button" className="oh__edit" onClick={download}>
@@ -765,7 +822,7 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
         ) : (
           <span />
         )}
-        {onDelete && (
+        {canDelete && (
           <button type="button" className="wd-drawer__delete" onClick={onDelete}>
             <Trash2 size={15} aria-hidden="true" /> Delete session
           </button>
@@ -801,9 +858,28 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
       sub={sub}
       onClose={close}
       extra={
-        ended ? null : (
+        cancelled ? (
+          <CancelledSummary cancelled={run.cancelled} />
+        ) : ended ? null : (
           <div className="wd-drawer__actions">
             <MeetingButton state={meetingState(answers, now)} href={meetingHref(run.id)} name={name} liveLabel="Rejoin meeting" />
+            {live ? (
+              // Can't cancel while it's on: says why on hover and focus
+              <button
+                type="button"
+                className="oh__edit wd-drawer__cancel"
+                aria-disabled="true"
+                data-tip="It’s happening now. End it in Zoom instead."
+              >
+                <CalendarX size={15} aria-hidden="true" /> Cancel session
+              </button>
+            ) : (
+              canCancel(run, now) && (
+                <button type="button" className="oh__edit wd-drawer__cancel" onClick={askCancel}>
+                  <CalendarX size={15} aria-hidden="true" /> Cancel session
+                </button>
+              )
+            )}
           </div>
         )
       }
@@ -813,7 +889,7 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
 
       {shownTab === 'recording' ? (
         <div id="wd-drawer-panel-recording" role="tabpanel" aria-labelledby="wd-drawer-tab-recording">
-          <RecordingPanel recording={recording} ended={ended} title={name} day={day} />
+          <RecordingPanel recording={recording} ended={ended} cancelled={cancelled} title={name} day={day} />
         </div>
       ) : shownTab === 'edit' ? (
         <div id="wd-drawer-panel-edit" role="tabpanel" aria-labelledby="wd-drawer-tab-edit">
@@ -851,7 +927,9 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
             <span className="calls__empty-icon" aria-hidden="true">
               <Users size={22} />
             </span>
-            <h3 className="calls__empty-title">{ended ? 'No one signed up for this session' : 'No one has signed up yet'}</h3>
+            <h3 className="calls__empty-title">
+              {cancelled ? 'No one had signed up' : ended ? 'No one signed up for this session' : 'No one has signed up yet'}
+            </h3>
             {!ended && <p className="calls__empty-text">Share your landing page link. People who sign up will show up here.</p>}
           </div>
         ) : shown.length === 0 ? (
@@ -879,8 +957,11 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
                   </div>
                   <div className="wd-person__side">
                     <span className="wd-person__when">{registeredWhen(p.registeredAt, now)}</span>
-                    {!price.isFree && p.amount > 0 && (
-                      <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>
+                    {p.refundedAt ? (
+                      <span className="wd-person__refunded">Refunded ₹{(p.refunded ?? p.amount).toLocaleString('en-IN')}</span>
+                    ) : (
+                      !price.isFree &&
+                      p.amount > 0 && <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>
                     )}
                   </div>
                   {chat ? (
@@ -912,13 +993,38 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
           confirmLabel="Discard changes"
           cancelLabel="Keep editing"
           danger
-          onCancel={() => setAsking(false)}
+          onCancel={() => setAsking(null)}
           onConfirm={() => {
-            setAsking(false);
-            onClose();
+            const next = asking;
+            setAsking(null);
+            if (next === 'cancel') {
+              setForm(saved);
+              setFormKey((k) => k + 1);
+              startCancel();
+            } else onClose();
           }}
         >
           <p>You changed this session but haven’t saved it.</p>
+        </ConfirmDialog>
+      )}
+
+      {cancelEmpty && (
+        <ConfirmDialog
+          title={`Cancel the session on ${day ?? 'this date'}?`}
+          confirmLabel="Cancel session"
+          cancelLabel="Go back"
+          danger
+          // A stray click outside doesn't close it; Go back and Escape do
+          stayOpen
+          onCancel={() => setCancelEmpty(false)}
+          onConfirm={() => {
+            setCancelEmpty(false);
+            onCancelNow();
+          }}
+        >
+          <p>
+            Nobody has signed up yet. <LinkMoves nextDay={nextDay} />
+          </p>
         </ConfirmDialog>
       )}
 
@@ -946,6 +1052,31 @@ function SessionDrawer({ run, name, now, initialTab = 'people', onClose, onSave,
         </ConfirmDialog>
       )}
     </Drawer>
+  );
+}
+
+// What happened when a session was cancelled, under its title:
+//   Cancelled on 28 Oct, 3:50 pm
+//   Email sent to 23 people · ₹22,977 refunded to 23 people
+function CancelledSummary({ cancelled }) {
+  const at = new Date(cancelled.at);
+  const when = `${at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${at
+    .toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
+    .toLowerCase()}`;
+  const n = cancelled.emailedTo ?? 0;
+  const parts = [
+    n > 0 ? `Email sent to ${n} ${n === 1 ? 'person' : 'people'}` : 'Nobody had signed up',
+    cancelled.refund
+      ? `${rupees(cancelled.refund.total)} refunded to ${cancelled.refund.count} ${cancelled.refund.count === 1 ? 'person' : 'people'}`
+      : null,
+  ].filter(Boolean);
+  return (
+    <div className="wd-drawer__cancelled">
+      <p className="wd-drawer__cancelled-title">
+        <CalendarX size={16} aria-hidden="true" /> Cancelled on {when}
+      </p>
+      <p className="wd-drawer__cancelled-text">{parts.join(' · ')}</p>
+    </div>
   );
 }
 
@@ -1224,7 +1355,9 @@ function Countdown({ day }) {
 // lines up with the title and its bottom with the line under the link.
 // run: the session the pages belong to (the next one, else the latest)
 // address: the link as the bar shows it
-function LandingThumb({ run, address, name, onEdit, previewHref, onPreview }) {
+// ended: no session coming up. A small "Ended" tag on the picture says its
+// Register button isn't live (visitors see "This webinar has ended").
+function LandingThumb({ run, address, name, ended = false, onEdit, previewHref, onPreview }) {
   return (
     <div className="wd-thumb">
       <div className="wd-thumb__bar">
@@ -1251,6 +1384,7 @@ function LandingThumb({ run, address, name, onEdit, previewHref, onPreview }) {
       </div>
       <div className="wd-thumb__view">
         <PageThumbnail answers={run.answers ?? {}} themeId={run.themeId ?? null} />
+        {ended && <span className="wd-thumb__ended">Ended</span>}
         <button type="button" className="wd-thumb__edit" onClick={onEdit} aria-label={`Edit the pages of ${name}`}>
           <span className="wd-thumb__pill">
             <Pencil size={16} aria-hidden="true" /> Edit webinar pages

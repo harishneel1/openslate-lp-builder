@@ -1,0 +1,133 @@
+/* ------------------------------------------------------------
+   Cancelling a session (CancelSession.jsx). The page is the email
+   editor's (ReminderEditor.css: .re, .re__head, .re__grid); these are
+   its own parts: the red button, what happens, the refund, a warning.
+   ------------------------------------------------------------ */
+
+/* The one red button: it can't be undone */
+.cs__cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #c62828;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cs__cancel:hover:not(:disabled) {
+  background: #a92020;
+}
+
+.cs__cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.cs__cancel:focus-visible {
+  outline: 2px solid #c62828;
+  outline-offset: 2px;
+}
+
+/* ---------- Under the red button: a check comes first ----------
+   The buttons and that line are one column on the right of the header,
+   right-aligned, so it reads as part of the action. */
+.cs__side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* The line wraps within the buttons' width: it never widens the column */
+.cs__safe {
+  width: 0;
+  min-width: 100%;
+}
+
+/* The promise that makes the red button safe to press */
+.cs__safe {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--color-text);
+}
+
+/* ---------- The refund: a choice, so a real control ---------- */
+.cs__refund {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.cs__refund input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.cs__refund input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cs__refund-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cs__refund-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cs__refund-note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Warnings: starts soon, or it started meanwhile ---------- */
+.cs__warn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #8a5300;
+  background: #fff4e0;
+  border-radius: var(--radius-sm);
+}
+
+.cs__warn svg {
+  flex: none;
+}
+
+.cs__warn--stop {
+  color: #a92020;
+  background: #fdecec;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs__cancel {
+    transition: none;
+  }
+}

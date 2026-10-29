@@ -3,7 +3,7 @@ import { ArrowRight, Mic, MicOff, PhoneOff, Users, Video, VideoOff, X } from 'lu
 import { funnelTypes } from '../data/funnelTypes';
 import { mockAccount } from '../data/myPage';
 import { HEARTBEAT_MS, endSegment, heartbeat, startSegment } from '../data/recordings';
-import { isOnNow, webinarEnd, webinarStart, webinarWhen, zoomMeetingId } from '../data/webinar';
+import { isCancelled, isOnNow, webinarEnd, webinarStart, webinarWhen, zoomMeetingId } from '../data/webinar';
 import { funnelName } from '../utils/funnelName';
 import { initials } from '../utils/initials';
 import { loadSaved } from '../utils/storage';
@@ -32,17 +32,21 @@ import './ZoomMeetingPage.css';
 // surprise; the recording then shows on the session's Recording tab
 // (data/recordings.js). There's no switch to turn it off in this version.
 //
+// A cancelled session's meeting is closed (in the real product, the Zoom
+// meeting is deleted): the room says so, nobody gets in, and nothing is
+// recorded.
+//
 // webinarId: the saved webinar's id
 // ------------------------------------------------------------
 
-// The saved webinar → { name, answers }, or null when it's gone
+// The saved webinar → { name, answers, cancelled }, or null when it's gone
 function readWebinar(id) {
   const { funnels } = loadSaved();
   const f = Array.isArray(funnels) ? funnels.find((item) => item?.id === id) : null;
   if (!f) return null;
   const type = funnelTypes.find((t) => t.id === f.type);
   const answers = f.answers && typeof f.answers === 'object' && !Array.isArray(f.answers) ? f.answers : {};
-  return { name: funnelName({ answers }, type), answers };
+  return { name: funnelName({ answers }, type), answers, cancelled: isCancelled(f) };
 }
 
 // 754 s → '12:34', 3_754 s → '1:02:34'
@@ -93,7 +97,7 @@ export default function ZoomMeetingPage({ webinarId }) {
   // tab closed without End still ends its recording (at the last check).
   // Leaving (End), closing the tab or going elsewhere stops it.
   useEffect(() => {
-    if (!webinar || left) return undefined;
+    if (!webinar || webinar.cancelled || left) return undefined;
     startSegment(webinarId);
     const beat = setInterval(() => heartbeat(webinarId), HEARTBEAT_MS);
     const stop = () => endSegment(webinarId);
@@ -114,6 +118,25 @@ export default function ZoomMeetingPage({ webinarId }) {
           <a className="zm__primary" href={window.location.pathname}>
             Go to Webinars <ArrowRight size={16} aria-hidden="true" />
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (webinar.cancelled) {
+    const when = webinarWhen(webinar.answers);
+    return (
+      <div className="zm zm--center">
+        <div className="zm__message">
+          <h1 className="zm__message-title">This meeting was cancelled</h1>
+          <p className="zm__message-text">
+            The session{when ? ` on ${when.line}` : ''} was cancelled, so its meeting is closed and nobody can join.
+          </p>
+          <div className="zm__message-actions">
+            <button type="button" className="zm__secondary" onClick={closeTab}>
+              Close tab
+            </button>
+          </div>
         </div>
       </div>
     );

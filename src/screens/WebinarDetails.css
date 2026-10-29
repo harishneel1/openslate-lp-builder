@@ -154,6 +154,22 @@
   border-bottom: 0;
 }
 
+/* No session coming up: a small grey tag on the page picture */
+.wd-thumb__ended {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: var(--z-raised);
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
 /* The whole page area is the Edit button: a dark wash, the pill near
    the bottom so the top of their page stays easy to see */
 .wd-thumb__edit {
@@ -531,6 +547,38 @@
   color: var(--color-text-muted);
 }
 
+/* Nothing coming up: a short, quiet card. White with a grey edge, the
+   text on the left and the orange Add session on the right, in one row
+   (it wraps under the text when there isn't room) */
+.wd__next--none {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 18px 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.wd__next-none-text {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.wd__next-title--none {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.wd__next--none .wd__next-text {
+  margin-top: 4px;
+}
+
+.wd__next-add {
+  flex: none;
+}
+
 .wd__next-text--soon {
   font-weight: 600;
   color: var(--color-success);
@@ -904,6 +952,51 @@
   margin-top: 6px;
 }
 
+/* Cancel session: beside the meeting button, outlined like the panel's
+   other buttons, with red words since it can't be undone */
+.wd-drawer__cancel {
+  color: #b42318;
+}
+
+.wd-drawer__cancel:hover {
+  border-color: #f0b4ae;
+}
+
+/* While it's on: shown, but can't be pressed (its hint says why) */
+.wd-drawer__cancel[aria-disabled='true'] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.wd-drawer__cancel[aria-disabled='true']:hover {
+  border-color: var(--color-border);
+}
+
+/* A cancelled session: what happened, under its title */
+.wd-drawer__cancelled {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 12px 14px;
+  background: #f4f4f6;
+  border-radius: var(--radius-sm);
+}
+
+.wd-drawer__cancelled-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wd-drawer__cancelled-text {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
 /* Quiet: a red text button, not a box */
 .wd-drawer__delete {
   display: inline-flex;
@@ -1183,6 +1276,13 @@
   justify-items: end;
   gap: 2px;
   font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Refunded when the session was cancelled: grey, it's history */
+.wd-person__refunded {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-text-muted);
 }
 
