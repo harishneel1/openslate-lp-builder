@@ -33,7 +33,7 @@ export const isMyCall = (serviceId) =>
 // Each uses the same answer ids as the first call, plus its own id:
 //   { id, createdAt, callTitle, callDuration, callFormat, callPricing,
 //     callPrice, callComparePrice, callDescription, callAbout, serviceId,
-//     callQuestions }
+//     callQuestions, callReminders }
 // so the same fields and page-building work for every call.
 // ------------------------------------------------------------
 export const addedCallsOf = (answers) => (Array.isArray(answers?.addedCalls) ? answers.addedCalls : []);
@@ -43,6 +43,7 @@ export const addedCallsOf = (answers) => (Array.isArray(answers?.addedCalls) ? a
 const SETUP_CALL_KEYS = [
   'callTitle', 'callDuration', 'callFormat', 'callPricing', 'callPrice', 'callComparePrice',
   'callDescription', 'callAbout', 'serviceId', 'callQuestions', 'callStats', 'hoursStatus',
+  'callReminders',
 ];
 
 // The answers with no setup call: for setup finishing with calls they'd

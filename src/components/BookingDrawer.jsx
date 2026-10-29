@@ -7,7 +7,8 @@ import { getMyAvailability } from '../data/mockAvailability';
 import { money } from '../data/checkoutRules';
 import { findSlots, formatTime, zoned } from '../utils/slots';
 import { matchZone } from '../data/timeZones';
-import { getMyProfile } from '../data/myProfile';
+import { callAnswersOf, getMyProfile, loadAnswers } from '../data/myProfile';
+import { callReminderById, reminderSteps, remindersOf } from '../data/callReminders';
 import { mockAccount } from '../data/myPage';
 import { whatsappHref } from '../utils/whatsapp';
 import { exactDay, lengthLabel, longDay, onDay, shortDay, startsIn, zoneLabel } from '../data/buildBookingsJson';
@@ -21,7 +22,8 @@ import './BookingDrawer.css';
 //               what did they book (the call: name, when, format, their
 //               reply to the calendar invite, join)
 //               about them (contact, then their answers to the questions)
-//               history (booked, rescheduled, cancelled)
+//               history (booked, rescheduled, cancelled, and the reminder
+//               emails: sent, still to come, or skipped)
 //   reschedule  pick a new time from the call's own open times
 //   cancel      confirm, with an optional note to the guest
 // Ended and cancelled calls only show details.
@@ -228,8 +230,32 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     booking.guest?.phone && ['Phone', <a href={telHref(booking.guest.phone)}>{booking.guest.phone}</a>],
   ].filter(Boolean);
 
+  // The reminder emails (callReminders.js), with the call's own switches.
+  // A deleted call's bookings stay, so their reminders do too (both on).
+  const reminders = reminderSteps(booking, remindersOf(callAnswersOf(loadAnswers(), booking.serviceId)), now).map((r) => {
+    const label = `${callReminderById(r.id).short} reminder`; // '24-hour reminder'
+    return {
+      key: r.key,
+      upcoming: r.kind === 'scheduled',
+      what: {
+        sent: `${label} sent to ${name}`,
+        scheduled: `${label} will go to ${name}`,
+        skipped: `${label} skipped`,
+      }[r.kind],
+      // 'Booked less than 24 hours before the call', 'Moved to less than 1 hour away'
+      detail:
+        r.kind !== 'skipped'
+          ? null
+          : r.moved
+            ? `Moved to less than ${r.span} away`
+            : `Booked less than ${r.span} before the call`,
+      when: r.when,
+    };
+  });
+
   // What happened to the booking, as a timeline read top to bottom, oldest
-  // first: each step says who did what, and when they did it.
+  // first: each step says who did what, and when they did it. Reminders
+  // still to come sit at the end, drawn as upcoming.
   // Only the latest reschedule is saved (previousStart), so a call moved
   // twice shows one move, from the time before the latest one.
   const who = (by) => (by === 'guest' ? name : 'You');
@@ -271,6 +297,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
       detail: booking.cancelMessage && booking.cancelledBy !== 'guest' ? `Your note: ${booking.cancelMessage}` : null,
       when: booking.cancelledAt,
     },
+    ...reminders,
   ]
     .filter(Boolean)
     // Older bookings may be missing a time; those keep the order above
@@ -456,7 +483,10 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
             <h3 className="bkd__heading">History</h3>
             <ol className="bkd__timeline">
               {history.map((step) => (
-                <li key={step.key} className={`bkd__event bkd__event--${step.key}`}>
+                <li
+                  key={step.key}
+                  className={`bkd__event bkd__event--${step.key} ${step.upcoming ? 'bkd__event--upcoming' : ''}`}
+                >
                   <div className="bkd__event-line">
                     <span className="bkd__event-what">{step.what}</span>
                     {step.when && <time dateTime={step.when}>{at(step.when)}</time>}

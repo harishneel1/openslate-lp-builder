@@ -458,6 +458,31 @@
   background: #c43c3c;
 }
 
+/* Still to come (a reminder that hasn't gone out): a hollow, dashed dot,
+   a dashed line to it, and quieter words */
+.bkd__event--upcoming::before,
+.bkd__event--upcoming:last-child::before {
+  background: var(--color-surface);
+  border-color: #c9c9ce;
+  border-style: dashed;
+}
+
+.bkd__event--upcoming:not(:last-child)::after,
+.bkd__event:has(+ .bkd__event--upcoming)::after {
+  background: repeating-linear-gradient(to bottom, var(--bk-line) 0 4px, transparent 4px 7px);
+}
+
+.bkd__event--upcoming .bkd__event-what {
+  color: var(--bk-ink-2);
+}
+
+/* The step just before the first one to come is where things stand
+   now: filled, as the last step is when nothing is still to come */
+.bkd__event:not(.bkd__event--upcoming):has(+ .bkd__event--upcoming)::before {
+  background: var(--bk-ink-3);
+  border-color: var(--bk-ink-3);
+}
+
 .bkd__event-line {
   display: flex;
   flex-wrap: wrap;

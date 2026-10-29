@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarClock, ClipboardList, Clock, ExternalLink, FileText, Lock, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, BellRing, CalendarClock, ClipboardList, Clock, ExternalLink, FileText, Lock, SlidersHorizontal } from 'lucide-react';
 import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
 import ServicePickInput from '../components/ServicePickInput';
 import QuestionsInput from '../components/QuestionsInput';
+import RemindersInput from '../components/RemindersInput';
+import ReminderPreview from '../components/ReminderPreview';
+import { remindersOf, remindersSummary, sameReminders } from '../data/callReminders';
 import { DEFAULT_QUESTIONS, cleanQuestions, questionsOf, questionsProblem, questionsSummary, sameQuestions } from '../data/callQuestions';
 import { callAnswersOf, newCallId } from '../data/myProfile';
 import { createMockService, getService, servicePrice } from '../data/mockServices';
@@ -32,6 +35,7 @@ const FIELDS = [
   'callAbout',
   'serviceId',
   'callQuestions', // what checkout asks after name, email and phone (callQuestions.js)
+  'callReminders', // the reminder emails' switches (callReminders.js)
   'meetingLink', // shared by all their video calls: saved on the setup answers (see myProfile.js)
 ];
 
@@ -51,6 +55,7 @@ const SECTION_FIELDS = {
     'callPricing', 'callPrice', 'callComparePrice', 'meetingLink',
   ],
   questions: ['callQuestions'],
+  reminders: ['callReminders'],
   service: ['serviceId'],
   when: ['callHours'],
 };
@@ -60,7 +65,7 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // ------------------------------------------------------------
 // Editing one offering, opened from its card on the offerings home,
 // or making a new one ("Add a new offering", after picking its kind).
-// Four sections, each closed to a one-line summary until opened, one open at a time:
+// Five sections, each closed to a one-line summary until opened, one open at a time:
 //   Basics                name, then its description (what the booking page
 //                         shows under the name), length, format, price.
 //                         Opened from the offerings page, also the line on
@@ -71,6 +76,10 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 //                         the right (HoursDrawer.jsx)
 //   Booking questions     what checkout asks: name, email and phone, then
 //                         this call's questions (QuestionsInput.jsx, callQuestions.js)
+//   Reminders             the emails people get before the call, 24 hours
+//                         and 1 hour before, each with an example, its own
+//                         Preview and a switch (RemindersInput.jsx,
+//                         callReminders.js). Both on unless turned off.
 //   Contract              the checkout page people book and pay through.
 //                         Shown, never swapped (ContractCard): a new call's
 //                         is created for it from its name and price when
@@ -167,6 +176,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
             meetingLink,
             serviceId: null,
             callQuestions: structuredClone(DEFAULT_QUESTIONS),
+            callReminders: remindersOf(null),
             callHours: structuredClone(DEFAULT_HOURS),
           }
         : {
@@ -176,6 +186,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
             meetingLink,
             callDescription: callDescriptionOf(call),
             callQuestions: questionsOf(call),
+            callReminders: remindersOf(call),
             callHours: strip(loadCallHours(id)),
           },
     [isNew, id, call, handle, meetingLink, hoursVersion], // eslint-disable-line react-hooks/exhaustive-deps
@@ -188,6 +199,7 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
   const [createFailed, setCreateFailed] = useState(false);
   const [hoursFailed, setHoursFailed] = useState(false); // the hours didn't save
   const [hoursOpen, setHoursOpen] = useState(false); // the hours panel
+  const [previewing, setPreviewing] = useState(null); // the reminder email being previewed, or null
 
   // One section open at a time: opening one closes the other. Every section
   // starts closed (a new call's Basics opens itself, below). Closing a section
@@ -281,6 +293,10 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
     setHoursFailed(false);
     setHoursOpen(false);
   };
+  // Reminders switched back to what's saved: the saved ones, so the section isn't marked as edited
+  const changeReminders = (next) =>
+    handleChange(sameReminders(next, saved.callReminders) ? saved.callReminders : next, 'callReminders');
+
   // Questions edited back to what's saved: the saved list itself, so the section isn't marked as edited
   const changeQuestions = (next) => handleChange(sameQuestions(next, saved.callQuestions) ? saved.callQuestions : next, 'callQuestions');
 
@@ -403,6 +419,19 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
       </EditSection>
 
       <EditSection
+        id="es-reminders"
+        icon={BellRing}
+        title="Reminders"
+        sub="The emails people get before this call."
+        summary={remindersSummary(draft)}
+        edited={edited('reminders')}
+        open={Boolean(open.reminders)}
+        onToggle={() => toggle('reminders')}
+      >
+        <RemindersInput value={draft.callReminders} onChange={changeReminders} onPreview={setPreviewing} />
+      </EditSection>
+
+      <EditSection
         id="es-service"
         icon={FileText}
         title="Contract"
@@ -433,6 +462,20 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
           callLength={durationLabel(Number(draft.callDuration))}
           onApply={applyHours}
           onClose={() => setHoursOpen(false)}
+        />
+      )}
+
+      {/* The emails as they are in the draft: an unsaved new name already shows */}
+      {previewing && (
+        <ReminderPreview
+          call={{
+            title: draft.callTitle,
+            durationMins: draft.callDuration,
+            timeZone: draft.callHours?.timeZone,
+            meetingLink: readMeetingLink(draft.meetingLink).valid ? readMeetingLink(draft.meetingLink).url : null,
+          }}
+          startWith={previewing}
+          onClose={() => setPreviewing(null)}
         />
       )}
     </EditFrame>

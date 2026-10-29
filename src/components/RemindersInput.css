@@ -1,0 +1,152 @@
+/* ------------------------------------------------------------
+   The call editor's Reminders section (RemindersInput.jsx). Each row:
+   the name, then Preview and the switch on the right, and the booking
+   rules' grey Example box under it. A thin line between rows.
+   ------------------------------------------------------------ */
+
+.rmi__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rmi__row {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rmi__row:first-child {
+  padding-top: 0;
+}
+
+/* The name on the left; Preview and the switch on the right */
+.rmi__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rmi__name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rmi__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 14px;
+}
+
+/* The booking rules' Example box (HoursDrawer.css), with a little more room above */
+.rmi .rmi__example {
+  margin: 8px 0 0;
+}
+
+/* Off: the name and example step back; the switch says the rest */
+.rmi__row--off .rmi__name {
+  color: var(--color-text-disabled);
+}
+
+.rmi__row--off .rmi__example {
+  opacity: 0.55;
+}
+
+/* ---------- The switch: as on the webinar's Emails tab ---------- */
+.rmi__switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  background: #c9c9ce;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rmi__switch[aria-checked='true'] {
+  background: var(--color-success);
+}
+
+.rmi__switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s;
+}
+
+.rmi__switch[aria-checked='true'] .rmi__switch-thumb {
+  transform: translateX(16px);
+}
+
+/* ---------- Both off: amber, like the hours warning ---------- */
+.rmi__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #92400e;
+  background: #fff8eb;
+  border: 1px solid #f5d9a8;
+  border-radius: var(--radius-md);
+}
+
+.rmi__warning svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ---------- Foot: what turning one off does ---------- */
+.rmi__foot {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Preview: as the hours section's "Edit hours & booking rules", smaller */
+.rmi__preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rmi__preview:hover {
+  background: #fbe4d1;
+}
+
+.rmi__switch:focus-visible,
+.rmi__preview:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rmi__switch,
+  .rmi__switch-thumb,
+  .rmi__preview {
+    transition: none;
+  }
+}

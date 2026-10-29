@@ -1,0 +1,168 @@
+/* ------------------------------------------------------------
+   Reminder emails preview (ReminderPreview.jsx): a pop-up built like
+   ConfirmDialog, wide enough for the email at its usual width. The
+   inbox inside keeps its own Gmail look (InboxPreview.css), so it reads
+   as "what lands in their inbox", not part of this app.
+   ------------------------------------------------------------ */
+
+.rp {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  margin: auto;
+  padding: 24px 28px 28px;
+  overflow-y: auto;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.rp:focus,
+.rp:focus-visible {
+  outline: none;
+}
+
+.rp::backdrop {
+  background: rgba(17, 17, 17, 0.4);
+}
+
+/* ---------- Title and ✕ ---------- */
+.rp__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rp__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.rp__close {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-right: -8px;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.rp__close:hover {
+  color: var(--color-text);
+  background: #f1f1f3;
+}
+
+/* ---------- Which email ---------- */
+.rp__switch {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.rp__option {
+  min-height: 36px;
+  padding: 6px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.rp__option:hover {
+  color: var(--color-text);
+}
+
+.rp__option--on {
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- The email, and what it is ---------- */
+.rp__inbox {
+  margin-top: 16px;
+}
+
+/* ?mock=reminders' button to open it again: as ConfirmDialog's primary button */
+.rp__done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 22px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rp__done:hover {
+  background: var(--color-primary-hover);
+}
+
+.rp__close:focus-visible,
+.rp__option:focus-visible,
+.rp__done:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ?mock=reminders: just the button to open it again */
+.rp-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+}
+
+@media (max-width: 520px) {
+  .rp {
+    padding: 18px 16px 20px;
+  }
+
+  .rp__switch {
+    display: flex;
+  }
+
+  .rp__option {
+    flex: 1;
+    padding: 6px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp__close,
+  .rp__option,
+  .rp__done {
+    transition: none;
+  }
+}
