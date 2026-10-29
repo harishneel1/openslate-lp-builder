@@ -259,18 +259,23 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
 
       {deleting && (
         <ConfirmDialog
-          title="Delete this webinar?"
+          // One heading for any count: "Delete this webinar and its 3 sessions?"
+          // (a draft has no sessions yet, so it just names the webinar)
+          title={
+            deleting.live
+              ? `Delete this webinar and its ${deleting.dates} ${deleting.dates === 1 ? 'session' : 'sessions'}?`
+              : 'Delete this draft webinar?'
+          }
           confirmLabel="Delete webinar"
           danger
           onCancel={() => setDeleting(null)}
           onConfirm={confirmDelete}
         >
           <p>
-            <strong>“{deleting.name}”</strong> will be deleted with{' '}
-            {deleting.dates > 1 ? `all ${deleting.dates} sessions, their pages and the people who signed up` : 'its pages'}
-            {deleting.live ? ', and its link will stop working' : ''}. This can’t be undone.
+            {deleting.live
+              ? 'Everyone who registered and its pages will be deleted, and its link will stop working. This can’t be undone.'
+              : 'Its pages will be deleted. This can’t be undone.'}
           </p>
-          {deleting.dates > 1 && <p>To delete just one session, open the webinar, pick the session and use its ⋯.</p>}
         </ConfirmDialog>
       )}
     </div>
