@@ -1,17 +1,17 @@
-import { AlertTriangle, Eye } from 'lucide-react';
-import { CALL_REMINDERS, remindersOf } from '../data/callReminders';
+import { AlertTriangle, Pencil } from 'lucide-react';
+import { CALL_REMINDERS, emailTextOf, remindersOf } from '../data/callReminders';
 import './HoursDrawer.css'; // the grey Example box, as the booking rules have it
 import './RemindersInput.css';
 
 // ------------------------------------------------------------
 // The call editor's Reminders section (EditService.jsx): the two
-// reminder emails, each with its own Preview and switch.
+// reminder emails, each with Edit email and a switch.
 //
-//   24 hours before                         [👁 Preview]  (●  )
+//   24 hours before · Your own words       [✎ Edit email]  (●  )
 //   ┌ Example: If Rohan’s call with you is at 4:00 PM on ┐
 //   └ Thursday, he gets this email at 4:00 PM on Wednesday.┘
 //   ──────────────────────────────────────────────────────────
-//   1 hour before                           [👁 Preview]  (●  )
+//   1 hour before                          [✎ Edit email]  (●  )
 //   ┌ Example: If Rohan’s call with you is at 4:00 PM on ┐
 //   └ Thursday, he gets this email at 3:00 PM on Thursday. ┘
 //   ──────────────────────────────────────────────────────────
@@ -21,13 +21,17 @@ import './RemindersInput.css';
 // two sections explain themselves the same way.
 // Both off: an amber note says nobody will be reminded (it doesn't stop
 // saving: some coaches remind people themselves).
-// The switches change the editor's draft; its Save saves them.
+// The switches change the editor's draft; its Save saves them. So do the
+// words: Edit email opens the email editor (CallReminderEditor.jsx), and
+// its "Use this email" puts them in the draft.
+// "Your own words" shows once an email's words differ from our template.
 //
 // value: the call's callReminders, as in the draft
+// emails: the call's callReminderEmails, as in the draft
 // onChange(next): the switches after a flip ({ dayBefore, hourBefore })
-// onPreview(id): open the preview on that email
+// onEdit(id): open that email in the editor
 // ------------------------------------------------------------
-export default function RemindersInput({ value, onChange, onPreview }) {
+export default function RemindersInput({ value, emails, onChange, onEdit }) {
   const on = remindersOf({ callReminders: value });
   const noneOn = CALL_REMINDERS.every((r) => !on[r.id]);
 
@@ -37,18 +41,21 @@ export default function RemindersInput({ value, onChange, onPreview }) {
         {CALL_REMINDERS.map((r) => (
           <li key={r.id} className={`rmi__row ${on[r.id] ? '' : 'rmi__row--off'}`}>
             <div className="rmi__top">
-              <p className="rmi__name" id={`rmi-${r.id}`}>
-                {r.name}
+              <p className="rmi__name">
+                <span id={`rmi-${r.id}`}>{r.name}</span>
+                {emailTextOf({ callReminderEmails: emails }, r.id).edited && (
+                  <span className="rmi__own"> · Your own words</span>
+                )}
               </p>
               <div className="rmi__actions">
                 <button
                   type="button"
                   className="rmi__preview"
-                  onClick={() => onPreview(r.id)}
-                  aria-label={`Preview the email sent ${r.name}`}
+                  onClick={() => onEdit(r.id)}
+                  aria-label={`Edit the email sent ${r.name}`}
                 >
-                  <Eye size={15} aria-hidden="true" />
-                  Preview
+                  <Pencil size={14} aria-hidden="true" />
+                  Edit email
                 </button>
                 <button
                   type="button"

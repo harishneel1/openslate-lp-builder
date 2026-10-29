@@ -1,6 +1,7 @@
 import { fillIn, withoutEmptyParagraphs } from './reminders';
-import { formatTime, zoned } from '../utils/slots';
+import { addDays, formatTime, toInstant, todayIn, zoned } from '../utils/slots';
 import { dayLabels } from './buildBookingsJson';
+import { DEFAULT_MEETING_LINK } from './bookingsStore';
 
 // ------------------------------------------------------------
 // A 1:1 call's reminder emails: two of them, to the person who booked.
@@ -9,13 +10,21 @@ import { dayLabels } from './buildBookingsJson';
 //   1 hour before    "Starting in an hour", with the Join button
 //
 // The coach doesn't set anything up: both are on for every call. Each
-// call can turn either off (saved on the call's answers, below). The
-// words are ours and can't be edited yet.
+// call can turn either off, and change either email's words (the call
+// editor's Edit email, CallReminderEditor.jsx). Saved on the call's
+// answers, in two keys so a switch and the words never overwrite each other:
+//   callReminders:      { dayBefore: true | false, hourBefore: true | false }
+//                       A missing key means on, so calls made before
+//                       reminders existed remind people too.
+//   callReminderEmails: { dayBefore: { subject, body } }
+//                       Only the emails the coach has changed; the rest
+//                       use our template (below).
 //
-// Saved on the call's answers as callReminders:
-//   { dayBefore: true | false, hourBefore: true | false }
-//   A missing key means on, so calls made before reminders existed
-//   remind people too, with nothing to move over.
+// The body is the same simple HTML as the webinar emails, with fill-in
+// fields as markers ({{first_name}}): CALL_FIELDS lists them. Two parts
+// aren't in the body, so they can't be deleted: the Join call button, and
+// on the 24-hour email the line with links to reschedule or cancel
+// (a student's only way to move their booking).
 //
 // Every time is worked out from the booking as it is now, never stored:
 //   - a rescheduled booking's reminders follow its new time
@@ -41,6 +50,7 @@ export const MIN_GAP_MINS = 30;
 //   short    for the booking's history ("24-hour reminder sent to Priya")
 //   example  what the editor's grey Example box says, as segments: even
 //            ones plain, odd ones bold (as bookingRules.js examples)
+//   manage   has the fixed reschedule-or-cancel line under the Join button
 // (dayBefore keeps its id from when it was called "1 day before", so
 // saved switches carry on.)
 export const CALL_REMINDERS = [
@@ -50,12 +60,12 @@ export const CALL_REMINDERS = [
     short: '24-hour',
     example: ['If Rohan’s call with you is at 4:00 PM on Thursday, he gets this email at ', '4:00 PM on Wednesday', '.'],
     offsetMins: 24 * 60,
+    manage: true,
     subject: 'Reminder: {{call_title}} with {{your_name}} tomorrow at {{time}}',
     body:
       '<p>Hi {{first_name}},</p>' +
       '<p>Just a reminder that your <b>{{call_title}}</b> with {{your_name}} is tomorrow, <b>{{date}} at {{time}}</b>.</p>' +
-      '<p>{{how_to_join}}</p>' +
-      '<p>Can’t make it any more? You can <a href="{{reschedule_link}}">pick another time</a> or <a href="{{cancel_link}}">cancel</a>.</p>' +
+      '<p>Join with the button below. It’s the same link as in your calendar invite.</p>' +
       '<p>Talk soon,<br>{{your_name}}</p>',
   },
   {
@@ -68,12 +78,51 @@ export const CALL_REMINDERS = [
     body:
       '<p>Hi {{first_name}},</p>' +
       '<p>Your <b>{{call_title}}</b> with {{your_name}} starts in an hour, at <b>{{time}}</b>.</p>' +
-      '<p>{{how_to_join}}</p>' +
+      '<p>Join with the button below. It’s the same link as in your calendar invite.</p>' +
       '<p>Talk soon,<br>{{your_name}}</p>',
   },
 ];
 
 export const callReminderById = (id) => CALL_REMINDERS.find((r) => r.id === id) ?? null;
+
+// The fill-in fields the email editor's "+ Insert detail" offers
+//   hint: what it fills in with, for the hover hint
+export const CALL_FIELDS = [
+  { key: 'first_name', label: 'First name', hint: 'Fills in each person’s first name' },
+  { key: 'call_title', label: 'Call name', hint: 'Fills in this call’s name' },
+  { key: 'date', label: 'Date', hint: 'Fills in the call’s date, e.g. Thu 5 Nov' },
+  { key: 'time', label: 'Time', hint: 'Fills in the call’s time on their clock, e.g. 4:00 pm IST' },
+  { key: 'your_name', label: 'Your name', hint: 'Fills in your name' },
+];
+
+// ---------- The words of each email ----------
+
+// One email's words: the coach's own, or our template
+//   { subject, body, edited }
+export function emailTextOf(callAnswers, id) {
+  const r = callReminderById(id);
+  const saved = callAnswers?.callReminderEmails?.[id];
+  const edited = typeof saved?.subject === 'string' && typeof saved?.body === 'string';
+  return { subject: edited ? saved.subject : r.subject, body: edited ? saved.body : r.body, edited };
+}
+
+// The call's callReminderEmails after one email changes, ready to save.
+// Words that match the template store nothing (it's not "edited").
+export function withEmailText(emails = {}, id, { subject, body }) {
+  const r = callReminderById(id);
+  const next = { ...emails };
+  if (subject === r.subject && body === r.body) delete next[id];
+  else next[id] = { subject, body };
+  return next;
+}
+
+// The same words in every email
+export const sameEmailTexts = (a, b) =>
+  CALL_REMINDERS.every((r) => {
+    const x = emailTextOf({ callReminderEmails: a }, r.id);
+    const y = emailTextOf({ callReminderEmails: b }, r.id);
+    return x.subject === y.subject && x.body === y.body;
+  });
 
 // ---------- The call's switches ----------
 
@@ -189,7 +238,6 @@ export function emailValues(booking, hostName, fallbackZone = 'Asia/Kolkata') {
   const hostFirst = host.split(/\s+/)[0];
   const { origin, pathname } = window.location;
   const manage = `${origin}${pathname}?mock=manage&booking=${encodeURIComponent(booking.id)}&tz=${encodeURIComponent(zone)}`;
-  const phone = String(booking.guest?.phone ?? '').trim();
 
   return {
     first_name: String(booking.guest?.name ?? '').trim().split(/\s+/)[0] || 'there',
@@ -197,25 +245,60 @@ export function emailValues(booking, hostName, fallbackZone = 'Asia/Kolkata') {
     date: `${l.weekday} ${l.day} ${l.month}`,
     time: `${formatTime(start, zone)} ${zoneAbbr(start, zone)}`.trim(),
     your_name: host,
-    how_to_join:
-      booking.format === 'phone'
-        ? `${hostFirst} will call you on ${phone || 'the number you gave'}.`
-        : 'Join with the button below. It’s the same link as in your calendar invite.',
+    // Every call is a video call now; a phone booking from before has no
+    // link, so it gets no button (and a line saying who calls whom)
     join_link: booking.format === 'phone' ? '' : booking.meetingLink || '',
+    phone_line: booking.format === 'phone' ? `${hostFirst} will call you on ${String(booking.guest?.phone ?? '').trim() || 'the number you gave'}.` : '',
     reschedule_link: `${manage}&action=reschedule`,
     cancel_link: `${manage}&action=cancel`,
   };
 }
 
-// One reminder, ready to show or send:
-//   { subject, bodyHtml, join: { label, href } | null, footer }
-export function buildReminderEmail(id, booking, hostName, fallbackZone) {
+// The fixed line under the Join button on the 24-hour email, filled in
+// (escaped: the values are the person's own)
+const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+export const manageLineHtml = (values) =>
+  `<p>Can’t make it? <a href="${esc(values.reschedule_link)}">Pick another time</a> or <a href="${esc(values.cancel_link)}">cancel</a>.</p>`;
+
+export const JOIN_LABEL = 'Join call';
+
+export const footerOf = (values) => `You’re getting this because you booked ${values.call_title} with ${values.your_name}.`;
+
+// One reminder, ready to send (or show):
+//   { subject, bodyHtml, join: { label, href } | null, afterJoinHtml, footer }
+// text: the call's own words (emailTextOf), or the template if left out
+export function buildReminderEmail(id, booking, hostName, fallbackZone, text = null) {
   const r = callReminderById(id);
+  const { subject, body } = text ?? r;
   const values = emailValues(booking, hostName, fallbackZone);
+  const phone = values.phone_line ? `<p>${esc(values.phone_line)}</p>` : '';
   return {
-    subject: fillIn(r.subject, values),
-    bodyHtml: withoutEmptyParagraphs(fillIn(r.body, values, { html: true })),
-    join: values.join_link ? { label: 'Join call', href: values.join_link } : null,
-    footer: `You’re getting this because you booked ${values.call_title} with ${values.your_name}.`,
+    subject: fillIn(subject, values),
+    bodyHtml: withoutEmptyParagraphs(fillIn(body, values, { html: true })) + phone,
+    join: values.join_link ? { label: JOIN_LABEL, href: values.join_link } : null,
+    afterJoinHtml: r.manage ? manageLineHtml(values) : '',
+    footer: footerOf(values),
+  };
+}
+
+// A made-up booking of a call, for the editor's preview and a test email:
+// Rohan (the student in the editor's examples), tomorrow at 4:00 pm on the
+// call's own clock.
+//   call: { title, durationMins, timeZone, meetingLink }
+export const SAMPLE_GUEST = { name: 'Rohan Mehta', email: 'rohan@example.com', phone: '+91 98765 43210' };
+
+export function sampleBooking({ title, durationMins, timeZone, meetingLink }) {
+  const zone = timeZone || 'Asia/Kolkata';
+  const start = toInstant(addDays(todayIn(zone), 1), '16:00', zone);
+  const length = Number(durationMins) || 30;
+  return {
+    id: 'sample',
+    title: String(title ?? '').trim() || 'Your call',
+    start: new Date(start).toISOString(),
+    end: new Date(start + length * 60_000).toISOString(),
+    format: 'video',
+    guest: SAMPLE_GUEST,
+    guestTimeZone: zone,
+    meetingLink: meetingLink || DEFAULT_MEETING_LINK, // none set yet: the stand-in, as bookings get
   };
 }

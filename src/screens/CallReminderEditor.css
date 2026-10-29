@@ -1,0 +1,52 @@
+/* ------------------------------------------------------------
+   A 1:1 call's reminder email editor (CallReminderEditor.jsx). Almost
+   everything is the webinar email editor's (ReminderEditor.css); this
+   adds the back link's room and the fixed reschedule-or-cancel line.
+   ------------------------------------------------------------ */
+
+/* The back link to the call, above the title */
+.cre {
+  padding-top: 16px;
+}
+
+.cre > .es__back {
+  margin-bottom: 12px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cre > .es__back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Can't make it? …: under the Join button, as the email shows it. Locked,
+   like the button: grey, with a lock, and a hint saying why */
+.cre__manage {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 22px 18px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+
+.cre__manage svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.cre__manage u {
+  text-underline-offset: 2px;
+}

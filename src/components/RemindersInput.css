@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------
    The call editor's Reminders section (RemindersInput.jsx). Each row:
-   the name, then Preview and the switch on the right, and the booking
+   the name, then Edit email and the switch on the right, and the booking
    rules' grey Example box under it. A thin line between rows.
    ------------------------------------------------------------ */
 
@@ -19,7 +19,7 @@
   padding-top: 0;
 }
 
-/* The name on the left; Preview and the switch on the right */
+/* The name on the left; Edit email and the switch on the right */
 .rmi__top {
   display: flex;
   align-items: center;
@@ -32,6 +32,13 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* "· Your own words": the email isn't our template any more */
+.rmi__own {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
 .rmi__actions {
@@ -116,7 +123,7 @@
   color: var(--color-text-muted);
 }
 
-/* Preview: as the hours section's "Edit hours & booking rules", smaller */
+/* Edit email: as the hours section's "Edit hours & booking rules", smaller */
 .rmi__preview {
   display: inline-flex;
   align-items: center;

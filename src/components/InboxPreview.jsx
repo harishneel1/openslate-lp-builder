@@ -25,9 +25,11 @@ import './InboxPreview.css';
 //           the editor's clean() with escaped values)
 // fromName, toEmail, time ("2:15 PM")
 // join: { label, href } for the Join button, or null
+// afterJoinHtml: a part of the email under the button (a 1:1 call's
+//                reschedule-or-cancel line), filled in and already safe
 // footer: the small print at the bottom
 // ------------------------------------------------------------
-export default function InboxPreview({ subject, bodyHtml, fromName, toEmail, time, join = null, footer }) {
+export default function InboxPreview({ subject, bodyHtml, fromName, toEmail, time, join = null, afterJoinHtml = '', footer }) {
   const initial = (fromName || '?').trim().charAt(0).toUpperCase();
 
   // Links open in a new tab, never in place of the editor
@@ -77,6 +79,7 @@ export default function InboxPreview({ subject, bodyHtml, fromName, toEmail, tim
                 {join.label}
               </a>
             )}
+            {afterJoinHtml && <div className="ib__body ib__after" dangerouslySetInnerHTML={{ __html: afterJoinHtml }} />}
             {footer && <p className="ib__foot">{footer}</p>}
           </div>
         </div>

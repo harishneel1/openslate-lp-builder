@@ -90,14 +90,19 @@ const escapeHtml = (s) =>
 
 // {{first_name}} → a placeholder chip ("First name") the coach can't
 // type inside; its hint says what it fills in. The preview shows the
-// real values.
-const chipHtml = (key) =>
-  `<span class="re-chip" contenteditable="false" data-field="${key}" data-tip="${escapeHtml(fieldHint(key))}">${escapeHtml(fieldLabel(key))}</span>`;
+// real values. fields: the email's own list (a 1:1 call's has "Call
+// name"); a key not in it is looked up among the webinar's.
+const chipHtml = (key, fields = []) => {
+  const f = fields.find((x) => x.key === key);
+  const hint = f?.hint ?? fieldHint(key);
+  const label = f?.label ?? fieldLabel(key);
+  return `<span class="re-chip" contenteditable="false" data-field="${key}" data-tip="${escapeHtml(hint)}">${escapeHtml(label)}</span>`;
+};
 
-const withChips = (saved) => String(saved ?? '').replace(/\{\{(\w+)\}\}/g, (all, key) => chipHtml(key));
+const withChips = (saved, fields) => String(saved ?? '').replace(/\{\{(\w+)\}\}/g, (all, key) => chipHtml(key, fields));
 
 // The subject is plain text with markers: escape it, then add chips
-const subjectToHtml = (subject) => withChips(escapeHtml(subject));
+const subjectToHtml = (subject, fields) => withChips(escapeHtml(subject), fields);
 
 // What the browser's editing made → our simple, safe HTML
 const KEEP = { P: 'p', DIV: 'p', BR: 'br', B: 'b', STRONG: 'b', I: 'i', EM: 'i', A: 'a', UL: 'ul', OL: 'ol', LI: 'li' };
@@ -363,8 +368,11 @@ export function useLeaveWarning(dirty) {
 // body. Fills its boxes once from `initial`; after that the browser owns
 // them, and every change goes to onChange({ subject, body }). To fill
 // them again (Reset), give it a new key.
-// fields: what + Insert detail offers; join: show the Join webinar block
-export function EmailCard({ initial, onChange, fields = REMINDER_FIELDS, join = false }) {
+// fields: what + Insert detail offers
+// join: show the Join button block: true (Join webinar), or { label, tip }
+// after: a fixed block under it that can't be edited (a 1:1 call's
+//        reschedule-or-cancel line), or null
+export function EmailCard({ initial, onChange, fields = REMINDER_FIELDS, join = false, after = null }) {
   const subjectEl = useRef(null);
   const bodyEl = useRef(null);
   const range = useRef(null); // where the cursor last was, in either box
@@ -374,8 +382,8 @@ export function EmailCard({ initial, onChange, fields = REMINDER_FIELDS, join = 
 
   // Fill the boxes once (after that the browser owns them)
   useEffect(() => {
-    if (subjectEl.current) subjectEl.current.innerHTML = subjectToHtml(initial.subject);
-    if (bodyEl.current) bodyEl.current.innerHTML = withChips(initial.body);
+    if (subjectEl.current) subjectEl.current.innerHTML = subjectToHtml(initial.subject, fields);
+    if (bodyEl.current) bodyEl.current.innerHTML = withChips(initial.body, fields);
     try {
       document.execCommand('defaultParagraphSeparator', false, 'p');
     } catch {
@@ -440,7 +448,7 @@ export function EmailCard({ initial, onChange, fields = REMINDER_FIELDS, join = 
     const r = sel.getRangeAt(0);
     r.deleteContents();
     const holder = document.createElement('span');
-    holder.innerHTML = chipHtml(key);
+    holder.innerHTML = chipHtml(key, fields);
     const chip = holder.firstChild;
     const space = document.createTextNode('\u00a0');
     r.insertNode(space);
@@ -589,19 +597,33 @@ export function EmailCard({ initial, onChange, fields = REMINDER_FIELDS, join = 
       {/* The button, as it will look in the email: a link to their Zoom join address */}
       {join && (
         <div className="re__join">
-          <span className="re__join-btn" data-tip="Opens Zoom for each person" data-tip-align="start">
-            <Video size={15} aria-hidden="true" /> Join webinar
+          <span className="re__join-btn" data-tip={join.tip ?? 'Opens Zoom for each person'} data-tip-align="start">
+            <Video size={15} aria-hidden="true" /> {join.label ?? 'Join webinar'}
           </span>
         </div>
       )}
+      {after}
     </section>
   );
 }
 
 // ---------- How it lands in their inbox (the right side) ----------
 // draft: { subject, body } with markers; values: what fills them in (for
-// SAMPLE); join: show the Join webinar button; footer: the small print
-export function EmailPreview({ draft, values, now, join = false, footer }) {
+// SAMPLE); join: show the Join button; footer: the small print
+// joinLabel: the button's words; toEmail: who it's to (the example person)
+// afterJoinHtml: a fixed part under the button (filled in, already safe)
+// note: the line under the caption; null for none
+export function EmailPreview({
+  draft,
+  values,
+  now,
+  join = false,
+  footer,
+  joinLabel = 'Join webinar',
+  toEmail = SAMPLE.email,
+  afterJoinHtml = '',
+  note = `Everyone gets this same email with their own first name. ${SAMPLE.name} is an example.`,
+}) {
   return (
     <section className="re__preview" aria-label="Preview">
       <div className="re__tablet">
@@ -611,9 +633,10 @@ export function EmailPreview({ draft, values, now, join = false, footer }) {
             subject={fillIn(draft.subject, values)}
             bodyHtml={withoutEmptyParagraphs(fillIn(draft.body, values, { html: true }))}
             fromName={values.your_name}
-            toEmail={SAMPLE.email}
+            toEmail={toEmail}
             time={new Date(now).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-            join={join ? { label: 'Join webinar', href: values.join_link } : null}
+            join={join ? { label: joinLabel, href: values.join_link } : null}
+            afterJoinHtml={afterJoinHtml}
             footer={footer}
           />
         </div>
@@ -621,9 +644,7 @@ export function EmailPreview({ draft, values, now, join = false, footer }) {
       {/* Under the tablet, so its top lines up with the email's card */}
       <div className="re__preview-caption">
         <p className="re__preview-title">How it will look in their inbox</p>
-        <p className="re__preview-note">
-          Everyone gets this same email with their own first name. {SAMPLE.name} is an example.
-        </p>
+        {note && <p className="re__preview-note">{note}</p>}
       </div>
     </section>
   );

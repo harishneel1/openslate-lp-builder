@@ -11,7 +11,6 @@ import BookedPage from './screens/BookedPage.jsx'
 import ManageBookingPage from './screens/ManageBookingPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
 import ZoomMeetingPage from './screens/ZoomMeetingPage.jsx'
-import { ReminderPreviewPage } from './components/ReminderPreview.jsx'
 import { accountHandle, savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
@@ -38,8 +37,6 @@ import { loadSaved } from './utils/storage'
 //   &booking=<id> for the creator's own calls, the booking checkout saved).
 // ?mock=manage&booking=<id>&action=cancel or reschedule → the student's side, behind the
 //   links in their confirmation email. Leave out action to offer both; &tz=<zone> for another clock.
-// ?mock=reminders → a 1:1 call's reminder emails, as people get them (ReminderPreview.jsx).
-//   Add &service=<id> for another call (default: the newest).
 // ?mock=zoom&webinar=<id> → that webinar's Zoom meeting (a mock room). The meeting button
 //   on the Webinars tab opens it: Join meeting, Start webinar or Live now · Rejoin.
 // /<webinar slug> (e.g. localhost:5173/fix-the-vasthu-mistakes) → that webinar's shared
@@ -85,7 +82,6 @@ function Root() {
     if (mine && !savedHandle()) return <PageNotFound handle={handle} />
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
-  if (mock === 'reminders') return <ReminderPreviewPage serviceId={params.get('service')} />
   if (mock === 'zoom') return <ZoomMeetingPage webinarId={params.get('webinar')} />
   if (mock === 'create-service') return <ContractEditorTab serviceId={params.get('service')} />
   if (mock === 'profile')
