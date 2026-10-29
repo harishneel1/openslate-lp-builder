@@ -14,7 +14,7 @@ import { isCancelled, webinarEnd, webinarWhen } from './webinar';
 //   Today
 //   ↻  Rescheduled from Fri 13 Nov to Fri 20 Nov        By you     4:10 pm
 //      3 people emailed
-//   ✉  1-day reminder sent to 3 people                  Automatic  7:00 pm
+//   ✉  24-hour reminder sent to 3 people                 Automatic  7:00 pm
 //   Yesterday
 //   👥 Priya, Ravi and 1 other signed up                 Automatic  9:12 pm
 //      Confirmation emails sent
@@ -28,7 +28,9 @@ import { isCancelled, webinarEnd, webinarWhen } from './webinar';
 // ------------------------------------------------------------
 
 const REMINDER_NAMES = {
-  day: '1-day reminder',
+  h48: '48-hour reminder',
+  h36: '36-hour reminder',
+  day: '24-hour reminder',
   hour: '1-hour reminder',
   five: '5-minute reminder',
   after: 'Thank-you email',

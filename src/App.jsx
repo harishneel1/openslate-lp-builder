@@ -667,8 +667,9 @@ function App() {
     }
 
     // One reminder's email, in the full-page editor. Save keeps the
-    // coach's version (or none, if it matches the template) and goes back
-    // to the Reminders tab; so does ← Reminders, after asking about changes.
+    // coach's version (or none, if it matches the template) and stays on
+    // the page; ← Emails goes back to the Emails tab, asking first about
+    // unsaved changes.
     if (step === 'reminder-edit' && publishedAt && current.editingReminder) {
       const id = current.editingReminder;
       const now = Date.now();
@@ -684,9 +685,10 @@ function App() {
           now={now}
           ended={ended}
           guardRef={leaveGuard}
+          // Saving stays on the page (the editor shows "Changes saved");
+          // ← Emails in the top bar goes back
           onSave={(email) => {
             updateOpen((f) => ({ reminders: withEmail(f.reminders, id, email) }));
-            back();
           }}
           onClose={back}
         />

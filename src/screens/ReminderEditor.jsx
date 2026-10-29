@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bold, Check, ChevronDown, Italic, Link2, List, RotateCcw, Send, Video } from 'lucide-react';
+import { Bold, Check, ChevronDown, Italic, Link2, List, RotateCcw, Send, Video, X } from 'lucide-react';
 import InboxPreview from '../components/InboxPreview';
 import ConfirmDialog from '../components/ConfirmDialog';
 import {
@@ -55,8 +55,10 @@ import './ReminderEditor.css';
 // - Subject: one line. Body: bold, italic, link and bullet list only.
 // - The Join webinar button (a link to that person's Zoom join address)
 //   is a fixed block, so it can't be deleted from the emails that need it.
-// - Save changes is greyed out until something changes; Ctrl/⌘+S saves
-//   too. Saving goes back to the Emails list (App does that).
+// - Save changes is greyed out until something changes, with the hint
+//   "No changes to save"; Ctrl/⌘+S saves too. Saving keeps them here: a
+//   "Changes saved" toast says so (until they type again or leave), and
+//   the button greys out. ← Emails in the top bar goes back.
 // - Send me a test sits beside it, always: an address box, filled with
 //   the last one used. It sends what's on screen, saved or not.
 // - Reset to default template is a quiet text button, shown only once the text
@@ -156,6 +158,7 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
   const [start, setStart] = useState({ subject: saved.subject, body: saved.body });
   const [cardKey, setCardKey] = useState(0);
   const [ask, setAsk] = useState(null); // 'leave' | 'reset'
+  const [justSaved, setJustSaved] = useState(false); // the "Changes saved" toast
   const tester = useTestEmail();
 
   const dirty = draft.subject !== saved.subject || draft.body !== saved.body;
@@ -189,7 +192,13 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
   const save = () => {
     if (!draft.subject) return;
     onSave({ subject: draft.subject, body: draft.body });
+    setJustSaved(true);
   };
+
+  // Typing again: the toast has done its job
+  useEffect(() => {
+    if (dirty) setJustSaved(false);
+  }, [dirty]);
 
   // Ctrl/⌘+S saves
   useEffect(() => {
@@ -244,14 +253,21 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
             </button>
           )}
           {tester.button}
-          <button
-            type="button"
-            className="oh__add re__btn re__save"
-            onClick={save}
-            disabled={!dirty || emptySubject}
+          {/* The hint sits on a wrapper: a disabled button gets no hover */}
+          <span
+            className="re__save-wrap"
+            data-tip={!dirty ? 'No changes to save' : emptySubject ? 'Add a subject to save' : undefined}
+            data-tip-align="end"
           >
-            Save changes
-          </button>
+            <button
+              type="button"
+              className="oh__add re__btn re__save"
+              onClick={save}
+              disabled={!dirty || emptySubject}
+            >
+              Save changes
+            </button>
+          </span>
         </div>
       </header>
 
@@ -275,6 +291,23 @@ export default function ReminderEditor({ webinar, id, people = [], hostName, now
           footer={`You’re getting this because you registered for ${values.webinar_title}.`}
         />
       </div>
+
+      {justSaved && (
+        <div className="re-toast" role="status">
+          <span className="re-toast__tick" aria-hidden="true">
+            <Check size={14} strokeWidth={3} />
+          </span>
+          <span className="re-toast__text">
+            <strong className="re-toast__title">Changes saved</strong>
+            <span className="re-toast__sub">
+              {ended ? 'Used for the next session you add.' : 'Used for this session and every upcoming one.'}
+            </span>
+          </span>
+          <button type="button" className="re-toast__close" aria-label="Dismiss" onClick={() => setJustSaved(false)}>
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       {ask === 'leave' && (
         <ConfirmDialog

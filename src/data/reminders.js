@@ -1,7 +1,7 @@
 import { meetingHref, webinarEnd, webinarStart, webinarWhen } from './webinar';
 
 // ------------------------------------------------------------
-// A webinar's reminder emails: the five of them, when each goes out,
+// A webinar's automatic emails: the seven of them, when each goes out,
 // who it has gone to, and the email itself.
 //
 // Each email starts from a template we wrote (below), with the
@@ -101,12 +101,16 @@ export const fieldLabel = (key) => FIELDS.find((f) => f.key === key)?.label ?? k
 
 const HOUR = 60 * 60_000;
 
-// The five reminders, in the order they go out.
+// The seven automatic emails, in the order they go out.
 //   name:   what the list and the editor call it; reads on its own
 //   when:   short, for sentences
 //   offset: when, from the start (or from the end, for 'after')
 //   askOff: turning it off asks first (the confirmation has the join link)
 //   join:   the email always has the Join webinar button
+//   off:    starts off (until the coach turns it on); the rest start on
+// The reminders before it are counted in hours (48, 36, 24, 1) so the
+// list reads in one unit. 'day' is the 24-hour one: the id is kept from
+// when it was called "1 day before", so saved edits and switches carry on.
 export const REMINDERS = [
   {
     id: 'registered',
@@ -127,9 +131,36 @@ export const REMINDERS = [
       '<p>See you there,<br>{{your_name}}</p>',
   },
   {
+    id: 'h48',
+    name: 'Reminder email 48 hours before webinar',
+    when: '48 hours before',
+    offset: -48 * HOUR,
+    join: true,
+    subject: 'In 2 days: {{webinar_title}}',
+    body:
+      '<p>Hi {{first_name}},</p>' +
+      '<p>A quick heads-up: we meet in 2 days, on <b>{{date}} at {{time}}</b>, live on Zoom.</p>' +
+      '<p>Put it in your calendar now so it doesn’t slip. The button below is your link to join on the day.</p>' +
+      '<p>See you there,<br>{{your_name}}</p>',
+  },
+  {
+    id: 'h36',
+    name: 'Reminder email 36 hours before webinar',
+    when: '36 hours before',
+    offset: -36 * HOUR,
+    join: true,
+    off: true, // three reminders in two days is a lot: the coach chooses
+    subject: 'Coming up: {{webinar_title}}',
+    body:
+      '<p>Hi {{first_name}},</p>' +
+      '<p>We’re almost there: <b>{{date}} at {{time}}</b>, live on Zoom.</p>' +
+      '<p>Is there one question you want answered? Reply to this email and I’ll try to cover it live.</p>' +
+      '<p>See you soon,<br>{{your_name}}</p>',
+  },
+  {
     id: 'day',
-    name: 'Reminder email 1 day before webinar',
-    when: '1 day before',
+    name: 'Reminder email 24 hours before webinar',
+    when: '24 hours before',
     offset: -24 * HOUR,
     join: true,
     subject: 'Tomorrow: {{webinar_title}}',
@@ -189,7 +220,8 @@ export function emailOf(webinar, id) {
   const saved = webinar.reminders?.[id] ?? {};
   const edited = typeof saved.subject === 'string' && typeof saved.body === 'string';
   return {
-    on: saved.on !== false, // on unless they turned it off
+    // On unless they turned it off (or, for one that starts off, until they turn it on)
+    on: typeof saved.on === 'boolean' ? saved.on : !r.off,
     subject: edited ? saved.subject : r.subject,
     body: edited ? saved.body : r.body,
     edited,

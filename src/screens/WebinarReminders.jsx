@@ -5,14 +5,16 @@ import { REMINDERS, emailOf, emailStatus, timeline } from '../data/reminders';
 import './WebinarReminders.css';
 
 // ------------------------------------------------------------
-// The Emails tab of a webinar's details page: its five automatic
+// The Emails tab of a webinar's details page: its seven automatic
 // emails as a plain settings list, the way coaches know it from other
 // platforms. Every row is the same: a name that explains itself, a
 // switch, a pencil.
 //
 //   Email                                         Status        On    Edit
 //   Confirmation email after registering         42 sent      [●━]    ✎
-//   Reminder email 1 day before webinar          38 sent      [●━]    ✎
+//   Reminder email 48 hours before webinar       40 sent      [●━]    ✎
+//   Reminder email 36 hours before webinar       Off          [━○]    ✎
+//   Reminder email 24 hours before webinar       38 sent      [●━]    ✎
 //   Reminder email 1 hour before webinar · Edited Today, 1 pm [●━]    ✎
 //   Reminder email 5 mins before webinar         Off          [━○]    ✎
 //   Thank-you email after webinar                Today, 3 pm  [●━]    ✎
@@ -23,6 +25,8 @@ import './WebinarReminders.css';
 // sentence, the same one the email editor shows (emailStatus).
 // people: who registered (for the counts); now: the clock
 // Turning off the confirmation asks first: it has the join link.
+// The reschedule and cancel emails aren't here: they're written in those
+// flows (RescheduleSession.jsx, CancelSession.jsx), when they're sent.
 //
 // webinar: its record (answers, reminders)
 // onToggle(id, on), onEdit(id)

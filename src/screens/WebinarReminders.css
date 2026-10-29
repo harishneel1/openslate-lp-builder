@@ -1,5 +1,34 @@
-/* The Emails tab (WebinarReminders.jsx): a plain settings list. Every
-   row the same: name, status, switch, pencil, in fixed columns. */
+/* The Emails tab (WebinarReminders.jsx): a plain settings list, in two
+   groups (automatic; when you change a session). Every row the same:
+   name, status, switch, pencil, in fixed columns. */
+
+/* ---------- The two groups, each with a title and one line ---------- */
+.rm__group + .rm__group {
+  border-top: 1px solid var(--color-border);
+}
+
+.rm__group-head {
+  padding: 20px 24px 14px;
+}
+
+.rm__group-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.rm__group-text {
+  max-width: 60ch;
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* The second group has no column names: a line above its first row */
+.rm__group--change .rm {
+  border-top: 1px solid var(--color-border);
+}
 
 .rm {
   font-size: 15px;
@@ -138,6 +167,10 @@
 }
 
 @media (max-width: 640px) {
+  .rm__group-head {
+    padding: 16px 16px 12px;
+  }
+
   .rm__head,
   .rm__row {
     grid-template-columns: minmax(0, 1fr) 96px 52px 44px;

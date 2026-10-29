@@ -95,6 +95,102 @@
   cursor: default;
 }
 
+/* Wraps Save changes so its hint ("No changes to save") shows while
+   it's disabled (see tooltip.css) */
+.re__save-wrap {
+  display: inline-flex;
+}
+
+/* ---------- "Changes saved": a toast at the bottom of the screen ----------
+   Dark with a green tick, like the "Rescheduled" one in a session's
+   panel. Stays until they type again, dismiss it or leave. */
+.re-toast {
+  position: fixed;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 14px 12px 14px 16px;
+  color: #fff;
+  background: #1c1c1e;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  transform: translateX(-50%);
+  animation: re-toast-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes re-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.re-toast__tick {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  color: #fff;
+  background: #22a55a;
+  border-radius: 50%;
+}
+
+.re-toast__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.re-toast__title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.re-toast__sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.re-toast__close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-top: -3px;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.re-toast__close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.re-toast__close:focus-visible {
+  outline: 2px solid #ffb27a;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .re-toast {
+    animation: none;
+  }
+}
+
 .re__note {
   margin: 16px 0 0;
   padding: 10px 14px;
