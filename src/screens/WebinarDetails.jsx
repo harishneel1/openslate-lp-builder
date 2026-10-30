@@ -15,7 +15,6 @@ import {
   Plus,
   Save,
   Search,
-  Trash2,
   UserMinus,
   Users,
   X,
@@ -117,7 +116,8 @@ import './WebinarDetails.css';
 //      back from the email editor lands on it); onTab(tab)
 // onEditPages(id), onSaveSession(id, changes) (Edit session: title and
 // price; the date moves with Reschedule), onRunAgain(id) (copies that session),
-// onDelete(id) (one session), onPreview() (just before the preview tab opens)
+// onPreview() (just before the preview tab opens). Sessions aren't deleted
+// here (onDelete is unused): the whole webinar can be, from All webinars.
 // openSession: { id, n, tab } from the bell: open that session in the side
 //   panel on arrival, on Manage people (a sign-up line) or on Recording
 //   (tab: 'recording', a recording line); onSessionOpened() once it has
@@ -261,7 +261,6 @@ export default function WebinarDetails({
     setOpenTab(at);
     setOpenId(id);
   };
-  const [deleting, setDeleting] = useState(null); // the session being deleted
   const [sharing, setSharing] = useState(false); // the Share webinar pop-up
 
   // From the bell: that session, open on Manage people (a sign-up line)
@@ -336,7 +335,6 @@ export default function WebinarDetails({
           onClose={() => setOpenId(null)}
           onSave={(changes) => onSaveSession(opened.id, changes)}
           onPreview={onPreview}
-          onDelete={sessions.length > 1 ? () => setDeleting(opened) : null}
           // The upcoming session the link moves to if this one is cancelled
           nextDay={(() => {
             const to = linkAfterCancel(opened, webinars.length > 0 ? webinars : sessions, now);
@@ -365,26 +363,6 @@ export default function WebinarDetails({
         />
       )}
 
-      {deleting && (
-        <ConfirmDialog
-          title="Delete this session?"
-          confirmLabel="Delete session"
-          danger
-          onCancel={() => setDeleting(null)}
-          onConfirm={() => {
-            const id = deleting.id;
-            setDeleting(null);
-            setOpenId(null);
-            onDelete(id);
-          }}
-        >
-          <p>
-            The session on <strong>{dayOfRun(deleting) ?? 'this date'}</strong> will be deleted with its pages and the
-            people who signed up for it. This can’t be undone.
-          </p>
-          <p>Your link and the other sessions stay as they are.</p>
-        </ConfirmDialog>
-      )}
     </div>
   );
 }
@@ -723,8 +701,7 @@ function RecordingChip({ status, onOpen }) {
 //
 // Manage people: everyone who signed up, one line each (name, email and
 // phone; when they signed up and WhatsApp on the right). The footer has
-// Download CSV (asks first, in a pop-up), and Delete session waiting
-// quietly on the right.
+// Download CSV (asks first, in a pop-up).
 // Edit session: the quick edit (SessionEdit). Its footer has Cancel and
 // Save changes. Past sessions have no Edit session: they're a record
 // of what happened.
@@ -764,7 +741,6 @@ function SessionDrawer({
   initialTab = 'people',
   onClose,
   onSave,
-  onDelete,
   onPreview,
   onCancelSession,
   onCancelNow,
@@ -873,25 +849,13 @@ function SessionDrawer({
     .filter(Boolean)
     .join(' · ');
 
-  // Delete only while nobody has signed up: once people have, the session
-  // is cancelled instead (they're told, and refunded)
-  const canDelete = Boolean(onDelete) && people.length === 0;
+  // Download CSV once anyone signed up. Sessions can't be deleted: one
+  // with people is cancelled instead, and stays as a record.
   const peopleFooter =
-    people.length > 0 || canDelete ? (
-      <>
-        {people.length > 0 ? (
-          <button type="button" className="oh__edit" onClick={() => setDownloading(true)}>
-            <Download size={15} aria-hidden="true" /> Download CSV
-          </button>
-        ) : (
-          <span />
-        )}
-        {canDelete && (
-          <button type="button" className="wd-drawer__delete" onClick={onDelete}>
-            <Trash2 size={15} aria-hidden="true" /> Delete session
-          </button>
-        )}
-      </>
+    people.length > 0 ? (
+      <button type="button" className="oh__edit" onClick={() => setDownloading(true)}>
+        <Download size={15} aria-hidden="true" /> Download CSV
+      </button>
     ) : null;
 
   const editFooter = (

@@ -10,7 +10,10 @@ import './RowMenu.css';
 //
 // title: what the row is ("More for Discovery call")
 // open / onOpenChange(open): the parent keeps which row's menu is open
-// items: [{ label, icon (a lucide icon), danger, onSelect }]
+// items: [{ label, icon (a lucide icon), danger, onSelect, disabled, hint }]
+//   disabled: shown but does nothing (greyed), with hint under it saying
+//   why ("People signed up, so it can't be deleted."), so the coach learns
+//   the rule where they looked for the action
 // ------------------------------------------------------------
 export default function RowMenu({ title, open, onOpenChange, items }) {
   const wrap = useRef(null);
@@ -62,16 +65,20 @@ export default function RowMenu({ title, open, onOpenChange, items }) {
 
       {open && (
         <div className="row-menu__list" id={menuId} role="menu" aria-label={`More for ${title}`} onKeyDown={onMenuKey}>
-          {items.map(({ label, icon: Icon, danger, onSelect }) => (
+          {items.map(({ label, icon: Icon, danger, onSelect, disabled = false, hint = null }) => (
             <button
               key={label}
               type="button"
               role="menuitem"
-              className={`row-menu__item ${danger ? 'row-menu__item--danger' : ''}`}
-              onClick={onSelect}
+              aria-disabled={disabled || undefined}
+              className={`row-menu__item ${danger ? 'row-menu__item--danger' : ''} ${disabled ? 'row-menu__item--off' : ''}`}
+              onClick={disabled ? undefined : onSelect}
             >
               {Icon && <Icon size={16} aria-hidden="true" />}
-              {label}
+              <span className="row-menu__text">
+                {label}
+                {hint && <span className="row-menu__hint">{hint}</span>}
+              </span>
             </button>
           ))}
         </div>

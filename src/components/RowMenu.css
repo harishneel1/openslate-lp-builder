@@ -81,6 +81,39 @@
   background: #fdecec;
 }
 
+/* The label, with a hint under it when there is one */
+.row-menu__text {
+  display: grid;
+  gap: 2px;
+}
+
+.row-menu__hint {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+/* An action that can't be used here: greyed, with its hint saying why */
+.row-menu__item--off,
+.row-menu__item--off svg {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+.row-menu__item--off {
+  align-items: flex-start;
+}
+
+.row-menu__item--off svg {
+  margin-top: 2px;
+}
+
+.row-menu__item--off:hover,
+.row-menu__item--off:focus-visible {
+  background: #f7f7f8;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .row-menu__button {
     transition: none;
