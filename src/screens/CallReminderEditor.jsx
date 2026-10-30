@@ -17,12 +17,12 @@ import './CallReminderEditor.css';
 
 // ------------------------------------------------------------
 // Editing one of a 1:1 call's reminder emails: a full page, opened from
-// Edit email in the call editor's Reminders section (EditService.jsx).
+// the pencil on the Emails tab of the call's page (CallEmails.jsx).
 // Built from the webinar email editor's parts (ReminderEditor.jsx), so
 // both look and work the same:
 //
 //   ← Discovery call
-//   24 hours before          Reset to default template  [Send me a test]  [Use this email]
+//   24 hours before          Reset to default template  [Send me a test]  [Save email]
 //   Goes out 24 hours before each call.
 //   ┌ the email, with fill-in fields ┐  ╭━━━━━━━━━━━━━━━━━━━━━╮
 //   │ Subject  [Reminder: (Call…)]   │  ┃ the inbox, on a      ┃
@@ -33,10 +33,9 @@ import './CallReminderEditor.css';
 //   │    time or cancel.             │
 //   └────────────────────────────────┘
 //
-// One difference from the webinar's: nothing is saved here. "Use this
-// email" hands the words to the call editor's draft, as "Use these
-// hours" does from the hours panel, and the call's own Save saves them
-// with everything else. So it works the same for a call not created yet.
+// Nothing is saved here: the button hands the words to onApply, which
+// saves them (the call's page) or puts them in a draft. Its words and the
+// note under the title say which: applyLabel and note.
 //
 // Fixed parts the coach can't delete: the Join call button, and on the
 // 24-hour email the reschedule-or-cancel line (a student's only way to
@@ -47,10 +46,21 @@ import './CallReminderEditor.css';
 // call: { title, durationMins, timeZone, meetingLink } as in the draft,
 //       for the preview
 // hostName: the coach's name, for the preview
-// onApply({ subject, body }): Use this email
+// onApply({ subject, body }): the button (applyLabel)
 // onClose(): back to the call, without these words
+// applyLabel: the button's words ('Save email')
+// note: the line under the title, about when the words take effect
 // ------------------------------------------------------------
-export default function CallReminderEditor({ reminderId, value, call, hostName, onApply, onClose }) {
+export default function CallReminderEditor({
+  reminderId,
+  value,
+  call,
+  hostName,
+  onApply,
+  onClose,
+  applyLabel = 'Save email',
+  note = 'Calls already booked get the new words too.',
+}) {
   const reminder = callReminderById(reminderId);
   const [draft, setDraft] = useState(value);
   // What the boxes are filled with; a new cardKey fills them again (Reset)
@@ -114,13 +124,13 @@ export default function CallReminderEditor({ reminderId, value, call, hostName, 
             data-tip-align="end"
           >
             <button type="button" className="oh__add re__btn re__save" onClick={apply} disabled={!dirty || emptySubject}>
-              Use this email
+              {applyLabel}
             </button>
           </span>
         </div>
       </header>
 
-      <p className="re__note">Your changes are saved when you save the call.</p>
+      {note && <p className="re__note">{note}</p>}
 
       {tester.bar}
 
@@ -161,8 +171,8 @@ export default function CallReminderEditor({ reminderId, value, call, hostName, 
 
       {ask === 'leave' && (
         <ConfirmDialog
-          title="Leave without using these changes?"
-          confirmLabel="Leave without them"
+          title="Leave without saving this email?"
+          confirmLabel="Leave without saving"
           cancelLabel="Keep editing"
           danger
           onCancel={() => setAsk(null)}

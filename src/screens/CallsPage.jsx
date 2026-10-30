@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, ExternalLink, Link2, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import EditService from './EditService';
+import CallOverview, { hoursOf } from './CallOverview';
 import CreateCallFlow from './CreateCallFlow';
 import { useCopy } from './OfferingsHome';
 import CalendarRow from '../components/CalendarPanel';
 import DaysOffRow from '../components/DaysOffRow';
 import RowMenu from '../components/RowMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { EditPlaceholder } from './EditFrame';
+import HoursTip from '../components/HoursTip';
 import { markCalendarLost } from '../data/calendarStore';
 import { buildProfileJson } from '../data/buildProfileJson';
-import { getMyProfile, isOnPage, myCallIds, withAddedCall, withCallChanges, withoutCall } from '../data/myProfile';
-import { loadCallHours } from '../data/availabilityStore';
-import { weekSummary } from '../utils/weeklyHours';
+import { callAnswersOf, getMyProfile, isOnPage, myCallIds, withAddedCall, withCallChanges, withoutCall } from '../data/myProfile';
 import { accountHandle, offeringUrl } from '../data/myPage';
 import { useSetupAnswers } from '../utils/useSetupAnswers';
 import './OfferingsHome.css'; // the same panels, cards and buttons as My offerings
@@ -33,9 +34,12 @@ import './CallsPage.css';
 // ⋯ holds Delete, which always asks first (ConfirmDialog).
 //
 // Create a 1:1 call is guided, every time (CreateCallFlow.jsx): one
-// question per screen beside its booking page, then "It's ready". Edit (or
-// a click on the row) opens the full editor (EditService.jsx), for changing
-// one thing fast.
+// question per screen beside its booking page, then "It's ready".
+// A click on the row (or its name) opens the call's own page
+// (CallOverview.jsx): who has booked it, upcoming, past and cancelled.
+// Edit opens the full editor (EditService.jsx), for changing one thing
+// fast. The editor's back link goes to wherever it was opened from: the
+// call's page, or this list.
 // A call made here isn't put on the offerings page; back on the list
 // it's marked "Just created". It can be booked from its link either way.
 // Each call stands on its own, like a Calendly event: its link is
@@ -47,26 +51,43 @@ import './CallsPage.css';
 // had stopped letting us in (only when one is connected).
 //
 // openRequest: { id, n } from elsewhere (a call's contract on the
-// Contracts page): open that call's editor. n opens it again on a second
-// click of the same one.
+// Contracts page): open that call's editor, since its contract is changed
+// there. Its back link goes to the call's page. n opens it again on a
+// second click of the same one.
 // ------------------------------------------------------------
 export default function CallsPage({ openRequest = null }) {
   const [answers, setAnswers] = useSetupAnswers();
-  // 'list' ↔ 'edit' (one call, in the editor: its Edit button, or a click
-  // anywhere on its row) or 'new' (the guided flow)
+  // 'list' ↔ 'details' (one call's page: a click on its row) ↔ 'edit'
+  // (one call, in the editor: its Edit button) or 'new' (the guided flow)
   const [view, setView] = useState(openRequest ? 'edit' : 'list');
-  const [editingId, setEditingId] = useState(openRequest?.id ?? null);
+  const [editingId, setEditingId] = useState(openRequest?.id ?? null); // the call open on its page or in the editor
+  // Where the editor's back link goes: 'details' (the call's page) or 'list'
+  const [editBack, setEditBack] = useState(openRequest ? 'details' : 'list');
+  // The call page's tab, 'bookings' or 'emails': kept here, so coming back
+  // from the call's editor lands on the tab they left
+  const [detailsTab, setDetailsTab] = useState('bookings');
 
   // Asked to open a call: its editor, in place of the list
   useEffect(() => {
     if (!openRequest) return;
     setEditingId(openRequest.id);
+    setEditBack('details');
     setView('edit');
   }, [openRequest?.n]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [justAddedId, setJustAddedId] = useState(null);
   const [said, setSaid] = useState(''); // for screen readers: what just changed
   const [menuFor, setMenuFor] = useState(null); // the call whose ⋯ menu is open
   const [deleting, setDeleting] = useState(null); // { id, title, onPage } while the pop-up asks
+
+  // Opening a call's page or its editor from the list
+  const openCall = (id, next) => {
+    setEditingId(id);
+    setJustAddedId(null);
+    setEditBack('list');
+    setDetailsTab('bookings');
+    setView(next);
+  };
 
   // Every call's link sits under their account's link, page or no page
   const handle = answers.handle || accountHandle();
@@ -79,9 +100,13 @@ export default function CallsPage({ openRequest = null }) {
   }, [answers]);
 
   useEffect(() => {
-    document.title = '1:1 calls';
     if (new URLSearchParams(window.location.search).get('calendar') === 'lost') markCalendarLost();
   }, []);
+
+  // Back on the list from a call's page, which names the tab after the call
+  useEffect(() => {
+    if (view === 'list') document.title = '1:1 calls';
+  }, [view]);
 
   if (view === 'new') {
     return (
@@ -101,6 +126,7 @@ export default function CallsPage({ openRequest = null }) {
   }
 
   if (view === 'edit') {
+    const backTo = editBack === 'details' && calls.some((c) => c.id === editingId) ? 'details' : 'list';
     return (
       <EditService
         key={editingId}
@@ -108,8 +134,43 @@ export default function CallsPage({ openRequest = null }) {
         answers={answers}
         serviceId={editingId}
         kind="call"
-        onBack={() => setView('list')}
+        // Back to the call's page when it came from there: named after the call
+        backLabel={backTo === 'details' ? calls.find((c) => c.id === editingId).title : undefined}
+        onBack={() => setView(backTo)}
         onSave={(changes) => setAnswers((prev) => withCallChanges(prev, editingId, changes))}
+      />
+    );
+  }
+
+  if (view === 'details') {
+    const call = calls.find((c) => c.id === editingId);
+    // Deleted in another tab while it was open: back to the list
+    if (!call) {
+      return (
+        <EditPlaceholder
+          title="This call isn’t here"
+          sub="It may have been deleted. Go back to see your calls."
+          backLabel="1:1 calls"
+          onBack={() => setView('list')}
+        />
+      );
+    }
+    return (
+      <CallOverview
+        key={call.id}
+        call={call}
+        callAnswers={callAnswersOf(answers, call.id)}
+        hostName={getMyProfile(answers).creator.name}
+        meetingLink={answers.meetingLink}
+        url={offeringUrl(handle, call.id)}
+        tab={detailsTab}
+        onTab={setDetailsTab}
+        onSaveCall={(changes) => setAnswers((prev) => withCallChanges(prev, call.id, changes))}
+        onBack={() => setView('list')}
+        onEdit={() => {
+          setEditBack('details');
+          setView('edit');
+        }}
       />
     );
   }
@@ -175,11 +236,8 @@ export default function CallsPage({ openRequest = null }) {
                   isNew={c.id === justAddedId}
                   menuOpen={menuFor === c.id}
                   onMenu={(open) => setMenuFor(open ? c.id : null)}
-                  onEdit={() => {
-                    setEditingId(c.id);
-                    setJustAddedId(null);
-                    setView('edit');
-                  }}
+                  onOpen={() => openCall(c.id, 'details')}
+                  onEdit={() => openCall(c.id, 'edit')}
                   onDelete={() => {
                     setMenuFor(null);
                     // Only worth saying when there's a live page it would come off
@@ -217,40 +275,31 @@ export default function CallsPage({ openRequest = null }) {
   );
 }
 
-// When it can be booked, in a few words: "Mon–Fri, 9 am – 5 pm", with
-// "+ 1 more" when days have different hours. From the call's own hours.
-function hoursLine(id) {
-  const { open } = weekSummary(loadCallHours(id).weekly);
-  if (open.length === 0) return 'No hours set';
-  const first = `${open[0].days}, ${open[0].hours}`;
-  return open.length > 1 ? `${first} + ${open.length - 1} more` : first;
-}
-
 // One call, as a full-width row: what it is on the left (name, details with
 // the price, when it can be booked), what you can do on the right
 // (Copy link · Edit · View live page · ⋯). On a narrow screen the actions go
-// under. Clicking the row anywhere else opens the editor, like Edit.
+// under. Clicking the row anywhere else opens the call's page (onOpen);
+// Edit goes straight to the editor.
 // url: its own link, to share or open
-function CallRow({ call, url, isNew, menuOpen, onMenu, onEdit, onDelete }) {
+function CallRow({ call, url, isNew, menuOpen, onMenu, onOpen, onEdit, onDelete }) {
   const details = call.facts.map((f) => f.text).join(' · ');
   const [copy, copyLink] = useCopy();
-  const hours = useMemo(() => hoursLine(call.id), [call.id]);
+  const hours = useMemo(() => hoursOf(call.id).line, [call.id]);
 
   return (
     <li
       className={`oh-row calls__row ${isNew ? 'oh-row--new' : ''} ${menuOpen ? 'oh-row--menu' : ''}`}
-      // Anywhere on the row opens it in the editor, like its Edit button,
-      // except its own buttons and links
+      // Anywhere on the row opens the call's page, except its own buttons and links
       onClick={(e) => {
         if (e.target.closest('button, a, [role="menu"], [role="dialog"]')) return;
-        onEdit();
+        onOpen();
       }}
     >
       <div className="oh-row__text">
         {isNew && <span className="oh-card__new">Just created</span>}
         <h3 className="oh-row__name">
           {/* The name is the row's control for keyboards and screen readers */}
-          <button type="button" className="calls__open" onClick={onEdit}>
+          <button type="button" className="calls__open" onClick={onOpen}>
             {call.title}
           </button>
         </h3>
@@ -260,7 +309,7 @@ function CallRow({ call, url, isNew, menuOpen, onMenu, onEdit, onDelete }) {
             {call.price.label}
           </span>
         </p>
-        <p className="oh-row__hours">{hours}</p>
+        <HoursTip callId={call.id} line={hours} className="oh-row__hours" />
       </div>
 
       <div className="oh-row__actions">

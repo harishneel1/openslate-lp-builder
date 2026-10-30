@@ -1,0 +1,41 @@
+/* A 1:1 call's Emails tab (CallEmails.jsx). Rows, switch and pencil come
+   from WebinarReminders.css, so both Emails tabs look the same; only the
+   example and the "won't get it" note are new here. */
+
+/* The worked example under the title (.hd-rule__example, HoursDrawer.css) */
+.cem__example {
+  max-width: 64ch;
+  margin-top: 10px;
+}
+
+.cem__table {
+  border-top: 1px solid var(--color-border);
+}
+
+.cem__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* An off reminder with calls still to come: the one thing worth noticing */
+.cem__warn {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b45309;
+}
+
+.cem__foot {
+  padding: 16px 24px 20px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .cem__foot {
+    padding: 14px 16px 16px;
+  }
+}

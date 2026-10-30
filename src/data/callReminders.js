@@ -210,6 +210,51 @@ export function reminderSteps(booking, switches, now = Date.now()) {
     }));
 }
 
+// ---------- Across one call's bookings, for its Emails tab ----------
+
+// For each reminder, who it has gone to and who it's going to, across
+// every booking of one call (CallEmails.jsx):
+//   { id, on, sent, scheduled, skipped, off }, each list of { booking, at, moved }
+//   sent       went out; newest first. Includes bookings cancelled after it went.
+//   scheduled  goes out at `at`; soonest first
+//   skipped    calls still to come it won't reach: booked (or moved) less
+//              than its time before the call (see reminderTimeline)
+//   off        calls still to come it would reach if it were switched on
+// Cancelled bookings only count for what was sent before they were cancelled.
+//
+// Like the booking's history, this is worked out from the switches as they
+// are now: a reminder switched off shows nothing as sent, even for calls
+// before it was. The real product reads the server's log of what went out
+// (and what failed), so a switch can't rewrite the past.
+//
+// bookings: the call's saved bookings (bookingsStore.js)
+// switches: remindersOf(the call's answers)
+export function reminderReport(bookings, switches, now = Date.now()) {
+  const report = CALL_REMINDERS.map((r) => ({ id: r.id, on: switches[r.id], sent: [], scheduled: [], skipped: [], off: [] }));
+  const byId = Object.fromEntries(report.map((row) => [row.id, row]));
+
+  for (const booking of bookings) {
+    const active = booking.status !== 'cancelled';
+    const ahead = active && Date.parse(booking.end) > now;
+    for (const step of reminderTimeline(booking, switches, now)) {
+      const row = byId[step.id];
+      const item = { booking, at: step.at, moved: step.moved };
+      if (step.state === 'sent') row.sent.push(item);
+      else if (step.state === 'scheduled') row.scheduled.push(item);
+      else if (step.state === 'skipped' && ahead) row.skipped.push(item);
+      else if (step.state === 'off' && ahead && step.at > now) row.off.push(item);
+    }
+  }
+
+  for (const row of report) {
+    row.sent.sort((a, b) => b.at - a.at);
+    row.scheduled.sort((a, b) => a.at - b.at);
+    row.skipped.sort((a, b) => a.at - b.at);
+    row.off.sort((a, b) => a.at - b.at);
+  }
+  return report;
+}
+
 // ---------- The email, filled in ----------
 
 // The time-zone name people know: "IST", "GMT", "EDT"; the offset

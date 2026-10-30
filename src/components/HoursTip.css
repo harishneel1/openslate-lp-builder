@@ -1,0 +1,88 @@
+/* A call's hours with every day in a tooltip (HoursTip.jsx). The bubble's
+   look and layer are the app's own (.tip in tooltip.css); only its
+   layout and when it shows are here. */
+
+.htip {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* The summary: a dotted underline says there's more on hover */
+.htip__line {
+  text-decoration: underline dotted;
+  text-decoration-color: #b5b5b5;
+  text-underline-offset: 3px;
+  cursor: help;
+  border-radius: 4px;
+}
+
+.htip__line:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- The bubble: under the line, from its left edge ---------- */
+.htip__bubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(320px, 85vw);
+  padding: 10px 12px;
+  opacity: 0;
+  visibility: hidden;
+  /* --htip-shift: how far left it moves to stay on screen (HoursTip.jsx) */
+  transform: translate(var(--htip-shift, 0px), -4px);
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+}
+
+.htip:hover .htip__bubble,
+.htip__line:focus-visible + .htip__bubble {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(var(--htip-shift, 0px), 0);
+}
+
+/* Day names in one column, their times in the next */
+.htip__days {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 20px;
+}
+
+.htip__day {
+  display: contents;
+}
+
+.htip__name {
+  font-weight: 600;
+}
+
+.htip__ranges {
+  display: flex;
+  flex-direction: column;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.htip__day--off .htip__name,
+.htip__day--off .htip__ranges {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.htip__zone {
+  padding-top: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .htip__bubble {
+    transition: opacity 0.15s, visibility 0.15s;
+  }
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pencil } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { REMINDERS, emailOf, emailStatus, timeline } from '../data/reminders';
+import { REMINDERS, emailOf } from '../data/reminders';
 import './WebinarReminders.css';
 
 // ------------------------------------------------------------
@@ -10,20 +10,15 @@ import './WebinarReminders.css';
 // platforms. Every row is the same: a name that explains itself, a
 // switch, a pencil.
 //
-//   Email                                         Status        On    Edit
-//   Confirmation email after registering         42 sent      [●━]    ✎
-//   Reminder email 48 hours before webinar       40 sent      [●━]    ✎
-//   Reminder email 36 hours before webinar       Off          [━○]    ✎
-//   Reminder email 24 hours before webinar       38 sent      [●━]    ✎
-//   Reminder email 1 hour before webinar · Edited Today, 1 pm [●━]    ✎
-//   Reminder email 5 mins before webinar         Off          [━○]    ✎
-//   Thank-you email after webinar                Today, 3 pm  [●━]    ✎
+//   Email                                                  On    Edit
+//   Confirmation email after registering                 [●━]    ✎
+//   Reminder email 48 hours before webinar               [●━]    ✎
+//   Reminder email 36 hours before webinar               [━○]    ✎
+//   Reminder email 1 hour before webinar · Edited        [●━]    ✎
+//   Thank-you email after webinar                        [●━]    ✎
 //
-// Status: two or three words, so the list stays one line a row. Sent
-// emails show a count, waiting ones their time; the next one to go out
-// is in full text colour, the rest grey. Hovering gives the full
-// sentence, the same one the email editor shows (emailStatus).
-// people: who registered (for the counts); now: the clock
+// No status column: what went out, and to how many, is on each session's
+// Activity tab. The email editor still says when its email goes out.
 // Turning off the confirmation asks first: it has the join link.
 // The reschedule and cancel emails aren't here: they're written in those
 // flows (RescheduleSession.jsx, CancelSession.jsx), when they're sent.
@@ -31,9 +26,8 @@ import './WebinarReminders.css';
 // webinar: its record (answers, reminders)
 // onToggle(id, on), onEdit(id)
 // ------------------------------------------------------------
-export default function WebinarReminders({ webinar, people = [], now = Date.now(), onToggle, onEdit }) {
+export default function WebinarReminders({ webinar, onToggle, onEdit }) {
   const [asking, setAsking] = useState(null); // the id whose switch is asking first
-  const rows = timeline(webinar, people, now);
 
   const flip = (r, on) => {
     if (!on && r.askOff) setAsking(r.id);
@@ -45,7 +39,6 @@ export default function WebinarReminders({ webinar, people = [], now = Date.now(
       <div className="rm" role="table" aria-label="Automatic emails">
         <div className="rm__head" role="row">
           <span role="columnheader">Email</span>
-          <span role="columnheader">Status</span>
           <span role="columnheader" className="rm__col">
             On
           </span>
@@ -56,18 +49,11 @@ export default function WebinarReminders({ webinar, people = [], now = Date.now(
 
         {REMINDERS.map((r) => {
           const { on, edited } = emailOf(webinar, r.id);
-          const status = emailStatus(rows.find((x) => x.id === r.id), webinar.answers, now);
           return (
             <div key={r.id} role="row" className={`rm__row ${on ? '' : 'rm__row--off'}`}>
               <span role="cell" className="rm__name">
                 {r.name}
                 {edited && <span className="rm__edited"> · Edited</span>}
-              </span>
-
-              <span role="cell" className={`rm__status ${status.tone ? `rm__status--${status.tone}` : ''}`}>
-                <span data-tip={status.full} data-tip-align="start">
-                  {status.short}
-                </span>
               </span>
 
               <span role="cell" className="rm__col">

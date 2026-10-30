@@ -1,4 +1,16 @@
-import { CalendarCheck, CalendarClock, CalendarX, Mail, Plus, RotateCcw, UserMinus, Users, Video } from 'lucide-react';
+import {
+  CalendarCheck,
+  CalendarClock,
+  CalendarPlus,
+  CalendarX,
+  Mail,
+  Plus,
+  RotateCcw,
+  UserMinus,
+  Users,
+  Video,
+  XCircle,
+} from 'lucide-react';
 import { activityByDay, sessionActivity } from '../data/sessionActivity';
 import './ActivityPanel.css';
 
@@ -20,6 +32,9 @@ import './ActivityPanel.css';
 //
 // run: the session; people: its people; now
 // onOpen(tab): 'recording'
+//
+// The list itself is ActivityList, which a 1:1 call's page uses too
+// (CallOverview.jsx, with data/callActivity.js), so both read the same.
 // ------------------------------------------------------------
 
 const ICONS = {
@@ -32,11 +47,22 @@ const ICONS = {
   refund: RotateCcw, // older saves' refunds by hand
   removed: UserMinus,
   recording: Video,
+  // A 1:1 call's lines (data/callActivity.js)
+  booked: CalendarPlus,
+  declined: XCircle,
 };
 
 export default function ActivityPanel({ run, people = [], now, onOpen }) {
-  const groups = activityByDay(sessionActivity(run, people, now), now);
+  return <ActivityList groups={activityByDay(sessionActivity(run, people, now), now)} onOpen={onOpen} />;
+}
 
+// ------------------------------------------------------------
+// Day headings, then a line each: [{ day, label, items }] from activityByDay.
+// onOpen(item.open): for the lines that open something
+// Who did it: item.by is 'auto' (Automatic), 'you' (By you), or 'guest'
+// (By <item.byName>, someone who booked a 1:1 call)
+// ------------------------------------------------------------
+export function ActivityList({ groups, onOpen }) {
   return (
     <div className="act">
       {groups.map((g) => (
@@ -58,7 +84,7 @@ export default function ActivityPanel({ run, people = [], now, onOpen }) {
 // One line: icon, what happened, who did it, when
 function Line({ item, onOpen }) {
   const Icon = ICONS[item.kind] ?? Plus;
-  const who = item.by === 'auto' ? 'Automatic' : 'By you';
+  const who = item.by === 'auto' ? 'Automatic' : item.by === 'guest' ? `By ${item.byName || 'your guest'}` : 'By you';
   const body = (
     <>
       <span className="act__icon" aria-hidden="true">

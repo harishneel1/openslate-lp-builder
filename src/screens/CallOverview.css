@@ -1,0 +1,582 @@
+/* One 1:1 call's page (CallOverview.jsx). Panels and buttons come from
+   OfferingsHome.css; the next-call card, guest initials, chips and
+   .bk-btn from BookingsPage.css, so a booking looks the same here as on
+   the Bookings page. Only what's new is here. */
+
+/* The Bookings page's colour roles (BookingsPage.css), for the parts it shares */
+.cov {
+  --bk-ink: #141414;
+  --bk-ink-2: #45454b;
+  --bk-ink-3: #7a7a80;
+  --bk-line: #ececee;
+  --bk-face-bg: #fdf1e7;
+  --bk-now: #d4600c;
+  --bk-orange: var(--color-primary);
+  --bk-orange-strong: #d0600f;
+  --bk-orange-ink: #b4520c;
+  --bk-tint: var(--color-primary-tint);
+  --bk-tint-line: #f6d6b9;
+  padding-bottom: 48px;
+}
+
+/* ---------- Header: back, the call, its actions ---------- */
+.cov__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-radius: 4px;
+}
+
+.cov__back:hover {
+  color: var(--color-text);
+}
+
+.cov__back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.cov__intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-top: 20px;
+}
+
+.cov__about {
+  min-width: 0;
+}
+
+.cov__title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.cov__detail {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--bk-ink-2);
+}
+
+.cov__hours {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.cov__hours--none {
+  font-weight: 500;
+  color: #b42020;
+}
+
+.cov__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cov__live {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.cov__copy-error {
+  margin-top: 8px;
+}
+
+/* ---------- Nobody can book it ---------- */
+.cov__alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 24px;
+  padding: 14px 16px 14px 18px;
+  color: #6f1616;
+  background: #fdf2f2;
+  border: 1px solid #f1caca;
+  border-radius: var(--radius-md);
+}
+
+.cov__alert-icon {
+  flex-shrink: 0;
+  color: #b42020;
+}
+
+.cov__alert-text {
+  flex: 1;
+  min-width: 220px;
+}
+
+.cov__alert-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cov__alert-sub {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #7d2a2a;
+}
+
+/* ---------- The next booking (.bk__next from BookingsPage.css) ---------- */
+.cov__next {
+  margin-top: 24px;
+}
+
+/* ---------- Bookings panel ---------- */
+.cov__panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+/* Bookings | Emails: the same tabs as a webinar's page, their underline
+   sitting on the panel head's bottom line */
+.cov__tabs {
+  display: flex;
+  gap: 24px;
+  margin: -20px 0 -21px;
+}
+
+.cov__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0 18px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 3px solid transparent;
+}
+
+.cov__tab:hover {
+  color: var(--color-text);
+}
+
+.cov__tab[aria-selected='true'] {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+}
+
+.cov__tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -4px;
+  border-radius: 4px;
+}
+
+.cov__zone {
+  padding-top: 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Upcoming | Past | Cancelled: one control, the chosen part filled white */
+.cov__filters {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.cov__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.cov__filter:hover {
+  color: var(--color-text);
+}
+
+.cov__filter[aria-pressed='true'] {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.cov__filter:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.cov__filter-count {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--bk-ink-3);
+}
+
+.cov__body {
+  padding: 8px 24px 24px;
+}
+
+/* ---------- One day ---------- */
+.cov-day + .cov-day {
+  margin-top: 8px;
+}
+
+.cov-day__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0 8px;
+}
+
+.cov-day__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bk-ink-2);
+}
+
+.cov-day__title--today {
+  color: var(--bk-orange-ink);
+}
+
+.cov-day__count {
+  font-size: 13px;
+  color: var(--bk-ink-3);
+}
+
+.cov-day__list {
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-md);
+}
+
+/* ---------- One booking ---------- */
+.cov-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cov-row + .cov-row {
+  border-top: 1px solid var(--bk-line);
+}
+
+.cov-row__main {
+  display: grid;
+  grid-template-columns: 76px auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  text-align: left;
+  color: inherit;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.cov-row__main:hover {
+  background: #fafafa;
+}
+
+.cov-row__main:focus-visible {
+  outline: 2px solid var(--bk-orange);
+  outline-offset: -2px;
+}
+
+.cov-row__time {
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cov-row__start {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cov-row__end {
+  font-size: 12.5px;
+  color: var(--bk-ink-3);
+}
+
+.cov-row__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cov-row__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cov-row__sub {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--bk-ink-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cov-row__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cov-row__chevron {
+  color: var(--bk-ink-3);
+}
+
+.cov-row__action {
+  flex-shrink: 0;
+  padding-right: 16px;
+}
+
+/* About to start, or happening: tinted, like the Bookings page's grid */
+.cov-row--soon,
+.cov-row--live {
+  background: var(--bk-tint);
+}
+
+.cov-row--soon:first-child,
+.cov-row--live:first-child {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.cov-row--soon:last-child,
+.cov-row--live:last-child {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.cov-row--soon:only-child,
+.cov-row--live:only-child {
+  border-radius: var(--radius-md);
+}
+
+.cov-row--soon .cov-row__main:hover,
+.cov-row--live .cov-row__main:hover {
+  background: transparent;
+}
+
+.cov-row--soon .bk-face,
+.cov-row--live .bk-face {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--bk-tint-line);
+}
+
+/* Over or off: still readable, clearly not ahead */
+.cov-row--cancelled .cov-row__start,
+.cov-row--cancelled .cov-row__name {
+  color: var(--bk-ink-2);
+}
+
+.cov-row--cancelled .cov-row__start,
+.cov-row--cancelled .cov-row__end {
+  text-decoration: line-through;
+  text-decoration-color: var(--bk-ink-3);
+}
+
+.cov-btn--small {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* ---------- Activity (ActivityList, ActivityPanel.css) ---------- */
+.cov__activity {
+  padding: 0 16px 24px;
+}
+
+.cov__zone--activity {
+  padding: 16px 8px 12px;
+}
+
+/* Day headings in line with the lines' icons (each line has 8px inside) */
+.cov__activity .act__day-title {
+  padding: 0 8px;
+}
+
+/* A declined invite: the soft red of a cancel, since it may need acting on */
+.cov .act__item--declined .act__icon {
+  color: #b42318;
+  background: #fdecec;
+}
+
+/* ---------- Show more, and empty lists ---------- */
+.cov__more {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.cov__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 40px 16px 24px;
+  text-align: center;
+}
+
+.cov__empty .bk__empty-icon {
+  margin-bottom: 8px;
+}
+
+.cov__empty .bk-btn {
+  margin-top: 12px;
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 640px) {
+  .cov__title {
+    font-size: 24px;
+  }
+
+  /* Join goes under the call, full width, so the words keep their room */
+  .cov__next {
+    flex-wrap: wrap;
+  }
+
+  .cov__next .bk__next-main {
+    flex-basis: 100%;
+  }
+
+  .cov__next > .bk-btn {
+    flex: 1;
+  }
+
+  /* As wide as the panel; on the narrowest phones it scrolls sideways
+     rather than squeezing a label into its count */
+  .cov__filters {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .cov__filter {
+    flex: 1 0 auto;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+
+  .cov__panel-head {
+    padding: 16px;
+  }
+
+  /* Three tabs on a narrow screen: tighter, and sideways scrolling as a last resort */
+  .cov__tabs {
+    gap: 18px;
+    max-width: 100%;
+    margin: -16px 0 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .cov__tab {
+    flex-shrink: 0;
+    padding: 16px 0 12px;
+    font-size: 15px;
+  }
+
+  /* The count is on the Upcoming filter just below, so it can go here */
+  .cov__tab .oh__count {
+    display: none;
+  }
+
+  .cov__body {
+    padding: 4px 16px 20px;
+  }
+
+  .cov__activity {
+    padding: 0 8px 20px;
+  }
+
+  /* Time over the name; chips drop under */
+  .cov-row__main {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'face who chevron'
+      'face time chevron'
+      'chips chips chips';
+    gap: 4px 12px;
+    padding: 12px;
+  }
+
+  .cov-row__main .bk-face {
+    grid-area: face;
+    align-self: start;
+  }
+
+  .cov-row__who {
+    grid-area: who;
+  }
+
+  .cov-row__time {
+    grid-area: time;
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .cov-row__start,
+  .cov-row__end {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--bk-ink-2);
+  }
+
+  .cov-row__chips {
+    grid-area: chips;
+    justify-content: flex-start;
+  }
+
+  .cov-row__chips:empty {
+    display: none;
+  }
+
+  .cov-row__chevron {
+    grid-area: chevron;
+  }
+
+  .cov-row {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .cov-row__main {
+    flex-basis: 100%;
+  }
+
+  .cov-row__action {
+    padding: 0 12px 12px 60px; /* lined up with the name */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cov__filter,
+  .cov-row__main {
+    transition: none;
+  }
+}

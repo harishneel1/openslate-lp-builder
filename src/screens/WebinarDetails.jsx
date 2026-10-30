@@ -247,7 +247,6 @@ export default function WebinarDetails({
   const current = next ?? latestHeld;
   const currentWhen = webinarWhen(current.answers ?? {});
   const currentDay = currentWhen ? `${currentWhen.weekday} ${currentWhen.day} ${currentWhen.month}` : 'the next session';
-  const emailPeople = usePeople(current.id);
   const shownTab = tab === 'reminders' ? 'reminders' : 'sessions';
 
   const [openId, setOpenId] = useState(null); // the session open in the side panel
@@ -315,8 +314,6 @@ export default function WebinarDetails({
           <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
             <WebinarReminders
               webinar={current}
-              people={emailPeople}
-              now={now}
               onToggle={(id, on) => onToggleReminder(current.id, id, on)}
               onEdit={(id) => onEditReminder(current.id, id)}
             />

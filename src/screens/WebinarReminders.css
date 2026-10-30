@@ -1,6 +1,7 @@
 /* The Emails tab (WebinarReminders.jsx): a plain settings list, in two
    groups (automatic; when you change a session). Every row the same:
-   name, status, switch, pencil, in fixed columns. */
+   name, switch, pencil, in fixed columns. A 1:1 call's Emails tab
+   (CallEmails.jsx) uses these rows too. */
 
 /* ---------- The two groups, each with a title and one line ---------- */
 .rm__group + .rm__group {
@@ -37,7 +38,7 @@
 .rm__head,
 .rm__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px 72px 64px;
+  grid-template-columns: minmax(0, 1fr) 72px 64px;
   align-items: center;
   gap: 12px;
   padding: 0 16px 0 24px;
@@ -78,27 +79,6 @@
 
 .rm__row--off .rm__name {
   color: var(--color-text-muted);
-}
-
-/* Status: a few grey words; the next email to go out in full colour */
-.rm__status {
-  font-size: 14px;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
-.rm__status > span {
-  position: relative; /* the hover hint sits on it */
-  cursor: default;
-}
-
-.rm__status--next {
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.rm__status--off {
-  color: var(--color-text-disabled);
 }
 
 /* ---------- The switch ---------- */
@@ -173,7 +153,7 @@
 
   .rm__head,
   .rm__row {
-    grid-template-columns: minmax(0, 1fr) 96px 52px 44px;
+    grid-template-columns: minmax(0, 1fr) 52px 44px;
     gap: 8px;
     padding: 0 8px 0 16px;
   }

@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BellRing, CalendarClock, ClipboardList, Clock, ExternalLink, FileText, Lock, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, CalendarClock, ClipboardList, Clock, ExternalLink, FileText, Lock, SlidersHorizontal } from 'lucide-react';
 import EditFrame, { EditPlaceholder, EditSection, useEditDraft } from './EditFrame';
 import CallDetailsInput, { ShortDescriptionField } from '../components/CallDetailsInput';
 import CallAboutInput from '../components/CallAboutInput';
 import ServicePickInput from '../components/ServicePickInput';
 import QuestionsInput from '../components/QuestionsInput';
-import RemindersInput from '../components/RemindersInput';
-import CallReminderEditor from './CallReminderEditor';
-import { useLeaveWarning } from './ReminderEditor';
-import { emailTextOf, remindersOf, remindersSummary, sameEmailTexts, sameReminders, withEmailText } from '../data/callReminders';
 import { DEFAULT_QUESTIONS, cleanQuestions, questionsOf, questionsProblem, questionsSummary, sameQuestions } from '../data/callQuestions';
-import { callAnswersOf, getMyProfile, newCallId } from '../data/myProfile';
+import { callAnswersOf, newCallId } from '../data/myProfile';
 import { createMockService, getService, servicePrice } from '../data/mockServices';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import { CALL_DEFAULTS, callAboutOf, callDescriptionOf, callDetailsProblem, newCallAbout, readMeetingLink } from '../data/callDetails';
@@ -36,8 +32,9 @@ const FIELDS = [
   'callAbout',
   'serviceId',
   'callQuestions', // what checkout asks after name, email and phone (callQuestions.js)
-  'callReminders', // the reminder emails' switches (callReminders.js)
-  'callReminderEmails', // their words, once the coach changes them (callReminders.js)
+  // The reminder emails (callReminders, callReminderEmails) aren't here:
+  // they're changed on the call's own page, its Emails tab (CallOverview.jsx).
+  // A new call has neither saved, which means both reminders are on.
   'meetingLink', // shared by all their video calls: saved on the setup answers (see myProfile.js)
 ];
 
@@ -57,7 +54,6 @@ const SECTION_FIELDS = {
     'callPricing', 'callPrice', 'callComparePrice', 'meetingLink',
   ],
   questions: ['callQuestions'],
-  reminders: ['callReminders', 'callReminderEmails'],
   service: ['serviceId'],
   when: ['callHours'],
 };
@@ -67,7 +63,7 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // ------------------------------------------------------------
 // Editing one offering, opened from its card on the offerings home,
 // or making a new one ("Add a new offering", after picking its kind).
-// Five sections, each closed to a one-line summary until opened, one open at a time:
+// Four sections, each closed to a one-line summary until opened, one open at a time:
 //   Basics                name, then its description (what the booking page
 //                         shows under the name), length, format, price.
 //                         Opened from the offerings page, also the line on
@@ -78,13 +74,6 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 //                         the right (HoursDrawer.jsx)
 //   Booking questions     what checkout asks: name, email and phone, then
 //                         this call's questions (QuestionsInput.jsx, callQuestions.js)
-//   Reminders             the emails people get before the call, 24 hours
-//                         and 1 hour before, each with an example, Edit
-//                         email and a switch (RemindersInput.jsx,
-//                         callReminders.js). Both on unless turned off.
-//                         Edit email opens the email editor in place of
-//                         this screen (CallReminderEditor.jsx); its words
-//                         come back into this draft, like the hours do.
 //   Contract              the checkout page people book and pay through.
 //                         Shown, never swapped (ContractCard): a new call's
 //                         is created for it from its name and price when
@@ -107,6 +96,8 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 // from: where it was opened. 'offerings' (My offerings: a new call goes on
 //   the page) or 'calls' (the 1:1 calls tab: a new call is just created,
 //   and they choose there whether it's on the page). Changes the wording only.
+// backLabel: the back link's words, when it goes somewhere other than
+//   from's usual place (the call's own page, named after the call)
 // ------------------------------------------------------------
 const FROM = {
   offerings: {
@@ -125,15 +116,14 @@ const FROM = {
   },
 };
 
-export default function EditService({ answers, serviceId, kind, onBack, onSave, onCreate, from = 'offerings' }) {
-  const words = FROM[from] ?? FROM.offerings;
+export default function EditService({ answers, serviceId, kind, onBack, onSave, onCreate, from = 'offerings', backLabel }) {
+  const words = { ...(FROM[from] ?? FROM.offerings), ...(backLabel ? { back: backLabel } : {}) };
   if (!serviceId) {
     if (kind === 'call') {
       return (
         <EditCall
           handle={answers.handle}
           meetingLink={answers.meetingLink}
-          hostName={getMyProfile(answers).creator.name}
           words={words}
           onBack={onBack}
           onCreate={onCreate}
@@ -160,7 +150,6 @@ export default function EditService({ answers, serviceId, kind, onBack, onSave, 
       call={call}
       handle={answers.handle}
       meetingLink={answers.meetingLink}
-      hostName={getMyProfile(answers).creator.name}
       words={words}
       onBack={onBack}
       onSave={onSave}
@@ -170,9 +159,8 @@ export default function EditService({ answers, serviceId, kind, onBack, onSave, 
 
 // id/call: the call being edited and its answers. No call: a new one.
 // meetingLink: the link all their video calls share (from the setup answers)
-// hostName: the coach's name, for the reminder emails' preview
 // words: the back link, Create button and subtitle for where it was opened (FROM)
-function EditCall({ id = null, call = null, handle, meetingLink, hostName, words = FROM.offerings, onBack, onSave, onCreate }) {
+function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.offerings, onBack, onSave, onCreate }) {
   const isNew = call === null;
 
   // What's saved, with the starting choices filled in, so the form opens unchanged.
@@ -190,8 +178,6 @@ function EditCall({ id = null, call = null, handle, meetingLink, hostName, words
             meetingLink,
             serviceId: null,
             callQuestions: structuredClone(DEFAULT_QUESTIONS),
-            callReminders: remindersOf(null),
-            callReminderEmails: {},
             callHours: structuredClone(DEFAULT_HOURS),
           }
         : {
@@ -201,8 +187,6 @@ function EditCall({ id = null, call = null, handle, meetingLink, hostName, words
             meetingLink,
             callDescription: callDescriptionOf(call),
             callQuestions: questionsOf(call),
-            callReminders: remindersOf(call),
-            callReminderEmails: call.callReminderEmails ?? {},
             callHours: strip(loadCallHours(id)),
           },
     [isNew, id, call, handle, meetingLink, hoursVersion], // eslint-disable-line react-hooks/exhaustive-deps
@@ -215,10 +199,6 @@ function EditCall({ id = null, call = null, handle, meetingLink, hostName, words
   const [createFailed, setCreateFailed] = useState(false);
   const [hoursFailed, setHoursFailed] = useState(false); // the hours didn't save
   const [hoursOpen, setHoursOpen] = useState(false); // the hours panel
-  // The reminder email open in the email editor ('dayBefore' | 'hourBefore'), or null.
-  // It shows in place of this screen; this draft stays as it is underneath.
-  const [emailOpen, setEmailOpen] = useState(null);
-  const [backFromEmail, setBackFromEmail] = useState(0); // bumped on the way back, to show Reminders again
 
   // One section open at a time: opening one closes the other. Every section
   // starts closed (a new call's Basics opens itself, below). Closing a section
@@ -312,56 +292,12 @@ function EditCall({ id = null, call = null, handle, meetingLink, hostName, words
     setHoursFailed(false);
     setHoursOpen(false);
   };
-  // Back from the email editor: Reminders is where they were
-  useEffect(() => {
-    if (backFromEmail) document.getElementById('es-reminders')?.scrollIntoView({ block: 'start' });
-  }, [backFromEmail]);
-
-  // While the email editor shows, this screen's own refresh warning is
-  // gone with it: keep warning about the call's unsaved changes
-  useLeaveWarning(Boolean(emailOpen) && edit.dirty);
-
-  const closeEmail = () => {
-    setEmailOpen(null);
-    setBackFromEmail((n) => n + 1);
-  };
-
-  // An email's words from the editor go into the draft. Back to what's
-  // saved: the saved ones, so the section isn't marked as edited.
-  const applyEmail = (text) => {
-    const next = withEmailText(draft.callReminderEmails, emailOpen, text);
-    handleChange(sameEmailTexts(next, saved.callReminderEmails) ? saved.callReminderEmails : next, 'callReminderEmails');
-    closeEmail();
-  };
-
-  // Reminders switched back to what's saved: the saved ones, so the section isn't marked as edited
-  const changeReminders = (next) =>
-    handleChange(sameReminders(next, saved.callReminders) ? saved.callReminders : next, 'callReminders');
-
   // Questions edited back to what's saved: the saved list itself, so the section isn't marked as edited
   const changeQuestions = (next) => handleChange(sameQuestions(next, saved.callQuestions) ? saved.callQuestions : next, 'callQuestions');
 
   const bookingHref = isNew ? null : `?mock=book&service=${encodeURIComponent(id)}`;
   const linkedContract = isNew ? null : getService(saved.serviceId);
   const checkoutHref = isNew ? null : `?mock=checkout&service=${encodeURIComponent(id)}&preview=1`;
-
-  if (emailOpen) {
-    return (
-      <CallReminderEditor
-        reminderId={emailOpen}
-        value={emailTextOf(draft, emailOpen)}
-        call={{
-          title: draft.callTitle,
-          durationMins: draft.callDuration,
-          timeZone: draft.callHours?.timeZone,
-          meetingLink: readMeetingLink(draft.meetingLink).valid ? readMeetingLink(draft.meetingLink).url : null,
-        }}
-        hostName={hostName}
-        onApply={applyEmail}
-        onClose={closeEmail}
-      />
-    );
-  }
 
   return (
     <EditFrame
@@ -474,24 +410,6 @@ function EditCall({ id = null, call = null, handle, meetingLink, hostName, words
               <WhereItShows text="Shows on" href={checkoutHref} label="checkout" />
             )
           }
-        />
-      </EditSection>
-
-      <EditSection
-        id="es-reminders"
-        icon={BellRing}
-        title="Reminders"
-        sub="The emails people get before this call."
-        summary={remindersSummary(draft)}
-        edited={edited('reminders')}
-        open={Boolean(open.reminders)}
-        onToggle={() => toggle('reminders')}
-      >
-        <RemindersInput
-          value={draft.callReminders}
-          emails={draft.callReminderEmails}
-          onChange={changeReminders}
-          onEdit={setEmailOpen}
         />
       </EditSection>
 
