@@ -721,7 +721,8 @@ function RecordingChip({ status, onOpen }) {
 //
 // Manage people: everyone who signed up, one line each (name, email and
 // phone; when they signed up and WhatsApp on the right). The footer has
-// Download Excel, and Delete session waiting quietly on the right.
+// Download CSV (asks first, in a pop-up), and Delete session waiting
+// quietly on the right.
 // Edit session: the quick edit (SessionEdit). Its footer has Cancel and
 // Save changes. Past sessions have no Edit session: they're a record
 // of what happened.
@@ -793,6 +794,7 @@ function SessionDrawer({
   const [moving, setMoving] = useState(false); // the Reschedule pop-up
   const [menuFor, setMenuFor] = useState(null); // the person whose ⋯ menu is open
   const [refunding, setRefunding] = useState(null); // "Refund ₹999 to Priya?"
+  const [downloading, setDownloading] = useState(false); // "Download the people who signed up?"
   const moved = useMovedToast(run, shownTab);
   // A paid session's people each get a ⋯ with Refund (while they have something to refund)
   const canRefund = (p) => p.amount > 0 && !p.refundedAt;
@@ -858,8 +860,8 @@ function SessionDrawer({
     people.length > 0 || canDelete ? (
       <>
         {people.length > 0 ? (
-          <button type="button" className="oh__edit" onClick={download}>
-            <Download size={15} aria-hidden="true" /> Download Excel
+          <button type="button" className="oh__edit" onClick={() => setDownloading(true)}>
+            <Download size={15} aria-hidden="true" /> Download CSV
           </button>
         ) : (
           <span />
@@ -1163,6 +1165,29 @@ function SessionDrawer({
         >
           <p>
             Nobody has signed up yet. <LinkMoves nextDay={nextDay} />
+          </p>
+        </ConfirmDialog>
+      )}
+
+      {downloading && (
+        <ConfirmDialog
+          title="Download the people who signed up?"
+          confirmLabel="Download CSV"
+          // A stray click outside doesn't close it; ✕, Cancel and Escape do
+          stayOpen
+          closeButton
+          onCancel={() => setDownloading(false)}
+          onConfirm={() => {
+            setDownloading(false);
+            download();
+          }}
+        >
+          <p>
+            You'll get a CSV file with{' '}
+            {people.length === 1
+              ? 'the name, email and phone number of 1 person'
+              : `the names, emails and phone numbers of ${people.length} people`}
+            .
           </p>
         </ConfirmDialog>
       )}
