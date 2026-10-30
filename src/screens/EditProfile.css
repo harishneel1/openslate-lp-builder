@@ -1,61 +1,632 @@
-/* The profile edit screen's own bits; the frame is in EditFrame.css. */
-
-/* ---------- "Change your link?" pop-up: old → new ---------- */
-.ep-change {
+/* Shared by every edit screen (EditFrame.jsx). */
+/* The screen fills the main area's height, so the save bar sits at the
+   bottom of the window even when the form is short */
+.es {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 16px 18px;
+  min-height: 100%;
+}
+
+/* The form column */
+.es__content {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: 16px;
+  padding-bottom: 32px;
+}
+
+.es__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 3px 16px 3px 3px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+/* The arrow in its own circle, so it reads as "go back" at a glance */
+.es__back > svg {
+  flex-shrink: 0;
+  box-sizing: content-box;
+  padding: 9px;
   background: var(--color-bg);
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.es__back:hover {
+  border-color: #d6d6d6;
+  box-shadow: var(--shadow-card);
+}
+
+.es__back:hover > svg {
+  background: var(--color-primary-tint);
+}
+
+.es__back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.es__title {
+  margin-top: 20px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* No back button above it (the focus bar has the way back) */
+.es__title--first {
+  margin-top: 8px;
+}
+
+.es__sub {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- With a preview beside the form (aside) ----------
+   Wide screens: the form on the left, the preview on the right, staying
+   in view while the form scrolls. Narrower: no preview, the form alone. */
+.es__aside {
+  display: none;
+}
+
+@media (min-width: 1180px) {
+  .es--aside .es__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 40px;
+    align-content: start;
+    max-width: 1160px;
+  }
+
+  .es--aside .es__content > * {
+    grid-column: 1;
+  }
+
+  .es--aside .es__content > .es__aside {
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / span 40;
+    align-self: start;
+    position: sticky;
+    top: 0;
+    padding-top: 36px;
+  }
+
+  .es--aside .es__bar-inner {
+    max-width: 1160px;
+  }
+}
+
+/* ---------- "Leave without saving?" ---------- */
+.es__leave {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-top: 20px;
+  padding: 14px 18px;
+  font-size: 14px;
+  background: #fff8eb;
+  border: 1px solid #f5d9a8;
   border-radius: var(--radius-md);
 }
 
-.ep-change__link {
-  max-width: 100%;
-  overflow-wrap: anywhere; /* a long link wraps instead of spilling out */
-  font-size: 16px;
+.es__leave strong {
+  font-weight: 600;
 }
 
-.ep-change__link--old {
-  color: var(--color-text-disabled);
+.es__leave-actions {
+  display: flex;
+  gap: 8px;
 }
 
-.ep-change__link--old s {
-  text-decoration-thickness: 1.5px;
+/* ---------- Section panel (same as the offerings home) ---------- */
+.es__panel {
+  margin-top: 28px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
-.ep-change__domain {
-  color: var(--color-text-muted);
+.es__panel-head {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.ep-change__link--old .ep-change__domain {
-  color: inherit;
+.es__panel-title {
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.ep-change__link--new .ep-change__handle {
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.ep-change__arrow {
-  margin-left: 2px;
-  color: var(--color-text-muted);
-}
-
-.ep-change__note {
-  margin-top: 14px;
+.es__panel-sub {
+  margin-top: 2px;
   font-size: 14px;
-  line-height: 1.55;
   color: var(--color-text-muted);
 }
 
-.es-dialog .sr-only {
+.es__panel-body {
+  padding: 24px;
+}
+
+/* Setup's inputs bring a gap above them, for sitting under a screen's
+   title. Inside a panel the panel's own padding is that gap, so drop
+   theirs: otherwise there's twice the space under the panel's heading. */
+.es__panel-body > .qinput {
+  margin-top: 0;
+}
+
+/* ---------- Collapsible section (EditSection) ----------
+   Closed: a row with its own icon, title, summary and an Edit button.
+   Open: the whole card is ringed, its head tinted, its icon solid, and
+   the other sections fade back so it's clear which one you're in. */
+.es-sec {
+  scroll-margin-top: 16px; /* room above it when opening scrolls it to the top */
+  transition: border-color 0.15s, box-shadow 0.15s, opacity 0.2s;
+}
+
+.es-sec + .es-sec {
+  margin-top: 14px;
+}
+
+.es-sec:not(.es-sec--open):hover {
+  border-color: #dcdcdc;
+  box-shadow: var(--shadow-hover);
+}
+
+/* While one is open, the closed ones step back (and come forward on hover or focus) */
+.es__content:has(.es-sec--open) .es-sec:not(.es-sec--open) {
+  opacity: 0.55;
+}
+
+.es__content:has(.es-sec--open) .es-sec:not(.es-sec--open):hover,
+.es__content:has(.es-sec--open) .es-sec:not(.es-sec--open):focus-within {
+  opacity: 1;
+}
+
+/* The open one: ringed as one card, head and body together */
+.es-sec--open {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-hover);
+}
+
+.es-sec__heading {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* The whole head is the button */
+.es-sec__toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 20px 24px;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.es-sec--open .es-sec__toggle {
+  background: var(--color-primary-tint);
+  border-bottom: 1px solid #f6dcc6;
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
+}
+
+/* Keyboard focus sits inside the card, so it never looks like a second box */
+.es-sec__toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -4px;
+}
+
+/* The section's icon: how it's found at a glance */
+.es-sec__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-md);
+  transition: background 0.15s, color 0.15s;
+}
+
+.es-sec--open .es-sec__icon {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+/* Something here needs fixing */
+.es-sec--warn .es-sec__icon {
+  color: #92400e;
+  background: #fff3dc;
+}
+
+.es-sec__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.es-sec__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Unsaved changes in this section */
+.es-sec__edited {
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-pill);
+}
+
+.es-sec--open .es-sec__edited {
+  background: var(--color-surface);
+}
+
+/* Summary (closed) or what the section is for (open): quieter than the title */
+.es-sec__line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* Closed: one line, then … */
+.es-sec__line-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.es-sec--open .es-sec__line-text {
+  white-space: normal;
+}
+
+.es-sec__line--warn {
+  color: #92400e;
+}
+
+.es-sec__line--warn svg {
+  flex-shrink: 0;
+}
+
+/* Edit / Hide: a real button, not a loose word */
+.es-sec__action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6d6;
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.es-sec__toggle:hover .es-sec__action {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* Open: Hide is the quiet way out */
+.es-sec--open .es-sec__action,
+.es-sec--open .es-sec__toggle:hover .es-sec__action {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: #f0cfb3;
+}
+
+.es-sec--open .es-sec__toggle:hover .es-sec__action {
+  border-color: var(--color-primary);
+}
+
+.es-sec__chevron {
+  transition: transform 0.2s;
+}
+
+.es-sec--open .es-sec__chevron {
+  transform: rotate(180deg);
+}
+
+/* A closed body is hidden even when its own class sets display (e.g. .es__fields) */
+.es-sec > .es-sec__body[hidden] {
+  display: none;
+}
+
+/* Open body: more room, and each field set apart by a line,
+   so name, length and price read as separate decisions */
+.es-sec__body {
+  padding: 28px 24px 32px;
+}
+
+.es-sec__body > .call:not(.call--grouped) {
+  gap: 0;
+}
+
+.es-sec__body > .call:not(.call--grouped) > * + *,
+.es-sec__body.es__fields > * + * {
+  padding-top: 28px;
+  margin-top: 28px;
+  border-top: 1px solid var(--color-border);
+}
+
+.es-sec__body.es__fields {
+  gap: 0;
+}
+
+/* Phones: a smaller icon, and the button keeps its chevron only */
+@media (max-width: 560px) {
+  .es-sec__toggle {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .es-sec__icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .es-sec__body {
+    padding: 22px 16px 26px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .es-sec,
+  .es-sec__icon,
+  .es-sec__action,
+  .es-sec__chevron {
+    transition: none;
+  }
+}
+
+/* Fields stacked in a panel, spaced like the Basics fields */
+.es__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.es .sr-only {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ---------- Save bar ----------
+   The main area (.app__main in AppLayout.css) scrolls with 32px padding all
+   round. The bar reaches past that padding (negative margins, bottom: -32px)
+   so it spans the full width and sits right on the window's bottom edge:
+   nothing can scroll underneath it. Keep 32px in step with .app__main. */
+.es__bar {
+  position: sticky;
+  bottom: -32px;
+  z-index: var(--z-sticky);
+  margin: auto -32px -32px; /* auto on top: pushed to the bottom when the form is short */
+  padding: 16px 32px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+  animation: es-bar-in 0.2s ease-out;
+}
+
+/* It appears when there's something to save: up from the bottom edge */
+@keyframes es-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .es__bar {
+    animation: none;
+  }
+
+  .es__back,
+  .es__back > svg {
+    transition: none;
+  }
+}
+
+/* Lines the buttons up with the form above */
+.es__bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.es__status {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* "✓ Changes saved   View your page ↗" */
+.es__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+}
+
+/* Something went wrong, but they can try again */
+.es__message {
+  font-weight: 500;
+  color: #b45309;
+}
+
+.es__saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.es__view {
+  position: relative; /* holds its hidden "(opens in a new tab)" in place */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  text-decoration: none;
+}
+
+.es__view:hover {
+  text-decoration: underline;
+}
+
+.es__view:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.es__bar-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ---------- Buttons ---------- */
+.es__btn {
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.es__btn--primary {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.es__btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.es__btn--primary:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-border);
+  cursor: default;
+}
+
+.es__btn--quiet {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.es__btn--quiet:hover {
+  border-color: #d6d6d6;
+}
+
+.es__btn--danger {
+  color: #fff;
+  background: #c62828;
+}
+
+.es__btn--danger:hover {
+  background: #a92020;
+}
+
+.es__back:focus-visible,
+.es__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Pop-up asking before a save (a new link) ---------- */
+.es-dialog {
+  width: min(460px, calc(100vw - 32px));
+  margin: auto;
+  padding: 28px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.es-dialog::backdrop {
+  background: rgba(17, 17, 17, 0.4);
+}
+
+.es-dialog__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.es-dialog__body {
+  margin-top: 16px;
+}
+
+.es-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* Setup's field groups come in their own card: inside a panel, drop it */
+.es__panel-body .qinput__card {
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+/* A placeholder screen's next step, under its words */
+.es__placeholder-next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
 }

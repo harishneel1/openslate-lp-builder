@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ExternalLink, Link2, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import EditService from './EditService';
 import CallOverview, { hoursOf } from './CallOverview';
@@ -12,7 +12,15 @@ import { EditPlaceholder } from './EditFrame';
 import HoursTip from '../components/HoursTip';
 import { markCalendarLost } from '../data/calendarStore';
 import { buildProfileJson } from '../data/buildProfileJson';
-import { callAnswersOf, getMyProfile, isOnPage, myCallIds, withAddedCall, withCallChanges, withoutCall } from '../data/myProfile';
+import {
+  callAnswersOf,
+  getMyProfile,
+  isOnPage,
+  myCallIds,
+  withAddedCall,
+  withCallChanges,
+  withoutCall,
+} from '../data/myProfile';
 import { accountHandle, offeringUrl } from '../data/myPage';
 import { useSetupAnswers } from '../utils/useSetupAnswers';
 import './OfferingsHome.css'; // the same panels, cards and buttons as My offerings
@@ -38,8 +46,9 @@ import './CallsPage.css';
 // A click on the row (or its name) opens the call's own page
 // (CallOverview.jsx): who has booked it, upcoming, past and cancelled.
 // Edit opens the full editor (EditService.jsx), for changing one thing
-// fast. The editor's back link goes to wherever it was opened from: the
-// call's page, or this list.
+// fast. Wherever it's opened from, the editor's back button goes to the
+// call's page, named after the call: list → call's page → editor, and
+// back retraces that.
 // A call made here isn't put on the offerings page; back on the list
 // it's marked "Just created". It can be booked from its link either way.
 // Each call stands on its own, like a Calendly event: its link is
@@ -52,26 +61,37 @@ import './CallsPage.css';
 //
 // openRequest: { id, n } from elsewhere (a call's contract on the
 // Contracts page): open that call's editor, since its contract is changed
-// there. Its back link goes to the call's page. n opens it again on a
+// there. Its way back goes to the call's page. n opens it again on a
 // second click of the same one.
+//
+// The way back: like an open webinar, a call's page and its editors put
+// the app in focus mode (onFocus, App.jsx): the sidebar steps aside and
+// the focus bar's exit goes back, a level at a time:
+//   the call's page      ← All 1:1 calls     (to this list)
+//   its editor           ← Your call         (to its page; asks first about unsaved changes)
+//   a reminder's email   ← Emails            (to its page, on Emails; asks first too)
+// None of those screens draws a back button of its own.
+// onFocus(focus | null): sets the focus bar (AppLayout's FocusBar)
 // ------------------------------------------------------------
-export default function CallsPage({ openRequest = null }) {
+export default function CallsPage({ openRequest = null, onFocus }) {
   const [answers, setAnswers] = useSetupAnswers();
   // 'list' ↔ 'details' (one call's page: a click on its row) ↔ 'edit'
   // (one call, in the editor: its Edit button) or 'new' (the guided flow)
   const [view, setView] = useState(openRequest ? 'edit' : 'list');
   const [editingId, setEditingId] = useState(openRequest?.id ?? null); // the call open on its page or in the editor
-  // Where the editor's back link goes: 'details' (the call's page) or 'list'
-  const [editBack, setEditBack] = useState(openRequest ? 'details' : 'list');
   // The call page's tab, 'bookings' or 'emails': kept here, so coming back
   // from the call's editor lands on the tab they left
   const [detailsTab, setDetailsTab] = useState('bookings');
+  // The reminder open in the email editor, on the call's page, or null
+  const [emailOpen, setEmailOpen] = useState(null);
+  // The editors' own way back (with their unsaved-changes check), for the focus bar
+  const editExitRef = useRef(null);
+  const emailExitRef = useRef(null);
 
   // Asked to open a call: its editor, in place of the list
   useEffect(() => {
     if (!openRequest) return;
     setEditingId(openRequest.id);
-    setEditBack('details');
     setView('edit');
   }, [openRequest?.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -84,8 +104,8 @@ export default function CallsPage({ openRequest = null }) {
   const openCall = (id, next) => {
     setEditingId(id);
     setJustAddedId(null);
-    setEditBack('list');
     setDetailsTab('bookings');
+    setEmailOpen(null);
     setView(next);
   };
 
@@ -108,6 +128,44 @@ export default function CallsPage({ openRequest = null }) {
     if (view === 'list') document.title = '1:1 calls';
   }, [view]);
 
+  // ---------- The focus bar, while a call is open ----------
+  const openCallItem = calls.find((c) => c.id === editingId) ?? null;
+  const openTitle = openCallItem?.title ?? null;
+  const openDetails = openCallItem ? openCallItem.facts.map((f) => f.text).join(' · ') : null;
+  useEffect(() => {
+    if (!onFocus) return;
+    const toList = () => {
+      setEmailOpen(null);
+      setView('list');
+    };
+    if (view === 'details' && emailOpen && openTitle) {
+      onFocus({
+        title: openTitle,
+        when: openDetails, // which call's email this is, as a webinar's email shows its date
+        icon: Users,
+        minimal: true,
+        exitLabel: 'Emails',
+        onExit: () => (emailExitRef.current ? emailExitRef.current() : setEmailOpen(null)),
+      });
+    } else if (view === 'details') {
+      // Its page shows the name big already: only the way back
+      onFocus({ title: openTitle ?? '1:1 call', minimal: true, exitLabel: 'All 1:1 calls', onExit: toList });
+    } else if (view === 'edit' && openTitle) {
+      onFocus({
+        title: openTitle,
+        status: false, // the editor saves with its own button, not as you type
+        exitLabel: 'Your call',
+        onExit: () => (editExitRef.current ? editExitRef.current() : setView('details')),
+      });
+    } else if (view === 'edit') {
+      onFocus({ title: 'Edit call', status: false, exitLabel: 'All 1:1 calls', onExit: toList });
+    } else {
+      onFocus(null);
+    }
+  }, [view, emailOpen, openTitle, openDetails, onFocus]);
+  // Leaving 1:1 calls (the sidebar, the bell): no focus bar left behind
+  useEffect(() => () => onFocus?.(null), [onFocus]);
+
   if (view === 'new') {
     return (
       <CreateCallFlow
@@ -126,7 +184,8 @@ export default function CallsPage({ openRequest = null }) {
   }
 
   if (view === 'edit') {
-    const backTo = editBack === 'details' && calls.some((c) => c.id === editingId) ? 'details' : 'list';
+    // Back to the call's page; to the list only if the call is gone
+    const backTo = calls.some((c) => c.id === editingId) ? 'details' : 'list';
     return (
       <EditService
         key={editingId}
@@ -134,8 +193,8 @@ export default function CallsPage({ openRequest = null }) {
         answers={answers}
         serviceId={editingId}
         kind="call"
-        // Back to the call's page when it came from there: named after the call
-        backLabel={backTo === 'details' ? calls.find((c) => c.id === editingId).title : undefined}
+        // The focus bar's "← Your call" is the way back (asking first about unsaved changes)
+        exitRef={editExitRef}
         onBack={() => setView(backTo)}
         onSave={(changes) => setAnswers((prev) => withCallChanges(prev, editingId, changes))}
       />
@@ -168,9 +227,12 @@ export default function CallsPage({ openRequest = null }) {
         onSaveCall={(changes) => setAnswers((prev) => withCallChanges(prev, call.id, changes))}
         onBack={() => setView('list')}
         onEdit={() => {
-          setEditBack('details');
+          setEmailOpen(null);
           setView('edit');
         }}
+        emailOpen={emailOpen}
+        onEmailOpen={setEmailOpen}
+        emailExitRef={emailExitRef}
       />
     );
   }
@@ -241,7 +303,11 @@ export default function CallsPage({ openRequest = null }) {
                   onDelete={() => {
                     setMenuFor(null);
                     // Only worth saying when there's a live page it would come off
-                    setDeleting({ id: c.id, title: c.title, onPage: Boolean(answers.publishedAt) && isOnPage(answers, c.id) });
+                    setDeleting({
+                      id: c.id,
+                      title: c.title,
+                      onPage: Boolean(answers.publishedAt) && isOnPage(answers, c.id),
+                    });
                   }}
                 />
               ))}
@@ -313,8 +379,17 @@ function CallRow({ call, url, isNew, menuOpen, onMenu, onOpen, onEdit, onDelete 
       </div>
 
       <div className="oh-row__actions">
-        <button type="button" className="oh-card__copy" onClick={() => copyLink(url)} aria-label={`Copy link to ${call.title}`}>
-          {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
+        <button
+          type="button"
+          className="oh-card__copy"
+          onClick={() => copyLink(url)}
+          aria-label={`Copy link to ${call.title}`}
+        >
+          {copy === 'copied' ? (
+            <Check size={16} strokeWidth={3} aria-hidden="true" />
+          ) : (
+            <Link2 size={16} aria-hidden="true" />
+          )}
           {copy === 'copied' ? 'Copied' : 'Copy link'}
         </button>
         <button type="button" className="oh__edit oh-card__edit" onClick={onEdit} aria-label={`Edit ${call.title}`}>

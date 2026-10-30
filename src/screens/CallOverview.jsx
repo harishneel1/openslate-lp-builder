@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
-  ArrowLeft,
   CalendarCheck,
   Check,
   ChevronRight,
@@ -46,7 +45,7 @@ import './CallOverview.css';
 // One 1:1 call's own page, opened from its card on the 1:1 calls list.
 // Who has booked it, without going through the calendar:
 //
-//   ← 1:1 calls
+//   [focus bar:  ← All 1:1 calls ]   (App.jsx, from CallsPage: no back here)
 //   Discovery call                     [Copy link] [Edit] [↗ View live page]
 //   Video call · 30 min · ₹999
 //   Mon–Fri, 9 am – 5 pm
@@ -87,7 +86,10 @@ import './CallOverview.css';
 // hostName: the coach's name, for the email preview
 // meetingLink: their video link as saved, for the email preview
 // url: its booking link
-// tab: 'bookings' | 'emails' | 'activity'; onTab(tab) (the 1:1 calls page keeps it, so
+// tab: 'bookings' | 'emails' | 'activity'; onTab(tab)
+// emailOpen: the reminder open in the email editor, or null; onEmailOpen(id)
+//   (kept by the 1:1 calls page, which sets the focus bar for it)
+// emailExitRef: the email editor's way back, for the focus bar's exit (the 1:1 calls page keeps it, so
 //      coming back from the call's editor lands on the same tab)
 // onBack(): to the 1:1 calls list
 // onEdit(): to its editor
@@ -133,6 +135,9 @@ export default function CallOverview({
   onBack,
   onEdit,
   onSaveCall,
+  emailOpen = null,
+  onEmailOpen,
+  emailExitRef = null,
 }) {
   const [bookings, setBookings] = useState(loadBookings);
   const [now, setNow] = useState(() => Date.now());
@@ -142,7 +147,6 @@ export default function CallOverview({
   const [notice, setNotice] = useState(null);
   const [copy, copyLink] = useCopy();
   const connection = useCalendar();
-  const [emailOpen, setEmailOpen] = useState(null); // the reminder open in the email editor, or null
   const [said, setSaid] = useState(''); // for screen readers: what just saved
   const [activityLimit, setActivityLimit] = useState(ACTIVITY_PAGE);
 
@@ -226,7 +230,7 @@ export default function CallOverview({
 
   // Back from the email editor, on Emails, at the top of the page
   const closeEmail = () => {
-    setEmailOpen(null);
+    onEmailOpen(null);
     requestAnimationFrame(() => {
       document.querySelector('.app__main')?.scrollTo?.(0, 0);
       window.scrollTo(0, 0);
@@ -252,6 +256,7 @@ export default function CallOverview({
           closeEmail();
         }}
         onClose={closeEmail}
+        exitRef={emailExitRef}
       />
     );
   }
@@ -260,10 +265,6 @@ export default function CallOverview({
     <div className="oh cov">
       {/* ---------- The call ---------- */}
       <header className="cov__head">
-        <button type="button" className="cov__back" onClick={onBack}>
-          <ArrowLeft size={16} aria-hidden="true" /> 1:1 calls
-        </button>
-
         <div className="cov__intro">
           <div className="cov__about">
             <h1 className="cov__title">{call.title}</h1>
@@ -383,7 +384,7 @@ export default function CallOverview({
               callAnswers={callAnswers}
               now={now}
               onToggle={toggleReminder}
-              onEdit={setEmailOpen}
+              onEdit={onEmailOpen}
             />
           </div>
         ) : (

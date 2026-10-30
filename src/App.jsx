@@ -503,6 +503,9 @@ function App() {
   // that call's editor open, since the call is where its contract changes.
   // Cleared on the way to 1:1 calls from the sidebar, so that opens the list.
   const [callRequest, setCallRequest] = useState(null);
+  // A 1:1 call open on its page or in its editor: the same focus bar as an
+  // open webinar ({ title, exitLabel, onExit, ... }), or null on the list
+  const [callFocus, setCallFocus] = useState(null);
   const openCall = (id) => {
     handleNavigate('calls');
     setCallRequest({ id, n: Date.now() });
@@ -1055,7 +1058,9 @@ function App() {
                   }
                 : { onExit: closeFunnel }),
             }
-          : null
+          : activeNav === 'calls'
+            ? callFocus // a 1:1 call's page or editor, while one is open (CallsPage.jsx)
+            : null
       }
     >
         {activeNav === 'page-builder' ? (
@@ -1063,7 +1068,7 @@ function App() {
       ) : activeNav === 'my-page' ? (
         <MyPageSetup />
       ) : activeNav === 'calls' ? (
-        <CallsPage openRequest={callRequest} />
+        <CallsPage openRequest={callRequest} onFocus={setCallFocus} />
       ) : activeNav === 'services' ? (
         <ContractsPage onGoToOfferings={() => handleNavigate('calls')} onOpenWebinar={openFunnelFrom} onOpenCall={openCall} />
       ) : activeNav === 'bookings' ? (

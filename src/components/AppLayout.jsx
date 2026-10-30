@@ -110,19 +110,31 @@ function useHasStorefront() {
   return has;
 }
 
-// Focus mode: while a webinar is open, the app's top nav and sidebar step back
-// and one slim bar takes their place: exit on the left, funnel name in the
-// middle, save status on the right.
-// focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel, minimal, when }
+// Focus mode: while a webinar or a 1:1 call is open, the app's top nav and
+// sidebar step back and one slim bar takes their place: exit on the left,
+// its name in the middle, save status on the right.
+// focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel, minimal, when, icon, status }
 // exitLabel: where the exit goes ('All webinars', or 'Webinar details'
 // while editing a published webinar's pages)
 // minimal: on a page that already shows the title big and edits nothing
 // (the webinar details page): no title here and no "Saved", only the way
 // back. "Not saved" still shows if saving ever fails.
-// when: the webinar's date ("Sat 24 Oct, 2:00 pm IST"). Given, the middle
-// shows the webinar (icon, title, date) even when minimal: the email
-// editor uses it, so it's clear which webinar's email is open.
-function FocusBar({ title, onExit, saveFailed, exitLabel = 'All webinars', minimal = false, when = null }) {
+// when: the webinar's date ("Sat 24 Oct, 2:00 pm IST"), or a call's details
+// ("Video call · 30 min"). Given, the middle shows it (icon, title, when)
+// even when minimal: the email editors use it, so it's clear whose email is open.
+// icon: the one beside the title with `when` (a webinar's Video; a call's Users)
+// status: false for no "Saved" on the right, on screens that save with their
+//   own button (a 1:1 call's editor). "Not saved" still shows if saving fails.
+function FocusBar({
+  title,
+  onExit,
+  saveFailed,
+  exitLabel = 'All webinars',
+  minimal = false,
+  when = null,
+  icon: Icon = Video,
+  status = true,
+}) {
   return (
     <header className="focusbar">
       <button type="button" className="focusbar__exit" onClick={onExit}>
@@ -131,7 +143,7 @@ function FocusBar({ title, onExit, saveFailed, exitLabel = 'All webinars', minim
 
       {when ? (
         <p className="focusbar__context">
-          <Video size={15} aria-hidden="true" className="focusbar__context-icon" />
+          <Icon size={15} aria-hidden="true" className="focusbar__context-icon" />
           <span className="focusbar__title" title={title}>
             {title}
           </span>
@@ -149,7 +161,7 @@ function FocusBar({ title, onExit, saveFailed, exitLabel = 'All webinars', minim
         <p className="focusbar__status focusbar__status--error">
           <AlertTriangle size={15} /> Not saved
         </p>
-      ) : minimal ? (
+      ) : minimal || !status ? (
         <span />
       ) : (
         <p className="focusbar__status">
@@ -208,63 +220,62 @@ function CalendarCard({ active, onOpen }) {
 export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpenWebinar, webinars = [], focus = null, children }) {
   const hasStorefront = useHasStorefront();
 
-  if (focus) {
-    return (
-      <div className="app">
-        <FocusBar {...focus} />
-        <div className="app__body">
-          <main className="app__main">{children}</main>
-        </div>
-      </div>
-    );
-  }
-
+  // One tree for both modes: the top bar and sidebar change, but the page
+  // (<main>) stays in the same place. Switching into focus mode then keeps
+  // the page as it is: a screen with state of its own (1:1 calls, which
+  // turns focus mode on for a call) isn't rebuilt from scratch.
   return (
     <div className="app">
-      <header className="topnav">
-        {/* The coach's own brand: what their students see too */}
-        <div className="topnav__logo">HN</div>
+      {focus ? (
+        <FocusBar {...focus} />
+      ) : (
+        <header className="topnav">
+          {/* The coach's own brand: what their students see too */}
+          <div className="topnav__logo">HN</div>
 
-        {/* Updates, then their profile */}
-        <div className="topnav__actions">
-          <UpdatesBell webinars={webinars} onOpenBooking={onOpenBooking} onOpenWebinar={onOpenWebinar} />
-          <div className="topnav__avatar" title="Your profile">H</div>
-        </div>
-      </header>
+          {/* Updates, then their profile */}
+          <div className="topnav__actions">
+            <UpdatesBell webinars={webinars} onOpenBooking={onOpenBooking} onOpenWebinar={onOpenWebinar} />
+            <div className="topnav__avatar" title="Your profile">H</div>
+          </div>
+        </header>
+      )}
 
       <div className="app__body">
-        <div className="sidebar-rail">
-          <aside className="sidebar">
-            <div className="sidebar__search">
-              <Search size={16} />
-              <input placeholder="Search..." />
-            </div>
+        {!focus && (
+          <div className="sidebar-rail">
+            <aside className="sidebar">
+              <div className="sidebar__search">
+                <Search size={16} />
+                <input placeholder="Search..." />
+              </div>
 
-            <CalendarCard active={activeNav === 'bookings'} onOpen={() => onNavigate('bookings')} />
+              <CalendarCard active={activeNav === 'bookings'} onOpen={() => onNavigate('bookings')} />
 
-            <nav className="sidebar__nav">
-              {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => {
-                // Storefront, before it has a link: a small "Set up" tag
-                const tag = id === 'my-page' && !hasStorefront ? 'Set up' : badge;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => onNavigate(id)}
-                    className={`sidebar__item ${activeNav === id ? 'sidebar__item--active' : ''}`}
-                  >
-                    <span className="sidebar__icon-wrap">
-                      <Icon size={20} className="sidebar__icon" />
-                    </span>
-                    <span className="sidebar__label">{label}</span>
-                    {tag && <span className="sidebar__badge">{tag}</span>}
-                    {hasMenu && <ChevronDown size={16} className="sidebar__chevron" />}
-                  </button>
-                );
-              })}
-            </nav>
-          </aside>
-        </div>
+              <nav className="sidebar__nav">
+                {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => {
+                  // Storefront, before it has a link: a small "Set up" tag
+                  const tag = id === 'my-page' && !hasStorefront ? 'Set up' : badge;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => onNavigate(id)}
+                      className={`sidebar__item ${activeNav === id ? 'sidebar__item--active' : ''}`}
+                    >
+                      <span className="sidebar__icon-wrap">
+                        <Icon size={20} className="sidebar__icon" />
+                      </span>
+                      <span className="sidebar__label">{label}</span>
+                      {tag && <span className="sidebar__badge">{tag}</span>}
+                      {hasMenu && <ChevronDown size={16} className="sidebar__chevron" />}
+                    </button>
+                  );
+                })}
+              </nav>
+            </aside>
+          </div>
+        )}
 
         <main className="app__main">{children}</main>
       </div>

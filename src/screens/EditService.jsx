@@ -98,25 +98,34 @@ const strip = ({ saved, ...rest }) => rest; // eslint-disable-line no-unused-var
 //   and they choose there whether it's on the page). Changes the wording only.
 // backLabel: the back link's words, when it goes somewhere other than
 //   from's usual place (the call's own page, named after the call)
+// exitRef: given, the app's focus bar is the way back (see EditFrame)
 // ------------------------------------------------------------
 const FROM = {
   offerings: {
     cardLine: true,
     back: 'Your storefront',
     create: 'Add to your page',
-    saved: 'Changes show up on your page once you save them.',
     gone: 'It may have been removed. Go back to see what’s on your page.',
   },
   calls: {
     cardLine: false, // the card line is the offerings page's: not asked for here
     back: '1:1 calls',
     create: 'Create call',
-    saved: 'Changes show up wherever people book this call once you save them.',
     gone: 'It may have been removed. Go back to see your calls.',
   },
 };
 
-export default function EditService({ answers, serviceId, kind, onBack, onSave, onCreate, from = 'offerings', backLabel }) {
+export default function EditService({
+  answers,
+  serviceId,
+  kind,
+  onBack,
+  onSave,
+  onCreate,
+  from = 'offerings',
+  backLabel,
+  exitRef = null,
+}) {
   const words = { ...(FROM[from] ?? FROM.offerings), ...(backLabel ? { back: backLabel } : {}) };
   if (!serviceId) {
     if (kind === 'call') {
@@ -153,6 +162,7 @@ export default function EditService({ answers, serviceId, kind, onBack, onSave, 
       words={words}
       onBack={onBack}
       onSave={onSave}
+      exitRef={exitRef}
     />
   );
 }
@@ -160,7 +170,7 @@ export default function EditService({ answers, serviceId, kind, onBack, onSave, 
 // id/call: the call being edited and its answers. No call: a new one.
 // meetingLink: the link all their video calls share (from the setup answers)
 // words: the back link, Create button and subtitle for where it was opened (FROM)
-function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.offerings, onBack, onSave, onCreate }) {
+function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.offerings, onBack, onSave, onCreate, exitRef = null }) {
   const isNew = call === null;
 
   // What's saved, with the starting choices filled in, so the form opens unchanged.
@@ -302,11 +312,12 @@ function EditCall({ id = null, call = null, handle, meetingLink, words = FROM.of
   return (
     <EditFrame
       edit={edit}
-      title={isNew ? 'New 1:1 call' : saved.callTitle || 'Your call'}
-      sub={
-        isNew ? 'Fill in the basics. We’ll create the contract for you.' : words.saved
-      }
+      // Says what this screen is, so it isn't mistaken for the call's own page:
+      // "Edit call", with the call's name under it
+      title={isNew ? 'New 1:1 call' : 'Edit call'}
+      sub={isNew ? 'Fill in the basics. We’ll create the contract for you.' : saved.callTitle || 'Your call'}
       backLabel={words.back}
+      exitRef={exitRef}
       onBack={onBack}
       onSave={isNew ? create : save}
       problem={problem}

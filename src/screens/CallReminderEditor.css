@@ -10,20 +10,7 @@
 }
 
 .cre > .es__back {
-  margin-bottom: 12px;
-  padding: 0;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-
-.cre > .es__back:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 2px;
+  margin-bottom: 16px; /* the same back button as the call's editor (EditFrame.css) */
 }
 
 /* Can't make it? …: under the Join button, as the email shows it. Locked,

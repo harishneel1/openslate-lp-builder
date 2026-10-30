@@ -50,6 +50,8 @@ import './CallReminderEditor.css';
 // onClose(): back to the call, without these words
 // applyLabel: the button's words ('Save email')
 // note: the line under the title, about when the words take effect
+// exitRef: a ref the app's focus bar uses for its exit; given, there's no
+//   back button here, and exitRef.current() asks first about unsaved changes
 // ------------------------------------------------------------
 export default function CallReminderEditor({
   reminderId,
@@ -60,6 +62,7 @@ export default function CallReminderEditor({
   onClose,
   applyLabel = 'Save email',
   note = 'Calls already booked get the new words too.',
+  exitRef = null,
 }) {
   const reminder = callReminderById(reminderId);
   const [draft, setDraft] = useState(value);
@@ -85,6 +88,7 @@ export default function CallReminderEditor({
   useLeaveWarning(dirty);
 
   const back = () => (dirty ? setAsk('leave') : onClose());
+  if (exitRef) exitRef.current = back;
 
   const apply = () => {
     if (!dirty || emptySubject) return;
@@ -101,9 +105,11 @@ export default function CallReminderEditor({
 
   return (
     <div className="re cre">
-      <button type="button" className="es__back" onClick={back}>
-        <ArrowLeft size={16} aria-hidden="true" /> {String(call.title ?? '').trim() || 'Your call'}
-      </button>
+      {!exitRef && (
+        <button type="button" className="es__back" onClick={back}>
+          <ArrowLeft size={16} aria-hidden="true" /> {String(call.title ?? '').trim() || 'Your call'}
+        </button>
+      )}
 
       <header className="re__head">
         <div className="re__intro">

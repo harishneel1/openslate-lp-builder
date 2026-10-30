@@ -64,8 +64,21 @@ export function useEditDraft(saved, fields) {
 // backLabel: the back link's words (where it goes).
 // aside: shown beside the form on wide screens (a live preview), or null.
 // leaveNew: what "Leave without adding it?" says first, when making something new.
+// exitRef: a ref the app's focus bar uses for its exit (a 1:1 call's
+//      editor, like a webinar's pages). Given, there's no back button here:
+//      exitRef.current() does what it would, asking first about unsaved changes.
 // bar: false for no bar at all (a screen with its own buttons, like the
-//      contract's steps); otherwise the usual Save / Discard / Done.
+//      contract's steps); otherwise the save bar below.
+//
+// The save bar only shows when it has something to do:
+//   unsaved changes   "You have unsaved changes"  [Discard changes] [Save changes]
+//   just saved        "✓ Changes saved  View your page ↗", for a few seconds
+//   making something  [Cancel] [Create], the whole time
+//   a failed try      the message, until it's fixed
+// With nothing to save there's no bar, so no button that only goes back:
+// the back button at the top does that.
+const SAVED_SHOWN_MS = 4000; // how long "Changes saved" stays before the bar goes
+
 export default function EditFrame({
   edit,
   title,
@@ -81,10 +94,24 @@ export default function EditFrame({
   aside = null,
   leaveNew = 'This isn’t on your page yet.',
   bar = null,
+  exitRef = null,
   children,
 }) {
   const { dirty, justSaved, leaving, setLeaving } = edit;
   const creating = Boolean(createLabel);
+
+  // "Changes saved" stays a few seconds after a save, then the bar goes
+  const [savedShown, setSavedShown] = useState(false);
+  useEffect(() => {
+    if (!justSaved) {
+      setSavedShown(false);
+      return undefined;
+    }
+    setSavedShown(true);
+    const timer = setTimeout(() => setSavedShown(false), SAVED_SHOWN_MS);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
+  const showBar = bar !== false && (creating || dirty || savedShown || Boolean(message));
 
   // Closing the tab with unsaved changes: the browser asks first
   useEffect(() => {
@@ -98,15 +125,24 @@ export default function EditFrame({
   }, [dirty]);
 
   const back = () => (dirty ? setLeaving(true) : onBack());
+  if (exitRef) exitRef.current = back;
+
+  // "Leave without saving?" shows at the top: when asked from the focus bar
+  // with the form scrolled down, bring them up to it
+  useEffect(() => {
+    if (leaving && exitRef) document.querySelector('.app__main')?.scrollTo?.({ top: 0, behavior: 'smooth' });
+  }, [leaving, exitRef]);
 
   return (
     <div className={`es ${aside ? 'es--aside' : ''}`}>
       <div className="es__content">
         {aside && <aside className="es__aside">{aside}</aside>}
-        <button type="button" className="es__back" onClick={back}>
-          <ArrowLeft size={16} aria-hidden="true" /> {backLabel}
-        </button>
-        <h1 className="es__title">{title}</h1>
+        {!exitRef && (
+          <button type="button" className="es__back" onClick={back}>
+            <ArrowLeft size={16} aria-hidden="true" /> {backLabel}
+          </button>
+        )}
+        <h1 className={`es__title ${exitRef ? 'es__title--first' : ''}`}>{title}</h1>
         {sub && <p className="es__sub">{sub}</p>}
 
         {/* Back pressed with unsaved changes */}
@@ -138,7 +174,7 @@ export default function EditFrame({
       </div>
 
       {/* ---------- Save bar: full width, pinned to the bottom of the window ---------- */}
-      {bar !== false && (
+      {showBar && (
       <div className="es__bar">
         <div className="es__bar-inner">
           <p className="es__status" aria-live="polite">
@@ -150,7 +186,7 @@ export default function EditFrame({
               dirty && (problem ?? 'You have unsaved changes')
             )}
             {/* Saved: say so, and offer a look at the live page */}
-            {!creating && !dirty && justSaved && (
+            {!creating && !dirty && savedShown && (
               <>
                 <span className="es__saved">
                   <Check size={16} strokeWidth={3} aria-hidden="true" /> Changes saved
@@ -165,7 +201,7 @@ export default function EditFrame({
               </>
             )}
           </p>
-          {/* Unsaved changes: Discard and Save. Nothing to save: Done, back to the offerings home. */}
+          {/* Unsaved changes: Discard and Save. Just saved: no buttons, only the note. */}
           <div className="es__bar-actions">
             {creating ? (
               <>
@@ -176,19 +212,17 @@ export default function EditFrame({
                   {createLabel}
                 </button>
               </>
-            ) : dirty ? (
-              <>
-                <button type="button" className="es__btn es__btn--quiet" onClick={edit.discard}>
-                  Discard changes
-                </button>
-                <button type="button" className="es__btn es__btn--primary" onClick={onSave} disabled={Boolean(problem)}>
-                  Save changes
-                </button>
-              </>
             ) : (
-              <button type="button" className="es__btn es__btn--primary" onClick={onBack}>
-                Done
-              </button>
+              dirty && (
+                <>
+                  <button type="button" className="es__btn es__btn--quiet" onClick={edit.discard}>
+                    Discard changes
+                  </button>
+                  <button type="button" className="es__btn es__btn--primary" onClick={onSave} disabled={Boolean(problem)}>
+                    Save changes
+                  </button>
+                </>
+              )
             )}
           </div>
         </div>

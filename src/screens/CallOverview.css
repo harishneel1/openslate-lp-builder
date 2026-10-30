@@ -20,25 +20,6 @@
 }
 
 /* ---------- Header: back, the call, its actions ---------- */
-.cov__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  border-radius: 4px;
-}
-
-.cov__back:hover {
-  color: var(--color-text);
-}
-
-.cov__back:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 3px;
-}
-
 .cov__intro {
   display: flex;
   flex-wrap: wrap;
