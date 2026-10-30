@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ExternalLink } from 'lucide-react';
 import googleIcon from '../assets/google-g.svg';
 import CalendarDrawer from './CalendarDrawer';
 import { ConnectProblem, GoogleButton, useCalendar, useConnectGoogle } from './CalendarConnect';
@@ -10,10 +10,15 @@ import { ConnectProblem, GoogleButton, useCalendar, useConnectGoogle } from './C
 // label, value, actions). It stays in the same place in every state;
 // only the row itself changes:
 //
-//   connected      the account, Connected, and Manage (CalendarDrawer.jsx)
+//   connected      the account, Connected, then Open Google Calendar (a new
+//                  tab, signed in to that account) and Manage (CalendarDrawer.jsx)
 //   lost           tinted red: new bookings are paused, Reconnect
 //   not connected  tinted red: new bookings are paused, Connect
 // ------------------------------------------------------------
+// Google Calendar, opened in the given account
+export const googleCalendarUrl = (email) =>
+  `https://calendar.google.com/calendar/r${email ? `?authuser=${encodeURIComponent(email)}` : ''}`;
+
 export default function CalendarRow() {
   const connection = useCalendar();
   const status = connection?.status ?? 'none';
@@ -64,9 +69,24 @@ export default function CalendarRow() {
 
         <div className="oh__row-actions">
           {ok ? (
-            <button type="button" className="oh__btn" onClick={() => setManaging(true)}>
-              Manage
-            </button>
+            <>
+              {/* Google Calendar itself, in the connected account (authuser picks it
+                  when they're signed in to several). Not offered while it's not
+                  connected: the row asks them to connect first. */}
+              <a
+                className="oh__btn cal-row__open"
+                href={googleCalendarUrl(connection.email)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open Google Calendar
+                <ExternalLink size={15} aria-hidden="true" />
+                <span className="oh__sr-only"> (opens in a new tab)</span>
+              </a>
+              <button type="button" className="oh__btn" onClick={() => setManaging(true)}>
+                Manage
+              </button>
+            </>
           ) : (
             <GoogleButton waiting={waiting} onClick={() => connect(lost ? connection.email : null)}>
               {lost ? 'Reconnect' : 'Connect'}

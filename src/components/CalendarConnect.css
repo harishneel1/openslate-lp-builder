@@ -276,6 +276,21 @@
 }
 
 /* What went wrong on the last try, under the text, the full width of the row */
+/* Open Google Calendar ↗: an outlined button like Manage, its icon quiet */
+.cal-row__open {
+  position: relative; /* holds its hidden "(opens in a new tab)" in place */
+  white-space: nowrap;
+}
+
+.cal-row__open svg {
+  color: var(--color-text-muted);
+}
+
+/* Two buttons: on a narrow row they wrap rather than squeeze the account */
+.cal-row .oh__row-actions {
+  flex-wrap: wrap;
+}
+
 .cal-row__note {
   grid-column: 2 / -1;
 }
