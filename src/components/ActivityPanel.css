@@ -54,7 +54,7 @@
   border-radius: var(--radius-sm);
 }
 
-/* Lines that open something (sign-ups, refunds, the recording) */
+/* The line that opens something (only the recording's) */
 .act__line--link {
   cursor: pointer;
   transition: background 0.15s;

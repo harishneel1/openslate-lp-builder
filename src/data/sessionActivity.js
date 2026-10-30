@@ -59,7 +59,8 @@ function signedUp(list) {
 // ------------------------------------------------------------
 // One session's lines, newest first:
 //   { key, kind, at (ms), title, detail (or null), by: 'auto' | 'you',
-//     open: 'people' | 'recording' | null (the tab a click opens) }
+//     open: 'recording' | null (the tab a click opens: only the
+//     recording's line opens anything; every other line is just a record) }
 // kind: 'added' | 'signups' | 'reminder' | 'ended' | 'moved' |
 //       'cancelled' | 'refund' | 'recording'
 // run: the session; signups: its people (peopleOf); now
@@ -103,7 +104,7 @@ export function sessionActivity(run, signups = [], now = Date.now()) {
       title: signedUp(sorted),
       detail: confirmations ? (sorted.length === 1 ? 'Confirmation email sent' : 'Confirmation emails sent') : null,
       by: 'auto',
-      open: 'people',
+      open: null,
     });
   });
 
@@ -172,7 +173,7 @@ export function sessionActivity(run, signups = [], now = Date.now()) {
         title: `Refunded ${rupees(p.refunded ?? p.amount)} to ${p.name}`,
         detail: null,
         by: 'you',
-        open: 'people',
+        open: null,
       });
     });
 

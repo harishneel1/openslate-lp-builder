@@ -13,13 +13,13 @@ import './ActivityPanel.css';
 //   (✉) 1-day reminder sent to 3 people                        7:00 pm
 //       Automatic
 //
-// Each line says who did it: Automatic (the system) or By you. Lines
-// with somewhere to go are buttons (sign-ups and refunds open Manage
-// people, the recording opens Recording); the rest are just text.
+// Each line says who did it: Automatic (the system) or By you. Only the
+// recording's line is a button (it opens Recording); every other line,
+// sign-ups and refunds included, is just text.
 // A session always has at least its "Session added" line.
 //
 // run: the session; people: its people; now
-// onOpen(tab): 'people' | 'recording'
+// onOpen(tab): 'recording'
 // ------------------------------------------------------------
 
 const ICONS = {
