@@ -443,8 +443,33 @@
   gap: 3px;
 }
 
-.sidebar:hover .bkcard .mypage__actions {
-  margin-top: 14px;
+/* "Your calendar ›": the arrow says the card opens, and takes no extra
+   height (it sits in the title's line), so the nav below never moves */
+.bkcard__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bkcard__arrow {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.bkcard:hover .bkcard__arrow {
+  color: var(--color-text);
+  transform: translateX(2px);
+}
+
+.bkcard:not(.mypage--active):hover {
+  background: #fafafa;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bkcard__arrow {
+    transition: none;
+  }
 }
 .bkcard__icon {
   position: relative;

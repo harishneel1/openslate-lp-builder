@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Search, ChevronDown, ArrowLeft, Check, AlertTriangle,
+  Search, ChevronDown, ChevronRight, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
   CalendarCheck, Users, Store, Video,
@@ -175,9 +175,11 @@ function FocusBar({
 // "Your calendar": pinned above the nav, because what's on today is what a
 // coach opens the app for. Collapsed it's a calendar icon, with a dot when
 // something is left today; expanded it says what's left today (calls and
-// webinars) and what's next, with Open. The whole card opens the calendar
-// (Bookings); Open is there to show it can be clicked. One icon: the
-// calendar on the left.
+// webinars) and what's next, with a small arrow by its name to show it
+// opens. The whole card opens the calendar (Bookings).
+// It's the same height open or closed: its words are laid out (just
+// hidden) while the rail is collapsed, and nothing is added when it opens,
+// so the nav below never moves under the pointer.
 function CalendarCard({ active, onOpen }) {
   const { busy, lines, nextLine } = useToday();
   return (
@@ -194,7 +196,9 @@ function CalendarCard({ active, onOpen }) {
           {busy && <span className="bkcard__dot" aria-hidden="true" />}
         </span>
         <span className="mypage__text bkcard__text">
-          <span className="mypage__label">Your calendar</span>
+          <span className="mypage__label bkcard__label">
+            Your calendar <ChevronRight size={15} aria-hidden="true" className="bkcard__arrow" />
+          </span>
           {lines.map((line) => (
             <span key={line} className="mypage__link">
               {line}
@@ -204,11 +208,6 @@ function CalendarCard({ active, onOpen }) {
         </span>
       </button>
 
-      <div className="mypage__actions">
-        <button type="button" className="mypage__action" onClick={onOpen} tabIndex={-1} aria-hidden="true">
-          Open
-        </button>
-      </div>
     </div>
   );
 }
