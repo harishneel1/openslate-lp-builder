@@ -86,10 +86,22 @@
 
 .cs__refund-text {
   flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.cs__refund-title {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* How many and the total: quieter, under the title */
+.cs__refund-facts {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .cs__refund-change {
@@ -131,19 +143,6 @@
     background: transparent;
     box-shadow: 0 0 0 4px transparent;
   }
-}
-
-/* Don't refund: the editor's sentence with the Refund amount is faded
-   (it isn't sent), with a note under the email saying why */
-.cs .re__card:has(.cs__left-out) .re__body :is(p, li):has(.re-chip[data-field='refund_amount']) {
-  opacity: 0.4;
-}
-
-.cs__left-out {
-  margin: 0;
-  padding: 10px 20px 14px;
-  font-size: 13px;
-  color: var(--color-text-muted);
 }
 
 /* ---------- Step 1: How should we refund people? (a pop-up) ---------- */

@@ -36,7 +36,7 @@ export const FIELDS = [
   {
     key: 'refund_amount',
     label: 'Refund amount',
-    hint: 'Fills in how much each person gets back. Its sentence is left out when nobody is refunded',
+    hint: 'Fills in how much each person gets back',
     only: 'cancel',
   },
   // Older cancellations' emails had the whole sentence as one field. Kept
@@ -57,7 +57,8 @@ export const REMINDER_FIELDS = FIELDS.filter((f) => !f.only);
 // sentence with the Refund amount in it, which the coach can reword:
 // {{refund_amount}} fills in what each person gets back (the part amount,
 // or, in full, what that person paid). With nobody refunded, the
-// paragraph holding it is left out (withoutRefund), so the email always
+// paragraph holding it is taken out of the email (withoutRefund), and put
+// back if they refund after all (withRefund), so the email always
 // matches what happens. No join link (there's nothing to join) and no
 // pointer to other sessions.
 // ------------------------------------------------------------
@@ -65,8 +66,24 @@ export const REMINDER_FIELDS = FIELDS.filter((f) => !f.only);
 // A paragraph (or list item) holding the Refund amount
 const REFUND_BLOCK = /<(p|li)>(?:(?!<\/\1>)[\s\S])*?\{\{refund_amount\}\}[\s\S]*?<\/\1>/g;
 
-// The email with nobody refunded: the Refund amount's paragraph left out
+// The refund sentence as the template has it
+export const REFUND_PARAGRAPH =
+  '<p>We’re refunding {{refund_amount}} to you. It usually reaches your account within 5 to 7 working days.</p>';
+
+// The email with nobody refunded: the Refund amount's paragraph taken out
 export const withoutRefund = (html) => String(html ?? '').replace(REFUND_BLOCK, '');
+
+// Refunding after all: the refund sentence put back where the template has
+// it (after the second paragraph, or at the end of a shorter email). An
+// email that already mentions the Refund amount is left as it is.
+export function withRefund(html) {
+  const body = String(html ?? '');
+  if (body.includes('{{refund_amount}}')) return body;
+  const blocks = [...body.matchAll(/<(p|ul|ol)>[\s\S]*?<\/\1>/g)];
+  if (blocks.length < 2) return body + REFUND_PARAGRAPH;
+  const at = blocks[1].index + blocks[1][0].length;
+  return body.slice(0, at) + REFUND_PARAGRAPH + body.slice(at);
+}
 
 // Does the email mention the refund amount at all?
 export const hasRefund = (html) => String(html ?? '').includes('{{refund_amount}}');
@@ -82,7 +99,7 @@ export function cancelTemplate({ paid = false } = {}) {
     body:
       '<p>Hi {{first_name}},</p>' +
       '<p>I’m sorry, but I’ve had to cancel <b>{{webinar_title}}</b> on <b>{{date}} at {{time}}</b>.</p>' +
-      (paid ? '<p>We’re refunding {{refund_amount}} to you. It usually reaches your account within 5 to 7 working days.</p>' : '') +
+      (paid ? REFUND_PARAGRAPH : '') +
       '<p>Thank you for understanding, and sorry for the change of plans.</p>' +
       '<p>{{your_name}}</p>',
   };

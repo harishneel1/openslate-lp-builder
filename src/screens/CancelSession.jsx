@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, CalendarX, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Banknote, CalendarX } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { EmailCard, EmailPreview, SAMPLE, useLeaveWarning, useTestEmail } from './ReminderEditor';
-import { FIELDS, cancelTemplate, fieldValues, hasRefund, markRefund, withoutRefund } from '../data/reminders';
+import { FIELDS, cancelTemplate, fieldValues, markRefund, withRefund, withoutRefund } from '../data/reminders';
 import { webinarStart, webinarWhen } from '../data/webinar';
 import './ReminderEditor.css';
 import './CancelSession.css';
@@ -20,12 +20,12 @@ import './CancelSession.css';
 //     (the same amount each) or Don't refund. The refund decides what the
 //     email says, so it comes first. Go back here leaves (nothing's changed).
 //   2 The page: the email and its preview, with the refund in a bar of its
-//     own ((↺) Refunding ₹200 to each person who paid  [Change]). Change reopens 1.
+//     own ((₹) Refunding ₹200 to each person who paid  [Change]). Change reopens 1.
 //     Just after a choice, the bar and the refund sentence in the preview
 //     light up for a moment, so it's clear where the choice went. The
 //     email's Refund amount already matches it, so the preview is what
 //     gets sent. With Don't refund, the sentence holding the Refund amount
-//     is left out (faded in the editor, with a note saying why).
+//     is taken out of the email; choosing a refund again puts it back.
 //   3 The red button's check: only confirms what's on screen ("We'll email
 //     2 people and send their refunds."), without repeating the amounts,
 //     and nothing new is decided there. It closes on Go back or Escape.
@@ -33,7 +33,8 @@ import './CancelSession.css';
 //   Cancel the session on Wed 11 Nov       [Send me a test] [Keep session] [Cancel session & email 23 people]
 //   7:00 pm IST · 23 signed up · ₹22,977 paid
 //                                                         You’ll confirm before anything is sent.
-//   ┌ (↺) Refunding each person who paid in full            [Change] ┐
+//   ┌ (₹) Refunding each person who paid in full            [Change] ┐
+//   │     23 people · ₹22,977 in total                               │
 //   ⚠ It starts in 45 min. Some people may not see the email in time.
 //   ┌ the email ───────────────────┐  ┌ how it looks in their inbox ┐
 //
@@ -93,6 +94,9 @@ export default function CancelSession({ run, people = [], hostName, now, nextDay
 
   const template = useMemo(() => cancelTemplate({ paid: anyPaid }), [anyPaid]);
   const [draft, setDraft] = useState(template);
+  // Bumped when the refund sentence is taken out or put back: the editor
+  // starts again from the draft (it only reads what it's given when it opens)
+  const [emailKey, setEmailKey] = useState(0);
   // The refund, as chosen in step 1: { kind: 'full' | 'part' | 'none', each }
   const [refund, setRefund] = useState({ kind: 'full', each: null });
   // 'refund' (step 1) | 'confirm' | 'leave'. Someone paid: the refund comes first.
@@ -113,7 +117,9 @@ export default function CancelSession({ run, people = [], hostName, now, nextDay
 
   const refunding = anyPaid && refund.kind !== 'none';
   const refundEach = refunding && refund.kind === 'part' ? refund.each : null;
-  const dirty = draft.subject !== template.subject || draft.body !== template.body;
+  // Changed from the template (with the refund sentence or without it, as chosen)
+  const base = refunding ? template.body : withoutRefund(template.body);
+  const dirty = draft.subject !== template.subject || draft.body !== base;
   const emptySubject = !draft.subject;
 
   // The preview's values: the example person, and what they'd get back
@@ -125,15 +131,12 @@ export default function CancelSession({ run, people = [], hostName, now, nextDay
     }),
     [run, hostName, refundEach, payers],
   );
-  // What's sent, and so what the preview shows: with nobody refunded, the
-  // Refund amount's sentence is left out. Just after a choice, the
-  // preview's refund sentence is marked for its moment of highlight.
-  const sent = refunding ? draft : { ...draft, body: withoutRefund(draft.body) };
-  const shown = flashing && refunding ? { ...sent, body: markRefund(sent.body, `cs-flash cs-flash-${flash}`) } : sent;
-  const leftOut = !refunding && anyPaid && hasRefund(draft.body);
+  // What the preview shows: the email, with its refund sentence marked for
+  // a moment of highlight just after a choice
+  const shown = flashing && refunding ? { ...draft, body: markRefund(draft.body, `cs-flash cs-flash-${flash}`) } : draft;
   // What Insert detail offers: no join link (there's nothing to join); the
-  // Refund amount only when someone paid
-  const fields = FIELDS.filter((f) => f.key !== 'join_link' && (!f.only || (f.only === 'cancel' && anyPaid)));
+  // Refund amount only while someone is being refunded
+  const fields = FIELDS.filter((f) => f.key !== 'join_link' && (!f.only || (f.only === 'cancel' && refunding)));
 
   const start = webinarStart(answers);
   const startsSoon = start !== null && start - now < SOON_MS;
@@ -162,7 +165,7 @@ export default function CancelSession({ run, people = [], hostName, now, nextDay
 
   const cancelNow = () => {
     setAsk(null);
-    const ok = onConfirm({ email: { subject: sent.subject, body: sent.body }, refund: refunding, refundEach });
+    const ok = onConfirm({ email: { subject: draft.subject, body: draft.body }, refund: refunding, refundEach });
     if (ok === false) setFailed(true);
   };
 
@@ -213,11 +216,14 @@ export default function CancelSession({ run, people = [], hostName, now, nextDay
       {anyPaid && (
         <div key={flash} className={`cs__refund ${flash ? 'cs__refund--flash' : ''}`}>
           <span className="cs__refund-icon" aria-hidden="true">
-            <RotateCcw size={16} />
+            <Banknote size={16} />
           </span>
-          <p className="cs__refund-text" role="status">
-            {refundLine(refund)}
-          </p>
+          <div className="cs__refund-text" role="status">
+            <p className="cs__refund-title">{refundLine(refund)}</p>
+            {refund.kind !== 'none' && (
+              <p className="cs__refund-facts">{refundFacts(refund, payers.length, paidTotal)}</p>
+            )}
+          </div>
           <button type="button" className="oh__edit re__btn cs__refund-change" onClick={() => setAsk('refund')}>
             Change
           </button>
@@ -232,20 +238,7 @@ export default function CancelSession({ run, people = [], hostName, now, nextDay
       )}
 
       <div className="re__grid">
-        <EmailCard
-          initial={template}
-          onChange={setDraft}
-          fields={fields}
-          // Don't refund: the sentence with the Refund amount is faded in
-          // the editor (CancelSession.css), and this says why
-          after={
-            leftOut ? (
-              <p className="cs__left-out">
-                The sentence with Refund amount is left out of the email, since you’re not refunding anyone.
-              </p>
-            ) : null
-          }
-        />
+        <EmailCard key={emailKey} initial={draft} onChange={setDraft} fields={fields} />
         <EmailPreview
           draft={shown}
           values={values}
@@ -286,6 +279,13 @@ export default function CancelSession({ run, people = [], hostName, now, nextDay
           }}
           onChoose={(next) => {
             chosen.current = true;
+            // Refunding or not changed: take the refund sentence out of the
+            // email, or put it back, and open the editor on the result
+            const nowRefunding = next.kind !== 'none';
+            if (nowRefunding !== refunding) {
+              setDraft((d) => ({ ...d, body: nowRefunding ? withRefund(d.body) : withoutRefund(d.body) }));
+              setEmailKey((k) => k + 1);
+            }
             setRefund(next);
             setAsk(null);
             setFlash((n) => n + 1); // show where the choice went
@@ -320,6 +320,16 @@ function refundLine({ kind, each }) {
   if (kind === 'none') return 'Not refunding anyone';
   if (kind === 'part') return `Refunding ${rupees(each)} to each person who paid`;
   return 'Refunding each person who paid in full';
+}
+
+// The bar's second line, only while refunding: how many are refunded
+// (only people who paid) and the total going back. Not refunding has no
+// second line (the header already says what was paid).
+//   '2 people · ₹600 in total'   (part: ₹300 each)
+//   '2 people · ₹998 in total'   (full)
+function refundFacts({ kind, each }, count, paid) {
+  const total = kind === 'part' ? each * count : paid;
+  return `${peopleCount(count)} · ${rupees(total)} in total`;
 }
 
 // The check's first sentence: what's about to happen, without repeating
