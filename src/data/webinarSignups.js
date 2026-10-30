@@ -10,10 +10,13 @@
 //   amount: what they paid in rupees, 0 when it's free
 //   registeredAt: when they registered (ms)
 //   refundedAt, refunded: when and how much they were refunded (rupees),
-//     in full, when their session was cancelled (refundAll);
-//     missing otherwise. Refunds only happen when a session is cancelled:
-//     there's no refunding one person by hand (saves from before may
-//     still have some, and show fine)
+//     in full or in part: when their session was cancelled (refundAll),
+//     or when the coach removed them (removeOne); missing otherwise
+//   removedAt: when the coach took them out of the session (removeOne);
+//     missing while they're attending. Removed people stay in the list as
+//     a record, but nothing about the session reaches them any more: no
+//     reminders, no cancellation or reschedule email, no cancel refund.
+//     Nobody is emailed about the removal: the coach tells them.
 //
 // The same email registering twice for one webinar counts once: the
 // second time just returns the first.
@@ -49,6 +52,14 @@ export function peopleOf(webinarId) {
     .filter((p) => p.webinarId === webinarId)
     .sort((a, b) => b.registeredAt - a.registeredAt);
 }
+
+// Taken out of the session by the coach (removeOne)
+export const isRemoved = (person) => Number.isFinite(person?.removedAt);
+
+// Who's still attending: everyone except people removed. What every email
+// to the session's people (reminders, cancel, reschedule) and every count
+// of who's coming uses.
+export const attendingOf = (webinarId) => peopleOf(webinarId).filter((p) => !isRemoved(p));
 
 // Saves one registration. Returns the person, or null if it couldn't be saved.
 export function addSignup({ webinarId, name, email, phone, amount = 0 }) {
@@ -93,7 +104,7 @@ export function refundAll(webinarId, { each = null, at = Date.now() } = {}) {
   let count = 0;
   let total = 0;
   const next = all.map((p) => {
-    if (p.webinarId !== webinarId || !(p.amount > 0) || p.refundedAt) return p;
+    if (p.webinarId !== webinarId || !(p.amount > 0) || p.refundedAt || isRemoved(p)) return p;
     const back = part === null ? p.amount : Math.min(part, p.amount);
     count += 1;
     total += back;
@@ -101,6 +112,27 @@ export function refundAll(webinarId, { each = null, at = Date.now() } = {}) {
   });
   if (count > 0) saveAll(next);
   return { count, total, each: part };
+}
+
+// Removing one person from a session, by hand (say, they asked for their
+// money back). They're marked removed, and, when they paid and haven't
+// been refunded, refunded: in full by default, or part of it (refund:
+// whole rupees, more than 0 and less than what they paid). Once only: a
+// removed person can't be removed again. In the prototype no money moves
+// and nobody is emailed. Returns the removed person, or null when they
+// can't be (not found, already removed, the amount doesn't work) or it
+// couldn't be saved.
+export function removeOne(webinarId, personId, { refund = null, at = Date.now() } = {}) {
+  const all = loadAll();
+  const person = all.find((p) => p.webinarId === webinarId && p.id === personId);
+  if (!person || isRemoved(person)) return null;
+  let next = { ...person, removedAt: at };
+  if (person.amount > 0 && !person.refundedAt) {
+    const back = refund === null ? person.amount : refund;
+    if (!Number.isInteger(back) || back <= 0 || back > person.amount) return null;
+    next = { ...next, refundedAt: at, refunded: back };
+  }
+  return saveAll(all.map((p) => (p === person ? next : p))) ? next : null;
 }
 
 // What someone paid that they still have paid: what they paid, less any
@@ -139,7 +171,16 @@ export function peopleCsv(people, { paid = false } = {}) {
   const when = (ms) =>
     new Date(ms).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
   const refunds = paid && people.some((p) => p.refundedAt);
-  const head = ['Name', 'Email', 'Phone', 'Registered', ...(paid ? ['Paid (₹)'] : []), ...(refunds ? ['Refunded (₹)'] : [])];
+  const removed = people.some(isRemoved);
+  const head = [
+    'Name',
+    'Email',
+    'Phone',
+    'Registered',
+    ...(paid ? ['Paid (₹)'] : []),
+    ...(refunds ? ['Refunded (₹)'] : []),
+    ...(removed ? ['Removed'] : []),
+  ];
   const rows = people.map((p) => [
     p.name,
     p.email,
@@ -147,6 +188,7 @@ export function peopleCsv(people, { paid = false } = {}) {
     when(p.registeredAt),
     ...(paid ? [p.amount] : []),
     ...(refunds ? [p.refunded ?? 0] : []),
+    ...(removed ? [isRemoved(p) ? when(p.removedAt) : ''] : []),
   ]);
   return `\uFEFF${[head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n')}`;
 }

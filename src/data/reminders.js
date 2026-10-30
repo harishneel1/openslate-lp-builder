@@ -341,14 +341,15 @@ export function timeline(webinar, people, now = Date.now()) {
     const { on } = emailOf(webinar, r.id);
     const at = sendTime(webinar.answers, r.id);
     if (at === null) {
-      return { id: r.id, at, past: true, on, skipped: false, closed: cancelledAt !== null, sentTo: on ? people.length : 0 };
+      return { id: r.id, at, past: true, on, skipped: false, closed: cancelledAt !== null, sentTo: on ? people.filter((p) => !Number.isFinite(p.removedAt)).length : 0 };
     }
     if (cancelledAt !== null && at > cancelledAt) {
       return { id: r.id, at, past: false, on, skipped: false, stopped: true, sentTo: 0 };
     }
     const past = at <= now;
     const skipped = live !== null && at < live;
-    const sentTo = past && on && !skipped ? people.filter((p) => p.registeredAt <= at).length : 0;
+    // Signed up by then, and not removed before it (removed people get nothing more)
+    const sentTo = past && on && !skipped ? people.filter((p) => p.registeredAt <= at && !(p.removedAt <= at)).length : 0;
     return { id: r.id, at, past, on, skipped, sentTo };
   });
   const next = rows.find((row) => !row.past && row.on && !row.stopped);

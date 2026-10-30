@@ -62,9 +62,9 @@ function signedUp(list) {
 //     open: 'recording' | null (the tab a click opens: only the
 //     recording's line opens anything; every other line is just a record) }
 // kind: 'added' | 'signups' | 'reminder' | 'ended' | 'moved' |
-//       'cancelled' | 'recording'
-// Refunds are part of the cancelled line: they only happen when a session
-// is cancelled
+//       'cancelled' | 'removed' | 'recording'
+// Refunds are part of the line that made them: the cancelled line (everyone
+// at once) or a removed line (one person, by hand)
 // run: the session; signups: its people (peopleOf); now
 // ------------------------------------------------------------
 export function sessionActivity(run, signups = [], now = Date.now()) {
@@ -163,6 +163,22 @@ export function sessionActivity(run, signups = [], now = Date.now()) {
       open: null,
     });
   }
+
+  // People the coach removed, each with their refund (if they paid)
+  signups
+    .filter((p) => Number.isFinite(p.removedAt))
+    .forEach((p) => {
+      const back = p.refundedAt === p.removedAt ? p.refunded ?? p.amount : null;
+      out.push({
+        key: `removed:${p.id}`,
+        kind: 'removed',
+        at: p.removedAt,
+        title: back ? `Removed ${p.name} and refunded ${rupees(back)}` : `Removed ${p.name}`,
+        detail: null,
+        by: 'you',
+        open: null,
+      });
+    });
 
   // The recording, once it's ready
   const rec = recordingOf(run.id, now);

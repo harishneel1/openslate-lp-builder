@@ -16,6 +16,7 @@ import {
   Save,
   Search,
   Trash2,
+  UserMinus,
   Users,
   X,
 } from 'lucide-react';
@@ -53,7 +54,8 @@ import {
   webinarStatus,
   webinarWhen,
 } from '../data/webinar';
-import { keptOf, onSignupsChange, peopleCsv, peopleOf } from '../data/webinarSignups';
+import { attendingOf, isRemoved, keptOf, onSignupsChange, peopleCsv, peopleOf, removeOne } from '../data/webinarSignups';
+import RowMenu from '../components/RowMenu';
 import { onRecordingsChange, recordingOf } from '../data/recordings';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
@@ -467,7 +469,7 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
   }
   const answers = run.answers ?? {};
   const today = dayOf(answers, now);
-  const count = peopleOf(run.id).length;
+  const count = attendingOf(run.id).length; // who's coming: removed people aren't
   const paid = !webinarPrice(answers).isFree;
   // The big numbers: Registered always, Collected for a paid session
   const stats = [
@@ -631,7 +633,7 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
   const past = webinarStatus(r, now) === 'past';
   const label = cancelled ? 'Cancelled' : live ? 'Live now' : past ? 'Ended' : isLink ? 'Registrations open' : 'Scheduled';
   const tone = live || isLink ? 'wd__st-badge--link' : '';
-  const count = peopleOf(r.id).length;
+  const count = attendingOf(r.id).length; // who's coming: removed people aren't
   const collected = collectedOf(r.id);
   const free = webinarPrice(answers).isFree && collected === 0;
   const moneyText = money ? (free ? 'Free' : rupees(collected)) : null;
@@ -771,7 +773,8 @@ function SessionDrawer({
   all = [],
   nextDay = null,
 }) {
-  const people = usePeople(run.id);
+  const people = usePeople(run.id); // everyone who signed up, removed people included
+  const attending = people.filter((p) => !isRemoved(p)); // who's coming
   const answers = run.answers ?? {};
   const ended = webinarStatus(run, now) === 'past';
   const price = webinarPrice(answers);
@@ -793,6 +796,8 @@ function SessionDrawer({
   const [cancelEmpty, setCancelEmpty] = useState(false); // "Cancel this session?" with nobody signed up
   const [moving, setMoving] = useState(false); // the Reschedule pop-up
   const [downloading, setDownloading] = useState(false); // "Download the people who signed up?"
+  const [menuFor, setMenuFor] = useState(null); // the person whose ⋯ menu is open
+  const [removing, setRemoving] = useState(null); // "Remove Priya and refund them?"
   const moved = useMovedToast(run, shownTab);
   const cancelled = isCancelled(run);
   const live = !cancelled && isOnNow(answers, now);
@@ -813,7 +818,7 @@ function SessionDrawer({
   // Cancel session: with people signed up, the cancel page (the email);
   // with nobody, a short "are you sure". Unsaved edits ask first.
   const startCancel = () => {
-    if (people.length > 0) onCancelSession();
+    if (attending.length > 0) onCancelSession(); // removed people aren't emailed
     else setCancelEmpty(true);
   };
   const askCancel = () => (dirty ? setAsking('cancel') : startCancel());
@@ -831,6 +836,26 @@ function SessionDrawer({
         (digits.length >= 3 && p.phone.replace(/\D/g, '').includes(digits)),
     );
   }, [people, query]);
+
+  // The list, split: who's coming, then people removed
+  const shownAttending = shown.filter((p) => !isRemoved(p));
+  const shownRemoved = shown.filter(isRemoved);
+  // Removing people: until the session is cancelled (then it's over, and
+  // everyone who paid was already refunded or not, as chosen)
+  const canRemove = !cancelled;
+
+  // Nobody signed up (or nobody still coming, once everyone was removed)
+  const emptyPeople = (
+    <div className="calls__empty">
+      <span className="calls__empty-icon" aria-hidden="true">
+        <Users size={22} />
+      </span>
+      <h3 className="calls__empty-title">
+        {cancelled ? 'No one had signed up' : ended ? 'No one signed up for this session' : 'No one has signed up yet'}
+      </h3>
+      {!ended && <p className="calls__empty-text">Share your landing page link. People who sign up will show up here.</p>}
+    </div>
+  );
 
   const download = () => {
     const blob = new Blob([peopleCsv(people, { paid: !price.isFree })], { type: 'text/csv;charset=utf-8' });
@@ -960,7 +985,7 @@ function SessionDrawer({
         )
       }
     >
-      <SessionTabs tab={shownTab} onTab={setTab} people={people.length} canEdit={!ended} />
+      <SessionTabs tab={shownTab} onTab={setTab} people={attending.length} canEdit={!ended} />
 
       {shownTab === 'activity' ? (
         <div id="wd-drawer-panel-activity" role="tabpanel" aria-labelledby="wd-drawer-tab-activity">
@@ -1002,15 +1027,7 @@ function SessionDrawer({
           )}
 
         {people.length === 0 ? (
-          <div className="calls__empty">
-            <span className="calls__empty-icon" aria-hidden="true">
-              <Users size={22} />
-            </span>
-            <h3 className="calls__empty-title">
-              {cancelled ? 'No one had signed up' : ended ? 'No one signed up for this session' : 'No one has signed up yet'}
-            </h3>
-            {!ended && <p className="calls__empty-text">Share your landing page link. People who sign up will show up here.</p>}
-          </div>
+          emptyPeople
         ) : shown.length === 0 ? (
           <div className="calls__empty">
             <h3 className="calls__empty-title">No one matches “{query.trim()}”</h3>
@@ -1019,61 +1036,60 @@ function SessionDrawer({
             </button>
           </div>
         ) : (
-          <ul className="wd-people">
-            {shown.map((p) => {
-              const first = p.name.split(/\s+/)[0] || p.name;
-              const chat = whatsappHref(p.phone, `Hi ${first}, `);
-              return (
-                <li key={p.id} className="wd-person">
-                  <div className="wd-person__text">
-                    <p className="wd-person__name">
-                      {p.name}
-                      {/* Refunded when the session was cancelled: the amount
-                          that went back. Opens the refund's details in a
-                          new tab (a placeholder for now). */}
-                      {p.refundedAt && (
-                        <a
-                          className="wd-person__badge"
-                          href={`?mock=refund&webinar=${encodeURIComponent(run.id)}&person=${encodeURIComponent(p.id)}`}
-                          target="_blank"
-                          rel="noopener"
-                          aria-label={`Refunded ₹${(p.refunded ?? p.amount).toLocaleString('en-IN')}. See refund details (opens in a new tab)`}
-                        >
-                          Refunded ₹{(p.refunded ?? p.amount).toLocaleString('en-IN')}
-                        </a>
-                      )}
-                    </p>
-                    <p className="wd-person__contact">
-                      <a className="wd__email" href={`mailto:${p.email}`}>
-                        {p.email}
-                      </a>
-                      {p.phone && <span> · {p.phone}</span>}
-                    </p>
-                  </div>
-                  <div className="wd-person__side">
-                    <span className="wd-person__when">{registeredWhen(p.registeredAt, now)}</span>
-                    {/* What they paid, refunded or not (the badge says what went back) */}
-                    {p.amount > 0 && <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>}
-                  </div>
-                  {chat ? (
-                    <a
-                      className="wd__wa"
-                      href={chat}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={`Message ${p.name} on WhatsApp`}
-                      data-tip="WhatsApp"
-                      data-tip-align="end"
-                    >
-                      <MessageCircle size={17} aria-hidden="true" />
-                    </a>
-                  ) : (
-                    <span />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {/* Who's coming. Each has a ⋯ with Remove (and refund, when they
+                paid), until the session is cancelled. */}
+            {shownAttending.length > 0 ? (
+              <ul className={`wd-people ${canRemove ? 'wd-people--menus' : ''}`}>
+                {shownAttending.map((p) => (
+                  <PersonRow
+                    key={p.id}
+                    person={p}
+                    runId={run.id}
+                    now={now}
+                    menu={
+                      canRemove ? (
+                        <RowMenu
+                          title={p.name}
+                          open={menuFor === p.id}
+                          onOpenChange={(open) => setMenuFor(open ? p.id : null)}
+                          items={[
+                            {
+                              label: p.amount > 0 && !p.refundedAt ? 'Remove and refund' : 'Remove',
+                              icon: UserMinus,
+                              danger: true,
+                              onSelect: () => {
+                                setMenuFor(null);
+                                setRemoving(p);
+                              },
+                            },
+                          ]}
+                        />
+                      ) : null
+                    }
+                  />
+                ))}
+              </ul>
+            ) : (
+              // Nobody still coming (everyone was removed): the usual empty
+              // state, with the Removed section under it
+              !query.trim() && emptyPeople
+            )}
+
+            {/* Removed: a record, under who's coming, always open */}
+            {shownRemoved.length > 0 && (
+              <section className="wd-removed" aria-labelledby="wd-removed-title">
+                <h3 className="wd-removed__head" id="wd-removed-title">
+                  Removed <span className="oh__count">{shownRemoved.length}</span>
+                </h3>
+                <ul className="wd-people wd-people--removed">
+                  {shownRemoved.map((p) => (
+                    <PersonRow key={p.id} person={p} runId={run.id} now={now} />
+                  ))}
+                </ul>
+              </section>
+            )}
+          </>
         )}
         </div>
       )}
@@ -1135,6 +1151,18 @@ function SessionDrawer({
         </ConfirmDialog>
       )}
 
+      {removing && (
+        <RemoveDialog
+          key={removing.id}
+          person={removing}
+          onCancel={() => setRemoving(null)}
+          onRemove={(refund) => {
+            removeOne(run.id, removing.id, { refund });
+            setRemoving(null);
+          }}
+        />
+      )}
+
       {downloading && (
         <ConfirmDialog
           title="Download the people who signed up?"
@@ -1182,6 +1210,162 @@ function SessionDrawer({
         </ConfirmDialog>
       )}
     </Drawer>
+  );
+}
+
+// ---------- One person in Manage people ----------
+// Name (with a Refunded badge once refunded, which opens the refund's
+// details in a new tab), email and phone; when they signed up (or were
+// removed) and what they paid; WhatsApp; and the ⋯ (menu) for people
+// still coming. Removed people's rows are quieter (CSS) and have no ⋯.
+function PersonRow({ person: p, runId, now, menu = null }) {
+  const first = p.name.split(/\s+/)[0] || p.name;
+  const chat = whatsappHref(p.phone, `Hi ${first}, `);
+  const removed = isRemoved(p);
+  const back = (p.refunded ?? p.amount).toLocaleString('en-IN');
+  return (
+    <li className="wd-person">
+      <div className="wd-person__text">
+        <p className="wd-person__name">
+          {p.name}
+          {p.refundedAt && (
+            <a
+              className="wd-person__badge"
+              href={`?mock=refund&webinar=${encodeURIComponent(runId)}&person=${encodeURIComponent(p.id)}`}
+              target="_blank"
+              rel="noopener"
+              aria-label={`Refunded ₹${back}. See refund details (opens in a new tab)`}
+            >
+              Refunded ₹{back}
+            </a>
+          )}
+        </p>
+        <p className="wd-person__contact">
+          <a className="wd__email" href={`mailto:${p.email}`}>
+            {p.email}
+          </a>
+          {p.phone && <span> · {p.phone}</span>}
+        </p>
+      </div>
+      <div className="wd-person__side">
+        <span className="wd-person__when">
+          {removed ? `Removed ${registeredWhen(p.removedAt, now).replace(/^(Today|Yesterday)/, (d) => d.toLowerCase())}` : registeredWhen(p.registeredAt, now)}
+        </span>
+        {/* What they paid, refunded or not (the badge says what went back) */}
+        {p.amount > 0 && <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>}
+      </div>
+      {chat ? (
+        <a
+          className="wd__wa"
+          href={chat}
+          target="_blank"
+          rel="noopener"
+          aria-label={`Message ${p.name} on WhatsApp`}
+          data-tip="WhatsApp"
+          data-tip-align="end"
+        >
+          <MessageCircle size={17} aria-hidden="true" />
+        </a>
+      ) : (
+        <span />
+      )}
+      {menu}
+    </li>
+  );
+}
+
+// ---------- Remove one person (and refund them) ----------
+//
+//   Remove Harish Neel and refund them?
+//   They won't get any more emails about this session.
+//   They paid ₹499. The refund usually reaches them in 5 to 7 working days.
+//   ☐ Refund part of it
+//      ₹ [ 200 ]                 (once ticked)
+//                       [Go back] [Remove and refund ₹499 → ₹200]
+//
+// Someone who didn't pay (or was refunded already) is just removed:
+//   Remove Harish Neel?  They won't get any more emails about this session.
+// A part refund is more than ₹0 and less than what they paid; the button
+// does nothing until it's one that works. Nobody is emailed about it: the
+// coach tells them. A stray click outside doesn't close it; Go back and
+// Escape do.
+function RemoveDialog({ person, onCancel, onRemove }) {
+  const paid = person.amount;
+  const refunds = paid > 0 && !person.refundedAt;
+  const money = (n) => `₹${n.toLocaleString('en-IN')}`;
+  const [partial, setPartial] = useState(false);
+  const [amount, setAmount] = useState(''); // digits only
+  const value = Number(amount) || 0;
+  const tooHigh = partial && value >= paid;
+  const ready = !refunds || !partial || (value > 0 && !tooHigh);
+  const remove = () => ready && onRemove(refunds && partial ? value : null);
+
+  // Ticked: straight into the amount box
+  const input = useRef(null);
+  useEffect(() => {
+    if (partial) input.current?.focus();
+  }, [partial]);
+
+  if (!refunds) {
+    return (
+      <ConfirmDialog
+        title={`Remove ${person.name}?`}
+        confirmLabel="Remove"
+        cancelLabel="Go back"
+        danger
+        stayOpen
+        onCancel={onCancel}
+        onConfirm={remove}
+      >
+        <p>They won’t get any more emails about this session.</p>
+      </ConfirmDialog>
+    );
+  }
+
+  return (
+    <ConfirmDialog
+      title={`Remove ${person.name} and refund them?`}
+      confirmLabel={partial ? (ready ? `Remove and refund ${money(value)}` : 'Remove and refund') : `Remove and refund ${money(paid)}`}
+      cancelLabel="Go back"
+      danger
+      confirmDisabled={!ready}
+      stayOpen
+      onCancel={onCancel}
+      onConfirm={remove}
+    >
+      <p>They won’t get any more emails about this session.</p>
+      <p>They paid {money(paid)}. The refund usually reaches them in 5 to 7 working days.</p>
+      <label className="wd-refund__check">
+        <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} />
+        Refund part of it
+      </label>
+      {partial && (
+        <div className="wd-refund__amount">
+          <span className="qinput__money">
+            <span className="qinput__currency" aria-hidden="true">
+              ₹
+            </span>
+            <input
+              ref={input}
+              inputMode="numeric"
+              className={`qinput__text qinput__money-input ${tooHigh ? 'qinput__text--error' : ''}`}
+              aria-label="Amount to refund, in rupees"
+              aria-invalid={tooHigh || undefined}
+              aria-describedby={tooHigh ? 'wd-refund-error' : undefined}
+              value={amount}
+              maxLength={6}
+              onChange={(e) => setAmount(e.target.value.replace(/\D/g, '').replace(/^0+/, ''))}
+              onKeyDown={(e) => e.key === 'Enter' && remove()}
+            />
+          </span>
+          {tooHigh && (
+            <p className="qinput__error" id="wd-refund-error">
+              Enter an amount less than {money(paid)}.
+            </p>
+          )}
+        </div>
+      )}
+    </ConfirmDialog>
   );
 }
 

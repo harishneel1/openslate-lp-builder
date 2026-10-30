@@ -1,4 +1,4 @@
-import { CalendarCheck, CalendarClock, CalendarX, Mail, Plus, RotateCcw, Users, Video } from 'lucide-react';
+import { CalendarCheck, CalendarClock, CalendarX, Mail, Plus, RotateCcw, UserMinus, Users, Video } from 'lucide-react';
 import { activityByDay, sessionActivity } from '../data/sessionActivity';
 import './ActivityPanel.css';
 
@@ -29,7 +29,8 @@ const ICONS = {
   ended: CalendarCheck,
   moved: CalendarClock,
   cancelled: CalendarX,
-  refund: RotateCcw,
+  refund: RotateCcw, // older saves' refunds by hand
+  removed: UserMinus,
   recording: Video,
 };
 

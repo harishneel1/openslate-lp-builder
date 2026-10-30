@@ -4,7 +4,7 @@ import AppLayout from './components/AppLayout';
 import WebinarsPage from './screens/WebinarsPage';
 import FunnelOverview from './screens/FunnelOverview';
 import WebinarDetails from './screens/WebinarDetails';
-import { deleteSignupsOf, peopleOf, refundAll } from './data/webinarSignups';
+import { attendingOf, deleteSignupsOf, peopleOf, refundAll } from './data/webinarSignups';
 import { deleteRecordingsOf, seedDemoRecordings } from './data/recordings';
 import QuestionFlow from './screens/QuestionFlow';
 import Checkpoint from './screens/Checkpoint';
@@ -288,7 +288,7 @@ function App() {
     updateRun(id, {
       cancelled: {
         at,
-        emailedTo: peopleOf(id).length,
+        emailedTo: attendingOf(id).length, // removed people aren't emailed
         email,
         refund: refunded && refunded.count > 0 ? refunded : null,
       },
@@ -312,7 +312,7 @@ function App() {
     if (!run || !canReschedule(run) || moveProblem(run, all, date, time)) return false;
     const at = Date.now();
     const from = { date: run.answers.date, time: run.answers.time ?? '19:00' };
-    const emailedTo = email ? peopleOf(id).length : 0;
+    const emailedTo = email ? attendingOf(id).length : 0; // removed people aren't emailed
     const moved = {
       ...run,
       answers: { ...run.answers, date, time },
@@ -628,7 +628,7 @@ function App() {
           key={`${openId}-${to.date}-${to.time}`}
           run={current}
           to={to}
-          people={peopleOf(openId)}
+          people={attendingOf(openId)}
           hostName={answers.hostName}
           now={now}
           warnings={moveWarnings(current, funnels.filter((f) => f.type === 'webinar'), to.date, to.time, now)}
@@ -653,7 +653,7 @@ function App() {
         <CancelSession
           key={openId}
           run={current}
-          people={peopleOf(openId)}
+          people={attendingOf(openId)}
           nextDay={moveWhen ? `${moveWhen.weekday} ${moveWhen.day} ${moveWhen.month}` : null}
           hostName={answers.hostName}
           now={Date.now()}

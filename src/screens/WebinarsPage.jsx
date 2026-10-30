@@ -9,7 +9,7 @@ import { funnelTypes } from '../data/funnelTypes';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
 import { webinarShareMessage } from '../utils/shareMessage';
-import { onSignupsChange, peopleOf } from '../data/webinarSignups';
+import { attendingOf, onSignupsChange } from '../data/webinarSignups';
 import {
   currentRun,
   runsOf,
@@ -177,7 +177,7 @@ export default function WebinarsPage({ webinars = [], onCreate, onOpen, onOpenOv
       onPreview?.();
       window.open(`?preview=${encodeURIComponent(w.id)}`, '_blank', 'noopener');
     },
-    people: w.publishedAt ? peopleOf(w.id).length : null,
+    people: w.publishedAt ? attendingOf(w.id).length : null, // who's coming: removed people aren't
     onOpen: () => onOpen(w.id),
     onOpenOverview: () => onOpenOverview(w.id),
     onShare: () => setSharing(w),

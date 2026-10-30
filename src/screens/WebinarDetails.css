@@ -1302,6 +1302,77 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+/* People still coming each have a ⋯ (Remove): a fourth column */
+.wd-people--menus .wd-person {
+  grid-template-columns: minmax(0, 1fr) auto 36px 36px;
+}
+
+/* The ⋯ here is lighter than on other pages' rows: no box until it's
+   hovered or open, so it sits quietly beside the WhatsApp icon */
+.wd-person .row-menu__button {
+  width: 36px;
+  height: 36px;
+  color: var(--color-text-muted);
+  border-color: transparent;
+}
+
+.wd-person .row-menu__button:hover,
+.wd-person .row-menu__button[aria-expanded='true'] {
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+/* ---------- Removed: a section under the list, always open ---------- */
+.wd-removed {
+  margin-top: 16px;
+}
+
+.wd-removed__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Removed people: a record, so quieter than people coming */
+.wd-people--removed .wd-person__name,
+.wd-people--removed .wd-person__paid {
+  color: var(--color-text-muted);
+}
+
+.wd-people--removed .wd-person__contact,
+.wd-people--removed .wd__email {
+  color: var(--color-text-disabled);
+}
+
+/* The remove pop-up: "Refund part of it", then its amount box */
+.wd-refund__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-weight: 600;
+  color: #141414;
+  cursor: pointer;
+}
+
+.wd-refund__check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.wd-refund__amount {
+  display: grid;
+  gap: 6px;
+  padding-left: 26px;
+}
+
 .wd-person__name {
   margin: 0;
   font-size: 15px;
