@@ -13,7 +13,6 @@ import {
   Pencil,
   Play,
   Plus,
-  RotateCcw,
   Save,
   Search,
   Trash2,
@@ -54,8 +53,7 @@ import {
   webinarStatus,
   webinarWhen,
 } from '../data/webinar';
-import { keptOf, onSignupsChange, peopleCsv, peopleOf, refundOne } from '../data/webinarSignups';
-import RowMenu from '../components/RowMenu';
+import { keptOf, onSignupsChange, peopleCsv, peopleOf } from '../data/webinarSignups';
 import { onRecordingsChange, recordingOf } from '../data/recordings';
 import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
@@ -794,15 +792,8 @@ function SessionDrawer({
   const [asking, setAsking] = useState(null);
   const [cancelEmpty, setCancelEmpty] = useState(false); // "Cancel this session?" with nobody signed up
   const [moving, setMoving] = useState(false); // the Reschedule pop-up
-  const [menuFor, setMenuFor] = useState(null); // the person whose ⋯ menu is open
-  const [refunding, setRefunding] = useState(null); // "Refund ₹999 to Priya?"
   const [downloading, setDownloading] = useState(false); // "Download the people who signed up?"
   const moved = useMovedToast(run, shownTab);
-  // A paid session's people each get a ⋯ with Refund (while they have something to refund)
-  const canRefund = (p) => p.amount > 0 && !p.refundedAt;
-  // The ⋯ column is kept only while someone in the list can still be refunded
-  // (once each), so it doesn't leave an empty gap at the end of every row
-  const refundsShown = people.some(canRefund);
   const cancelled = isCancelled(run);
   const live = !cancelled && isOnNow(answers, now);
   // A save (or a change made elsewhere) brings the form back in line
@@ -1028,7 +1019,7 @@ function SessionDrawer({
             </button>
           </div>
         ) : (
-          <ul className={`wd-people ${refundsShown ? 'wd-people--refunds' : ''}`}>
+          <ul className="wd-people">
             {shown.map((p) => {
               const first = p.name.split(/\s+/)[0] || p.name;
               const chat = whatsappHref(p.phone, `Hi ${first}, `);
@@ -1037,8 +1028,9 @@ function SessionDrawer({
                   <div className="wd-person__text">
                     <p className="wd-person__name">
                       {p.name}
-                      {/* Refunded, in full or in part: the amount that went back.
-                          Opens the refund's details in a new tab (a placeholder for now). */}
+                      {/* Refunded when the session was cancelled: the amount
+                          that went back. Opens the refund's details in a
+                          new tab (a placeholder for now). */}
                       {p.refundedAt && (
                         <a
                           className="wd-person__badge"
@@ -1078,29 +1070,6 @@ function SessionDrawer({
                   ) : (
                     <span />
                   )}
-                  {/* Refund, by hand: for someone who asked (say, they can't
-                      make a new date). Tucked in ⋯ so it's never pressed by accident. */}
-                  {refundsShown &&
-                    (canRefund(p) ? (
-                      <RowMenu
-                        title={p.name}
-                        open={menuFor === p.id}
-                        onOpenChange={(open) => setMenuFor(open ? p.id : null)}
-                        items={[
-                          {
-                            label: 'Refund', // in full or in part: chosen in the pop-up
-                            icon: RotateCcw,
-                            danger: true,
-                            onSelect: () => {
-                              setMenuFor(null);
-                              setRefunding(p);
-                            },
-                          },
-                        ]}
-                      />
-                    ) : (
-                      <span />
-                    ))}
                 </li>
               );
             })}
@@ -1129,18 +1098,6 @@ function SessionDrawer({
         >
           <p>You changed this session but haven’t saved it.</p>
         </ConfirmDialog>
-      )}
-
-      {refunding && (
-        <RefundDialog
-          key={refunding.id}
-          person={refunding}
-          onCancel={() => setRefunding(null)}
-          onRefund={(amount) => {
-            refundOne(run.id, refunding.id, { amount });
-            setRefunding(null);
-          }}
-        />
       )}
 
       {moving && (
@@ -1228,81 +1185,6 @@ function SessionDrawer({
   );
 }
 
-// ---------- Refund one person ----------
-//
-//   Refund Harish Neel?
-//   They paid ₹499. It usually reaches them in 5 to 7 working days.
-//   ☐ Refund part of it
-//      ₹ [ 200 ]                 (once ticked)
-//                                [Go back] [Refund ₹499 → ₹200]
-//
-// In full unless they tick the box; then the amount they type, more than
-// ₹0 and less than what was paid (the full amount is the box unticked).
-// The button names the amount, and does nothing until it's one that works.
-// Once per person (refundOne). A stray click outside doesn't close it;
-// Go back and Escape do.
-function RefundDialog({ person, onCancel, onRefund }) {
-  const paid = person.amount;
-  const money = (n) => `₹${n.toLocaleString('en-IN')}`;
-  const [partial, setPartial] = useState(false);
-  const [amount, setAmount] = useState(''); // digits only
-  const value = Number(amount) || 0;
-  const tooHigh = partial && value >= paid;
-  const ready = !partial || (value > 0 && !tooHigh);
-  const refund = () => ready && onRefund(partial ? value : paid);
-
-  // Ticked: straight into the amount box
-  const input = useRef(null);
-  useEffect(() => {
-    if (partial) input.current?.focus();
-  }, [partial]);
-
-  return (
-    <ConfirmDialog
-      title={`Refund ${person.name}?`}
-      confirmLabel={partial ? (ready ? `Refund ${money(value)}` : 'Refund') : `Refund ${money(paid)}`}
-      cancelLabel="Go back"
-      danger
-      confirmDisabled={!ready}
-      stayOpen
-      onCancel={onCancel}
-      onConfirm={refund}
-    >
-      <p>They paid {money(paid)}. It usually reaches them in 5 to 7 working days.</p>
-      <label className="wd-refund__check">
-        <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} />
-        Refund part of it
-      </label>
-      {partial && (
-        <div className="wd-refund__amount">
-          <span className="qinput__money">
-            <span className="qinput__currency" aria-hidden="true">
-              ₹
-            </span>
-            <input
-              ref={input}
-              inputMode="numeric"
-              className={`qinput__text qinput__money-input ${tooHigh ? 'qinput__text--error' : ''}`}
-              aria-label="Amount to refund, in rupees"
-              aria-invalid={tooHigh || undefined}
-              aria-describedby={tooHigh ? 'wd-refund-error' : undefined}
-              value={amount}
-              maxLength={6}
-              onChange={(e) => setAmount(e.target.value.replace(/\D/g, '').replace(/^0+/, ''))}
-              onKeyDown={(e) => e.key === 'Enter' && refund()}
-            />
-          </span>
-          {tooHigh && (
-            <p className="qinput__error" id="wd-refund-error">
-              Enter an amount less than {money(paid)}.
-            </p>
-          )}
-        </div>
-      )}
-    </ConfirmDialog>
-  );
-}
-
 // ---------- "Rescheduled" toast ----------
 // A move shows its toast once: the first time a session's panel sees it,
 // and only while it's fresh (a minute), so reopening the session later,
@@ -1379,7 +1261,9 @@ function CancelledSummary({ cancelled }) {
   const parts = [
     n > 0 ? `Email sent to ${n} ${n === 1 ? 'person' : 'people'}` : 'Nobody had signed up',
     cancelled.refund
-      ? `${rupees(cancelled.refund.total)} refunded to ${cancelled.refund.count} ${cancelled.refund.count === 1 ? 'person' : 'people'}`
+      ? `${rupees(cancelled.refund.total)} refunded to ${cancelled.refund.count} ${cancelled.refund.count === 1 ? 'person' : 'people'}${
+          cancelled.refund.each ? `, ${rupees(cancelled.refund.each)} each` : ''
+        }`
       : null,
   ].filter(Boolean);
   return (

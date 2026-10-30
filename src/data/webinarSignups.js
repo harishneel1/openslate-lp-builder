@@ -9,9 +9,11 @@
 //   phone:  '<code> <number>', as checkout saves it ('+91 98765 43210')
 //   amount: what they paid in rupees, 0 when it's free
 //   registeredAt: when they registered (ms)
-//   refundedAt, refunded: when and how much they were refunded (rupees):
-//     everyone at once when a session is cancelled (refundAll), or one
-//     person by hand (refundOne); missing otherwise
+//   refundedAt, refunded: when and how much they were refunded (rupees),
+//     in full, when their session was cancelled (refundAll);
+//     missing otherwise. Refunds only happen when a session is cancelled:
+//     there's no refunding one person by hand (saves from before may
+//     still have some, and show fine)
 //
 // The same email registering twice for one webinar counts once: the
 // second time just returns the first.
@@ -78,38 +80,27 @@ export function latestSignupAt({ after = 0, before = Infinity } = {}) {
 }
 
 // A cancelled session's refunds: everyone who paid (and isn't refunded
-// yet) is marked refunded with what they paid. In the prototype no money
-// moves; the real product asks the payment provider for each refund.
-// Returns { count, total } (rupees).
-export function refundAll(webinarId, at = Date.now()) {
+// yet) is marked refunded. In full by default: each gets back what they
+// paid. each: a part refund instead, the same whole-rupee amount for
+// everyone, more than 0 and less than the least anyone paid (the cancel
+// flow checks it; here it's never more than what someone paid). In the
+// prototype no money moves; the real product asks the payment provider
+// for each refund.
+// Returns { count, total, each } (rupees; each is null for a full refund).
+export function refundAll(webinarId, { each = null, at = Date.now() } = {}) {
+  const part = Number.isInteger(each) && each > 0 ? each : null;
   const all = loadAll();
   let count = 0;
   let total = 0;
   const next = all.map((p) => {
     if (p.webinarId !== webinarId || !(p.amount > 0) || p.refundedAt) return p;
+    const back = part === null ? p.amount : Math.min(part, p.amount);
     count += 1;
-    total += p.amount;
-    return { ...p, refundedAt: at, refunded: p.amount };
+    total += back;
+    return { ...p, refundedAt: at, refunded: back };
   });
   if (count > 0) saveAll(next);
-  return { count, total };
-}
-
-// One person's refund, by hand: the coach refunds someone who asked (say,
-// they can't make a session's new date). In full, or part of it (amount:
-// whole rupees, more than 0 and up to what they paid). Once per person:
-// after a part refund, the rest can't be refunded later. In the prototype
-// no money moves. Returns the refunded person, or null when there's
-// nothing to refund (not found, didn't pay, already refunded), the amount
-// isn't one they can get back, or it couldn't be saved.
-export function refundOne(webinarId, personId, { amount = null, at = Date.now() } = {}) {
-  const all = loadAll();
-  const person = all.find((p) => p.webinarId === webinarId && p.id === personId);
-  if (!person || !(person.amount > 0) || person.refundedAt) return null;
-  const back = amount === null ? person.amount : amount;
-  if (!Number.isInteger(back) || back <= 0 || back > person.amount) return null;
-  const refunded = { ...person, refundedAt: at, refunded: back };
-  return saveAll(all.map((p) => (p === person ? refunded : p))) ? refunded : null;
+  return { count, total, each: part };
 }
 
 // What someone paid that they still have paid: what they paid, less any

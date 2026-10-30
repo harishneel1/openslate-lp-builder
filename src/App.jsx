@@ -269,7 +269,8 @@ function App() {
   //   - everyone who signed up is sent the cancellation email (the coach
   //     edits it in the cancel flow; the prototype only records it)
   //   - with refund on (the default) on a paid session, everyone who paid
-  //     is refunded in full, automatically (refundAll)
+  //     is refunded automatically (refundAll): in full, or the same part
+  //     amount each (refundEach, whole rupees) when the coach chose that
   //   - it counts as over from here on (data/webinar.js): the link skips
   //     it, sign-ups and reminders stop, its Zoom meeting closes
   // email: { subject, body } or null; refund: true unless they unticked it
@@ -277,12 +278,13 @@ function App() {
   // Started from the session's side panel: with people signed up, through
   // the cancel page (CancelSession.jsx, step 'cancel-session', where the
   // email is edited); with nobody, straight from a pop-up there.
-  const cancelSession = (id, { email = null, refund = true } = {}) => {
+  // refundEach: rupees each for a part refund, null for a full one
+  const cancelSession = (id, { email = null, refund = true, refundEach = null } = {}) => {
     const run = funnels.find((f) => f.id === id);
     if (!run || !canCancel(run)) return false;
     const paid = !webinarPrice(run.answers ?? {}).isFree;
     const at = Date.now(); // the refunds share it, so Activity shows them as part of the cancel
-    const refunded = refund && paid ? refundAll(id, at) : null;
+    const refunded = refund && paid ? refundAll(id, { each: refundEach, at }) : null;
     updateRun(id, {
       cancelled: {
         at,

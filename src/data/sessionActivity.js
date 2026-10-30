@@ -62,7 +62,9 @@ function signedUp(list) {
 //     open: 'recording' | null (the tab a click opens: only the
 //     recording's line opens anything; every other line is just a record) }
 // kind: 'added' | 'signups' | 'reminder' | 'ended' | 'moved' |
-//       'cancelled' | 'refund' | 'recording'
+//       'cancelled' | 'recording'
+// Refunds are part of the cancelled line: they only happen when a session
+// is cancelled
 // run: the session; signups: its people (peopleOf); now
 // ------------------------------------------------------------
 export function sessionActivity(run, signups = [], now = Date.now()) {
@@ -154,28 +156,13 @@ export function sessionActivity(run, signups = [], now = Date.now()) {
       at: cancelAt,
       title: 'Session cancelled',
       detail:
-        [n > 0 ? `${people(n)} emailed` : null, r ? `${rupees(r.total)} refunded to ${people(r.count)}` : null]
+        [n > 0 ? `${people(n)} emailed` : null, r ? `${rupees(r.total)} refunded to ${people(r.count)}${r.each ? `, ${rupees(r.each)} each` : ''}` : null]
           .filter(Boolean)
           .join(' · ') || null,
       by: 'you',
       open: null,
     });
   }
-
-  // Refunds by hand: any not made by the cancel (a second either side, to be safe)
-  signups
-    .filter((p) => Number.isFinite(p.refundedAt) && !(cancelAt !== null && Math.abs(p.refundedAt - cancelAt) < 1000))
-    .forEach((p) => {
-      out.push({
-        key: `refund:${p.id}`,
-        kind: 'refund',
-        at: p.refundedAt,
-        title: `Refunded ${rupees(p.refunded ?? p.amount)} to ${p.name}`,
-        detail: null,
-        by: 'you',
-        open: null,
-      });
-    });
 
   // The recording, once it's ready
   const rec = recordingOf(run.id, now);

@@ -60,46 +60,201 @@
   color: var(--color-text);
 }
 
-/* ---------- The refund: a choice, so a real control ---------- */
+/* ---------- The refund, as chosen in step 1: a bar of its own ----------
+   An icon, the choice in bold, and Change as a real button on the right */
 .cs__refund {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-top: 20px;
-  padding: 14px 18px;
+  padding: 12px 12px 12px 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  cursor: pointer;
 }
 
-.cs__refund input {
+.cs__refund-icon {
+  display: grid;
   flex: none;
-  width: 18px;
-  height: 18px;
-  margin: 2px 0 0;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-}
-
-.cs__refund input:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border-radius: 50%;
 }
 
 .cs__refund-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.cs__refund-title {
+  flex: 1;
+  margin: 0;
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
 }
 
-.cs__refund-note {
+.cs__refund-change {
+  flex: none;
+}
+
+/* Just after a choice: an orange tint and edge that fade back to white */
+.cs__refund--flash {
+  animation: cs-flash-bar 2.4s ease-out;
+}
+
+@keyframes cs-flash-bar {
+  0%,
+  35% {
+    background: var(--color-primary-tint);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(239, 138, 60, 0.18);
+  }
+  100% {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    box-shadow: 0 0 0 0 rgba(239, 138, 60, 0);
+  }
+}
+
+/* The same moment in the preview: the refund sentence (markRefund) */
+.cs .cs-flash {
+  border-radius: 4px;
+  animation: cs-flash-text 2.4s ease-out;
+}
+
+@keyframes cs-flash-text {
+  0%,
+  35% {
+    background: #fde3cd;
+    box-shadow: 0 0 0 4px #fde3cd;
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+/* Don't refund: the editor's sentence with the Refund amount is faded
+   (it isn't sent), with a note under the email saying why */
+.cs .re__card:has(.cs__left-out) .re__body :is(p, li):has(.re-chip[data-field='refund_amount']) {
+  opacity: 0.4;
+}
+
+.cs__left-out {
+  margin: 0;
+  padding: 10px 20px 14px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Step 1: How should we refund people? (a pop-up) ---------- */
+.cs-pick {
+  display: grid;
+  gap: 8px;
+}
+
+.cs-pick__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cs-pick__option:hover {
+  border-color: #d6d6da;
+}
+
+.cs-pick__option--on,
+.cs-pick__option--on:hover {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.cs-pick__option > input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.cs-pick__text {
+  display: grid;
+  gap: 2px;
+}
+
+.cs-pick__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #141414;
+}
+
+.cs-pick__note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.cs-pick__amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.cs-pick__money {
+  position: relative;
+}
+
+.cs-pick__currency {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.cs-pick__input {
+  width: 110px;
+  height: 38px;
+  padding: 0 10px 0 24px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #141414;
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+}
+
+.cs-pick__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(239, 138, 60, 0.2);
+}
+
+.cs-pick__input--error,
+.cs-pick__input--error:focus {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+}
+
+.cs-pick__error {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #c0392b;
+}
+
+.cs-pick__days {
   font-size: 13px;
   color: var(--color-text-muted);
 }
@@ -127,7 +282,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cs__cancel {
+  .cs__cancel,
+  .cs-pick__option {
     transition: none;
+  }
+
+  /* No highlight: the bar is simply there */
+  .cs__refund--flash,
+  .cs .cs-flash {
+    animation: none;
   }
 }

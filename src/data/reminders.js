@@ -34,11 +34,14 @@ export const FIELDS = [
   { key: 'join_link', label: 'Join link', hint: 'Fills in each person’s own join link' },
   { key: 'your_name', label: 'Your name', hint: 'Fills in your name' },
   {
-    key: 'refund_note',
-    label: 'Refund note',
-    hint: 'Says their payment is being refunded. Left out when Refund everyone is unticked',
+    key: 'refund_amount',
+    label: 'Refund amount',
+    hint: 'Fills in how much each person gets back. Its sentence is left out when nobody is refunded',
     only: 'cancel',
   },
+  // Older cancellations' emails had the whole sentence as one field. Kept
+  // so they still read right; no longer offered in Insert detail.
+  { key: 'refund_note', label: 'Refund note', hint: 'Said their payment was being refunded', only: 'old' },
   { key: 'old_date', label: 'Old date', hint: 'Fills in the date it was on before', only: 'reschedule' },
   { key: 'old_time', label: 'Old time', hint: 'Fills in the time it was at before', only: 'reschedule' },
 ];
@@ -50,12 +53,28 @@ export const REMINDER_FIELDS = FIELDS.filter((f) => !f.only);
 // The cancellation email: sent once, to everyone who signed up for a
 // session the coach cancels (App.jsx cancelSession). The coach edits it
 // in the cancel flow (CancelSession.jsx); it isn't saved as a template,
-// each cancellation starts from this one. A paid session's version has
-// the Refund note, which fills in only while refunds are on, so the
-// email always matches what happens. No join link (there's nothing to
-// join) and no pointer to other sessions.
+// each cancellation starts from this one. A paid session's version has a
+// sentence with the Refund amount in it, which the coach can reword:
+// {{refund_amount}} fills in what each person gets back (the part amount,
+// or, in full, what that person paid). With nobody refunded, the
+// paragraph holding it is left out (withoutRefund), so the email always
+// matches what happens. No join link (there's nothing to join) and no
+// pointer to other sessions.
 // ------------------------------------------------------------
-export const REFUND_NOTE = 'Your payment is being refunded in full. It usually reaches your account within 5 to 7 working days.';
+
+// A paragraph (or list item) holding the Refund amount
+const REFUND_BLOCK = /<(p|li)>(?:(?!<\/\1>)[\s\S])*?\{\{refund_amount\}\}[\s\S]*?<\/\1>/g;
+
+// The email with nobody refunded: the Refund amount's paragraph left out
+export const withoutRefund = (html) => String(html ?? '').replace(REFUND_BLOCK, '');
+
+// Does the email mention the refund amount at all?
+export const hasRefund = (html) => String(html ?? '').includes('{{refund_amount}}');
+
+// Marks the Refund amount's paragraph with a class (the preview's
+// highlight just after the refund is chosen)
+export const markRefund = (html, className) =>
+  String(html ?? '').replace(REFUND_BLOCK, (block, tag) => block.replace(`<${tag}>`, `<${tag} class="${className}">`));
 
 export function cancelTemplate({ paid = false } = {}) {
   return {
@@ -63,7 +82,7 @@ export function cancelTemplate({ paid = false } = {}) {
     body:
       '<p>Hi {{first_name}},</p>' +
       '<p>I’m sorry, but I’ve had to cancel <b>{{webinar_title}}</b> on <b>{{date}} at {{time}}</b>.</p>' +
-      (paid ? '<p>{{refund_note}}</p>' : '') +
+      (paid ? '<p>We’re refunding {{refund_amount}} to you. It usually reaches your account within 5 to 7 working days.</p>' : '') +
       '<p>Thank you for understanding, and sorry for the change of plans.</p>' +
       '<p>{{your_name}}</p>',
   };
