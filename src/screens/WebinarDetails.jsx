@@ -253,8 +253,10 @@ export default function WebinarDetails({
   const [openId, setOpenId] = useState(null); // the session open in the side panel
   const [openTab, setOpenTab] = useState('people'); // the tab it opened on
   const opened = sessions.find((r) => r.id === openId) ?? null;
-  // Opens a session's side panel: on Manage people, or on another tab
-  // (the recording chip on its row, the bell's recording line)
+  // Opens a session's side panel on the tab that fits the click: Activity
+  // from its row (Manage session), Manage people from Registered or
+  // Collected, Recording from the recording chip or the bell's recording
+  // line. Manage people when none is named (the bell's other lines)
   const openAt = (id, at = 'people') => {
     setOpenTab(at);
     setOpenId(id);
@@ -517,8 +519,8 @@ function NextSession({ run, name, now, onOpen, onAdd }) {
 
 // ---------- Sessions: every date, as a full-width table ----------
 // Coming up first (soonest at the top), then past ones (latest first).
-// Clicking a row opens that session in a side panel (Manage people, Edit
-// session); its Manage session button does the same from the keyboard.
+// Clicking a row opens that session in a side panel, on its Activity tab;
+// its Manage session button does the same from the keyboard.
 // Adding a session is the + Add session button at the top right of the
 // panel, beside the tabs, so it's in reach however long the list gets.
 //
@@ -637,7 +639,7 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
   const moneyText = money ? (free ? 'Free' : rupees(collected)) : null;
   const day = dayOfRun(r) ?? 'No date yet';
   const rec = recordingOf(r.id, now);
-  const open = () => onOpen(r.id);
+  const open = () => onOpen(r.id, 'activity'); // the row and Manage session: Activity first
   const recSaid = rec.status === 'ready' ? ', recording ready' : '';
   // The (i) beside Registrations open: what the landing page shows now
   const linkTip = (
@@ -691,7 +693,7 @@ function SessionRow({ run: r, now, isLink, money, onOpen }) {
 // View recording, once the recording is ready (Zoom can take hours or
 // days); nothing before that. The drawer's Recording tab says when it
 // isn't ready. It stops the click reaching the row, so it opens on
-// Recording rather than Manage people.
+// Recording rather than Activity.
 function RecordingChip({ status, onOpen }) {
   if (status !== 'ready') return null;
   return (
@@ -717,7 +719,7 @@ function RecordingChip({ status, onOpen }) {
 //   7:00 pm IST · 60 min · Free · Starts in 14 days
 //   [Join meeting]
 //   ────────────────────────────────────────────────────────
-//    Manage people 3  |  Edit session
+//    Activity  |  Manage people 3  |  Edit session  |  Recording
 //
 // Manage people: everyone who signed up, one line each (name, email and
 // phone; when they signed up and WhatsApp on the right). The footer has
@@ -777,9 +779,9 @@ function SessionDrawer({
   const price = webinarPrice(answers);
   const day = dayOfRun(run);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState(initialTab); // 'people' | 'edit' | 'recording'
+  const [tab, setTab] = useState(initialTab); // 'activity' | 'people' | 'edit' | 'recording'
   const recording = recordingOf(run.id, now);
-  const tabs = ['people', !ended && 'edit', 'recording', 'activity'].filter(Boolean);
+  const tabs = ['activity', 'people', !ended && 'edit', 'recording'].filter(Boolean);
   const shownTab = tabs.includes(tab) ? tab : 'people';
 
   // The edit form's values: what's saved, until they change something
@@ -798,7 +800,9 @@ function SessionDrawer({
   const moved = useMovedToast(run, shownTab);
   // A paid session's people each get a ⋯ with Refund (while they have something to refund)
   const canRefund = (p) => p.amount > 0 && !p.refundedAt;
-  const refundsShown = people.some((p) => p.amount > 0);
+  // The ⋯ column is kept only while someone in the list can still be refunded
+  // (once each), so it doesn't leave an empty gap at the end of every row
+  const refundsShown = people.some(canRefund);
   const cancelled = isCancelled(run);
   const live = !cancelled && isOnNow(answers, now);
   // A save (or a change made elsewhere) brings the form back in line
@@ -1031,7 +1035,22 @@ function SessionDrawer({
               return (
                 <li key={p.id} className="wd-person">
                   <div className="wd-person__text">
-                    <p className="wd-person__name">{p.name}</p>
+                    <p className="wd-person__name">
+                      {p.name}
+                      {/* Refunded, in full or in part: the amount that went back.
+                          Opens the refund's details in a new tab (a placeholder for now). */}
+                      {p.refundedAt && (
+                        <a
+                          className="wd-person__badge"
+                          href={`?mock=refund&webinar=${encodeURIComponent(run.id)}&person=${encodeURIComponent(p.id)}`}
+                          target="_blank"
+                          rel="noopener"
+                          aria-label={`Refunded ₹${(p.refunded ?? p.amount).toLocaleString('en-IN')}. See refund details (opens in a new tab)`}
+                        >
+                          Refunded ₹{(p.refunded ?? p.amount).toLocaleString('en-IN')}
+                        </a>
+                      )}
+                    </p>
                     <p className="wd-person__contact">
                       <a className="wd__email" href={`mailto:${p.email}`}>
                         {p.email}
@@ -1041,12 +1060,8 @@ function SessionDrawer({
                   </div>
                   <div className="wd-person__side">
                     <span className="wd-person__when">{registeredWhen(p.registeredAt, now)}</span>
-                    {p.refundedAt ? (
-                      <span className="wd-person__refunded">Refunded ₹{(p.refunded ?? p.amount).toLocaleString('en-IN')}</span>
-                    ) : (
-                      !price.isFree &&
-                      p.amount > 0 && <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>
-                    )}
+                    {/* What they paid, refunded or not (the badge says what went back) */}
+                    {p.amount > 0 && <span className="wd-person__paid">₹{p.amount.toLocaleString('en-IN')}</span>}
                   </div>
                   {chat ? (
                     <a
@@ -1073,7 +1088,7 @@ function SessionDrawer({
                         onOpenChange={(open) => setMenuFor(open ? p.id : null)}
                         items={[
                           {
-                            label: `Refund ₹${p.amount.toLocaleString('en-IN')}`,
+                            label: 'Refund', // in full or in part: chosen in the pop-up
                             icon: RotateCcw,
                             danger: true,
                             onSelect: () => {
@@ -1117,21 +1132,15 @@ function SessionDrawer({
       )}
 
       {refunding && (
-        <ConfirmDialog
-          title={`Refund ₹${refunding.amount.toLocaleString('en-IN')} to ${refunding.name}?`}
-          confirmLabel="Refund"
-          cancelLabel="Go back"
-          danger
-          // A stray click outside doesn't close it; Go back and Escape do
-          stayOpen
+        <RefundDialog
+          key={refunding.id}
+          person={refunding}
           onCancel={() => setRefunding(null)}
-          onConfirm={() => {
-            refundOne(run.id, refunding.id);
+          onRefund={(amount) => {
+            refundOne(run.id, refunding.id, { amount });
             setRefunding(null);
           }}
-        >
-          <p>They get it back in full. It usually reaches them in 5 to 7 working days.</p>
-        </ConfirmDialog>
+        />
       )}
 
       {moving && (
@@ -1216,6 +1225,81 @@ function SessionDrawer({
         </ConfirmDialog>
       )}
     </Drawer>
+  );
+}
+
+// ---------- Refund one person ----------
+//
+//   Refund Harish Neel?
+//   They paid ₹499. It usually reaches them in 5 to 7 working days.
+//   ☐ Refund part of it
+//      ₹ [ 200 ]                 (once ticked)
+//                                [Go back] [Refund ₹499 → ₹200]
+//
+// In full unless they tick the box; then the amount they type, more than
+// ₹0 and less than what was paid (the full amount is the box unticked).
+// The button names the amount, and does nothing until it's one that works.
+// Once per person (refundOne). A stray click outside doesn't close it;
+// Go back and Escape do.
+function RefundDialog({ person, onCancel, onRefund }) {
+  const paid = person.amount;
+  const money = (n) => `₹${n.toLocaleString('en-IN')}`;
+  const [partial, setPartial] = useState(false);
+  const [amount, setAmount] = useState(''); // digits only
+  const value = Number(amount) || 0;
+  const tooHigh = partial && value >= paid;
+  const ready = !partial || (value > 0 && !tooHigh);
+  const refund = () => ready && onRefund(partial ? value : paid);
+
+  // Ticked: straight into the amount box
+  const input = useRef(null);
+  useEffect(() => {
+    if (partial) input.current?.focus();
+  }, [partial]);
+
+  return (
+    <ConfirmDialog
+      title={`Refund ${person.name}?`}
+      confirmLabel={partial ? (ready ? `Refund ${money(value)}` : 'Refund') : `Refund ${money(paid)}`}
+      cancelLabel="Go back"
+      danger
+      confirmDisabled={!ready}
+      stayOpen
+      onCancel={onCancel}
+      onConfirm={refund}
+    >
+      <p>They paid {money(paid)}. It usually reaches them in 5 to 7 working days.</p>
+      <label className="wd-refund__check">
+        <input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} />
+        Refund part of it
+      </label>
+      {partial && (
+        <div className="wd-refund__amount">
+          <span className="qinput__money">
+            <span className="qinput__currency" aria-hidden="true">
+              ₹
+            </span>
+            <input
+              ref={input}
+              inputMode="numeric"
+              className={`qinput__text qinput__money-input ${tooHigh ? 'qinput__text--error' : ''}`}
+              aria-label="Amount to refund, in rupees"
+              aria-invalid={tooHigh || undefined}
+              aria-describedby={tooHigh ? 'wd-refund-error' : undefined}
+              value={amount}
+              maxLength={6}
+              onChange={(e) => setAmount(e.target.value.replace(/\D/g, '').replace(/^0+/, ''))}
+              onKeyDown={(e) => e.key === 'Enter' && refund()}
+            />
+          </span>
+          {tooHigh && (
+            <p className="qinput__error" id="wd-refund-error">
+              Enter an amount less than {money(paid)}.
+            </p>
+          )}
+        </div>
+      )}
+    </ConfirmDialog>
   );
 }
 
@@ -1308,14 +1392,16 @@ function CancelledSummary({ cancelled }) {
   );
 }
 
-// The tabs at the top of the side panel. Past sessions have no Edit
-// session; Recording and Activity are always there. Left and right arrows move between them, wrapping round.
+// The tabs at the top of the side panel: Activity always first, then
+// Manage people, Edit session and Recording. Past sessions have no Edit
+// session; the rest are always there. Left and right arrows move between
+// them, wrapping round.
 function SessionTabs({ tab, onTab, people, canEdit }) {
   const items = [
+    { id: 'activity', label: 'Activity', count: null },
     { id: 'people', label: 'Manage people', count: people },
     canEdit && { id: 'edit', label: 'Edit session', count: null },
     { id: 'recording', label: 'Recording', count: null },
-    { id: 'activity', label: 'Activity', count: null },
   ].filter(Boolean);
   const onKey = (e) => {
     if (items.length < 2 || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;

@@ -96,15 +96,19 @@ export function refundAll(webinarId, at = Date.now()) {
 }
 
 // One person's refund, by hand: the coach refunds someone who asked (say,
-// they can't make a session's new date). Marked like refundAll: in full,
-// once. In the prototype no money moves. Returns the refunded person, or
-// null when there's nothing to refund (not found, didn't pay, already
-// refunded) or it couldn't be saved.
-export function refundOne(webinarId, personId, at = Date.now()) {
+// they can't make a session's new date). In full, or part of it (amount:
+// whole rupees, more than 0 and up to what they paid). Once per person:
+// after a part refund, the rest can't be refunded later. In the prototype
+// no money moves. Returns the refunded person, or null when there's
+// nothing to refund (not found, didn't pay, already refunded), the amount
+// isn't one they can get back, or it couldn't be saved.
+export function refundOne(webinarId, personId, { amount = null, at = Date.now() } = {}) {
   const all = loadAll();
   const person = all.find((p) => p.webinarId === webinarId && p.id === personId);
   if (!person || !(person.amount > 0) || person.refundedAt) return null;
-  const refunded = { ...person, refundedAt: at, refunded: person.amount };
+  const back = amount === null ? person.amount : amount;
+  if (!Number.isInteger(back) || back <= 0 || back > person.amount) return null;
+  const refunded = { ...person, refundedAt: at, refunded: back };
   return saveAll(all.map((p) => (p === person ? refunded : p))) ? refunded : null;
 }
 

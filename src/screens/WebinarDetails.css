@@ -1345,11 +1345,57 @@
   color: var(--color-text-muted);
 }
 
-/* Refunded when the session was cancelled: grey, it's history */
-.wd-person__refunded {
+/* Refunded (in full or in part): a small grey pill after the name, which
+   opens the refund's details in a new tab */
+.wd-person__badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-muted);
+  vertical-align: 2px;
+  white-space: nowrap;
+  text-decoration: none;
+  background: #f0f0f2;
+  border-radius: var(--radius-pill);
+  transition: background 0.15s, color 0.15s;
+}
+
+.wd-person__badge:hover {
+  color: var(--color-text);
+  background: #e4e4e8;
+}
+
+.wd-person__badge:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* The refund pop-up: "Refund part of it", then its amount box */
+.wd-refund__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-weight: 600;
+  color: #141414;
+  cursor: pointer;
+}
+
+.wd-refund__check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.wd-refund__amount {
+  display: grid;
+  gap: 6px;
+  padding-left: 26px;
 }
 
 .wd-person__paid {

@@ -11,6 +11,7 @@ import BookedPage from './screens/BookedPage.jsx'
 import ManageBookingPage from './screens/ManageBookingPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
 import ZoomMeetingPage from './screens/ZoomMeetingPage.jsx'
+import RefundDetailsPage from './screens/RefundDetailsPage.jsx'
 import { accountHandle, savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
@@ -39,6 +40,8 @@ import { loadSaved } from './utils/storage'
 //   links in their confirmation email. Leave out action to offer both; &tz=<zone> for another clock.
 // ?mock=zoom&webinar=<id> → that webinar's Zoom meeting (a mock room). The meeting button
 //   on the Webinars tab opens it: Join meeting, Start webinar or Live now · Rejoin.
+// ?mock=refund&webinar=<session id>&person=<person id> → one person's refund (a placeholder
+//   for now). The "Refunded ₹…" badge in a session's Manage people opens it in a new tab.
 // /<webinar slug> (e.g. localhost:5173/fix-the-vasthu-mistakes) → that webinar's shared
 //   link, as ?go= above: its current session's landing page. Checked after creator
 //   handles (handles can't have hyphens, and new slugs skip the account's handle).
@@ -83,6 +86,7 @@ function Root() {
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
   if (mock === 'zoom') return <ZoomMeetingPage webinarId={params.get('webinar')} />
+  if (mock === 'refund') return <RefundDetailsPage webinarId={params.get('webinar')} personId={params.get('person')} />
   if (mock === 'create-service') return <ContractEditorTab serviceId={params.get('service')} />
   if (mock === 'profile')
     return <ProfilePage state={params.get('state')} source={params.get('source')} live={params.get('live') === '1'} />
