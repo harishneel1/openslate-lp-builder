@@ -60,6 +60,9 @@ import { funnelName } from '../utils/funnelName';
 import { liveHref } from '../utils/publish';
 import { webinarShareMessage } from '../utils/shareMessage';
 import { whatsappHref } from '../utils/whatsapp';
+import WhatsAppTab from '../components/WhatsAppTab';
+import ReminderChannels from '../components/ReminderChannels';
+import { REMINDERS, emailOf } from '../data/reminders';
 import './OfferingsHome.css'; // panels and buttons
 import './CallsPage.css'; // the empty state
 import './WebinarsPage.css'; // the meeting button and badges, as on the list
@@ -112,7 +115,8 @@ import './WebinarDetails.css';
 // (withSharedChanges in data/webinar.js), so the coach edits once.
 //
 // webinar: any session of it (the one App has open); webinars: all of them
-// tab: 'sessions' or 'reminders' (the Emails tab; App keeps it, so coming
+// tab: 'sessions', 'reminders' (Reminders, on Email) or 'whatsapp' (Reminders, on
+//      WhatsApp). App keeps it, so coming
 //      back from the email editor lands on it); onTab(tab)
 // onEditPages(id), onSaveSession(id, changes) (Edit session: title and
 // price; the date moves with Reschedule), onRunAgain(id) (copies that session),
@@ -247,7 +251,9 @@ export default function WebinarDetails({
   const current = next ?? latestHeld;
   const currentWhen = webinarWhen(current.answers ?? {});
   const currentDay = currentWhen ? `${currentWhen.weekday} ${currentWhen.day} ${currentWhen.month}` : 'the next session';
-  const shownTab = tab === 'reminders' ? 'reminders' : 'sessions';
+  // Reminders has two halves, Email and WhatsApp; the tab says which is open
+  const shownTab = tab === 'reminders' || tab === 'whatsapp' ? 'reminders' : 'sessions';
+  const channel = tab === 'whatsapp' ? 'whatsapp' : 'email';
 
   const [openId, setOpenId] = useState(null); // the session open in the side panel
   const [openTab, setOpenTab] = useState('people'); // the tab it opened on
@@ -296,7 +302,7 @@ export default function WebinarDetails({
         />
       </header>
 
-      <section className="oh__panel wd__main" aria-label={shownTab === 'reminders' ? 'Emails' : 'Sessions'}>
+      <section className="oh__panel wd__main" aria-label={TABS.find((t) => t.id === shownTab).label}>
         <div className="oh__panel-head wd__people-head">
           <Tabs tab={shownTab} onTab={onTab} sessions={sessions.length} />
           {/* At the top, so it's in reach however long the list gets */}
@@ -312,11 +318,29 @@ export default function WebinarDetails({
           </div>
         ) : (
           <div id="wd-panel-reminders" role="tabpanel" aria-labelledby="wd-tab-reminders">
-            <WebinarReminders
-              webinar={current}
-              onToggle={(id, on) => onToggleReminder(current.id, id, on)}
-              onEdit={(id) => onEditReminder(current.id, id)}
+            <ReminderChannels
+              channel={channel}
+              kind="webinar"
+              offering={`webinar:${current.id}`}
+              emailOn={REMINDERS.filter((r) => emailOf(current, r.id).on).length}
+              emailTotal={REMINDERS.length}
+              onChannel={(c) => onTab(c === 'whatsapp' ? 'whatsapp' : 'reminders')}
             />
+            {channel === 'whatsapp' ? (
+              // Its switches are the session's, like its emails'
+              <WhatsAppTab
+                kind="webinar"
+                offering={`webinar:${current.id}`}
+                offeringName={name}
+                links={{ webinarId: current.id }}
+              />
+            ) : (
+              <WebinarReminders
+                webinar={current}
+                onToggle={(id, on) => onToggleReminder(current.id, id, on)}
+                onEdit={(id) => onEditReminder(current.id, id)}
+              />
+            )}
           </div>
         )}
       </section>
@@ -1769,21 +1793,27 @@ function LinkActions({ url, onShare }) {
 // ---------- The tabs: Sessions | Emails ----------
 // Underlined tabs at the top of the panel. Sessions shows how many there
 // are; Emails holds the automatic emails.
+// The page's tabs. Reminders holds the automatic emails
+// (WebinarReminders.jsx) and WhatsApp (WhatsAppTab.jsx), one at a time,
+// with a switch between them (ReminderChannels.jsx).
+const TABS = [
+  { id: 'sessions', label: 'Sessions' },
+  { id: 'reminders', label: 'Reminders' },
+];
+const TAB_IDS = TABS.map((t) => t.id);
+
 function Tabs({ tab, onTab, sessions }) {
-  const items = [
-    { id: 'sessions', label: 'Sessions', count: sessions },
-    { id: 'reminders', label: 'Emails', count: null }, // the automatic emails (WebinarReminders.jsx)
-  ];
   // Left and right arrows move between the tabs
   const onKey = (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const next = tab === 'sessions' ? 'reminders' : 'sessions';
+    const at = TAB_IDS.indexOf(tab);
+    const next = TAB_IDS[(at + (e.key === 'ArrowRight' ? 1 : TAB_IDS.length - 1)) % TAB_IDS.length];
     onTab(next);
     requestAnimationFrame(() => document.getElementById(`wd-tab-${next}`)?.focus());
   };
   return (
     <div className="wd__tabs" role="tablist" aria-label="Webinar" onKeyDown={onKey}>
-      {items.map((t) => (
+      {TABS.map((t) => (
         <button
           key={t.id}
           type="button"
@@ -1793,9 +1823,10 @@ function Tabs({ tab, onTab, sessions }) {
           aria-controls={`wd-panel-${t.id}`}
           tabIndex={tab === t.id ? 0 : -1}
           className="wd__tab"
-          onClick={() => onTab(t.id)}
+          // The open tab stays as it is (Reminders keeps its Email or WhatsApp half)
+          onClick={() => tab !== t.id && onTab(t.id)}
         >
-          {t.label} {t.count !== null && <span className="oh__count">{t.count}</span>}
+          {t.label} {t.id === 'sessions' && <span className="oh__count">{sessions}</span>}
         </button>
       ))}
     </div>

@@ -1,0 +1,172 @@
+/* The two channel cards at the top of the Reminders tab
+   (ReminderChannels.jsx). Each channel has its own colour: our orange
+   for Email, WhatsApp's green for WhatsApp. The chosen card wears it,
+   points down, and the line under the cards repeats it, so the page
+   below reads as belonging to that card. */
+.rc {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 260px));
+  gap: 12px;
+  padding: 20px 24px 0;
+}
+
+.rc__card {
+  --rc-color: var(--color-primary);
+  --rc-tint: var(--color-primary-tint);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.rc__card--whatsapp {
+  --rc-color: #25d366;
+  --rc-tint: #eafaf0;
+}
+
+.rc__card:hover:not([aria-pressed='true']) {
+  border-color: #d6d6da;
+  box-shadow: var(--shadow-hover);
+}
+
+.rc__card[aria-pressed='true'] {
+  background: var(--rc-tint);
+  border-color: var(--rc-color);
+}
+
+/* The chosen card points down at what it shows */
+.rc__card[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  bottom: -7.5px;
+  left: 30px;
+  width: 12px;
+  height: 12px;
+  background: var(--rc-tint);
+  border-right: 1.5px solid var(--rc-color);
+  border-bottom: 1.5px solid var(--rc-color);
+  transform: rotate(45deg);
+}
+
+.rc__card:focus-visible {
+  outline: 2px solid var(--rc-color);
+  outline-offset: 3px;
+}
+
+/* ---------- Logo ---------- */
+.rc__logo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.rc__logo--img {
+  object-fit: contain;
+}
+
+/* Stand-ins until the real logos are in (LOGOS in ReminderChannels.jsx) */
+.rc__logo--email {
+  color: #c5221f;
+  background: #fdecea;
+}
+
+.rc__logo--whatsapp {
+  color: #ffffff;
+  background: #25d366;
+  border-radius: 50%;
+}
+
+/* ---------- Words ---------- */
+.rc__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rc__label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.rc__summary {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.rc__summary--warn {
+  font-weight: 600;
+  color: #b42318;
+}
+
+/* ---------- The line under the cards, in the chosen colour ---------- */
+.rc__rule {
+  height: 3px;
+  margin-top: 16px;
+  background: var(--color-primary);
+}
+
+.rc__rule--whatsapp {
+  background: #25d366;
+}
+
+/* What's below fades in when the cards swap it */
+.rc__rule + * {
+  animation: rc-in 0.22s ease-out;
+}
+
+@keyframes rc-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc__card {
+    transition: none;
+  }
+
+  .rc__rule + * {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .rc {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 16px 16px 0;
+  }
+
+  .rc__card {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .rc__logo {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* Phones: the logo above the words, so the summary gets the card's width */
+@media (max-width: 480px) {
+  .rc__card {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

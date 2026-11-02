@@ -1,0 +1,167 @@
+// ------------------------------------------------------------
+// The WhatsApp reminders: our default messages, and which are switched
+// on for each webinar and 1:1 call.
+//
+// Fewer than the emails, on purpose. Each WhatsApp message costs money
+// and lands among someone's personal chats, so WhatsApp gets only the
+// ones that get people to turn up:
+//
+//   1:1 calls   24 hours before, 1 hour before, 5 minutes before
+//   Webinars    confirmation, 24 hours before, 1 hour before, 5 minutes before
+//
+// The emails go out as well, whatever happens here. A WhatsApp message
+// adds to its email; it never replaces it.
+//
+// Meta reviews every message before a business can send it, on that
+// business's own number, and only allows fixed wording with blanks to
+// fill in (the {first_name}s below) and up to a few buttons. Reminders
+// like these are what Meta calls "utility" messages: about something
+// the person booked, nothing to sell. The review statuses are kept with
+// the connection (whatsappConnection.js), since they belong to the
+// number, not to one webinar or call.
+//
+// Which messages are on is kept per webinar session and per call, like
+// the emails' switches. All are on until switched off. The stand-in
+// keeps them in this browser:
+//   { 'call:<id>': { 'call-1h': false }, 'webinar:<id>': { ... } }
+// ------------------------------------------------------------
+
+const KEY = 'pagebuilder:mock-whatsapp-switches';
+export const WHATSAPP_SWITCHES_EVENT = 'whatsapp-switches-changed';
+
+// Each message: when it goes, what it says, and its buttons.
+//   name     the row's name, like the emails' ("24 hours before")
+//   when     when it goes, in a sentence, under the preview's title
+//   example  when it goes in the preview's example, finishing "This is
+//            exactly what your student Priya gets on WhatsApp, …"
+//   body     WhatsApp's own formatting: *bold*, new lines as \n. The
+//            {blanks} are filled in for each person.
+//   buttons  up to two, from BUTTONS below (WhatsApp allows two links)
+//   sentAt   when it arrives, in the example (a call at 4:00 pm on
+//            Thursday, a webinar at 7:00 pm on Thu 12 Nov, someone
+//            registering at 10:12 am)
+//
+// The 1-hour call message has both Join and Manage booking: it's the last
+// useful moment to say "I can't make it", as the email's reschedule line.
+export const MESSAGES = {
+  call: [
+    {
+      id: 'call-24h',
+      name: '24 hours before',
+      when: 'Goes out 24 hours before the call.',
+      example: '24 hours before her call at 4:00 pm on Thursday',
+      body: 'Hi {first_name}, a reminder that your *{call}* with {host} is tomorrow at {time}.\n\nNeed to move it? Use the button below.',
+      buttons: ['manage'],
+      sentAt: '4:00 pm',
+    },
+    {
+      id: 'call-1h',
+      name: '1 hour before',
+      when: 'Goes out 1 hour before the call.',
+      example: '1 hour before her call at 4:00 pm on Thursday',
+      body: 'Hi {first_name}, your *{call}* with {host} starts in 1 hour, at {time}.\n\nTap below to join when it’s time.',
+      buttons: ['join', 'manage'],
+      sentAt: '3:00 pm',
+    },
+    {
+      id: 'call-5m',
+      name: '5 minutes before',
+      when: 'Goes out 5 minutes before the call.',
+      example: '5 minutes before her call at 4:00 pm on Thursday',
+      body: 'Hi {first_name}, your *{call}* with {host} starts in 5 minutes. Tap below to join.',
+      buttons: ['join'],
+      sentAt: '3:55 pm',
+    },
+  ],
+  webinar: [
+    {
+      id: 'webinar-confirm',
+      name: 'Confirmation after registering',
+      when: 'Goes out as soon as someone registers.',
+      example: 'right after she registers for your webinar on Thu 12 Nov',
+      body: 'Hi {first_name}, you’re in! *{webinar}* is on {date} at {time}.\n\nWe’ll remind you here before it starts.',
+      buttons: ['details'],
+      sentAt: '10:12 am',
+    },
+    {
+      id: 'webinar-24h',
+      name: '24 hours before',
+      when: 'Goes out 24 hours before the webinar.',
+      example: '24 hours before your webinar at 7:00 pm on Thu 12 Nov',
+      body: 'Hi {first_name}, *{webinar}* is tomorrow at {time}. See you there!',
+      buttons: ['details'],
+      sentAt: '7:00 pm',
+    },
+    {
+      id: 'webinar-1h',
+      name: '1 hour before',
+      when: 'Goes out 1 hour before the webinar.',
+      example: '1 hour before your webinar at 7:00 pm on Thu 12 Nov',
+      body: 'Hi {first_name}, *{webinar}* starts in 1 hour, at {time}.\n\nTap below to join when it’s time.',
+      buttons: ['join'],
+      sentAt: '6:00 pm',
+    },
+    {
+      id: 'webinar-now', // its id from when it was called "Starting now", so saved switches carry on
+      name: '5 minutes before',
+      when: 'Goes out 5 minutes before the webinar.',
+      example: '5 minutes before your webinar at 7:00 pm on Thu 12 Nov',
+      body: 'Hi {first_name}, *{webinar}* starts in 5 minutes! Tap below to join.',
+      buttons: ['join'],
+      sentAt: '6:55 pm',
+    },
+  ],
+};
+
+// What each button says, and where it goes, in a few words (the
+// preview's hover hint; tapping it there opens the real thing). Each
+// student gets their own link: WhatsApp lets a fixed message's button end
+// in one part that changes per person.
+//   manage   the student's own booking page (ManageBookingPage.jsx), the
+//            same as the 24-hour email's "Pick another time or cancel"
+//   join     a call: the coach's meeting link. A webinar: its room.
+//   details  a webinar's thank-you page, with the date, time and how to join
+export const BUTTONS = {
+  call: {
+    manage: { label: 'Manage booking', hint: 'Their booking page, to reschedule or cancel' },
+    join: { label: 'Join call', hint: 'Your meeting link' },
+  },
+  webinar: {
+    details: { label: 'View details', hint: 'The thank-you page, with the date and how to join' },
+    join: { label: 'Join webinar', hint: 'The webinar room' },
+  },
+};
+
+export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar].map((m) => m.id);
+
+// The message with its blanks filled in: { first_name, call, webinar, host, date, time }
+export const fillMessage = (body, values) => body.replace(/\{(\w+)\}/g, (all, key) => values[key] ?? all);
+
+// ---------- Switches ----------
+
+function loadAll() {
+  try {
+    const all = JSON.parse(localStorage.getItem(KEY));
+    return all && typeof all === 'object' && !Array.isArray(all) ? all : {};
+  } catch {
+    return {};
+  }
+}
+
+// { 'call-1h': true, ... } for one webinar session or call ('call:<id>', 'webinar:<id>')
+export function switchesOf(offering, kind) {
+  const saved = loadAll()[offering] ?? {};
+  return Object.fromEntries(MESSAGES[kind].map((m) => [m.id, saved[m.id] !== false]));
+}
+
+export function setSwitch(offering, id, on) {
+  const all = loadAll();
+  all[offering] = { ...(all[offering] ?? {}), [id]: on };
+  try {
+    localStorage.setItem(KEY, JSON.stringify(all));
+    window.dispatchEvent(new Event(WHATSAPP_SWITCHES_EVENT));
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarX2, Check, Phone, Video } from 'lucide-react';
+import { CalendarX2, Check, Eye, Phone, Video } from 'lucide-react';
 import { cancelBooking, getBooking, onBookingsChange, rescheduleBooking } from '../data/bookingsStore';
 import { buildBookingJson } from '../data/buildBookingJson';
 import { exactDay, statusOf } from '../data/buildBookingsJson';
 import { getMyAvailability } from '../data/mockAvailability';
 import { MY_CALL_ID, profileHrefFor } from '../data/myProfile';
+import { sampleBooking } from '../data/callReminders';
 import { matchZone, zoneOptions } from '../data/timeZones';
 import { findSlots, formatTime, zoned } from '../utils/slots';
 import SlotPicker from '../components/booking/SlotPicker';
@@ -29,6 +30,14 @@ import './ManageBookingPage.css';
 //
 // Changes are saved with by: 'guest', so the creator's Bookings page
 // says "Tarun cancelled" or "Rescheduled by Tarun".
+//
+// Sample mode, for the creator to try the page from a WhatsApp message's
+// preview (WhatsAppMessages.jsx):
+//   ?mock=manage&booking=sample&service=<call id>
+// A made-up booking of that call (Priya, tomorrow at 4:00 pm on the
+// creator's clock), kept only on this page. Cancel and Reschedule work all
+// the way to their done screens, but nothing is saved: no real booking can
+// change. A strip across the top says so.
 // ------------------------------------------------------------
 
 const TICK_MS = 30_000; // how often "now" moves on, so a call can go live while open
@@ -52,8 +61,70 @@ function when(ms, endMs, zone) {
   };
 }
 
-export default function ManageBookingPage({ bookingId, action, timeZone }) {
-  const [booking, setBooking] = useState(() => getBooking(bookingId));
+export const SAMPLE_BOOKING_ID = 'sample';
+
+// The page, with the sample strip on top in sample mode
+export default function ManageBookingPage({ bookingId, action, timeZone, serviceId = null }) {
+  const sample = bookingId === SAMPLE_BOOKING_ID;
+  return (
+    <>
+      {sample && <SampleStrip />}
+      <ManageBooking bookingId={bookingId} action={action} timeZone={timeZone} sampleOf={sample ? serviceId : null} />
+    </>
+  );
+}
+
+// "This is a preview", pinned to the top in sample mode
+function SampleStrip() {
+  return (
+    <p className="mb__sample" role="status">
+      <Eye size={16} aria-hidden="true" />
+      Preview: this is what your customers see. Nothing here changes a real booking.
+    </p>
+  );
+}
+
+// A made-up booking of one call, for sample mode: Priya, tomorrow at
+// 4:00 pm on the creator's clock (as the email editor's sample, with the
+// WhatsApp preview's name)
+function makeSample(serviceId) {
+  const id = serviceId || MY_CALL_ID;
+  const { service, durationMins } = buildBookingJson({ serviceId: id });
+  const timeZone = getMyAvailability(id).schedule?.timeZone || 'Asia/Kolkata';
+  return {
+    ...sampleBooking({ title: service?.title, durationMins, timeZone, meetingLink: null }),
+    id: SAMPLE_BOOKING_ID,
+    serviceId: id,
+    guest: { name: 'Priya Sharma', email: 'priya@example.com', phone: '+91 98765 43210' },
+    status: 'booked',
+    createdAt: new Date().toISOString(),
+  };
+}
+
+// What a change would look like, without saving it (sample mode)
+const sampleCancelled = (booking, message) => ({
+  ...booking,
+  status: 'cancelled',
+  cancelledAt: new Date().toISOString(),
+  cancelledBy: 'guest',
+  cancelMessage: message,
+});
+
+const sampleRescheduled = (booking, start) => {
+  const length = Date.parse(booking.end) - Date.parse(booking.start);
+  return {
+    ...booking,
+    previousStart: booking.start,
+    start,
+    end: new Date(Date.parse(start) + length).toISOString(),
+    rescheduledAt: new Date().toISOString(),
+  };
+};
+
+// sampleOf: the call a sample booking is of, in sample mode; null otherwise
+function ManageBooking({ bookingId, action, timeZone, sampleOf }) {
+  const sample = sampleOf !== null;
+  const [booking, setBooking] = useState(() => (sample ? makeSample(sampleOf) : getBooking(bookingId)));
   const [now, setNow] = useState(() => Date.now());
   const [done, setDone] = useState(null); // 'cancelled' | 'rescheduled', once they've made the change here
 
@@ -66,8 +137,9 @@ export default function ManageBookingPage({ bookingId, action, timeZone }) {
       'Asia/Kolkata',
   );
 
-  // Keep up with changes made elsewhere (the creator, another tab) and the clock
-  useEffect(() => onBookingsChange(() => setBooking(getBooking(bookingId))), [bookingId]);
+  // Keep up with changes made elsewhere (the creator, another tab) and the
+  // clock. A sample is only on this page, so there's nothing to keep up with.
+  useEffect(() => (sample ? undefined : onBookingsChange(() => setBooking(getBooking(bookingId)))), [bookingId, sample]);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(id);
@@ -99,7 +171,8 @@ export default function ManageBookingPage({ bookingId, action, timeZone }) {
   }, [screen, creator?.name]);
 
   const hrefFor = (next) =>
-    `?mock=manage&booking=${encodeURIComponent(bookingId)}&action=${next}&tz=${encodeURIComponent(zone)}`;
+    `?mock=manage&booking=${encodeURIComponent(bookingId)}&action=${next}&tz=${encodeURIComponent(zone)}` +
+    (sample ? `&service=${encodeURIComponent(booking.serviceId)}` : '');
 
   // ---------- A link that doesn't lead to a booking ----------
   // Says nothing about whether a booking exists, so links can't be probed
@@ -239,6 +312,7 @@ export default function ManageBookingPage({ bookingId, action, timeZone }) {
     return (
       <CancelForm
         booking={booking}
+        sample={sample}
         host={host}
         card={card()}
         rescheduleHref={hrefFor('reschedule')}
@@ -254,6 +328,7 @@ export default function ManageBookingPage({ bookingId, action, timeZone }) {
   return (
     <Reschedule
       booking={booking}
+      sample={sample}
       host={host}
       at={at}
       zone={zone}
@@ -273,7 +348,8 @@ export default function ManageBookingPage({ bookingId, action, timeZone }) {
 // Cancel: what's being cancelled, then why. The reason is required,
 // so Cancel call stays off until they've written one.
 // ------------------------------------------------------------
-function CancelForm({ booking, host, card, rescheduleHref, onDone }) {
+// sample: show the done screen without saving (sample mode)
+function CancelForm({ booking, sample, host, card, rescheduleHref, onDone }) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
   const ready = reason.trim().length > 0;
@@ -281,7 +357,7 @@ function CancelForm({ booking, host, card, rescheduleHref, onDone }) {
   const submit = (e) => {
     e.preventDefault();
     if (!ready) return;
-    const saved = cancelBooking(booking.id, { message: reason, by: 'guest' });
+    const saved = sample ? sampleCancelled(booking, reason) : cancelBooking(booking.id, { message: reason, by: 'guest' });
     if (!saved) {
       setError("We couldn't cancel your call. Try again.");
       return;
@@ -337,7 +413,8 @@ function CancelForm({ booking, host, card, rescheduleHref, onDone }) {
 // Reschedule: their call on the left, the creator's open times on the
 // right, with their current time marked. Laid out like the booking page.
 // ------------------------------------------------------------
-function Reschedule({ booking, host, at, zone, onZoneChange, now, profileHref, cancelHref, onDone }) {
+// sample: show the done screen without saving (sample mode)
+function Reschedule({ booking, sample, host, at, zone, onZoneChange, now, profileHref, cancelHref, onDone }) {
   const lengthMins = Math.round((Date.parse(booking.end) - Date.parse(booking.start)) / 60_000);
 
   // The creator's open times for this call, counting this booking's own time as free
@@ -374,7 +451,7 @@ function Reschedule({ booking, host, at, zone, onZoneChange, now, profileHref, c
 
   const confirm = () => {
     if (!chosen) return;
-    const saved = rescheduleBooking(booking.id, chosen.start, { by: 'guest' });
+    const saved = sample ? sampleRescheduled(booking, chosen.start) : rescheduleBooking(booking.id, chosen.start, { by: 'guest' });
     if (!saved) {
       setError("We couldn't reschedule your call. Try again.");
       return;

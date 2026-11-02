@@ -11,11 +11,12 @@ import './CallEmails.css';
 //   Reminder emails
 //   People who book get a reminder before their call, so they don't forget.
 //   ┌ Example: If Rohan books a call for 4:00 PM on Thursday, he gets  ┐
-//   └ reminders at 4:00 PM on Wednesday and 3:00 PM on Thursday.       ┘
+//   └ reminders at 4:00 PM on Wednesday, and 3:00 PM and 3:55 PM on Thursday. ┘
 //
 //   Email                                              On    Edit
 //   24 hours before · Edited                          [●━]    ✎
 //   1 hour before                                     [━○]    ✎
+//   5 minutes before                                  [●━]    ✎
 //   3 upcoming calls won’t get it
 //
 // What went out, and to whom, is on the Activity tab (and each booking's
@@ -45,8 +46,8 @@ export default function CallEmails({ bookings, callAnswers, now, onToggle, onEdi
         <p className="rm__group-text">People who book get a reminder before their call, so they don’t forget.</p>
         <p className="hd-rule__example cem__example">
           <span className="hd-rule__example-tag">Example:</span> If Rohan books a call for{' '}
-          <strong>4:00 PM on Thursday</strong>, he gets reminders at <strong>4:00 PM on Wednesday</strong> and{' '}
-          <strong>3:00 PM on Thursday</strong>.
+          <strong>4:00 PM on Thursday</strong>, he gets reminders at <strong>4:00 PM on Wednesday</strong>, and{' '}
+          <strong>3:00 PM</strong> and <strong>3:55 PM on Thursday</strong>.
         </p>
       </div>
 

@@ -1,0 +1,812 @@
+/* ------------------------------------------------------------
+   The WhatsApp tab (WhatsAppTab.jsx) and its Manage drawer
+   (WhatsAppDrawer.jsx). Product tokens throughout. WhatsApp's own
+   green appears in two places only, where it means "this is
+   WhatsApp": the connected icon, and the preview of a message on a
+   student's phone.
+   ------------------------------------------------------------ */
+.wa {
+  --wa-green: #25d366;
+  --wa-green-ink: #128c4a;
+  --wa-chat-bg: #efeae2;
+  --wa-bubble: #ffffff;
+  padding: 20px 24px 24px;
+}
+
+/* ---------- Not connected: the heading over the steps ---------- */
+.wa-head__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.wa-head__text {
+  max-width: 62ch;
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* One step at a time, in its own box */
+.wa-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 760px;
+  margin-top: 18px;
+  padding: 20px 22px 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.wa-q {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.wa-card__text {
+  max-width: 60ch;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.wa-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  margin-top: 6px;
+}
+
+.wa-card__actions--quiet {
+  gap: 4px 20px;
+  margin-top: 2px;
+}
+
+.wa-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 2px;
+  padding: 2px 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.wa-back:hover {
+  color: var(--color-text);
+}
+
+/* ---------- Which WhatsApp ---------- */
+.wa-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.wa-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wa-choice:hover {
+  background: var(--color-primary-tint);
+  border-color: #f6d6b9;
+}
+
+.wa-choice__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wa-choice__text {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* ---------- How to switch: a real sequence, so numbered ---------- */
+.wa-howto {
+  max-width: 62ch;
+  margin: 2px 0 0;
+  padding-left: 20px;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.wa-howto li + li {
+  margin-top: 4px;
+}
+
+.wa-howto li::marker {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Fields ---------- */
+.wa-label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.wa-input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #dcdce0;
+  border-radius: var(--radius-sm);
+}
+
+.wa-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.wa-input[aria-invalid='true'] {
+  border-color: #c62828;
+}
+
+.wa-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.wa-error {
+  margin: 0;
+  font-size: 13px;
+  color: #b42318;
+}
+
+.wa-day__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.wa-day__row .wa-input {
+  flex: 1 1 220px;
+}
+
+/* ---------- The name, with the preview beside it ---------- */
+.wa-name {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 28px;
+  align-items: start;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.wa-name__form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.wa-name__go {
+  margin-top: 8px;
+}
+
+/* A message as a student sees it: the one place the tab looks like WhatsApp */
+.wa-chat {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.wa-chat__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  color: #ffffff;
+  background: #075e54;
+}
+
+.wa-chat__face {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #075e54;
+  background: #dcf8c6;
+  border-radius: 50%;
+}
+
+.wa-chat__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wa-chat__name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wa-chat__kind {
+  font-size: 11.5px;
+  opacity: 0.8;
+}
+
+.wa-chat__body {
+  padding: 14px 12px 18px;
+  background: var(--wa-chat-bg);
+}
+
+.wa-chat__bubble {
+  position: relative;
+  max-width: 88%;
+  margin: 0;
+  padding: 8px 10px 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #111b21;
+  background: var(--wa-bubble);
+  border-radius: 0 8px 8px 8px;
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+}
+
+.wa-chat__time {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  font-size: 10.5px;
+  color: #667781;
+}
+
+.wa-chat__caption {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---------- Connected ---------- */
+.wa-on {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wa-from {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.wa-from__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #ffffff;
+  background: var(--wa-green);
+  border-radius: 50%;
+}
+
+.wa-from__icon--off {
+  background: var(--color-text-disabled);
+}
+
+.wa-from__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.wa-from__line {
+  margin: 0;
+  font-size: 15px;
+}
+
+.wa-from__line strong {
+  font-weight: 600;
+}
+
+.wa-from__sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+.wa-from__manage {
+  flex: none;
+}
+
+.wa-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  border-radius: var(--radius-pill);
+}
+
+.wa-badge--wait {
+  color: #7a4f0f;
+  background: #fff6e5;
+}
+
+.wa-badge--bad {
+  color: #b42318;
+  background: #fdecec;
+}
+
+/* A problem, with the one thing to do about it */
+.wa-problem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.wa-problem p {
+  flex: 1 1 320px;
+  max-width: 68ch;
+}
+
+/* ---------- Manage drawer ---------- */
+.wa-facts {
+  margin: 0;
+}
+
+.wa-facts__row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 14.5px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wa-facts__row:first-child {
+  padding-top: 0;
+}
+
+.wa-facts dt {
+  color: var(--color-text-muted);
+}
+
+.wa-facts dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.wa-rename {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 24px;
+}
+
+/* ---------- Prototype controls ---------- */
+.wa-demo {
+  max-width: 760px;
+  margin-top: 28px;
+  padding-top: 12px;
+  font-size: 12.5px;
+  color: #6b6b6b;
+  border-top: 1px dashed var(--color-border);
+}
+
+.wa-demo summary {
+  width: max-content;
+  cursor: pointer;
+}
+
+.wa-demo__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.wa-demo__buttons button {
+  padding: 5px 10px;
+  font-size: 12.5px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.wa-demo__buttons button:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+/* ---------- Focus ---------- */
+.wa button:focus-visible,
+.wa-facts ~ .wa-rename button:focus-visible,
+.wa-demo summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 720px) {
+  .wa {
+    padding: 16px;
+  }
+
+  .wa-choices,
+  .wa-name {
+    grid-template-columns: 1fr;
+  }
+
+  .wa-chat {
+    max-width: 320px;
+  }
+
+  .wa-from {
+    flex-wrap: wrap;
+  }
+
+  .wa-facts__row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+/* ---------- WhatsApp reminders (WhatsAppMessages.jsx) ----------
+   The rows, switch and icon come from the email list (WebinarReminders.css);
+   these only add the review line under a name. The list runs edge to
+   edge like the emails, so it undoes the tab's side padding. */
+.wam {
+  margin: 8px -24px 0;
+}
+
+.wam__head {
+  padding: 0 24px 14px;
+}
+
+.wam__table {
+  border-top: 1px solid var(--color-border);
+}
+
+.wam__row {
+  min-height: 60px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.wam__name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wam__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.wam__why {
+  padding: 0;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .wam {
+    margin: 8px -16px 0;
+  }
+
+  .wam__head {
+    padding: 0 16px 14px;
+  }
+}
+
+/* ---------- One message's preview: an annotated phone ----------
+   The phone is the explanation. Orange pills, as on the storefront's
+   example page, point at the parts that matter. */
+.wamp__status {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.wamp__status--bad {
+  color: #7a4f0f;
+  background: #fff6e5;
+}
+
+.wamp__stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+/* Room for the pills: the phone moves left of centre */
+.wamp__stage--wide {
+  justify-content: flex-start;
+}
+
+.wamp__phone {
+  width: 252px;
+  margin: 0;
+  padding: 9px;
+  background: #1c1e21;
+  border-radius: 38px;
+  box-shadow: 0 18px 40px rgba(17, 17, 17, 0.16);
+}
+
+.wamp__screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 430px;
+  overflow: hidden;
+  background: var(--wa-chat-bg, #efeae2);
+  border-radius: 30px;
+}
+
+.wamp__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 12px 10px 8px;
+  color: #ffffff;
+  background: #075e54;
+}
+
+.wamp__top .wa-chat__face {
+  width: 30px;
+  height: 30px;
+}
+
+.wamp__chat {
+  flex: 1;
+  padding: 14px 10px;
+}
+
+.wam__text {
+  position: relative;
+  margin: 0;
+  padding: 8px 10px 20px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #111b21;
+}
+
+.wam__text strong {
+  font-weight: 700;
+}
+
+/* A filled-in part: the customer's name, the call's name, the time */
+.wam__fill {
+  padding: 0 1px;
+  color: inherit;
+  background: #fff1c2;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.wamp__bubble {
+  max-width: 94%;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 0 8px 8px 8px;
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+}
+
+/* The message's buttons: real links, drawn as WhatsApp draws them */
+.wamp__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #027eb5;
+  text-decoration: none;
+  border-top: 1px solid #e9edef;
+  transition: background 0.15s;
+}
+
+.wamp__btn svg {
+  opacity: 0.7;
+}
+
+.wamp__btn:hover {
+  background: #f5f6f6;
+}
+
+.wamp__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* WhatsApp's own "type a message" bar, where replies start */
+.wamp__reply {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 14px;
+}
+
+.wamp__reply-box {
+  flex: 1;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #8696a0;
+  background: #ffffff;
+  border-radius: 999px;
+}
+
+.wamp__reply-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
+  background: #00a884;
+  border-radius: 50%;
+}
+
+/* A note: an orange pill to the phone's right, on a line to its part */
+.wamp__pill {
+  position: absolute;
+  left: 278px;
+  padding: 4px 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: #ffffff;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transform: translateY(-50%);
+}
+
+.wamp__pill::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 26px;
+  border-top: 1.5px dashed var(--color-primary);
+}
+
+/* Too narrow for pills: numbered dots on the phone, and a list under it */
+.wamp__dot {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--color-primary);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.wamp__dot--inline {
+  position: static;
+  flex: none;
+  transform: none;
+}
+
+.wamp__notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.wamp__notes li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wamp__caption {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.wamp__stage--wide + .wamp__caption {
+  width: 252px;
+  text-align: center;
+}
+
+.wamp__stage:not(.wamp__stage--wide) + .wamp__caption {
+  text-align: center;
+}
+
+/* Footer: flip to the message before or after */
+.wamp__flip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.wamp__flip:hover {
+  background: var(--color-bg);
+}
+
+.wamp__flip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.wamp__flip--next {
+  margin-left: auto;
+}

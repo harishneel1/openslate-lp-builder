@@ -13,13 +13,15 @@ import {
 } from 'lucide-react';
 import BookingDrawer from '../components/BookingDrawer';
 import CallEmails from './CallEmails';
+import WhatsAppTab from '../components/WhatsAppTab';
+import ReminderChannels from '../components/ReminderChannels';
 import { ActivityList } from '../components/ActivityPanel';
 import CallReminderEditor from './CallReminderEditor';
 import GuestInitials from '../components/GuestInitials';
 import HoursTip from '../components/HoursTip';
 import { useCalendar } from '../components/CalendarConnect';
 import { useCopy } from './OfferingsHome';
-import { loadBookings, onBookingsChange } from '../data/bookingsStore';
+import { DEFAULT_MEETING_LINK, loadBookings, onBookingsChange } from '../data/bookingsStore';
 import {
   coachZone,
   longDay,
@@ -31,7 +33,7 @@ import {
 } from '../data/buildBookingsJson';
 import { PAGE_SIZE, byDay, callBookingsOf, guestClock, listOf } from '../data/callBookings';
 import { loadCallHours } from '../data/availabilityStore';
-import { emailTextOf, remindersOf, withEmailText, withReminderOn } from '../data/callReminders';
+import { CALL_REMINDERS, callReminderById, emailTextOf, remindersOf, withEmailText, withReminderOn } from '../data/callReminders';
 import { callActivity } from '../data/callActivity';
 import { activityByDay } from '../data/sessionActivity';
 import { readMeetingLink } from '../data/callDetails';
@@ -56,7 +58,7 @@ import './CallOverview.css';
 //   ┃      Today, 4:00 pm                                      [Join call]
 //   ┃      Priya Sharma
 //
-//   ┌ Bookings 4 | Emails | Activity          [Upcoming 3] [Past 12] [Cancelled 1] ┐
+//   ┌ Bookings 4 | Reminders | Activity       [Upcoming 3] [Past 12] [Cancelled 1] ┐
 //   │ Times in India (Kolkata), GMT+5:30                                        │
 //   │ Today, Tuesday 4 November                                        2 calls │
 //   │  4:00 pm  (PS) Priya Sharma                 [Starts in 8 min] [Join call] │
@@ -71,7 +73,7 @@ import './CallOverview.css';
 // The list follows the clock (a call moves to Past as it ends) and new
 // bookings from any tab (onBookingsChange).
 //
-// The Emails tab (CallEmails.jsx) has the two reminder emails: switches
+// The Emails tab (CallEmails.jsx) has the three reminder emails: switches
 // that save straight away, and a pencil that opens the email editor
 // (CallReminderEditor.jsx) in place of this page. Saving there saves the
 // words and comes back here, on Emails.
@@ -86,7 +88,8 @@ import './CallOverview.css';
 // hostName: the coach's name, for the email preview
 // meetingLink: their video link as saved, for the email preview
 // url: its booking link
-// tab: 'bookings' | 'emails' | 'activity'; onTab(tab)
+// tab: 'bookings' | 'emails' (Reminders, on Email) | 'whatsapp' (Reminders, on
+//      WhatsApp) | 'activity'; onTab(tab)
 // emailOpen: the reminder open in the email editor, or null; onEmailOpen(id)
 //   (kept by the 1:1 calls page, which sets the focus bar for it)
 // emailExitRef: the email editor's way back, for the focus bar's exit (the 1:1 calls page keeps it, so
@@ -170,7 +173,7 @@ export default function CallOverview({
   const activity = useMemo(
     () => (tab === 'activity' ? callActivity(mine, switches, zone, now) : []),
     // switches is rebuilt each render: compare what it says
-    [tab, mine, zone, now, switches.dayBefore, switches.hourBefore], // eslint-disable-line react-hooks/exhaustive-deps
+    [tab, mine, zone, now, switches.dayBefore, switches.hourBefore, switches.fiveBefore], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const opened = openId ? (lists.all.find((b) => b.id === openId) ?? null) : null;
@@ -222,10 +225,12 @@ export default function CallOverview({
 
   const details = call.facts.map((f) => f.text).join(' · ');
 
-  // ---------- Emails ----------
+  // ---------- Reminders ----------
+  // Its WhatsApp half has its own tab id ('whatsapp'), shown as Reminders
+  const shownTab = tab === 'whatsapp' ? 'emails' : tab;
   const toggleReminder = (id, on) => {
     onSaveCall({ callReminders: withReminderOn(callAnswers, id, on) });
-    setSaid(`${on ? 'Turned on' : 'Turned off'} the email ${id === 'dayBefore' ? '24 hours' : '1 hour'} before.`);
+    setSaid(`${on ? 'Turned on' : 'Turned off'} the email ${callReminderById(id).name}.`);
   };
 
   // Back from the email editor, on Emails, at the top of the page
@@ -330,9 +335,9 @@ export default function CallOverview({
       {lists.next && <NextBooking booking={lists.next} today={today} now={now} onOpen={() => open(lists.next.id)} />}
 
       {/* ---------- Its bookings ---------- */}
-      <section className="oh__panel cov__panel" aria-label={TABS.find((t) => t.id === tab)?.label ?? 'Bookings'}>
+      <section className="oh__panel cov__panel" aria-label={TABS.find((t) => t.id === shownTab)?.label ?? 'Bookings'}>
         <div className="oh__panel-head cov__panel-head">
-          <Tabs tab={tab} onTab={onTab} bookings={lists.upcoming.length} />
+          <Tabs tab={shownTab} onTab={onTab} bookings={lists.upcoming.length} />
           {tab === 'bookings' && (
             <div className="cov__filters" role="group" aria-label="Show bookings">
               {FILTERS.map((f) => (
@@ -377,15 +382,36 @@ export default function CallOverview({
               </>
             )}
           </div>
-        ) : tab === 'emails' ? (
+        ) : shownTab === 'emails' ? (
           <div id="cov-panel-emails" role="tabpanel" aria-labelledby="cov-tab-emails">
-            <CallEmails
-              bookings={mine}
-              callAnswers={callAnswers}
-              now={now}
-              onToggle={toggleReminder}
-              onEdit={onEmailOpen}
+            <ReminderChannels
+              channel={tab === 'whatsapp' ? 'whatsapp' : 'email'}
+              kind="call"
+              offering={`call:${call.id}`}
+              emailOn={CALL_REMINDERS.filter((r) => switches[r.id]).length}
+              emailTotal={CALL_REMINDERS.length}
+              onChannel={(c) => onTab(c === 'whatsapp' ? 'whatsapp' : 'emails')}
             />
+            {tab === 'whatsapp' ? (
+              <WhatsAppTab
+                kind="call"
+                offering={`call:${call.id}`}
+                offeringName={call.title}
+                // Their meeting link, or the stand-in bookings get when none is set
+                links={{
+                  callId: call.id,
+                  meetingLink: readMeetingLink(meetingLink).valid ? readMeetingLink(meetingLink).url : DEFAULT_MEETING_LINK,
+                }}
+              />
+            ) : (
+              <CallEmails
+                bookings={mine}
+                callAnswers={callAnswers}
+                now={now}
+                onToggle={toggleReminder}
+                onEdit={onEmailOpen}
+              />
+            )}
           </div>
         ) : (
           <div className="cov__body" id="cov-panel-bookings" role="tabpanel" aria-labelledby="cov-tab-bookings">
@@ -450,7 +476,10 @@ export default function CallOverview({
 // ------------------------------------------------------------
 const TABS = [
   { id: 'bookings', label: 'Bookings' },
-  { id: 'emails', label: 'Emails' },
+  // Reminders: the emails (CallEmails.jsx) and WhatsApp (WhatsAppTab.jsx),
+  // one at a time, with a switch between them (ReminderChannels.jsx).
+  // WhatsApp's half is the tab 'whatsapp', so the page can come back to it.
+  { id: 'emails', label: 'Reminders' },
   { id: 'activity', label: 'Activity' },
 ];
 
@@ -474,7 +503,8 @@ function Tabs({ tab, onTab, bookings }) {
           aria-controls={`cov-panel-${t.id}`}
           tabIndex={tab === t.id ? 0 : -1}
           className="cov__tab"
-          onClick={() => onTab(t.id)}
+          // The open tab stays as it is (Reminders keeps its Email or WhatsApp half)
+          onClick={() => tab !== t.id && onTab(t.id)}
         >
           {t.label}
           {t.id === 'bookings' && bookings > 0 && <span className="oh__count">{bookings}</span>}

@@ -4,12 +4,13 @@ import { dayLabels } from './buildBookingsJson';
 import { DEFAULT_MEETING_LINK } from './bookingsStore';
 
 // ------------------------------------------------------------
-// A 1:1 call's reminder emails: two of them, to the person who booked.
+// A 1:1 call's reminder emails: three of them, to the person who booked.
 //
-//   24 hours before  "Your call with Harish is tomorrow at 4:00 pm"
-//   1 hour before    "Starting in an hour", with the Join button
+//   24 hours before   "Your call with Harish is tomorrow at 4:00 pm"
+//   1 hour before     "Starting in an hour", with the Join button
+//   5 minutes before  "Starting in 5 minutes", with the Join button
 //
-// The coach doesn't set anything up: both are on for every call. Each
+// The coach doesn't set anything up: all three are on for every call. Each
 // call can turn either off, and change either email's words (the call
 // editor's Edit email, CallReminderEditor.jsx). Saved on the call's
 // answers, in two keys so a switch and the words never overwrite each other:
@@ -30,8 +31,10 @@ import { DEFAULT_MEETING_LINK } from './bookingsStore';
 //   - a rescheduled booking's reminders follow its new time
 //   - a cancelled booking's reminders stop
 //   - one whose time had already passed when they booked (or moved it)
-//     is skipped; so is one that would land right after, since the
-//     confirmation they just got says the same thing
+//     is skipped; so is a 24-hour or 1-hour one that would land right
+//     after, since the confirmation they just got says the same thing.
+//     The 5-minute one always goes if its time is still ahead: it's the
+//     nudge to join, which the confirmation can't be.
 //
 // In this prototype nothing is emailed: "sent" means its time has passed
 // while it was on, as with the webinar emails (reminders.js). In the real
@@ -42,7 +45,8 @@ import { DEFAULT_MEETING_LINK } from './bookingsStore';
 const MIN = 60_000;
 
 // A reminder that would go out this soon after they booked or moved the
-// call is skipped: the confirmation (or reschedule email) just did its job
+// call is skipped: the confirmation (or reschedule email) just did its job.
+// Not the 5-minute one (noGap): see above.
 export const MIN_GAP_MINS = 30;
 
 // Each reminder:
@@ -51,6 +55,7 @@ export const MIN_GAP_MINS = 30;
 //   example  what the editor's grey Example box says, as segments: even
 //            ones plain, odd ones bold (as bookingRules.js examples)
 //   manage   has the fixed reschedule-or-cancel line under the Join button
+//   noGap    goes out however soon after booking, as long as its time is ahead
 // (dayBefore keeps its id from when it was called "1 day before", so
 // saved switches carry on.)
 export const CALL_REMINDERS = [
@@ -80,6 +85,20 @@ export const CALL_REMINDERS = [
       '<p>Your <b>{{call_title}}</b> with {{your_name}} starts in an hour, at <b>{{time}}</b>.</p>' +
       '<p>Join with the button below. It’s the same link as in your calendar invite.</p>' +
       '<p>Talk soon,<br>{{your_name}}</p>',
+  },
+  {
+    id: 'fiveBefore',
+    name: '5 minutes before',
+    short: '5-minute',
+    example: ['If Rohan’s call with you is at 4:00 PM on Thursday, he gets this email at ', '3:55 PM on Thursday', '.'],
+    offsetMins: 5,
+    noGap: true,
+    subject: 'Starting in 5 minutes: {{call_title}} with {{your_name}}',
+    body:
+      '<p>Hi {{first_name}},</p>' +
+      '<p>Your <b>{{call_title}}</b> with {{your_name}} starts in 5 minutes, at <b>{{time}}</b>.</p>' +
+      '<p>Join with the button below.</p>' +
+      '<p>See you there,<br>{{your_name}}</p>',
   },
 ];
 
@@ -126,7 +145,7 @@ export const sameEmailTexts = (a, b) =>
 
 // ---------- The call's switches ----------
 
-// { dayBefore: true, hourBefore: true }: on unless the call turned it off
+// { dayBefore: true, hourBefore: true, fiveBefore: true }: on unless the call turned it off
 export function remindersOf(callAnswers) {
   const saved = callAnswers?.callReminders ?? {};
   return Object.fromEntries(CALL_REMINDERS.map((r) => [r.id, saved[r.id] !== false]));
@@ -140,12 +159,13 @@ export function withReminderOn(callAnswers, id, on) {
 // The same switches, on and off alike
 export const sameReminders = (a, b) => CALL_REMINDERS.every((r) => remindersOf({ callReminders: a })[r.id] === remindersOf({ callReminders: b })[r.id]);
 
-// "Emails 24 hours and 1 hour before", "Email 1 hour before", "Off"
+// "Emails 24 hours, 1 hour and 5 minutes before", "Email 1 hour before", "Off"
 export function remindersSummary(callAnswers) {
   const on = CALL_REMINDERS.filter((r) => remindersOf(callAnswers)[r.id]).map((r) => r.name);
   if (on.length === 0) return 'Off';
   if (on.length === 1) return `Email ${on[0]}`;
-  return `Emails ${on.map((n) => n.replace(/ before$/, '')).join(' and ')} before`;
+  const spans = on.map((n) => n.replace(/ before$/, ''));
+  return `Emails ${spans.slice(0, -1).join(', ')} and ${spans[spans.length - 1]} before`;
 }
 
 // ---------- When each goes out, for one booking ----------
@@ -180,7 +200,8 @@ export function reminderTimeline(booking, switches, now = Date.now()) {
   return CALL_REMINDERS.map((r) => {
     const at = sendTime(booking, r.id);
     const row = { id: r.id, name: r.name, at, moved };
-    if (at < since + MIN_GAP_MINS * MIN) return { ...row, state: 'skipped' };
+    const gap = r.noGap ? 0 : MIN_GAP_MINS * MIN;
+    if (at < since + gap) return { ...row, state: 'skipped' };
     if (cancelledAt !== null && at > cancelledAt) return { ...row, state: 'stopped' };
     if (!switches[r.id]) return { ...row, state: 'off' };
     return { ...row, state: at <= now ? 'sent' : 'scheduled' };

@@ -38,6 +38,8 @@ import { loadSaved } from './utils/storage'
 //   &booking=<id> for the creator's own calls, the booking checkout saved).
 // ?mock=manage&booking=<id>&action=cancel or reschedule → the student's side, behind the
 //   links in their confirmation email. Leave out action to offer both; &tz=<zone> for another clock.
+//   &booking=sample&service=<call id> → a made-up booking of that call, to try the page
+//   without changing a real one (the WhatsApp preview's Manage booking button).
 // ?mock=zoom&webinar=<id> → that webinar's Zoom meeting (a mock room). The meeting button
 //   on the Webinars tab opens it: Join meeting, Start webinar or Live now · Rejoin.
 // ?mock=refund&webinar=<session id>&person=<person id> → one person's refund (a placeholder
@@ -117,7 +119,14 @@ function Root() {
       />
     )
   if (mock === 'manage')
-    return <ManageBookingPage bookingId={params.get('booking')} action={params.get('action')} timeZone={params.get('tz')} />
+    return (
+      <ManageBookingPage
+        bookingId={params.get('booking')}
+        action={params.get('action')}
+        timeZone={params.get('tz')}
+        serviceId={params.get('service')}
+      />
+    )
   if (mock === 'booked')
     return (
       <BookedPage

@@ -305,3 +305,29 @@
     transition: none;
   }
 }
+/* Sample mode: says this is a preview, across the top. Sticky, so it
+   stays in sight on the long reschedule screen. */
+.mb__sample {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  color: #7a4f0f;
+  background: #fff6e5;
+  border-bottom: 1px solid #f3dfb8;
+}
+
+.mb__sample svg {
+  flex: none;
+}

@@ -567,7 +567,7 @@ function App() {
           key={openId}
           webinar={current}
           webinars={funnels.filter((f) => f.type === 'webinar')}
-          tab={current.detailsTab === 'reminders' ? 'reminders' : 'sessions'}
+          tab={['reminders', 'whatsapp'].includes(current.detailsTab) ? current.detailsTab : 'sessions'}
           onTab={(detailsTab) => updateOpen({ detailsTab }, { touch: false })}
           // Emails: the session the page names (the next one), not always the open one
           onToggleReminder={(runId, id, on) => updateRun(runId, (f) => ({ reminders: withOn(f.reminders, id, on) }))}
