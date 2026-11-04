@@ -55,7 +55,7 @@ import './ContractEditor.css';
 // onOpenCall(id) / onOpenWebinar(id): open that call or webinar. Not given
 //   in its own tab, where it says where to go instead.
 // ------------------------------------------------------------
-export default function ContractEditor({ contractId = null, backLabel = 'Contracts', onBack, onCreated, onOpenCall, onOpenWebinar }) {
+export default function ContractEditor({ contractId = null, backLabel = 'Contracts', onBack, onCreated, onOpenCall, onOpenWebinar, onOpenBatch }) {
   // Read again after each save, so the screen starts from what's saved
   const [version, setVersion] = useState(0);
   const contract = useMemo(
@@ -77,7 +77,7 @@ export default function ContractEditor({ contractId = null, backLabel = 'Contrac
   const owner = ownerOf(contract);
   if (owner) {
     const w = lockedWords(owner);
-    const open = owner.kind === 'call' ? onOpenCall : onOpenWebinar;
+    const open = owner.kind === 'call' ? onOpenCall : owner.kind === 'batch' ? onOpenBatch : onOpenWebinar;
     return (
       <EditPlaceholder
         title={w.title}
@@ -533,6 +533,7 @@ function ContractForm({ contract, backLabel, onBack, onCreated, onSaved }) {
             <div className="call__chips" role="radiogroup" aria-labelledby="ce-type">
               {[
                 ['onetime', 'One-time payment'],
+                ['subscription', 'Every month'],
                 ['free', 'Free'],
               ].map(([id, text]) => (
                 <button
@@ -548,7 +549,9 @@ function ContractForm({ contract, backLabel, onBack, onCreated, onSaved }) {
               ))}
             </div>
             {draft.type === 'subscription' && (
-              <p className="qinput__example">This contract charges every month. Pick one above to change that.</p>
+              <p className="qinput__example">
+                People pay on the day they join, then on the same date every month until they cancel.
+              </p>
             )}
           </div>
 

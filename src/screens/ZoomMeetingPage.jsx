@@ -3,7 +3,8 @@ import { ArrowRight, Mic, MicOff, PhoneOff, Users, Video, VideoOff, X } from 'lu
 import { funnelTypes } from '../data/funnelTypes';
 import { mockAccount } from '../data/myPage';
 import { HEARTBEAT_MS, endSegment, heartbeat, startSegment } from '../data/recordings';
-import { isCancelled, isOnNow, webinarEnd, webinarStart, webinarWhen, zoomMeetingId } from '../data/webinar';
+import { isCancelled, webinarEnd, webinarStart, webinarWhen, zoomMeetingId } from '../data/webinar';
+import { classDay, classTime, dayOn, getBatch, nextClasses } from '../data/batches';
 import { funnelName } from '../utils/funnelName';
 import { initials } from '../utils/initials';
 import { loadSaved } from '../utils/storage';
@@ -36,17 +37,48 @@ import './ZoomMeetingPage.css';
 // meeting is deleted): the room says so, nobody gets in, and nothing is
 // recorded.
 //
-// webinarId: the saved webinar's id
+// A batch's class (Live classes) opens here too, from Start class on the
+// batch's page: the same room, for the class on now or the next one.
+// Batches have one meeting for all their classes. No recording for
+// classes in this round.
+//
+// webinarId: the saved webinar's id; or batchId: the batch's
 // ------------------------------------------------------------
 
-// The saved webinar → { name, answers, cancelled }, or null when it's gone
-function readWebinar(id) {
+// The meeting, whichever it's for:
+//   { kind: 'webinar' | 'batch', id, name, start, end (ms, or null),
+//     whenLine ('Sat 24 Oct, 7:00 pm IST' / 'Tomorrow, 6:30 am'), cancelled }
+// or null when it's gone
+function readMeeting(webinarId, batchId) {
+  if (batchId) {
+    const batch = getBatch(batchId);
+    if (!batch) return null;
+    const now = Date.now();
+    const c = nextClasses(batch, now, 1)[0] ?? null;
+    return {
+      kind: 'batch',
+      id: batch.id,
+      name: batch.title,
+      start: c?.start ?? null,
+      end: c?.end ?? null,
+      whenLine: c ? `${classDay(c.date, dayOn(now, batch))}, ${classTime(c, batch)}` : null,
+      cancelled: false,
+    };
+  }
   const { funnels } = loadSaved();
-  const f = Array.isArray(funnels) ? funnels.find((item) => item?.id === id) : null;
+  const f = Array.isArray(funnels) ? funnels.find((item) => item?.id === webinarId) : null;
   if (!f) return null;
   const type = funnelTypes.find((t) => t.id === f.type);
   const answers = f.answers && typeof f.answers === 'object' && !Array.isArray(f.answers) ? f.answers : {};
-  return { name: funnelName({ answers }, type), answers, cancelled: isCancelled(f) };
+  return {
+    kind: 'webinar',
+    id: webinarId,
+    name: funnelName({ answers }, type),
+    start: webinarStart(answers),
+    end: webinarStart(answers) === null ? null : webinarEnd(answers),
+    whenLine: webinarWhen(answers)?.line ?? null,
+    cancelled: isCancelled(f),
+  };
 }
 
 // 754 s → '12:34', 3_754 s → '1:02:34'
@@ -59,15 +91,14 @@ function elapsed(ms) {
 }
 
 // Where the session is, for the top bar: { live, text }
-function sessionLine(answers, now) {
-  const start = webinarStart(answers);
+function sessionLine(meeting, now) {
+  const { start, end } = meeting;
   if (start === null) return { live: false, text: 'No date set' };
-  if (isOnNow(answers, now)) return { live: true, text: `Live ${elapsed(now - start)}` };
-  const end = webinarEnd(answers);
-  if (now >= end) return { live: false, text: 'Session over' };
+  if (now >= start && now < end) return { live: true, text: `Live ${elapsed(now - start)}` };
+  if (now >= end) return { live: false, text: meeting.kind === 'batch' ? 'Class over' : 'Session over' };
   const mins = Math.ceil((start - now) / 60_000);
   if (mins <= 60) return { live: false, text: `Starts in ${mins} min` };
-  return { live: false, text: `Starts ${webinarWhen(answers)?.line ?? 'later'}` };
+  return { live: false, text: `Starts ${meeting.whenLine ?? 'later'}` };
 }
 
 // Tabs opened from the Webinars tab can close themselves; a typed address goes back there
@@ -76,8 +107,9 @@ function closeTab() {
   setTimeout(() => window.location.assign(window.location.pathname), 150);
 }
 
-export default function ZoomMeetingPage({ webinarId }) {
-  const [webinar] = useState(() => readWebinar(webinarId));
+export default function ZoomMeetingPage({ webinarId, batchId = null }) {
+  const [webinar] = useState(() => readMeeting(webinarId, batchId));
+  const isClass = webinar?.kind === 'batch';
   const [now, setNow] = useState(() => Date.now());
   const [muted, setMuted] = useState(true);
   const [videoOn, setVideoOn] = useState(false);
@@ -97,7 +129,7 @@ export default function ZoomMeetingPage({ webinarId }) {
   // tab closed without End still ends its recording (at the last check).
   // Leaving (End), closing the tab or going elsewhere stops it.
   useEffect(() => {
-    if (!webinar || webinar.cancelled || left) return undefined;
+    if (!webinar || webinar.cancelled || left || isClass) return undefined; // classes aren't recorded yet
     startSegment(webinarId);
     const beat = setInterval(() => heartbeat(webinarId), HEARTBEAT_MS);
     const stop = () => endSegment(webinarId);
@@ -107,16 +139,20 @@ export default function ZoomMeetingPage({ webinarId }) {
       window.removeEventListener('pagehide', stop);
       stop();
     };
-  }, [webinar, webinarId, left]);
+  }, [webinar, webinarId, left, isClass]);
 
   if (!webinar) {
     return (
       <div className="zm zm--center">
         <div className="zm__message">
           <h1 className="zm__message-title">This meeting doesn’t exist</h1>
-          <p className="zm__message-text">Its webinar may have been deleted. Open it again from your Webinars.</p>
+          <p className="zm__message-text">
+            {batchId
+              ? 'Its batch may have been deleted. Open it again from Live classes.'
+              : 'Its webinar may have been deleted. Open it again from your Webinars.'}
+          </p>
           <a className="zm__primary" href={window.location.pathname}>
-            Go to Webinars <ArrowRight size={16} aria-hidden="true" />
+            {batchId ? 'Go to Live classes' : 'Go to Webinars'} <ArrowRight size={16} aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -124,7 +160,7 @@ export default function ZoomMeetingPage({ webinarId }) {
   }
 
   if (webinar.cancelled) {
-    const when = webinarWhen(webinar.answers);
+    const when = webinar.whenLine ? { line: webinar.whenLine } : null;
     return (
       <div className="zm zm--center">
         <div className="zm__message">
@@ -143,11 +179,11 @@ export default function ZoomMeetingPage({ webinarId }) {
   }
 
   const host = mockAccount.name;
-  const meetingId = zoomMeetingId(webinarId);
-  const session = sessionLine(webinar.answers, now);
-  const start = webinarStart(webinar.answers);
+  const meetingId = zoomMeetingId(webinar.id);
+  const session = sessionLine(webinar, now);
+  const start = webinar.start;
   const early = start !== null && now < start;
-  const when = webinarWhen(webinar.answers);
+  const when = webinar.whenLine ? { line: webinar.whenLine } : null;
 
   if (left) {
     return (
@@ -156,13 +192,15 @@ export default function ZoomMeetingPage({ webinarId }) {
           <h1 className="zm__message-title">You left the meeting</h1>
           <p className="zm__message-text">
             {session.live
-              ? 'Your webinar is still on. People who joined are waiting for you.'
+              ? `Your ${isClass ? 'class' : 'webinar'} is still on. People who joined are waiting for you.`
               : `Meeting ID ${meetingId}. You can come back to it any time.`}
           </p>
-          <p className="zm__message-text zm__message-rec">
-            Recording stopped. Rejoin and it carries on; otherwise you'll find it on your webinar page, on this
-            session's Recording tab, once Zoom has processed it.
-          </p>
+          {!isClass && (
+            <p className="zm__message-text zm__message-rec">
+              Recording stopped. Rejoin and it carries on; otherwise you'll find it on your webinar page, on this
+              session's Recording tab, once Zoom has processed it.
+            </p>
+          )}
           <div className="zm__message-actions">
             <button type="button" className="zm__primary" onClick={() => setLeft(false)}>
               Rejoin
@@ -184,11 +222,13 @@ export default function ZoomMeetingPage({ webinarId }) {
         </span>
         <h1 className="zm__title">{webinar.name}</h1>
         <p className="zm__meta">
-          {/* On by default: always shown while they're in the room */}
-          <span className="zm__rec">
-            <span className="zm__rec-dot" aria-hidden="true" />
-            Recording
-          </span>
+          {/* On by default for webinars: always shown while they're in the room */}
+          {!isClass && (
+            <span className="zm__rec">
+              <span className="zm__rec-dot" aria-hidden="true" />
+              Recording
+            </span>
+          )}
           <span>Meeting ID {meetingId}</span>
           <span className={session.live ? 'zm__status zm__status--live' : 'zm__status'}>
             {session.live && <span className="zm__live-dot" aria-hidden="true" />}
@@ -199,7 +239,8 @@ export default function ZoomMeetingPage({ webinarId }) {
 
       {early && when && (
         <p className="zm__notice">
-          Your webinar starts at {when.line.split(', ')[1]}. People who signed up can get in from 15 minutes before.
+          Your {isClass ? 'class' : 'webinar'} starts at {when.line.split(', ').at(-1)}.{' '}
+          {isClass ? 'Members can get in from 15 minutes before.' : 'People who signed up can get in from 15 minutes before.'}
           Use the time to check your mic and camera.
         </p>
       )}
@@ -242,7 +283,7 @@ export default function ZoomMeetingPage({ webinarId }) {
                 {muted ? <MicOff size={15} aria-label="Muted" /> : <Mic size={15} aria-label="Unmuted" />}
               </li>
             </ul>
-            <p className="zm__panel-note">People who signed up show here as they join.</p>
+            <p className="zm__panel-note">{isClass ? 'Members' : 'People who signed up'} show here as they join.</p>
           </aside>
         )}
       </main>

@@ -313,7 +313,8 @@ function contractFields({ title, cover, description, type, prices, gst, question
     title: String(title ?? '').trim(),
     cover: cover || null,
     description: String(description ?? '').trim(),
-    // Only one-time and free are made here; a monthly one keeps its type
+    // 'subscription': charged every month, from the day each person joins
+    // (a batch's contract is always one; see saveBatchContract)
     type: free ? 'free' : type === 'subscription' ? 'subscription' : 'onetime',
     price: main ? payAmount(main) : 0,
     currency: main?.currency ?? 'INR',
@@ -380,6 +381,50 @@ export function saveWebinarContract({ webinarId, contractId, fields, startDate, 
     ...contractFields({ ...start, ...fields }),
     webinarId,
     startDate: startDate || now.toISOString().slice(0, 10),
+    status: 'active',
+    createdAt: now.toISOString(),
+  };
+  try {
+    localStorage.setItem(CREATED_KEY, JSON.stringify([...loadCreated(), contract]));
+    return contract.id;
+  } catch {
+    return null;
+  }
+}
+// ------------------------------------------------------------
+// A batch's contract (Live classes, data/batches.js). Every batch makes
+// its own, a monthly subscription, and owns it like a webinar owns its
+// sign-up page: the contract remembers its batch (batchId), so only that
+// batch ever changes it, and the Contracts page sends the coach to the
+// batch to change it (ownerOf in tiedProducts.js).
+//
+// What the batch owns: the name, description, fee and health questions.
+// Whatever else was set on the contract (cover, GST, after payment) stays.
+// Always monthly and in rupees: the batch's fee is one INR price.
+//
+// batch: { id, title, description, price, questions }
+// Returns the contract's id, or null if storage failed.
+// ------------------------------------------------------------
+export function saveBatchContract(batch) {
+  const fields = {
+    title: batch.title,
+    description: batch.description,
+    type: 'subscription',
+    prices: [{ currency: 'INR', price: batch.price, discount: null }],
+    questions: batch.questions,
+  };
+  const existing = batch.contractId ? getService(batch.contractId) : null;
+  if (existing && existing.batchId === batch.id) {
+    const merged = contractFields({ ...contractOf(existing), ...fields });
+    return saveChange(batch.contractId, merged) ? batch.contractId : null;
+  }
+  const now = new Date();
+  const contract = {
+    // A random tail too, so two batches made in the same moment never share an id
+    id: `svc-${now.getTime().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+    ...contractFields({ success: DEFAULT_SUCCESS, ...fields }),
+    batchId: batch.id,
+    startDate: now.toISOString().slice(0, 10),
     status: 'active',
     createdAt: now.toISOString(),
   };

@@ -152,6 +152,8 @@ function CheckoutView({ draft, shown }) {
                 {shown.gst.included ? 'incl. GST' : `+ ${formatMoney(shown.gst.amount)} GST`}
               </span>
             )}
+            {/* Monthly: when it charges again, under the price like GST */}
+            {monthly && <span className="cpv-page__gst">Renews monthly from the day you join</span>}
           </span>
         )}
         <span className="cpv-page__cta">{isFree(draft) ? 'Register now' : 'Pay now'}</span>

@@ -1,0 +1,9 @@
+/* The Live classes tab (LiveClassesPage.jsx). Its panels, rows and
+   buttons are 1:1 calls' (OfferingsHome.css, CallsPage.css); this is
+   the one line rows have that calls don't: who's in the batch. */
+
+.lc__members {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}

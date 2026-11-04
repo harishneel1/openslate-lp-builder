@@ -6,6 +6,8 @@ import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates
 import { buildSignupUpdates } from '../data/signupUpdates';
 import { buildRecordingUpdates } from '../data/recordingUpdates';
 import { buildCancelUpdates, buildRescheduleUpdates } from '../data/cancelUpdates';
+import { buildJoinUpdates } from '../data/batchUpdates';
+import { onMembersChange } from '../data/batchMembers';
 import { onRecordingsChange } from '../data/recordings';
 import { onSignupsChange } from '../data/webinarSignups';
 import './UpdatesBell.css';
@@ -51,10 +53,14 @@ import './UpdatesBell.css';
 
 const TICK_MS = 60_000; // keeps "12 min ago" moving
 
-export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebinar }) {
+// People joining a batch (data/batchUpdates.js) are one line per batch per
+// day, like webinar sign-ups; clicking it opens that batch's Members tab
+// (onOpenBatch).
+export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebinar, onOpenBatch }) {
   const [bookings, setBookings] = useState(loadBookings);
   const [signupsTick, setSignupsTick] = useState(0); // a new sign-up rebuilds the list
   const [recordingsTick, setRecordingsTick] = useState(0); // so does a recording starting or stopping
+  const [membersTick, setMembersTick] = useState(0); // and someone joining a batch
   const [lastSeen, setLastSeen] = useState(loadLastSeen);
   const [now, setNow] = useState(() => Date.now());
   const [open, setOpen] = useState(false);
@@ -67,6 +73,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
   useEffect(() => onBookingsChange(() => setBookings(loadBookings())), []);
   useEffect(() => onSignupsChange(() => setSignupsTick((n) => n + 1)), []);
   useEffect(() => onRecordingsChange(() => setRecordingsTick((n) => n + 1)), []);
+  useEffect(() => onMembersChange(() => setMembersTick((n) => n + 1)), []);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(id);
@@ -81,10 +88,11 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
         ...buildRecordingUpdates({ webinars, lastSeen, now }),
         ...buildCancelUpdates({ webinars, now }),
         ...buildRescheduleUpdates({ webinars, now }),
+        ...buildJoinUpdates({ lastSeen, now }),
       ].sort((a, b) => b.at - a.at),
     // signupsTick, recordingsTick: they live outside React, so a change bumps them
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bookings, webinars, lastSeen, now, signupsTick, recordingsTick],
+    [bookings, webinars, lastSeen, now, signupsTick, recordingsTick, membersTick],
   );
   const unread = updates.filter((u) => u.unread).length;
 
@@ -189,6 +197,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                             if (u.kind === 'signups' || u.kind === 'cancelled-session' || u.kind === 'rescheduled-session')
                               onOpenWebinar?.(u.webinarId);
                             else if (u.kind === 'recording') onOpenWebinar?.(u.webinarId, { tab: 'recording' });
+                            else if (u.kind === 'batch-joins') onOpenBatch?.(u.batchId, { tab: 'members' });
                             else onOpenBooking?.(u.bookingId);
                           }}
                         >
@@ -213,6 +222,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                               <span className="upd__what">
                                 {u.kind === 'signups' ? (
                                   <SignedUp update={u} />
+                                ) : u.kind === 'batch-joins' ? (
+                                  <SignedUp update={u} verb="joined" />
                                 ) : u.kind === 'cancelled-session' ? (
                                   <>
                                     <strong>Session cancelled</strong>
@@ -282,24 +293,25 @@ const VERBS = {
 };
 
 // 'Priya signed up', 'Priya and Rahul signed up', 'Priya and 11 others signed up'
-function SignedUp({ update: u }) {
+// verb: 'signed up' (a webinar) or 'joined' (a batch)
+function SignedUp({ update: u, verb = 'signed up' }) {
   if (u.second) {
     return (
       <>
-        <strong>{u.first}</strong> and <strong>{u.second}</strong> signed up
+        <strong>{u.first}</strong> and <strong>{u.second}</strong> {verb}
       </>
     );
   }
   if (u.others > 0) {
     return (
       <>
-        <strong>{u.first}</strong> and {u.others} {u.others === 1 ? 'other' : 'others'} signed up
+        <strong>{u.first}</strong> and {u.others} {u.others === 1 ? 'other' : 'others'} {verb}
       </>
     );
   }
   return (
     <>
-      <strong>{u.first}</strong> signed up
+      <strong>{u.first}</strong> {verb}
     </>
   );
 }

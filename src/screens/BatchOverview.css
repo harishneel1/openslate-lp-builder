@@ -1,0 +1,257 @@
+/* One batch's page (BatchOverview.jsx). The head and tabs are a 1:1
+   call's (CallOverview.css); these are its members and classes. */
+
+.bov__body {
+  padding: 20px 24px 24px;
+}
+
+/* ---------- Members ---------- */
+.bov__members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bov__member + .bov__member {
+  border-top: 1px solid var(--color-border);
+}
+
+.bov__member-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 4px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+
+.bov__member-row:hover {
+  background: var(--color-bg);
+}
+
+.bov__member-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.bov__member-name {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bov__member-date {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.bov__paid {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-success);
+  background: var(--color-success-tint);
+  border-radius: var(--radius-pill);
+}
+
+.bov__chevron {
+  color: var(--color-text-muted);
+  transition: transform 0.15s;
+}
+
+.bov__member--open .bov__chevron {
+  transform: rotate(180deg);
+}
+
+.bov__details {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.bov__details div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.bov__details dt {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.bov__details dd {
+  margin: 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bov__answer {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.bov__none {
+  color: var(--color-text-disabled);
+}
+
+/* ---------- Nobody yet ---------- */
+.bov__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.bov__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+}
+
+.bov__empty-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.bov__empty-text {
+  max-width: 380px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Classes ---------- */
+.bov__next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.bov__next--now {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.bov__next-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bov__next-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.bov__next-when {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.bov__start {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.bov__start:hover {
+  background: var(--color-primary-hover);
+}
+
+.bov__subhead {
+  margin: 24px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.bov__classes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bov__class {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 4px;
+  font-size: 14px;
+}
+
+.bov__class + .bov__class {
+  border-top: 1px solid var(--color-border);
+}
+
+.bov__class-time {
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 720px) {
+  .bov__body {
+    padding: 16px;
+  }
+
+  .bov__member-row {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    row-gap: 2px;
+  }
+
+  .bov__member-row .bk-face {
+    grid-row: 1 / span 3;
+  }
+
+  .bov__member-name {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .bov__member-date {
+    grid-column: 2;
+    font-size: 13px;
+  }
+
+  .bov__paid {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .bov__chevron {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  .bov__details div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}

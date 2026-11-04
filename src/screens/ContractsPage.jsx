@@ -17,6 +17,7 @@ import {
   serviceDate,
 } from '../data/mockServices';
 import { lockedWords, ownerOf, tiedTo } from '../data/tiedProducts';
+import { batchPageHref } from '../data/batches';
 import { signupCounts } from '../data/contractSignups';
 import { BOOKINGS_CHANGED_EVENT } from '../data/bookingsStore';
 import { formatMoney } from '../data/contractPricing';
@@ -71,6 +72,7 @@ import './ContractsPage.css';
 // onGoToOfferings(): to the 1:1 calls tab, where their calls are made and changed
 // onOpenWebinar(id): opens that webinar's funnel
 // onOpenCall(id): opens that 1:1 call's editor
+// onOpenBatch(id): opens that batch's page (Live classes)
 // The list reads the data fresh when they come back to the tab (a contract
 // made in the create tab shows straight away), so there's no Refresh button.
 // ------------------------------------------------------------
@@ -144,7 +146,7 @@ function useContracts() {
   return [data, refresh];
 }
 
-export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCall }) {
+export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCall, onOpenBatch }) {
   const [contracts, refresh] = useContracts();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -205,6 +207,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
     const { owner } = owned;
     setOwned(null);
     if (owner.kind === 'call') onOpenCall?.(owner.id);
+    else if (owner.kind === 'batch') onOpenBatch?.(owner.id);
     else onOpenWebinar?.(owner.id);
   };
 
@@ -252,6 +255,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
           onBack={backToList}
           onOpenCall={onOpenCall}
           onOpenWebinar={onOpenWebinar}
+          onOpenBatch={onOpenBatch}
           onCreated={(made) => {
             backToList();
             tell(`“${made.title}” created`);
@@ -267,7 +271,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
       <header className="ct__head">
         <div className="ct__head-text">
           <h1 className="ct__title">Contracts</h1>
-          <p className="ct__sub">The pages people sign up and pay on. Your 1:1 calls, webinars and courses each use a contract.</p>
+          <p className="ct__sub">The pages people sign up and pay on. Your 1:1 calls, webinars, live classes and courses each use a contract.</p>
         </div>
         {contracts.length > 0 && <CreateButton onClick={() => setEditing({ id: null })} />}
       </header>
@@ -373,6 +377,10 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
             setDeleting(null);
             onOpenWebinar?.(id);
           }}
+          onOpenBatch={(id) => {
+            setDeleting(null);
+            onOpenBatch?.(id);
+          }}
         />
       )}
 
@@ -423,6 +431,7 @@ function OwnedDialog({ owner, onCancel, onConfirm }) {
 // page of its own (only calls' and webinars' contracts do, for now):
 //   a 1:1 call's   its checkout, with no time picked (as "View contract" in the call)
 //   a webinar's    its sign-up page
+//   a batch's      its join page
 function liveLinkOf(contract) {
   const owner = ownerOf(contract);
   if (owner?.kind === 'call') {
@@ -430,6 +439,7 @@ function liveLinkOf(contract) {
   }
   // This run's own sign-up page (its contract is this date's alone)
   if (owner?.kind === 'webinar') return `${runHref({ id: owner.id })}&page=signup`;
+  if (owner?.kind === 'batch') return batchPageHref(owner.id);
   return null;
 }
 
@@ -603,6 +613,7 @@ function RowMenu({ title, open, onOpenChange, onEdit, onCopyId, onDelete }) {
 const KINDS = {
   call: { noun: '1:1 consultation', go: 'Go to 1:1 consultation' },
   webinar: { noun: 'webinar', go: 'Go to webinar' },
+  batch: { noun: 'batch', go: 'Go to batch' },
 };
 
 // Delete, in one of two forms:
@@ -612,11 +623,11 @@ const KINDS = {
 //                  deleting that comes first, with a button to go there
 // The browser's own <dialog>: dims the page, keeps the keyboard inside, Escape
 // closes. The safe button has focus first, so Enter by habit deletes nothing.
-function DeleteDialog({ contract, tied, onCancel, onConfirm, onGoToOfferings, onOpenWebinar }) {
+function DeleteDialog({ contract, tied, onCancel, onConfirm, onGoToOfferings, onOpenWebinar, onOpenBatch }) {
   const ref = useRef(null);
   const blocked = tied.length > 0;
   const only = tied[0];
-  const goTo = (t) => (t.kind === 'call' ? onGoToOfferings() : onOpenWebinar(t.id));
+  const goTo = (t) => (t.kind === 'call' ? onGoToOfferings() : t.kind === 'batch' ? onOpenBatch(t.id) : onOpenWebinar(t.id));
 
   useEffect(() => {
     const dialog = ref.current;

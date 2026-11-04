@@ -3,13 +3,14 @@ import {
   Search, ChevronDown, ChevronRight, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
-  CalendarCheck, Users, Store, Video,
+  CalendarCheck, Users, Store, Video, Repeat,
 } from 'lucide-react';
 import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildBookingsJson, shortDay } from '../data/buildBookingsJson';
 import { isCancelled, webinarEnd, webinarStart } from '../data/webinar';
 import { isPublished } from '../utils/publish';
+import { allClassesBetween, onBatchesChange } from '../data/batches';
 import { loadSaved } from '../utils/storage';
 import { formatTime, zoned } from '../utils/slots';
 import UpdatesBell from './UpdatesBell';
@@ -23,6 +24,9 @@ const sidebarItems = [
   // still 'page-builder' so saves made when this was Funnels open here.
   // MonitorPlay, not Video: Video is Workshops in the top nav.
   { id: 'page-builder', label: 'Webinars', icon: MonitorPlay },
+  // Batches: classes that meet every week, joined by paying monthly
+  // (LiveClassesPage.jsx). Repeat, for classes that come round every week.
+  { id: 'live-classes', label: 'Live classes', icon: Repeat },
   { id: 'services', label: 'Contracts', icon: Briefcase },
   // Their storefront (the offerings page): set up once and shared, so it
   // sits last. The id is still 'my-page'. Bookings has no item here: the
@@ -45,8 +49,8 @@ function webinarsAhead(now) {
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 // Today, for the "Your calendar" card: what's left today, one short line
-// each for calls and webinars (each fits the narrow card on its own), then
-// what's next. Follows new bookings (even from another tab) and the clock,
+// each for calls, webinars and live classes (each fits the narrow card on
+// its own), then what's next. Follows new bookings (even from another tab) and the clock,
 // so it moves on as things end.
 //   "2 calls left today" / "1 webinar left today" / "Next: webinar at 7:00 pm"
 //   "Nothing left today" / "Next: tomorrow, 10:00 am"
@@ -58,31 +62,39 @@ function todayOf(now = Date.now()) {
   const webinars = webinarsAhead(now);
   const webinarsLeft = webinars.filter((w) => zoned(w.start, zone).date === today).length;
 
+  // Live classes: every batch's classes from now to the end of tomorrow
+  // (enough to say what's next when today's are over)
+  const classes = allClassesBetween(now, now + 2 * 86_400_000).filter((c) => c.end > now);
+  const classesLeft = classes.filter((c) => zoned(c.start, zone).date === today).length;
+
   // The next thing of either kind: { kind, start, live }
   const nextCall = call ? { kind: 'call', start: Date.parse(call.start), live: call.state === 'live' } : null;
   const nextWebinar = webinars[0] ? { kind: 'webinar', start: webinars[0].start, live: webinars[0].start <= now } : null;
-  const next = [nextCall, nextWebinar].filter(Boolean).sort((a, b) => a.start - b.start)[0] ?? null;
+  const nextClass = classes[0] ? { kind: 'class', start: classes[0].start, live: classes[0].start <= now } : null;
+  const next = [nextCall, nextWebinar, nextClass].filter(Boolean).sort((a, b) => a.start - b.start)[0] ?? null;
 
   const lines = [];
   if (callsLeft > 0) lines.push(`${plural(callsLeft, 'call')} left today`);
   if (webinarsLeft > 0) lines.push(`${plural(webinarsLeft, 'webinar')} left today`);
+  if (classesLeft > 0) lines.push(`${classesLeft} ${classesLeft === 1 ? 'class' : 'classes'} left today`);
 
   let nextLine = null;
   if (next?.live) {
-    nextLine = next.kind === 'call' ? 'A call is on now' : 'Your webinar is on now';
+    nextLine = next.kind === 'call' ? 'A call is on now' : next.kind === 'class' ? 'A class is on now' : 'Your webinar is on now';
   } else if (next) {
     const time = formatTime(next.start, zone);
     const date = zoned(next.start, zone).date;
     if (date === today) {
-      // Say which kind only when today has both
-      nextLine = callsLeft > 0 && webinarsLeft > 0 ? `Next: ${next.kind} at ${time}` : `Next at ${time}`;
+      // Say which kind only when today has more than one kind
+      const kinds = [callsLeft, webinarsLeft, classesLeft].filter((n) => n > 0).length;
+      nextLine = kinds > 1 ? `Next: ${next.kind} at ${time}` : `Next at ${time}`;
     } else {
       nextLine = `Next: ${shortDay(date, today).toLowerCase()}, ${time}`;
     }
   }
 
   if (lines.length === 0) lines.push(next ? 'Nothing left today' : 'Nothing coming up');
-  return { busy: callsLeft + webinarsLeft > 0, lines, nextLine };
+  return { busy: callsLeft + webinarsLeft + classesLeft > 0, lines, nextLine };
 }
 
 function useToday() {
@@ -90,9 +102,11 @@ function useToday() {
   useEffect(() => {
     const update = () => setSummary(todayOf());
     const stop = onBookingsChange(update);
+    const stopBatches = onBatchesChange(update); // a batch made or moved changes today's classes
     const timer = setInterval(update, 60_000);
     return () => {
       stop();
+      stopBatches();
       clearInterval(timer);
     };
   }, []);
@@ -216,7 +230,8 @@ function CalendarCard({ active, onOpen }) {
 // onOpenWebinar(id): a sign-up line in the bell was clicked; open that
 //   webinar session with its people showing
 // webinars: every webinar session, for the bell's sign-up lines
-export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpenWebinar, webinars = [], focus = null, children }) {
+// onOpenBatch(id, { tab }): a "joined" line in the bell was clicked; open that batch
+export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpenWebinar, onOpenBatch, webinars = [], focus = null, children }) {
   const hasStorefront = useHasStorefront();
 
   // One tree for both modes: the top bar and sidebar change, but the page
@@ -234,7 +249,7 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
 
           {/* Updates, then their profile */}
           <div className="topnav__actions">
-            <UpdatesBell webinars={webinars} onOpenBooking={onOpenBooking} onOpenWebinar={onOpenWebinar} />
+            <UpdatesBell webinars={webinars} onOpenBooking={onOpenBooking} onOpenWebinar={onOpenWebinar} onOpenBatch={onOpenBatch} />
             <div className="topnav__avatar" title="Your profile">H</div>
           </div>
         </header>

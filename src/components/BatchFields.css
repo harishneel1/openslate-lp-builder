@@ -1,0 +1,44 @@
+/* A batch's schedule and fee fields (BatchFields.jsx), on the create
+   flow and in the editor. Chips, tiles and the money box come from the
+   1:1 call's fields (CallDetailsInput.css, QuestionInput.css). */
+
+.bfld {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.bfld__days {
+  flex-wrap: wrap;
+}
+
+.bfld__day {
+  min-width: 64px;
+  justify-content: center;
+}
+
+.bfld__time {
+  max-width: 280px;
+}
+
+.bfld__fee {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bfld__fee .qinput__money {
+  max-width: 220px;
+}
+
+.bfld__per {
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+.bfld__summary {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}

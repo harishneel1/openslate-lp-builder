@@ -1,5 +1,6 @@
 import { loadBookings } from './bookingsStore';
 import { peopleOf } from './webinarSignups';
+import { memberCount } from './batchMembers';
 
 // ------------------------------------------------------------
 // Sign-ups: how many people have signed up on a contract. Everyone who
@@ -12,6 +13,7 @@ import { peopleOf } from './webinarSignups';
 //                           matched by email, else phone, else name
 //   a webinar's contract    the people who registered for that webinar
 //                           (webinarSignups.js)
+//   a batch's contract      the people who joined that batch (batchMembers.js)
 //   the sample contracts    a made-up number (signups in mockServices.js)
 //   anything else           0, since course enrolments aren't saved yet
 // In the real product the server counts the people on each contract.
@@ -45,7 +47,9 @@ export function signupCounts(contracts) {
         ? byCall[c.callId]?.size ?? 0
         : c.webinarId
           ? peopleOf(c.webinarId).length
-          : Math.max(0, Math.round(Number(c.signups) || 0)),
+          : c.batchId
+            ? memberCount(c.batchId)
+            : Math.max(0, Math.round(Number(c.signups) || 0)),
     ]),
   );
 }

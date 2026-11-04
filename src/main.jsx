@@ -12,10 +12,12 @@ import ManageBookingPage from './screens/ManageBookingPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
 import ZoomMeetingPage from './screens/ZoomMeetingPage.jsx'
 import RefundDetailsPage from './screens/RefundDetailsPage.jsx'
+import BatchPage from './screens/BatchPage.jsx'
 import { accountHandle, savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
 import { seriesBySlug } from './data/webinar'
+import { isBatchId } from './data/batches'
 import { loadSaved } from './utils/storage'
 
 // ?go=<seriesId> → a webinar's shared link: the landing page of whichever of its runs
@@ -42,6 +44,8 @@ import { loadSaved } from './utils/storage'
 //   without changing a real one (the WhatsApp preview's Manage booking button).
 // ?mock=zoom&webinar=<id> → that webinar's Zoom meeting (a mock room). The meeting button
 //   on the Webinars tab opens it: Join meeting, Start webinar or Live now · Rejoin.
+//   ?mock=zoom&batch=<id> → a batch's class meeting (Start class on the batch's page).
+// ?mock=batch&batch=<id> → a batch's join page (Live classes): what it is, and paying to join.
 // ?mock=refund&webinar=<session id>&person=<person id> → one person's refund (a placeholder
 //   for now). The "Refunded ₹…" badge in a session's Manage people opens it in a new tab.
 // /<webinar slug> (e.g. localhost:5173/fix-the-vasthu-mistakes) → that webinar's shared
@@ -50,7 +54,7 @@ import { loadSaved } from './utils/storage'
 // /<handle> (e.g. localhost:5173/harishneel) → that creator's page: the one made
 //   in setup (saved in this browser), or Meera's at /meerajoshi. Unknown → not found.
 // /<handle>/<offering id> (e.g. /harishneel/my-call) → that offering's booking page,
-//   the link "Copy link" gives on each call card. Works before there's a page too,
+//   the link "Copy link" gives on each call card. A batch's id (batch-…) opens its join page. Works before there's a page too,
 //   under the account's link (accountHandle in myPage.js). Add &tz= as for ?mock=book.
 // Anything else → the Page Builder.
 const params = new URLSearchParams(window.location.search)
@@ -80,6 +84,8 @@ function Root() {
     // so /someoneelse/my-call doesn't show this creator's call. Their calls
     // work on their own, like Calendly events, page or no page.
     if (offeringId) {
+      // A batch (Live classes): its join page, under the account's own link only
+      if (isBatchId(offeringId)) return mine ? <BatchPage batchId={offeringId} /> : <PageNotFound handle={handle} />
       if (mine !== isMyCall(offeringId)) return <PageNotFound handle={handle} />
       return <BookingPage serviceId={offeringId} timeZone={params.get('tz')} />
     }
@@ -87,7 +93,8 @@ function Root() {
     if (mine && !savedHandle()) return <PageNotFound handle={handle} />
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
-  if (mock === 'zoom') return <ZoomMeetingPage webinarId={params.get('webinar')} />
+  if (mock === 'zoom') return <ZoomMeetingPage webinarId={params.get('webinar')} batchId={params.get('batch')} />
+  if (mock === 'batch') return <BatchPage batchId={params.get('batch')} />
   if (mock === 'refund') return <RefundDetailsPage webinarId={params.get('webinar')} personId={params.get('person')} />
   if (mock === 'create-service') return <ContractEditorTab serviceId={params.get('service')} />
   if (mock === 'profile')

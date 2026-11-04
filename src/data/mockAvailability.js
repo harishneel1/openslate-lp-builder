@@ -1,6 +1,7 @@
 import { addDays, toInstant, todayIn, weekdayOf } from '../utils/slots';
 import { loadSchedule } from './availabilityStore';
 import { activeBookings } from './bookingsStore';
+import { allClassesBetween } from './batches';
 
 // ------------------------------------------------------------
 // Mock availability for the booking page. Each call has its own
@@ -80,6 +81,8 @@ export function getMockAvailability(state, serviceId, now = Date.now()) {
 // already booked (bookingsStore.js). One calendar for all their calls,
 // so a booking for one blocks that time for every call. Cancelled
 // bookings don't count: their time is free again.
+// Live classes are on the same calendar: every class of every batch
+// (data/batches.js) blocks its time too, so nobody books a call into one.
 // exceptId: leave this booking out, so it can be moved (rescheduling)
 // ------------------------------------------------------------
 export function getMyAvailability(serviceId, { exceptId = null } = {}) {
@@ -87,5 +90,11 @@ export function getMyAvailability(serviceId, { exceptId = null } = {}) {
   const bookings = activeBookings()
     .filter((b) => b.id !== exceptId)
     .map(({ start, end }) => ({ start, end }));
-  return { schedule, bookings };
+  const now = Date.now();
+  const until = now + ((Number(schedule.bookAheadDays) || 14) + 2) * 86_400_000;
+  const classes = allClassesBetween(now - 86_400_000, until).map((c) => ({
+    start: new Date(c.start).toISOString(),
+    end: new Date(c.end).toISOString(),
+  }));
+  return { schedule, bookings: [...bookings, ...classes] };
 }

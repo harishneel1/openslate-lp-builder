@@ -32,6 +32,7 @@ import MyPageSetup from './screens/MyPageSetup';
 import BookingsPage from './screens/BookingsPage';
 import ContractsPage from './screens/ContractsPage';
 import CallsPage from './screens/CallsPage';
+import LiveClassesPage from './screens/LiveClassesPage';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
@@ -510,8 +511,21 @@ function App() {
     handleNavigate('calls');
     setCallRequest({ id, n: Date.now() });
   };
+
+  // From the bell (someone joined) or a batch's contract on Contracts: go to
+  // Live classes with that batch's page open. Cleared on the way there from
+  // the sidebar, so that opens the list.
+  const [batchRequest, setBatchRequest] = useState(null);
+  // A batch open on its page or in its editor: its focus bar, or null on the list
+  const [batchFocus, setBatchFocus] = useState(null);
+  const openBatch = (id, { tab = 'members' } = {}) => {
+    handleNavigate('live-classes');
+    setBatchRequest({ id, tab, n: Date.now() });
+  };
+
   const navigateFromSidebar = (id) => {
     setCallRequest(null);
+    setBatchRequest(null);
     handleNavigate(id);
   };
 
@@ -1019,6 +1033,7 @@ function App() {
       // The bell's webinar sign-ups
       webinars={funnels.filter((f) => f.type === 'webinar')}
       onOpenWebinar={openSignups}
+      onOpenBatch={openBatch}
       focus={
         activeNav === 'page-builder' && funnel
           ? {
@@ -1060,7 +1075,9 @@ function App() {
             }
           : activeNav === 'calls'
             ? callFocus // a 1:1 call's page or editor, while one is open (CallsPage.jsx)
-            : null
+            : activeNav === 'live-classes'
+              ? batchFocus // a batch's page or editor, while one is open (LiveClassesPage.jsx)
+              : null
       }
     >
         {activeNav === 'page-builder' ? (
@@ -1069,8 +1086,15 @@ function App() {
         <MyPageSetup />
       ) : activeNav === 'calls' ? (
         <CallsPage openRequest={callRequest} onFocus={setCallFocus} />
+      ) : activeNav === 'live-classes' ? (
+        <LiveClassesPage openRequest={batchRequest} onFocus={setBatchFocus} />
       ) : activeNav === 'services' ? (
-        <ContractsPage onGoToOfferings={() => handleNavigate('calls')} onOpenWebinar={openFunnelFrom} onOpenCall={openCall} />
+        <ContractsPage
+          onGoToOfferings={() => handleNavigate('calls')}
+          onOpenWebinar={openFunnelFrom}
+          onOpenCall={openCall}
+          onOpenBatch={openBatch}
+        />
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : (
