@@ -6,25 +6,20 @@ import { MESSAGE_IDS } from './whatsappMessages';
 // every webinar and 1:1 call. Reached only from the WhatsApp tab of a
 // webinar or a call (WhatsAppTab.jsx); there's no settings page for it.
 //
-// Reminders on WhatsApp always go from the creator's own number. To
-// connect it, Meta asks for two things:
-//   - the number is on the WhatsApp Business app (not regular WhatsApp)
-//   - it has been in real use there, for at least 7 days
-// We can't ask Meta about the second beforehand: Meta checks it inside
-// its own connect screens, and says no if the number isn't ready. So we
-// let the creator try, and only if Meta says no do we keep a day to try
-// again (7 days on).
+// Reminders on WhatsApp always go from the creator's own number. Getting
+// it connected takes three steps. What each step is hasn't been settled
+// (it depends on Meta's process and our WhatsApp partner's), so for now
+// they're placeholders the creator clicks through (WhatsAppTab.jsx), and
+// the last one connects a stand-in number.
 //
-// Stand-in until the real connection is built: MetaConsent.jsx plays
-// Meta's part, and everything is kept in this browser. In the real
-// product our WhatsApp partner keeps the connection and tells us when
-// Meta approves the name or drops the number.
+// Everything is kept in this browser. In the real product our WhatsApp
+// partner keeps the connection and tells us when Meta approves the name
+// or drops the number.
 //
-// Saved as null (never connected, or disconnected), or one of:
+// Saved as null (not started, or disconnected), or one of:
 //
-//   Meta said the number isn't ready yet:
-//   { status: 'notReady', triedOn: '2026-11-02', name: 'Harish Neel' }
-//     triedOn: the day Meta said no; name: what they'd chosen, to try again
+//   Part way through setting up:
+//   { status: 'setup', step: 2 }      the step they're on (1 to SETUP_STEPS)
 //
 //   Connected (or lost: WhatsApp stopped letting us send from it):
 //   {
@@ -56,14 +51,14 @@ const KEY = 'pagebuilder:mock-whatsapp';
 // Fired on every change, so every tab showing the connection follows it
 export const WHATSAPP_CHANGED_EVENT = 'whatsapp-changed';
 
-// Meta's rule: at least 7 days of real use on WhatsApp Business
-export const WAIT_DAYS = 7;
+// How many steps getting connected takes
+export const SETUP_STEPS = 3;
 
 // How long the stand-in's name review takes. Meta's real one takes
 // anything from minutes to a day or two.
 const REVIEW_MS = 20 * 1000;
 
-// The number the stand-in fills in. They can change it in Meta's screen.
+// The number and name the stand-in connects at the end of the steps
 export const MOCK_NUMBER = '+91 98765 43210';
 export const DEFAULT_NAME = mockAccount.name;
 
@@ -89,14 +84,13 @@ function messagesInReview(now = Date.now()) {
 }
 
 const isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
-const isDay = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 // The saved connection, or null. Anything malformed counts as not connected.
 export function loadWhatsApp() {
   try {
     const c = JSON.parse(localStorage.getItem(KEY));
     if (!isObject(c)) return null;
-    if (c.status === 'notReady') return isDay(c.triedOn) ? c : null;
+    if (c.status === 'setup') return Number.isInteger(c.step) && c.step >= 1 && c.step <= SETUP_STEPS ? c : null;
     if (!['connected', 'lost'].includes(c.status)) return null;
     if (typeof c.number !== 'string' || typeof c.name !== 'string') return null;
     if (!['review', 'approved', 'rejected'].includes(c.nameStatus)) return null;
@@ -120,7 +114,7 @@ function saveWhatsApp(connection) {
 
 function update(changes) {
   const current = loadWhatsApp();
-  if (!current || current.status === 'notReady') return null;
+  if (!current || current.status === 'setup') return null;
   const next = { ...current, ...changes };
   return saveWhatsApp(next) ? next : null;
 }
@@ -134,13 +128,6 @@ export function dayOf(ms) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// A day plus n days, as 'YYYY-MM-DD' (noon, so clock changes can't move it)
-export function addDays(day, n) {
-  const d = new Date(`${day}T12:00:00`);
-  d.setDate(d.getDate() + n);
-  return dayOf(d.getTime());
-}
-
 // "Mon 9 Nov"
 export function dayLabel(day) {
   const d = new Date(`${day}T12:00:00`);
@@ -148,19 +135,17 @@ export function dayLabel(day) {
   return `${part({ weekday: 'short' })} ${d.getDate()} ${part({ month: 'short' })}`;
 }
 
-// ---------- Meta said the number isn't ready ----------
+// ---------- Setting up ----------
 
-// The first day worth trying again: a week after Meta said no
-export const retryDay = (connection) => addDays(connection.triedOn, WAIT_DAYS);
+// The step they're on (1 to SETUP_STEPS), or 0 before they've started
+export const setupStep = (connection) => (connection?.status === 'setup' ? connection.step : 0);
 
-// Meta said no, and the week since hasn't passed. They can still try
-// sooner; this only decides how the tab words it.
-export const isTooSoon = (connection, now) => connection?.status === 'notReady' && dayOf(now) < retryDay(connection);
+// Move to a step. Step 1 also starts it; 0 goes back to not started.
+export const goToStep = (step) => saveWhatsApp(step >= 1 ? { status: 'setup', step } : null);
 
-// Meta said the number isn't ready (today)
-// (at: the moment, so a second no on the same day still counts as news)
-export const markNotReady = (name) =>
-  saveWhatsApp({ status: 'notReady', triedOn: dayOf(Date.now()), at: Date.now(), name });
+// Done with the last step: the stand-in number is connected
+export const finishSetup = () =>
+  connectWhatsApp({ number: MOCK_NUMBER, name: DEFAULT_NAME, business: DEFAULT_NAME, sharedChats: false });
 
 // ---------- Connected ----------
 
@@ -184,10 +169,8 @@ export function connectWhatsApp({ number, name, business, sharedChats }) {
   return saveWhatsApp(connection) ? connection : null;
 }
 
-// Reconnecting a lost number through Meta again: same number and name
-export function reconnectWhatsApp({ number, sharedChats }) {
-  return update({ status: 'connected', number, sharedChats: Boolean(sharedChats) });
-}
+// A lost number, connected again (the stand-in: straight back)
+export const reconnectWhatsApp = () => update({ status: 'connected' });
 
 // A new name, after Meta rejected the last one: back into review
 export function renameWhatsApp(name) {
@@ -237,11 +220,6 @@ export const disconnectWhatsApp = () => saveWhatsApp(null);
 // ---------- Prototype controls (the demo panel on the WhatsApp tab) ----------
 
 export const demo = {
-  // A week has passed since Meta said no
-  skipWeek: () => {
-    const c = loadWhatsApp();
-    if (c?.status === 'notReady') saveWhatsApp({ ...c, triedOn: addDays(dayOf(Date.now()), -WAIT_DAYS) });
-  },
   approveName: () => update({ nameStatus: 'approved' }),
   rejectName: () => update({ nameStatus: 'rejected' }),
   // WhatsApp stopped letting us send (the number was moved, banned, or

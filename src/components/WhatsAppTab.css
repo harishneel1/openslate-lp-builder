@@ -87,61 +87,77 @@
   color: var(--color-text);
 }
 
-/* ---------- Which WhatsApp ---------- */
-.wa-choices {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-  margin-top: 4px;
-}
-
-.wa-choice {
+/* ---------- The steps: ① ── ② ── ③ ----------
+   Placeholders for now: what each step is hasn't been settled. */
+.wa-steps {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 18px;
-  text-align: left;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  align-items: center;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
 }
 
-.wa-choice:hover {
-  background: var(--color-primary-tint);
-  border-color: #f6d6b9;
-}
-
-.wa-choice__name {
-  font-size: 15px;
+.wa-steps__step {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.wa-steps__step:last-child {
+  flex: none;
+}
+
+/* The line to the next step */
+.wa-steps__step:not(:last-child)::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  margin: 0 4px;
+  background: var(--color-border);
+  border-radius: 1px;
+}
+
+.wa-steps__step--done:not(:last-child)::after {
+  background: var(--color-primary);
+}
+
+.wa-steps__dot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.wa-steps__step--done .wa-steps__dot {
+  color: #ffffff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.wa-steps__step--now .wa-steps__dot {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary);
+}
+
+.wa-steps__step--now {
   color: var(--color-text);
 }
 
-.wa-choice__text {
-  font-size: 13.5px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
-}
-
-/* ---------- How to switch: a real sequence, so numbered ---------- */
-.wa-howto {
-  max-width: 62ch;
-  margin: 2px 0 0;
-  padding-left: 20px;
-  font-size: 14.5px;
-  line-height: 1.6;
-}
-
-.wa-howto li + li {
-  margin-top: 4px;
-}
-
-.wa-howto li::marker {
-  font-weight: 600;
-  color: var(--color-text-muted);
+.wa-steps__name {
+  white-space: nowrap;
 }
 
 /* ---------- Fields ---------- */
@@ -194,27 +210,6 @@
 
 .wa-day__row .wa-input {
   flex: 1 1 220px;
-}
-
-/* ---------- The name, with the preview beside it ---------- */
-.wa-name {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 28px;
-  align-items: start;
-  width: 100%;
-  margin-top: 6px;
-}
-
-.wa-name__form {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.wa-name__go {
-  margin-top: 8px;
 }
 
 /* A message as a student sees it: the one place the tab looks like WhatsApp */
@@ -477,15 +472,6 @@
 @media (max-width: 720px) {
   .wa {
     padding: 16px;
-  }
-
-  .wa-choices,
-  .wa-name {
-    grid-template-columns: 1fr;
-  }
-
-  .wa-chat {
-    max-width: 320px;
   }
 
   .wa-from {
@@ -809,4 +795,11 @@
 
 .wamp__flip--next {
   margin-left: auto;
+}
+
+/* Phones: only the current step's name, so the lines between steps show */
+@media (max-width: 480px) {
+  .wa-steps__step:not(.wa-steps__step--now) .wa-steps__name {
+    display: none;
+  }
 }
