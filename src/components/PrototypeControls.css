@@ -1,0 +1,127 @@
+/* Prototype controls (PrototypeControls.jsx): a dashed, yellow-tinted
+   box at the bottom of the page, so it never reads as part of the
+   product. */
+
+.proto {
+  margin-top: 32px;
+  background: #fffbea;
+  border: 1px dashed #e5c46b;
+  border-radius: var(--radius-md);
+}
+
+.proto__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  color: #6b4e00;
+  border-radius: var(--radius-md);
+}
+
+.proto__head:focus-visible,
+.proto__btn:focus-visible,
+.proto__date:focus-visible {
+  outline: 2px solid #b8860b;
+  outline-offset: 2px;
+}
+
+.proto__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.proto__tag {
+  font-size: 13px;
+  color: #8a6d1d;
+}
+
+.proto__now {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fbe7a6;
+  border-radius: var(--radius-pill);
+}
+
+.proto__chevron {
+  margin-left: auto;
+  transition: transform 0.15s;
+}
+
+.proto--open .proto__chevron {
+  transform: rotate(180deg);
+}
+
+.proto__body {
+  display: grid;
+  gap: 16px;
+  padding: 4px 16px 16px;
+}
+
+.proto__row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.proto__label {
+  padding-top: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b4e00;
+}
+
+.proto__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.proto__btn,
+.proto__date {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a3600;
+  background: #fff;
+  border: 1px solid #e5c46b;
+  border-radius: var(--radius-sm);
+}
+
+.proto__btn:hover:not(:disabled) {
+  background: #fdf3dc;
+}
+
+.proto__btn[aria-pressed='true'] {
+  font-weight: 700;
+  background: #fbe7a6;
+}
+
+.proto__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.proto__note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a6d1d;
+}
+
+@media (max-width: 640px) {
+  .proto__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .proto__label {
+    padding-top: 0;
+  }
+}

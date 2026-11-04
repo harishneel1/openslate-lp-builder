@@ -8,7 +8,8 @@ import { useCopy } from './OfferingsHome';
 import RowMenu from '../components/RowMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { deleteBatch, feeLine, loadBatches, onBatchesChange, scheduleLine } from '../data/batches';
-import { deleteMembersOf, memberCount, onMembersChange } from '../data/batchMembers';
+import { deleteMembersOf, everJoined, memberCount, onMembersChange, pendingLine, pendingOf, statusCounts } from '../data/batchMembers';
+import { appNow } from '../utils/testClock';
 import { deleteService } from '../data/mockServices';
 import { accountHandle, offeringUrl } from '../data/myPage';
 import './OfferingsHome.css'; // the same panels, rows and buttons as 1:1 calls
@@ -30,8 +31,11 @@ import './LiveClassesPage.css';
 // A click on a row opens the batch's page (BatchOverview.jsx): Members and
 // Classes. Edit opens its editor (EditBatch.jsx). Create a batch is the
 // guided flow (CreateBatchFlow.jsx). ⋯ holds Delete, only for a batch
-// nobody has joined: members hold its contract, so it stays until they
-// don't (round 2 brings removing members).
+// nobody has ever joined: its contract holds their payments, removed
+// members' too, so it stays.
+//
+// Under each row, who's in and who needs the coach (batchMembers.js):
+//   18 members · 2 payments pending (1 for over 5 days)
 //
 // Each batch's link sits under the account's link, like a 1:1 call's:
 // /<account link>/<batch id>, which opens its join page (BatchPage.jsx).
@@ -48,7 +52,8 @@ import './LiveClassesPage.css';
 // ------------------------------------------------------------
 
 function useBatches() {
-  const read = () => loadBatches().map((b) => ({ ...b, members: memberCount(b.id) }));
+  const read = () =>
+    loadBatches().map((b) => ({ ...b, members: memberCount(b.id), ever: everJoined(b.id), counts: statusCounts(b, appNow()) }));
   const [batches, setBatches] = useState(read);
   useEffect(() => {
     const refresh = () => setBatches(read());
@@ -259,6 +264,7 @@ export default function LiveClassesPage({ openRequest = null, onFocus }) {
 function BatchRow({ batch, url, isNew, menuOpen, onMenu, onOpen, onEdit, onDelete }) {
   const [copy, copyLink] = useCopy();
   const members = batch.members;
+  const pending = pendingOf(batch.counts);
   return (
     <li
       className={`oh-row calls__row ${isNew ? 'oh-row--new' : ''} ${menuOpen ? 'oh-row--menu' : ''}`}
@@ -278,7 +284,16 @@ function BatchRow({ batch, url, isNew, menuOpen, onMenu, onOpen, onEdit, onDelet
           {scheduleLine(batch)} · <span className="oh-row__price">{feeLine(batch)}</span>
         </p>
         <p className="lc__members">
-          {members === 0 ? 'Nobody has joined yet' : `${members} ${members === 1 ? 'member' : 'members'}`}
+          {members === 0 && batch.ever === 0 ? (
+            'Nobody has joined yet'
+          ) : (
+            <>
+              {`${members} ${members === 1 ? 'member' : 'members'}`}
+              {pending.pending > 0 && (
+                <span className={`lc__due ${pending.late > 0 ? 'lc__due--late' : ''}`}> · {pendingLine(pending)}</span>
+              )}
+            </>
+          )}
         </p>
       </div>
 
@@ -309,8 +324,8 @@ function BatchRow({ batch, url, isNew, menuOpen, onMenu, onOpen, onEdit, onDelet
               icon: Trash2,
               danger: true,
               onSelect: onDelete,
-              disabled: members > 0,
-              hint: members > 0 ? 'People have joined, so it can’t be deleted.' : undefined,
+              disabled: batch.ever > 0,
+              hint: batch.ever > 0 ? 'People have joined, so it can’t be deleted.' : undefined,
             },
           ]}
         />

@@ -1,0 +1,104 @@
+/* A batch member's panel (MemberDrawer.jsx). Its sections are a
+   booking's (BookingDrawer.css); these are what it adds: where they are
+   on their fee, and their payment cycles. Pills: BatchOverview.css. */
+
+.mdr__status {
+  padding: 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.mdr__status--late {
+  background: #fff6f5;
+  border-color: #f6cdc8;
+}
+
+.mdr__status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.mdr__status-detail {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mdr__status-note {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.mdr__remind-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.mdr__reminded {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.mdr__cycles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.mdr__cycle {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 11px 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mdr__cycle--next .mdr__cycle-dates {
+  font-weight: 600;
+}
+
+.mdr__cycle-state {
+  color: var(--color-text-muted);
+}
+
+.mdr__cycle-state--pending {
+  color: #9a4a0f;
+  font-weight: 500;
+}
+
+.mdr__cycle-state--late {
+  color: #a8261b;
+  font-weight: 500;
+}
+
+.mdr__cycle-fee {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mdr__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.mdr__foot .bk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mdr__remove {
+  margin-left: auto;
+}

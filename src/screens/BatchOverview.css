@@ -6,102 +6,331 @@
 }
 
 /* ---------- Members ---------- */
-.bov__members {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.bov__member + .bov__member {
-  border-top: 1px solid var(--color-border);
-}
-
-.bov__member-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+/* Search, as on a webinar's people */
+.bov__search {
+  display: flex;
   align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 14px 4px;
-  text-align: left;
+  gap: 8px;
+  max-width: 360px;
+  margin-bottom: 8px;
+  padding: 0 12px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid #d6d6d6;
   border-radius: var(--radius-sm);
 }
 
-.bov__member-row:hover {
+.bov__search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.bov__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.bov__no-match {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bov__no-match p {
+  margin: 0;
+}
+
+/* The tabs over the members, and the line saying what the open one is.
+   Only here (not on a 1:1 call's page): the open tab is filled with the
+   brand tint, and each count is coloured by what it means. */
+.bov__views {
+  margin-top: 4px;
+}
+
+.bov__views .cov__filter[aria-pressed='true'] {
+  color: #9a4a0f;
+  background: var(--color-primary-tint);
+  box-shadow: inset 0 0 0 1px #f4dcc5;
+}
+
+.bov__views .bov__count {
+  min-width: 22px;
+  padding: 1px 7px;
+  font-weight: 700;
+  text-align: center;
+  border-radius: var(--radius-pill);
+}
+
+.bov__views .bov__count--pending {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.bov__views .bov__count--late {
+  color: #fff;
+  background: #c0392b;
+}
+
+.bov__views .bov__count--paid {
+  color: var(--color-success);
+  background: var(--color-success-tint);
+}
+
+.bov__views .bov__count--removed {
+  color: var(--color-text-muted);
+  background: var(--color-border);
+}
+
+.bov__view-sub {
+  margin: 10px 0 12px;
+  max-width: 640px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.bov__view-empty {
+  margin: 0;
+  padding: 24px 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+/* One person: a webinar's people row. Name and how to reach them;
+   their date and status, Remind, and ⋯ on the right. */
+.bov-people {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.bov-person {
+  display: grid;
+  /* The WhatsApp button's column grows to fit it ("Send payment link"
+     is wider than "Remind"), with a floor so Remind buttons line up */
+  grid-template-columns: minmax(0, 1fr) auto auto 36px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.bov-person:hover {
   background: var(--color-bg);
 }
 
-.bov__member-row:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.bov-person--menu {
+  position: relative;
+  z-index: var(--z-raised);
 }
 
-.bov__member-name {
+.bov-person__name {
+  margin: 0;
   font-size: 15px;
   font-weight: 600;
+}
+
+.bov-person__open {
+  max-width: 100%;
   overflow: hidden;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.bov__member-date {
-  font-size: 14px;
+.bov-person__open:hover {
+  text-decoration: underline;
+}
+
+.bov-person__open:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.bov-person__contact {
+  margin: 2px 0 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Their date and status, read together */
+.bov-person__side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bov-person__when {
+  display: grid;
+  justify-items: end;
+  font-size: 13px;
   color: var(--color-text-muted);
   white-space: nowrap;
 }
 
-.bov__paid {
+.bov-person__when--pending {
+  color: #9a4a0f;
+  font-weight: 500;
+}
+
+.bov-person__when--late {
+  color: #a8261b;
+  font-weight: 500;
+}
+
+.bov-person__reminded {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.bov-person__act {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 104px;
+}
+
+.bov-person--removed .bov-person__name {
+  color: var(--color-text-muted);
+}
+
+.bov-person--removed .bov-person__contact {
+  color: var(--color-text-disabled);
+}
+
+/* Status pills (also in the member's panel) */
+.bov__pill {
+  display: inline-block;
+  min-width: 64px;
   padding: 3px 10px;
   font-size: 12px;
   font-weight: 600;
+  text-align: center;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.bov__pill--paid {
   color: var(--color-success);
   background: var(--color-success-tint);
-  border-radius: var(--radius-pill);
 }
 
-.bov__chevron {
+.bov__pill--soon {
+  color: #8a5a00;
+  background: #fdf3dc;
+}
+
+.bov__pill--pending {
+  color: #9a4a0f;
+  background: var(--color-primary-tint);
+}
+
+.bov__pill--late {
+  color: #a8261b;
+  background: #fde8e6;
+}
+
+.bov__pill--removed {
   color: var(--color-text-muted);
-  transition: transform 0.15s;
-}
-
-.bov__member--open .bov__chevron {
-  transform: rotate(180deg);
-}
-
-.bov__details {
-  display: grid;
-  gap: 12px;
-  margin: 0 0 16px;
-  padding: 16px;
   background: var(--color-bg);
-  border-radius: var(--radius-md);
 }
 
-.bov__details div {
-  display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 12px;
-}
-
-.bov__details dt {
+/* Remind and Send payment link: green, for WhatsApp */
+.bov__remind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
   font-size: 13px;
-  color: var(--color-text-muted);
+  font-weight: 600;
+  color: #146c43;
+  text-decoration: none;
+  background: #e7f6ed;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
-.bov__details dd {
-  margin: 0;
-  font-size: 14px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.bov__remind:hover {
+  background: #d5efdf;
 }
 
-.bov__answer {
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border);
+.bov__remind:focus-visible,
+.bov__undo:focus-visible,
+.bov__notice-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-.bov__none {
+.bov__no-phone {
+  font-size: 12px;
   color: var(--color-text-disabled);
+}
+
+/* Over 5 days unpaid, and the note after an action */
+.bov__alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: #7a1d14;
+  background: #fde8e6;
+  border-radius: var(--radius-sm);
+}
+
+.bov__alert p {
+  margin: 0;
+}
+
+.bov__alert svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.bov__notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 16px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #146c43;
+  background: var(--color-success-tint);
+  border-radius: var(--radius-sm);
+}
+
+.bov__undo {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.bov__notice-close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border-radius: 4px;
 }
 
 /* ---------- Nobody yet ---------- */
@@ -221,37 +450,33 @@
     padding: 16px;
   }
 
-  .bov__member-row {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-    row-gap: 2px;
+  /* Name and ⋯ on top; date, status and Remind under */
+  .bov-person {
+    grid-template-columns: minmax(0, 1fr) auto 36px;
+    row-gap: 8px;
   }
 
-  .bov__member-row .bk-face {
-    grid-row: 1 / span 3;
+  .bov-person__text {
+    grid-column: 1 / 3;
   }
 
-  .bov__member-name {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .bov__member-date {
-    grid-column: 2;
-    font-size: 13px;
-  }
-
-  .bov__paid {
+  .bov-person .row-menu,
+  .bov-person > :last-child {
     grid-column: 3;
     grid-row: 1;
   }
 
-  .bov__chevron {
-    grid-column: 4;
-    grid-row: 1;
+  .bov-person__side {
+    grid-column: 1;
+    grid-row: 2;
   }
 
-  .bov__details div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2px;
+  .bov-person__when {
+    justify-items: start;
+  }
+
+  .bov-person__act {
+    grid-column: 2 / 4;
+    grid-row: 2;
   }
 }

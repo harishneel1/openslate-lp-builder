@@ -10,13 +10,23 @@ import {
   scheduleLine,
 } from '../data/batches';
 import { zoneShort } from '../components/BatchFields';
-import { addMember, memberByEmail, nextRenewal, renewalDayLine, shortDate } from '../data/batchMembers';
+import {
+  NEEDS_ACTION,
+  addMember,
+  memberByEmail,
+  nextRenewal,
+  payRenewal,
+  renewalDayLine,
+  restoreMember,
+  shortDate,
+} from '../data/batchMembers';
 import { contractOf, getService } from '../data/mockServices';
 import { formatMoney } from '../data/contractPricing';
 import { COUNTRY_CODES } from '../data/checkoutRules';
 import { ANSWER_MAX, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
 import { mockAccount } from '../data/myPage';
 import { todayIn } from '../utils/slots';
+import { appNow } from '../utils/testClock';
 import '../styles/storeTheme.css';
 import './BatchPage.css';
 
@@ -34,6 +44,19 @@ import './BatchPage.css';
 //                                           │ cancel.                  │
 //                                           │ [Pay ₹2,000]             │
 //                                           └──────────────────────────┘
+//
+// Every payment for a batch happens here, on its contract's page: new
+// people joining, members paying their next month, and people who were
+// removed coming back. The coach's WhatsApp messages link here too
+// (renewalMessage.js). Email comes first, and the page knows someone
+// from it as they type (memberByEmail), so nobody is added twice:
+//   new email          → the form above: details, questions, pay, join
+//   in the batch, payment pending or due soon
+//                      → "Pay for your next month": no details to fill
+//                        in; paying adds their next month, from their date
+//   in the batch, paid → "You've paid until 20 Nov", nothing to pay
+//   removed            → "Rejoin": paying brings them back, with a fresh
+//                        month from today
 //
 // Paying makes them a member: they hold the batch's contract from today,
 // paid up to the same date next month (addMember in batchMembers.js).
@@ -73,10 +96,9 @@ export default function BatchPage({ batchId }) {
   const questions = batch?.questions ?? [];
   const [answers, setAnswers] = useState(() => Object.fromEntries(questions.map((q) => [q.id, emptyAnswer(q)])));
   const [tried, setTried] = useState(false);
-  const [joined, setJoined] = useState(null); // the member, once paid
-  const [already, setAlready] = useState(null); // already a member, by email
+  const [joined, setJoined] = useState(null); // { member, kind: 'new' | 'renewed' | 'back' }, once paid
   const [failed, setFailed] = useState(false);
-  const now = useMemo(() => Date.now(), []);
+  const now = useMemo(() => appNow(), []);
 
   useEffect(() => {
     document.title = batch ? `Join ${batch.title}` : 'Batch not found';
@@ -104,39 +126,65 @@ export default function BatchPage({ batchId }) {
     .map((p) => p.trim())
     .filter(Boolean);
 
-  const personErrors = checkPerson(form);
-  const answerErrors = checkAnswers(questions, answers);
+  // Someone this batch already knows, from the email they joined with
+  const known = EMAIL.test(form.email.trim()) ? memberByEmail(batch, form.email, now) : null;
+  const knownAs = !known
+    ? 'new'
+    : known.status === 'removed'
+      ? 'removed'
+      : NEEDS_ACTION.includes(known.status)
+        ? 'due'
+        : 'paid';
+  const knownFirst = known ? known.name.split(/\s+/)[0] || 'there' : '';
+
+  // A new person fills in everything; someone known only their email
+  const personErrors = known ? { email: null } : checkPerson(form);
+  const answerErrors = known ? {} : checkAnswers(questions, answers);
   const hasErrors = Object.values(personErrors).some(Boolean) || Object.values(answerErrors).some(Boolean);
   const errorOf = (id) => (tried ? (personErrors[id] ?? answerErrors[id] ?? null) : null);
 
   const pay = () => {
     setTried(true);
-    setAlready(null);
     if (hasErrors) {
       requestAnimationFrame(() => document.querySelector('.bp [aria-invalid="true"]')?.focus());
       return;
     }
-    const existing = memberByEmail(batch.id, form.email);
-    if (existing) {
-      setAlready(existing);
-      return;
+    let member = null;
+    let kind = 'new';
+    if (knownAs === 'removed') {
+      // Removed before: paying brings them back, with their old details
+      member = restoreMember(known.id, batch, now, 'rejoin');
+      kind = 'back';
+    } else if (knownAs === 'due') {
+      // In the batch: this pays their next month
+      member = payRenewal(known.id, batch, 'link', now);
+      kind = 'renewed';
+    } else if (knownAs === 'new') {
+      member = addMember(
+        batch,
+        {
+          name: form.name,
+          email: form.email,
+          phone: { code: form.code, number: form.phone.trim() },
+          answers: answersFor(questions, answers),
+        },
+        now,
+      );
+    } else {
+      return; // paid up: nothing to pay
     }
-    const member = addMember(batch, {
-      name: form.name,
-      email: form.email,
-      phone: { code: form.code, number: form.phone.trim() },
-      answers: answersFor(questions, answers),
-    });
     if (!member) {
       setFailed(true);
       return;
     }
-    setJoined(member);
+    setJoined({ member, kind });
     window.scrollTo(0, 0);
   };
 
   if (joined) {
-    const first = classes.find((c) => c.start > Date.now()) ?? classes[0];
+    const { member: joinedMember, kind } = joined;
+    const paidFor = joinedMember.payments.at(-1);
+    const first = classes.find((c) => c.start > now) ?? classes[0];
     const button = contract?.success ?? { buttonLabel: 'Log in', buttonUrl: `https://${mockAccount.domain}` };
     return (
       <div className="store-theme bp bp--center">
@@ -144,13 +192,21 @@ export default function BatchPage({ batchId }) {
           <span className="bp__done-tick" aria-hidden="true">
             <Check size={26} strokeWidth={3} />
           </span>
-          <h1 className="bp__done-title">You’re in, {joined.name.split(/\s+/)[0]}</h1>
+          <h1 className="bp__done-title">
+            {kind === 'renewed'
+              ? `Thanks, ${joinedMember.name.split(/\s+/)[0]}. You’re paid up`
+              : `${kind === 'back' ? 'Welcome back' : 'You’re in'}, ${joinedMember.name.split(/\s+/)[0]}`}
+          </h1>
           <p className="bp__done-text">
-            Welcome to {batch.title} with {mockAccount.name}.
+            {kind === 'renewed'
+              ? `${batch.title} is yours until ${shortDate(joinedMember.renewsOn)}.`
+              : kind === 'back'
+                ? `You’re back in ${batch.title} with ${mockAccount.name}.`
+                : `Welcome to ${batch.title} with ${mockAccount.name}.`}
           </p>
 
           <dl className="bp__done-facts">
-            {first && (
+            {first && kind !== 'renewed' && (
               <div>
                 <dt>Your first class</dt>
                 <dd>
@@ -167,20 +223,20 @@ export default function BatchPage({ batchId }) {
             <div>
               <dt>Paid</dt>
               <dd>
-                {fee} for {shortDate(startsOn)} to {shortDate(joined.renewsOn)}
+                {formatMoney(paidFor.amount, 'INR')} for {shortDate(paidFor.from)} to {shortDate(paidFor.to)}
               </dd>
             </div>
             <div>
               <dt>Next payment</dt>
               <dd>
-                {fee} on {shortDate(joined.renewsOn)}
+                {fee} on {shortDate(joinedMember.renewsOn)}
               </dd>
             </div>
           </dl>
 
           <p className="bp__done-where">
             Log in to {mockAccount.domain} to join your classes. Each class shows at the top of your feed, ready to join a
-            few minutes before it starts. We’ve emailed your receipt to {joined.email}.
+            few minutes before it starts. We’ve emailed your receipt to {joinedMember.email}.
           </p>
 
           {button.buttonUrl && (
@@ -242,19 +298,10 @@ export default function BatchPage({ batchId }) {
 
         <section className="bp__join" aria-labelledby="bp-join-title">
           <h2 className="bp__join-title" id="bp-join-title">
-            Join this batch
+            {knownAs === 'due' ? 'Pay for your next month' : knownAs === 'removed' ? 'Rejoin this batch' : 'Join this batch'}
           </h2>
 
-          <Field id="name" label="Name" error={errorOf('name')}>
-            <input
-              id="bp-name"
-              className="bp__input"
-              autoComplete="name"
-              value={form.name}
-              aria-invalid={Boolean(errorOf('name'))}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </Field>
+          {/* Email first: it's how the batch knows someone who's been here before */}
           <Field id="email" label="Email" error={errorOf('email')}>
             <input
               id="bp-email"
@@ -263,70 +310,104 @@ export default function BatchPage({ batchId }) {
               autoComplete="email"
               value={form.email}
               aria-invalid={Boolean(errorOf('email'))}
+              aria-describedby={known ? 'bp-known' : undefined}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
           </Field>
-          <Field id="phone" label="Phone" error={errorOf('phone')}>
-            <span className="bp__phone">
-              <select
-                className="bp__input bp__code"
-                value={form.code}
-                aria-label="Country code"
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
-              >
-                {COUNTRY_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} {c.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                id="bp-phone"
-                className="bp__input"
-                inputMode="tel"
-                autoComplete="tel-national"
-                value={form.phone}
-                aria-invalid={Boolean(errorOf('phone'))}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
-            </span>
-          </Field>
 
-          {questions.map((q) => (
-            <Answer
-              key={q.id}
-              q={q}
-              value={answers[q.id]}
-              error={errorOf(q.id)}
-              onChange={(v) => setAnswers({ ...answers, [q.id]: v })}
-            />
-          ))}
+          {known ? (
+            <p className="bp__known" id="bp-known" role="status">
+              {knownAs === 'paid'
+                ? `Hi ${knownFirst}, you’re already in this batch and have paid until ${shortDate(known.renewsOn)}. Nothing to pay right now.`
+                : knownAs === 'due'
+                  ? `Hi ${knownFirst}, you’re already in this batch. Your details are saved, so there’s nothing to fill in.`
+                  : `Welcome back, ${knownFirst}. Your details are saved, so there’s nothing to fill in.`}
+            </p>
+          ) : (
+            <>
+              <Field id="name" label="Name" error={errorOf('name')}>
+                <input
+                  id="bp-name"
+                  className="bp__input"
+                  autoComplete="name"
+                  value={form.name}
+                  aria-invalid={Boolean(errorOf('name'))}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+              </Field>
+              <Field id="phone" label="Phone" error={errorOf('phone')}>
+                <span className="bp__phone">
+                  <select
+                    className="bp__input bp__code"
+                    value={form.code}
+                    aria-label="Country code"
+                    onChange={(e) => setForm({ ...form, code: e.target.value })}
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    id="bp-phone"
+                    className="bp__input"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    value={form.phone}
+                    aria-invalid={Boolean(errorOf('phone'))}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  />
+                </span>
+              </Field>
 
-          <div className="bp__price">
-            <p className="bp__price-row">
-              <span>Today</span>
-              <strong>{fee}</strong>
-            </p>
-            <p className="bp__price-note">
-              Then {feeLine(batch).replace('/month', '')} every month on the {renewalDayLine(startsOn)}, starting{' '}
-              {shortDate(renews)}, until you cancel.
-            </p>
-          </div>
-
-          {already && (
-            <p className="bp__notice" role="alert">
-              {already.email} is already in this batch. Log in to {mockAccount.domain} to join your classes.
-            </p>
+              {questions.map((q) => (
+                <Answer
+                  key={q.id}
+                  q={q}
+                  value={answers[q.id]}
+                  error={errorOf(q.id)}
+                  onChange={(v) => setAnswers({ ...answers, [q.id]: v })}
+                />
+              ))}
+            </>
           )}
-          {failed && (
-            <p className="bp__error" role="alert">
-              We couldn’t finish joining. You haven’t been charged. Try again.
-            </p>
-          )}
 
-          <button type="button" className="bp__pay" onClick={pay}>
-            <Lock size={16} aria-hidden="true" /> Pay {fee}
-          </button>
+          {knownAs === 'paid' ? (
+            <a className="bp__pay" href={`https://${mockAccount.domain}`} target="_blank" rel="noopener noreferrer">
+              Go to your classes <ArrowRight size={16} aria-hidden="true" />
+            </a>
+          ) : (
+            <>
+              <div className="bp__price">
+                <p className="bp__price-row">
+                  <span>Today</span>
+                  <strong>{fee}</strong>
+                </p>
+                <p className="bp__price-note">
+                  {knownAs === 'due'
+                    ? `This pays for your next month: ${shortDate(known.renewsOn)} – ${shortDate(
+                        nextRenewal(known.renewsOn, known.payDay),
+                      )}. After that, ${fee} on ${shortDate(nextRenewal(known.renewsOn, known.payDay))}.`
+                    : knownAs === 'removed'
+                      ? `You’re back in the batch as soon as you pay. This covers ${shortDate(startsOn)} – ${shortDate(
+                          renews,
+                        )}, then ${fee} every month on the ${renewalDayLine(startsOn)}.`
+                      : `Then ${fee} every month on the ${renewalDayLine(startsOn)}, starting ${shortDate(renews)}, until you cancel.`}
+                </p>
+              </div>
+
+              {failed && (
+                <p className="bp__error" role="alert">
+                  We couldn’t finish your payment. You haven’t been charged. Try again.
+                </p>
+              )}
+
+              <button type="button" className="bp__pay" onClick={pay}>
+                <Lock size={16} aria-hidden="true" /> {knownAs === 'removed' ? `Pay ${fee} and rejoin` : `Pay ${fee}`}
+              </button>
+            </>
+          )}
           <p className="bp__secure">A preview: no money is taken.</p>
         </section>
       </div>

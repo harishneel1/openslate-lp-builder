@@ -46,6 +46,7 @@ import { loadSaved } from './utils/storage'
 //   on the Webinars tab opens it: Join meeting, Start webinar or Live now · Rejoin.
 //   ?mock=zoom&batch=<id> → a batch's class meeting (Start class on the batch's page).
 // ?mock=batch&batch=<id> → a batch's join page (Live classes): what it is, and paying to join.
+// &today=YYYY-MM-DD on any address → Live classes pretend it's that date (utils/testClock.js).
 // ?mock=refund&webinar=<session id>&person=<person id> → one person's refund (a placeholder
 //   for now). The "Refunded ₹…" badge in a session's Manage people opens it in a new tab.
 // /<webinar slug> (e.g. localhost:5173/fix-the-vasthu-mistakes) → that webinar's shared

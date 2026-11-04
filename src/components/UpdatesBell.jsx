@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarClock, CalendarX, Video } from 'lucide-react';
+import { Bell, CalendarClock, CalendarX, IndianRupee, Video } from 'lucide-react';
 import GuestInitials from './GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates';
 import { buildSignupUpdates } from '../data/signupUpdates';
 import { buildRecordingUpdates } from '../data/recordingUpdates';
 import { buildCancelUpdates, buildRescheduleUpdates } from '../data/cancelUpdates';
-import { buildJoinUpdates } from '../data/batchUpdates';
+import { buildDueUpdates, buildJoinUpdates, buildRejoinUpdates } from '../data/batchUpdates';
 import { onMembersChange } from '../data/batchMembers';
 import { onRecordingsChange } from '../data/recordings';
 import { onSignupsChange } from '../data/webinarSignups';
@@ -89,6 +89,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
         ...buildCancelUpdates({ webinars, now }),
         ...buildRescheduleUpdates({ webinars, now }),
         ...buildJoinUpdates({ lastSeen, now }),
+        ...buildDueUpdates({ lastSeen }),
+        ...buildRejoinUpdates({ lastSeen, now }),
       ].sort((a, b) => b.at - a.at),
     // signupsTick, recordingsTick: they live outside React, so a change bumps them
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -197,7 +199,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                             if (u.kind === 'signups' || u.kind === 'cancelled-session' || u.kind === 'rescheduled-session')
                               onOpenWebinar?.(u.webinarId);
                             else if (u.kind === 'recording') onOpenWebinar?.(u.webinarId, { tab: 'recording' });
-                            else if (u.kind === 'batch-joins') onOpenBatch?.(u.batchId, { tab: 'members' });
+                            else if (u.kind === 'batch-joins' || u.kind === 'batch-dues' || u.kind === 'batch-rejoins')
+                              onOpenBatch?.(u.batchId, { tab: 'members' });
                             else onOpenBooking?.(u.bookingId);
                           }}
                         >
@@ -205,6 +208,10 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                           {u.kind === 'recording' ? (
                             <span className="bk-face" aria-hidden="true">
                               <Video size={17} />
+                            </span>
+                          ) : u.kind === 'batch-dues' ? (
+                            <span className="bk-face" aria-hidden="true">
+                              <IndianRupee size={17} />
                             </span>
                           ) : u.kind === 'cancelled-session' ? (
                             <span className="bk-face" aria-hidden="true">
@@ -224,6 +231,10 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                                   <SignedUp update={u} />
                                 ) : u.kind === 'batch-joins' ? (
                                   <SignedUp update={u} verb="joined" />
+                                ) : u.kind === 'batch-rejoins' ? (
+                                  <SignedUp update={u} verb="rejoined" />
+                                ) : u.kind === 'batch-dues' ? (
+                                  <strong>{u.line}</strong>
                                 ) : u.kind === 'cancelled-session' ? (
                                   <>
                                     <strong>Session cancelled</strong>
@@ -260,6 +271,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                                 </>
                               ) : u.kind === 'rescheduled-session' ? (
                                 `${u.title}, now ${u.when}`
+                              ) : u.kind === 'batch-dues' ? (
+                                u.title
                               ) : (
                                 `${u.title}, ${u.when}`
                               )}

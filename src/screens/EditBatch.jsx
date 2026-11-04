@@ -19,9 +19,9 @@ import '../components/QuestionInput.css';
 // Saving writes the batch and its contract together (storeBatch), so the
 // batch's page, its join page and its contract all show the change.
 //
-// Round 1: a new fee is what people pay when they join from now on.
-// What members already in the batch pay at their next renewal comes with
-// renewals, in round 2.
+// A new fee is what people pay when they join from now on, and what
+// members already in the batch pay from their next renewal (their pay
+// link and reminder always use the fee as it is now).
 //
 // batch: the saved batch. exitRef: the focus bar's way back (asks first
 // about unsaved changes). onBack(): back to the batch's page.
@@ -102,7 +102,7 @@ export default function EditBatch({ batch, exitRef, onBack, onSaved }) {
         <ScheduleFields key={`schedule-${edit.formKey}`} value={draft} onChange={change} showProblem />
       </EditPanel>
 
-      <EditPanel id="eb-fee" title="Monthly fee" sub="What people who join from now on pay.">
+      <EditPanel id="eb-fee" title="Monthly fee" sub="New members pay this when they join. Members already in pay it from their next renewal.">
         <FeeField key={`fee-${edit.formKey}`} value={draft} onChange={change} showProblem />
       </EditPanel>
 
