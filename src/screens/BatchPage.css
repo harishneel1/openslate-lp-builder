@@ -251,6 +251,17 @@
   color: var(--pf-muted);
 }
 
+/* A break coming up, under the class times */
+.bp__break {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b4e00;
+  background: #fdf3dc;
+  border-radius: var(--radius-sm);
+}
+
 /* Someone the batch already knows, from their email */
 .bp__known {
   margin: 0;

@@ -1,0 +1,50 @@
+/* "Add a break" (BreakDrawer.jsx): two dates, then what they take out */
+
+.brk {
+  display: grid;
+  gap: 20px;
+}
+
+.brk__field {
+  display: grid;
+  gap: 8px;
+}
+
+.brk__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.brk__summary {
+  padding: 14px 16px;
+  background: var(--color-primary-tint);
+  border: 1px solid #f4dcc5;
+  border-radius: var(--radius-md);
+}
+
+.brk__summary p {
+  margin: 0;
+}
+
+.brk__count {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.brk__dates {
+  margin-top: 4px !important;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.brk__fees {
+  margin-top: 8px !important;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.brk__error {
+  margin: 0;
+  font-size: 13px;
+  color: #c0392b;
+}

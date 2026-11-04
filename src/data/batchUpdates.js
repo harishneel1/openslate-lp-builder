@@ -3,6 +3,7 @@ import { appNow } from '../utils/testClock';
 import { coachZone } from './buildBookingsJson';
 import { agoLabel } from './bookingUpdates';
 import { loadBatches, scheduleLine } from './batches';
+import { noticeRecords } from './batchNotices';
 import { allMembers, membersOf, pendingLine } from './batchMembers';
 
 // ------------------------------------------------------------
@@ -144,3 +145,8 @@ export function buildRejoinUpdates({ lastSeen = 0, now = Date.now() }) {
   }
   return out.sort((a, b) => b.at - a.at).map((u) => ({ ...u, unread: u.at > lastSeen, ago: agoLabel(u.at, now, zone) }));
 }
+
+// Classes cancelled and breaks added, as records for the bell (the coach
+// did these, so they're never "new"). See noticeRecords in batchNotices.js.
+export const buildNoticeUpdates = ({ now = Date.now() } = {}) =>
+  noticeRecords(loadBatches(), coachZone(), now).map((u) => ({ ...u, unread: false, ago: agoLabel(u.at, now, coachZone()) }));

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  CalendarOff,
+  CalendarX,
   Check,
   Copy,
   ExternalLink,
@@ -25,7 +27,11 @@ import {
   classMeetingHref,
   classState,
   classTime,
+  classesInRange,
   dayOn,
+  offOn,
+  saveBatchDaysOff,
+  upcomingBreaks,
   feeLine,
   nextClasses,
   scheduleLine,
@@ -47,8 +53,10 @@ import {
 } from '../data/batchMembers';
 import { batchPayHref, rejoinHref, reminderHref } from '../data/renewalMessage';
 import { formatMoney } from '../data/contractPricing';
+import { rangeLine } from '../data/batchNotices';
+import DaysOffDrawer from '../components/DaysOffDrawer';
 import { appNow, onTestDateChange } from '../utils/testClock';
-import { todayIn } from '../utils/slots';
+import { todayIn, weekdayOf } from '../utils/slots';
 import './OfferingsHome.css';
 import './CallOverview.css'; // the same head and tabs as a 1:1 call's page
 import './BookingsPage.css'; // initials and buttons (.bk-face, .bk-btn)
@@ -61,7 +69,7 @@ import './BatchOverview.css';
 //   Morning Yoga                        [Copy link] [Edit] [↗ View live page]
 //   Mon–Sat · 6:30–7:30 am · ₹2,000/month
 //
-//   Members 18 | Classes
+//   Classes | Members 18
 //
 // Members: a row of tabs with every count, so the state of the batch is
 // clear at the top without scrolling, and a line under them saying what
@@ -88,6 +96,13 @@ import './BatchOverview.css';
 // UPI paid to the coach directly; Remove ends their hold on the contract,
 // so the classes leave their feed; Restore is for someone who paid again.
 //
+// Classes (the first tab): Breaks, picked on the 1:1 calls' Days off
+// panel (DaysOffDrawer.jsx) with nothing sent (the coach tells members in
+// class); the next class with Start class (the mock Zoom room) and Cancel
+// this class; then what's coming up, each with ⋯ Cancel this class, or
+// marked Cancelled / Break. Cancelling goes to the cancel page
+// (BatchAnnounce.jsx, through onAnnounce), where members are told.
+//
 // At the bottom, Prototype controls (PrototypeControls.jsx): sample
 // members in every situation, and a pretend date. The date is appNow()
 // (utils/testClock.js) everywhere on this page.
@@ -96,15 +111,18 @@ import './BatchOverview.css';
 // url: its link to share
 // tab: 'members' | 'classes'; onTab(tab)
 // onEdit(): its editor
+// onAnnounce(change): cancel a class ({ kind: 'cancel', date }): the cancel page
+// classNotice: a line to show on Classes after one ("Class cancelled…")
 // ------------------------------------------------------------
 
 const TICK_MS = 30_000; // the clock, for which class is next or on now
-const CLASSES_SHOWN = 12;
+const CLASSES_SHOWN = 14; // breaks and cancelled ones included, so a few more
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const SEARCH_FROM = 5; // search shows past this many people, as on a webinar
 
 const TABS = [
-  { id: 'members', label: 'Members' },
   { id: 'classes', label: 'Classes' },
+  { id: 'members', label: 'Members' },
 ];
 
 // Who needs the coach first: the latest at the top
@@ -164,7 +182,7 @@ const matches = (m, q) => {
   );
 };
 
-export default function BatchOverview({ batch, url, tab, onTab, onEdit }) {
+export default function BatchOverview({ batch, url, tab, onTab, onEdit, onAnnounce, classNotice = null }) {
   const [version, setVersion] = useState(0); // bumped when members change
   const [now, setNow] = useState(appNow);
   const [query, setQuery] = useState('');
@@ -210,7 +228,10 @@ export default function BatchOverview({ batch, url, tab, onTab, onEdit }) {
   const current = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
   const shown = found.filter(current.has);
 
-  const classes = useMemo(() => nextClasses(batch, now, CLASSES_SHOWN), [batch, now]);
+  const classes = useMemo(() => nextClasses(batch, now, CLASSES_SHOWN, { includeOff: true }), [batch, now]);
+  const nextOn = classes.find((c) => !c.off) ?? null;
+  const breaks = upcomingBreaks(batch, dayOn(now, batch));
+  const [addingBreak, setAddingBreak] = useState(false);
   const today = dayOn(now, batch);
 
   const onKey = (e) => {
@@ -440,25 +461,95 @@ export default function BatchOverview({ batch, url, tab, onTab, onEdit }) {
           </div>
         ) : (
           <div id="bov-panel-classes" role="tabpanel" aria-labelledby="bov-tab-classes" className="bov__body">
+            {classNotice && (
+              <p className="bov__notice" role="status">
+                <Check size={16} strokeWidth={3} aria-hidden="true" /> {classNotice}
+              </p>
+            )}
+
+            {/* Breaks: like Days off on the 1:1 calls page, and the same panel */}
+            <div className="bov__breaks">
+              <span className="bov__breaks-label">Breaks</span>
+              <div className="bov__breaks-value">
+                {breaks.length === 0 ? (
+                  <span className="bov__muted">None coming up</span>
+                ) : (
+                  <span className="bov__break-list">
+                    {breaks.map((x, i) => (
+                      <span key={x.from} className="bov__break">
+                        <span className="bov__break-dates">{rangeLine(x.from, x.to)}</span>
+                        <span className="bov__muted">
+                          {' '}
+                          ({plural(classesInRange(batch, x.from, x.to).length, 'class', 'classes')})
+                        </span>
+                        {i < breaks.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </div>
+              <button type="button" className="oh__edit" onClick={() => setAddingBreak(true)}>
+                <CalendarOff size={15} aria-hidden="true" /> {breaks.length === 0 ? 'Add a break' : 'Manage'}
+              </button>
+            </div>
+
             {classes.length === 0 ? (
               <p className="bov__empty-text">This batch has no days set. Edit it to pick the days it meets.</p>
             ) : (
               <>
-                <NextClass batch={batch} c={classes[0]} today={today} now={now} />
-                <h2 className="bov__subhead">After that</h2>
+                {nextOn ? (
+                  <NextClass batch={batch} c={nextOn} today={today} now={now} onCancel={() => onAnnounce({ kind: 'cancel', date: nextOn.date })} />
+                ) : (
+                  <p className="bov__empty-text">No classes coming up in the next few weeks.</p>
+                )}
+                <h2 className="bov__subhead">Coming up</h2>
                 <ul className="bov__classes">
-                  {classes.slice(1).map((c) => (
-                    <li key={c.start} className="bov__class">
-                      <span className="bov__class-day">{classDay(c.date, today)}</span>
-                      <span className="bov__class-time">{classTime(c, batch)}</span>
-                    </li>
-                  ))}
+                  {classes
+                    .filter((c) => c !== nextOn)
+                    .map((c) => (
+                      <ClassRow
+                        key={c.start}
+                        c={c}
+                        batch={batch}
+                        today={today}
+                        menuOpen={menuFor === `class-${c.date}`}
+                        onMenu={(open) => setMenuFor(open ? `class-${c.date}` : null)}
+                        onCancel={() => {
+                          setMenuFor(null);
+                          onAnnounce({ kind: 'cancel', date: c.date });
+                        }}
+                      />
+                    ))}
                 </ul>
               </>
             )}
           </div>
         )}
       </section>
+
+      {/* The 1:1 calls' Days off panel, for this batch: tap the days off */}
+      {addingBreak && (
+        <DaysOffDrawer
+          value={Object.fromEntries((batch.daysOff ?? []).map((d) => [d, []]))}
+          zone={batch.timeZone}
+          words={{
+            title: 'Breaks',
+            sub: `Tap the days you’re away. There’s no ${batch.title} class on them, and the time opens up for 1:1 calls.`,
+            listTitle: 'No classes on',
+            empty: 'No breaks coming up. Tap a day on the calendar to add one.',
+            save: 'Save breaks',
+            offKey: 'No class',
+            unsaved: 'Your breaks aren’t saved.',
+          }}
+          // Only days the batch meets, and not a class that's already cancelled
+          canTap={(d) => batch.days.includes(weekdayOf(d)) && offOn(batch, d)?.kind !== 'cancelled'}
+          countOf={(range) => plural(classesInRange(batch, range.from, range.to).length, 'class', 'classes')}
+          bookings={false}
+          onSave={(clean) => saveBatchDaysOff(batch, Object.keys(clean))}
+          onSaved={() => setAddingBreak(false)}
+          onClose={() => setAddingBreak(false)}
+        />
+      )}
 
       <PrototypeControls batch={batch} onChange={refresh} />
 
@@ -601,8 +692,9 @@ function AskDialog({ asking, batch, now, onCancel, onConfirm }) {
   );
 }
 
-// The next class (or the one on now), with Start class
-function NextClass({ batch, c, today, now }) {
+// The next class that happens (or the one on now), with Start class,
+// and Cancel this class until it starts
+function NextClass({ batch, c, today, now, onCancel }) {
   const state = classState(c, now);
   const live = state === 'live';
   return (
@@ -613,9 +705,47 @@ function NextClass({ batch, c, today, now }) {
           {classDay(c.date, today)}, {classTime(c, batch)}
         </span>
       </span>
-      <a className="bov__start" href={classMeetingHref(batch.id)} target="_blank" rel="noopener">
-        <Video size={16} aria-hidden="true" /> {live ? 'Rejoin class' : 'Start class'}
-      </a>
+      <span className="bov__next-actions">
+        {!live && (
+          <button type="button" className="bov__link-btn" onClick={onCancel}>
+            Cancel this class
+          </button>
+        )}
+        <a className="bov__start" href={classMeetingHref(batch.id)} target="_blank" rel="noopener">
+          <Video size={16} aria-hidden="true" /> {live ? 'Rejoin class' : 'Start class'}
+        </a>
+      </span>
     </div>
+  );
+}
+
+// One class in "Coming up": its day and time, and either what's happening
+// to it (Cancelled, Break) or ⋯ with Cancel this class
+function ClassRow({ c, batch, today, menuOpen, onMenu, onCancel }) {
+  const off = c.off;
+  return (
+    <li className={`bov__class ${off ? 'bov__class--off' : ''}`}>
+      <span className="bov__class-day">{classDay(c.date, today)}</span>
+      <span className="bov__class-time">{classTime(c, batch)}</span>
+      <span className="bov__class-state">
+        {off?.kind === 'cancelled' && (
+          <>
+            <span className="bov__pill bov__pill--removed">Cancelled</span>
+            {off.told?.email > 0 && <span className="bov__muted"> {plural(off.told.email, 'member')} told</span>}
+          </>
+        )}
+        {off?.kind === 'break' && <span className="bov__pill bov__pill--soon">Break</span>}
+      </span>
+      <span className="bov__class-menu">
+        {!off && (
+          <RowMenu
+            title={`${classDay(c.date, today)} class`}
+            open={menuOpen}
+            onOpenChange={onMenu}
+            items={[{ label: 'Cancel this class', icon: CalendarX, danger: true, onSelect: onCancel }]}
+          />
+        )}
+      </span>
+    </li>
   );
 }

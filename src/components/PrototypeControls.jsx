@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, FlaskConical } from 'lucide-react';
-import { addSampleMembers, clearSampleMembers, hasSampleMembers, shortDate } from '../data/batchMembers';
+import { addSampleMembers, clearSampleMembers, hasSampleMembers, membersOf, shortDate } from '../data/batchMembers';
+import { cancelClass, classesInRange, nextClasses, saveBatchDaysOff } from '../data/batches';
 import { appNow, setTestDate, testDate } from '../utils/testClock';
 import { addDays, todayIn } from '../utils/slots';
 import './PrototypeControls.css';
@@ -16,6 +17,9 @@ import './PrototypeControls.css';
 //                    8 days), no phone number, removed, joined on the 31st
 //   Pretend today is [Real date] [+1 week] [+1 month] [+5 weeks] [date]
 //                    Testing as 6 Dec 2026
+//   Classes          [Add a sample break]  [Cancel the next class]
+//                    Straight in: 3 class days off a week ahead, or the next class
+//                    cancelled as if members were told (no cancel page)
 //
 // Sample members are real members with a sample mark (batchMembers.js),
 // so everything works on them: Remind, Mark as paid, Remove, the bell.
@@ -26,6 +30,13 @@ import './PrototypeControls.css';
 // ------------------------------------------------------------
 
 const OPEN_KEY = 'pagebuilder:prototype-controls-open';
+
+// Who'd be told now, for the class controls: everyone not removed, and
+// those with a phone (as if WhatsApp were connected)
+function toldNow(batch, now) {
+  const members = membersOf(batch, now).filter((m) => m.status !== 'removed');
+  return { email: members.length, whatsapp: members.filter((m) => m.phone?.number).length };
+}
 
 const JUMPS = [
   ['+1 week', 7],
@@ -105,6 +116,43 @@ export default function PrototypeControls({ batch, onChange }) {
           </div>
 
           <div className="proto__row">
+            <span className="proto__label">Classes</span>
+            <div className="proto__controls">
+              <button
+                type="button"
+                className="proto__btn"
+                onClick={() => {
+                  const now = appNow();
+                  const from = addDays(todayIn(batch.timeZone, now), 7);
+                  // Three class days, a week from now, added to its days off
+                  const days = classesInRange(batch, from, addDays(from, 6)).slice(0, 3);
+                  saveBatchDaysOff(batch, [...(batch.daysOff ?? []), ...days]);
+                  onChange?.();
+                }}
+              >
+                Add a sample break
+              </button>
+              <button
+                type="button"
+                className="proto__btn"
+                onClick={() => {
+                  const now = appNow();
+                  const next = nextClasses(batch, now, 1)[0];
+                  if (next) cancelClass(batch, next.date, toldNow(batch, now), now);
+                  onChange?.();
+                }}
+              >
+                Cancel the next class
+              </button>
+              <p className="proto__note">
+                Straight in, without the cancel page: 3 class days off a week from{' '}
+                {testing ? 'the pretend date' : 'today'}, or the next class cancelled. Delete a break from the Classes
+                tab.
+              </p>
+            </div>
+          </div>
+
+          <div className="proto__row">
             <span className="proto__label">Pretend today is</span>
             <div className="proto__controls">
               <button type="button" className="proto__btn" aria-pressed={!testing} onClick={() => pretend(realToday)}>
@@ -113,7 +161,13 @@ export default function PrototypeControls({ batch, onChange }) {
               {JUMPS.map(([label, days]) => {
                 const date = addDays(realToday, days);
                 return (
-                  <button key={label} type="button" className="proto__btn" aria-pressed={testing === date} onClick={() => pretend(date)}>
+                  <button
+                    key={label}
+                    type="button"
+                    className="proto__btn"
+                    aria-pressed={testing === date}
+                    onClick={() => pretend(date)}
+                  >
                     {label}
                   </button>
                 );

@@ -37,6 +37,15 @@ import './DaysOff.css';
 // zone: the creator's time zone; dates are on this clock
 // onSaved(next): saved (the panel then closes)
 // onClose(): close without saving
+//
+// The same panel is a batch's Breaks (Live classes, BatchOverview.jsx),
+// with these set; left out, it's the 1:1 calls' Days off as it always was:
+//   words: { title, sub, listTitle, empty, save, offKey, unsaved }
+//   canTap(date): extra days that can't be tapped (a batch: days it
+//     doesn't meet, and classes already cancelled)
+//   countOf(range): the line beside a range ('3 classes'), else '3 days'
+//   onSave(clean): saves instead of the 1:1 days off; returns true if saved
+//   bookings: false to leave out the booking dots and clashes
 // ------------------------------------------------------------
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -69,7 +78,28 @@ const calls = (n) => (n === 1 ? '1 call' : `${n} calls`);
 const stays = (n) => (n === 1 ? 'It stays booked.' : 'They stay booked.');
 const dayCount = (n) => (n === 1 ? '1 day' : `${n} days`);
 
-export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
+const DEFAULT_WORDS = {
+  title: 'Days off',
+  sub: 'Tap the days you want to take off. No one can book any of your calls on them.',
+  listTitle: 'You’re away',
+  empty: 'No days off coming up. Tap a day on the calendar to add one.',
+  save: 'Save days off',
+  offKey: 'Day off',
+  unsaved: 'Your days off aren’t saved.',
+};
+
+export default function DaysOffDrawer({
+  value,
+  zone,
+  onSaved,
+  onClose,
+  words: wordsIn = null,
+  canTap = null,
+  countOf = null,
+  onSave = null,
+  bookings: showBookings = true,
+}) {
+  const words = { ...DEFAULT_WORDS, ...wordsIn };
   const today = todayIn(zone);
   const lastDay = addDays(today, LAST_DAY_AHEAD);
   const dayName = (date) => longRange({ from: date, to: date }, today); // 'Monday 26 October'
@@ -78,7 +108,8 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
   const [focusDate, setFocusDate] = useState(today); // the one day in the tab order
   const [asking, setAsking] = useState(false); // "Drop your changes?" showing
   const [failed, setFailed] = useState(false);
-  const [bookings, setBookings] = useState(activeBookings);
+  const [bookingsAll, setBookings] = useState(activeBookings);
+  const bookings = showBookings ? bookingsAll : [];
   const dayRefs = useRef({});
   const moveFocus = useRef(false); // arrow keys moved it: follow with real focus
 
@@ -134,7 +165,7 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
   // Past days off no longer matter: dropped as we save
   const save = () => {
     const clean = Object.fromEntries(Object.entries(draft).filter(([date]) => date >= today));
-    if (saveDaysOff(clean)) onSaved(clean);
+    if (onSave ? onSave(clean) : saveDaysOff(clean)) onSaved(clean);
     else setFailed(true);
   };
 
@@ -164,17 +195,15 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
   const canGoBack = month > monthOf(today);
   const canGoOn = month < monthOf(lastDay);
   // The tab stop has to be a day that's shown and can be tapped
-  const tabStop =
-    monthOf(focusDate) === month && focusDate >= today && focusDate <= lastDay
-      ? focusDate
-      : monthDays.find((d) => d >= today && d <= lastDay);
+  const tappable = (d) => d >= today && d <= lastDay && (!canTap || canTap(d) || offSet.has(d));
+  const tabStop = monthOf(focusDate) === month && tappable(focusDate) ? focusDate : monthDays.find(tappable);
 
   const changes = [added && `${dayCount(added)} added`, removed && `${dayCount(removed)} removed`].filter(Boolean).join(', ');
 
   const footer = asking ? (
     <>
       <p className="hd__status" role="alert">
-        <strong>Your days off aren’t saved.</strong> Drop your changes?
+        <strong>{words.unsaved}</strong> Drop your changes?
       </p>
       <div className="hd__actions">
         <button type="button" className="es__btn es__btn--quiet" onClick={() => setAsking(false)}>
@@ -199,7 +228,7 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
           Cancel
         </button>
         <button type="button" className="es__btn es__btn--primary" onClick={save} disabled={!dirty}>
-          Save days off
+          {words.save}
         </button>
       </div>
     </>
@@ -208,8 +237,8 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
   return (
     <Drawer
       className="do-drawer"
-      title="Days off"
-      sub="Tap the days you want to take off. No one can book any of your calls on them."
+      title={words.title}
+      sub={words.sub}
       onClose={requestClose}
       footer={footer}
     >
@@ -250,7 +279,7 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
               <span key={`blank-${i}`} aria-hidden="true" />
             ))}
             {monthDays.map((date) => {
-              const usable = date >= today && date <= lastDay;
+              const usable = tappable(date);
               const off = offSet.has(date);
               const n = bookedOn[date]?.length ?? 0;
               const label = [dayName(date), date === today && 'today', off && 'day off', n && `${calls(n)} booked`]
@@ -284,22 +313,24 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
 
           <div className="do-cal__legend" aria-hidden="true">
             <span className="do-key">
-              <span className="do-key__off" /> Day off
+              <span className="do-key__off" /> {words.offKey}
             </span>
-            <span className="do-key">
-              <span className="do-key__dot" /> You have a booking
-            </span>
+            {showBookings && (
+              <span className="do-key">
+                <span className="do-key__dot" /> You have a booking
+              </span>
+            )}
           </div>
         </section>
 
         {/* ---------- Read back in words ---------- */}
         <section className="do-list" aria-labelledby="do-list-title">
           <h3 className="do-list__title" id="do-list-title">
-            You’re away {days.length > 0 && <span className="oh__count">{days.length}</span>}
+            {words.listTitle} {days.length > 0 && <span className="oh__count">{days.length}</span>}
           </h3>
 
           {ranges.length === 0 ? (
-            <p className="do-empty">No days off coming up. Tap a day on the calendar to add one.</p>
+            <p className="do-empty">{words.empty}</p>
           ) : (
             <ul className="do-ranges">
               {ranges.map((range) => {
@@ -310,7 +341,11 @@ export default function DaysOffDrawer({ value, zone, onSaved, onClose }) {
                   <li key={range.from} className="do-range">
                     <div className="do-range__main">
                       <span className="do-range__label">{label}</span>
-                      {span.length > 1 && <span className="do-range__count">{span.length} days</span>}
+                      {countOf ? (
+                        <span className="do-range__count">{countOf(range)}</span>
+                      ) : (
+                        span.length > 1 && <span className="do-range__count">{span.length} days</span>
+                      )}
                       <button
                         type="button"
                         className="do-range__remove"

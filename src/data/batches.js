@@ -24,8 +24,15 @@ import { addDays, formatTime, todayIn, toInstant, weekdayOf, zoned } from '../ut
 // server keeps batches, and the class meeting comes from the Zoom
 // connection.
 //
-// Not in this round: holidays and cancelling one class (round 3),
-// renewals and dues (round 2). Every class in the schedule happens.
+// Classes that don't happen (round 3), kept on the batch:
+//   cancelled: [{ date: 'YYYY-MM-DD', at (ms), told }]   one class, on its date;
+//              told: { email, whatsapp } how many members were told, and at (ms)
+//   daysOff:   ['YYYY-MM-DD', …]   breaks: days the coach is away, picked on
+//              the same calendar as the 1:1 calls' Days off. Members aren't
+//              messaged about these: the coach tells them in class.
+// A class that's off doesn't block 1:1 calls and isn't counted on the
+// "Your calendar" card (allClassesBetween leaves it out); the Classes tab
+// shows it, marked. Fees don't change: a break never moves a payment.
 // ------------------------------------------------------------
 
 const KEY = 'pagebuilder:batches';
@@ -95,6 +102,18 @@ function writeAll(list) {
   }
 }
 
+// Days off as dates. Saves from before (breaks as { from, to } ranges)
+// become their dates.
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+function daysOffOf(b) {
+  const days = new Set(Array.isArray(b.daysOff) ? b.daysOff.filter((d) => DATE.test(d)) : []);
+  for (const x of Array.isArray(b.breaks) ? b.breaks : []) {
+    if (!x || !DATE.test(x.from) || !DATE.test(x.to)) continue;
+    for (let d = x.from, guard = 0; d <= x.to && guard < 400; d = addDays(d, 1), guard += 1) days.add(d);
+  }
+  return [...days].sort();
+}
+
 // A saved batch → safe values (older or hand-edited saves)
 function tidy(b) {
   const days = Array.isArray(b.days) ? DAY_ORDER.filter((d) => b.days.includes(d)) : DEFAULT_DAYS;
@@ -109,6 +128,8 @@ function tidy(b) {
     description: String(b.description ?? ''),
     questions: Array.isArray(b.questions) ? b.questions : [],
     contractId: typeof b.contractId === 'string' ? b.contractId : null,
+    cancelled: Array.isArray(b.cancelled) ? b.cancelled.filter((c) => c && typeof c.date === 'string') : [],
+    daysOff: daysOffOf(b),
   };
 }
 
@@ -196,8 +217,17 @@ export const classesPerMonth = (batch) => Math.round((batch.days.length * 52) / 
 
 // ---------- Its classes ----------
 
-// Every class between two instants (ms), oldest first: [{ start, end, date }]
+// Why a class on this date isn't happening, or null:
+//   { kind: 'cancelled', at, told } or { kind: 'break' }
+export function offOn(batch, date) {
+  const cancelled = (batch.cancelled ?? []).find((c) => c.date === date);
+  if (cancelled) return { kind: 'cancelled', ...cancelled };
+  return (batch.daysOff ?? []).includes(date) ? { kind: 'break' } : null;
+}
+
+// Every class between two instants (ms), oldest first: [{ start, end, date, off }]
 // start, end: ms. date: the class's day on the batch's own clock.
+// off: why it isn't happening (offOn), or null.
 // A class counts if any of it falls in the window, so one that's on now is in.
 export function classesBetween(batch, fromMs, toMs) {
   const zone = batch.timeZone;
@@ -208,27 +238,81 @@ export function classesBetween(batch, fromMs, toMs) {
     if (batch.days.includes(weekdayOf(date))) {
       const start = toInstant(date, batch.startTime, zone);
       const end = start + batch.durationMins * MIN;
-      if (end > fromMs && start < toMs) out.push({ start, end, date });
+      if (end > fromMs && start < toMs) out.push({ start, end, date, off: offOn(batch, date) });
     }
     date = addDays(date, 1);
   }
   return out;
 }
 
-// The next classes from now (one on now comes first), up to count
-export function nextClasses(batch, now = Date.now(), count = 6) {
+// The next classes from now (one on now comes first), up to count.
+// includeOff: true to keep cancelled ones and breaks (the Classes tab);
+// otherwise only classes that happen (the join page, the Zoom room).
+export function nextClasses(batch, now = Date.now(), count = 6, { includeOff = false } = {}) {
   if (batch.days.length === 0) return [];
-  // A week holds at least one class, so count weeks always hold count classes
-  return classesBetween(batch, now, now + Math.ceil(count / batch.days.length + 1) * 7 * 1440 * MIN).slice(0, count);
+  // Look far enough ahead to get past a long break
+  const weeks = Math.ceil(count / batch.days.length + 1) + (includeOff ? 0 : 14);
+  return classesBetween(batch, now, now + weeks * 7 * 1440 * MIN)
+    .filter((c) => includeOff || !c.off)
+    .slice(0, count);
 }
 
-// Every class of every batch in a window, for the 1:1 calls' booking
-// times (one calendar: nobody can book a call during a class) and the
+// Every class that happens, of every batch, in a window: for the 1:1
+// calls' booking times (one calendar: nobody can book a call during a
+// class, but a cancelled class or a break frees the time) and the
 // "Your calendar" card: [{ start, end, batchId }]
 export function allClassesBetween(fromMs, toMs, batches = loadBatches()) {
   return batches
-    .flatMap((b) => classesBetween(b, fromMs, toMs).map((c) => ({ ...c, batchId: b.id })))
+    .flatMap((b) =>
+      classesBetween(b, fromMs, toMs)
+        .filter((c) => !c.off)
+        .map((c) => ({ ...c, batchId: b.id })),
+    )
     .sort((a, b) => a.start - b.start);
+}
+
+// ---------- Cancelling a class, and breaks ----------
+// Cancelling saves the batch. told: { email, whatsapp } counts, from the
+// announcement (BatchAnnounce.jsx). Returns true if it saved.
+
+export function cancelClass(batch, date, told, now = Date.now()) {
+  if (offOn(batch, date)) return false;
+  return saveBatch({ ...batch, cancelled: [...(batch.cancelled ?? []), { date, at: now, told: { ...told, at: now } }] });
+}
+
+// The batch's days off, replaced (from the Breaks calendar). Returns true if saved.
+export function saveBatchDaysOff(batch, dates) {
+  const { breaks, ...rest } = batch; // eslint-disable-line no-unused-vars
+  return saveBatch({ ...rest, daysOff: [...new Set(dates)].sort() });
+}
+
+// Days off from today on, as runs of days: [{ from, to }], soonest first
+export function upcomingBreaks(batch, today) {
+  const days = (batch.daysOff ?? []).filter((d) => d >= today).sort();
+  const runs = [];
+  for (const d of days) {
+    const last = runs.at(-1);
+    if (last && addDays(last.to, 1) === d) last.to = d;
+    else runs.push({ from: d, to: d });
+  }
+  return runs;
+}
+
+// The classes a break would take out (dates the batch meets on), for "6 classes"
+export function classesInRange(batch, from, to) {
+  const out = [];
+  for (let d = from, guard = 0; d <= to && guard < 400; d = addDays(d, 1), guard += 1) {
+    if (batch.days.includes(weekdayOf(d))) out.push(d);
+  }
+  return out;
+}
+
+// The first day after `date` that has a class happening: "Classes start again on …"
+export function nextClassDayAfter(batch, date) {
+  for (let d = addDays(date, 1), guard = 0; guard < 400; d = addDays(d, 1), guard += 1) {
+    if (batch.days.includes(weekdayOf(d)) && !offOn(batch, d)) return d;
+  }
+  return null;
 }
 
 // Where a class is, for its row and the Start button:
@@ -240,9 +324,10 @@ export function classState(c, now = Date.now()) {
 }
 
 // '2026-11-14' → 'Sat 14 Nov'; today and tomorrow in words
+// today: null to always write the date out
 export function classDay(date, today) {
-  if (date === today) return 'Today';
-  if (date === addDays(today, 1)) return 'Tomorrow';
+  if (today && date === today) return 'Today';
+  if (today && date === addDays(today, 1)) return 'Tomorrow';
   const [y, m, d] = date.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {
     timeZone: 'UTC',

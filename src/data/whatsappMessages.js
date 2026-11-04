@@ -8,6 +8,8 @@
 //
 //   1:1 calls   24 hours before, 1 hour before, 5 minutes before
 //   Webinars    confirmation, 24 hours before, 1 hour before, 5 minutes before
+//   Batches     a class cancelled (Live classes: sent once, when the
+//               coach cancels it, BatchAnnounce.jsx; no switches)
 //
 // The emails go out as well, whatever happens here. A WhatsApp message
 // adds to its email; it never replaces it.
@@ -111,6 +113,21 @@ export const MESSAGES = {
       sentAt: '6:55 pm',
     },
   ],
+  // Live classes: sent once, to everyone in the batch, when the coach
+  // cancels a class. Fixed wording (Meta's rule), no buttons: members join
+  // from their feed as usual. (Breaks send nothing: the coach tells
+  // members in class.)
+  batch: [
+    {
+      id: 'batch-cancel',
+      name: 'Class cancelled',
+      when: 'Goes out when you cancel a class.',
+      example: 'when you cancel a class',
+      body: 'Hi {first_name}, there’s *no {batch} class on {date}*. {host} has had to cancel it.\n\nYour next class is on {next}.',
+      buttons: [],
+      sentAt: '9:12 am',
+    },
+  ]
 };
 
 // What each button says, and where it goes, in a few words (the
@@ -130,9 +147,10 @@ export const BUTTONS = {
     details: { label: 'View details', hint: 'The thank-you page, with the date and how to join' },
     join: { label: 'Join webinar', hint: 'The webinar room' },
   },
+  batch: {},
 };
 
-export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar].map((m) => m.id);
+export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.batch].map((m) => m.id);
 
 // The message with its blanks filled in: { first_name, call, webinar, host, date, time }
 export const fillMessage = (body, values) => body.replace(/\{(\w+)\}/g, (all, key) => values[key] ?? all);

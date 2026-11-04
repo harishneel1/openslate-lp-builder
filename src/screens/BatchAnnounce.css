@@ -1,0 +1,95 @@
+/* Cancelling a class and telling members (BatchAnnounce.jsx). The page
+   is a webinar cancellation's (ReminderEditor.css, CancelSession.css);
+   these are what it adds: the Email and WhatsApp sections, one after the
+   other, and the WhatsApp message in a phone. */
+
+/* ---------- Email, then WhatsApp: one page, nothing to pick ---------- */
+.ba__section + .ba__section {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--color-border);
+}
+
+.ba__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.ba__section-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  border-radius: 50%;
+}
+
+.ba__section-icon--email {
+  background: var(--color-primary);
+}
+
+.ba__section-icon--wa {
+  background: #25a55f;
+}
+
+.ba__section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ba__section-note {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.ba__approved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #146c43;
+  background: #e7f6ed;
+  border-radius: var(--radius-pill);
+}
+
+/* ---------- The WhatsApp section ---------- */
+.ba__wa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: start;
+}
+
+.ba__wa > p {
+  max-width: 460px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.ba__wa-why {
+  padding: 12px 14px;
+  color: #6b4e00;
+  background: #fdf3dc;
+  border-radius: var(--radius-sm);
+}
+
+.ba__phone {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .ba__wa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ba__phone {
+    justify-self: center;
+  }
+}

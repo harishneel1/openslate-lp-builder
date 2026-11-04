@@ -518,7 +518,7 @@ function App() {
   const [batchRequest, setBatchRequest] = useState(null);
   // A batch open on its page or in its editor: its focus bar, or null on the list
   const [batchFocus, setBatchFocus] = useState(null);
-  const openBatch = (id, { tab = 'members' } = {}) => {
+  const openBatch = (id, { tab = 'classes' } = {}) => {
     handleNavigate('live-classes');
     setBatchRequest({ id, tab, n: Date.now() });
   };

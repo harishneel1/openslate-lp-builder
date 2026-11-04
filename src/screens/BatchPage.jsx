@@ -6,6 +6,7 @@ import {
   dayOn,
   feeLine,
   getBatch,
+  upcomingBreaks,
   nextClasses,
   scheduleLine,
 } from '../data/batches';
@@ -21,6 +22,7 @@ import {
   shortDate,
 } from '../data/batchMembers';
 import { contractOf, getService } from '../data/mockServices';
+import { rangeLine } from '../data/batchNotices';
 import { formatMoney } from '../data/contractPricing';
 import { COUNTRY_CODES } from '../data/checkoutRules';
 import { ANSWER_MAX, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
@@ -270,6 +272,13 @@ export default function BatchPage({ batchId }) {
               <Video size={18} aria-hidden="true" /> Live on Zoom
             </li>
           </ul>
+
+          {/* A break coming up (or on now): said plainly, so new people know */}
+          {upcomingBreaks(batch, today).slice(0, 2).map((x) => (
+            <p key={x.from} className="bp__break">
+              No classes {rangeLine(x.from, x.to)}: {mockAccount.name.split(/\s+/)[0]} is taking a break.
+            </p>
+          ))}
 
           {paragraphs.length > 0 && (
             <div className="bp__description">

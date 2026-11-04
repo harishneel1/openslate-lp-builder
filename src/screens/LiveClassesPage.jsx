@@ -3,15 +3,16 @@ import { Check, ExternalLink, Link2, Pencil, Plus, Repeat, Trash2 } from 'lucide
 import CreateBatchFlow from './CreateBatchFlow';
 import BatchOverview from './BatchOverview';
 import EditBatch from './EditBatch';
+import BatchAnnounce from './BatchAnnounce';
 import { EditPlaceholder } from './EditFrame';
 import { useCopy } from './OfferingsHome';
 import RowMenu from '../components/RowMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { deleteBatch, feeLine, loadBatches, onBatchesChange, scheduleLine } from '../data/batches';
-import { deleteMembersOf, everJoined, memberCount, onMembersChange, pendingLine, pendingOf, statusCounts } from '../data/batchMembers';
+import { cancelClass, classDay, deleteBatch, feeLine, getBatch, loadBatches, onBatchesChange, scheduleLine } from '../data/batches';
+import { deleteMembersOf, everJoined, memberCount, membersOf, onMembersChange, pendingLine, pendingOf, statusCounts } from '../data/batchMembers';
 import { appNow } from '../utils/testClock';
 import { deleteService } from '../data/mockServices';
-import { accountHandle, offeringUrl } from '../data/myPage';
+import { accountHandle, mockAccount, offeringUrl } from '../data/myPage';
 import './OfferingsHome.css'; // the same panels, rows and buttons as 1:1 calls
 import './CallsPage.css';
 import './LiveClassesPage.css';
@@ -44,6 +45,7 @@ import './LiveClassesPage.css';
 // app in focus mode (onFocus, App.jsx):
 //   the batch's page   ← All batches   (to this list)
 //   its editor         ← Your batch    (to its page; asks first about unsaved changes)
+//   cancelling a class ← Your batch   (BatchAnnounce.jsx; asks first if the email changed)
 //
 // openRequest: { id, tab, n } from elsewhere (the bell, a batch's contract
 //   on Contracts): open that batch's page on that tab. n opens it again
@@ -72,12 +74,17 @@ export default function LiveClassesPage({ openRequest = null, onFocus }) {
   // 'list' ↔ 'details' (a batch's page) ↔ 'edit' (its editor), or 'new'
   const [view, setView] = useState(openRequest ? 'details' : 'list');
   const [openId, setOpenId] = useState(openRequest?.id ?? null);
-  const [tab, setTab] = useState(openRequest?.tab ?? 'members');
+  const [tab, setTab] = useState(openRequest?.tab ?? 'classes'); // Classes is the first tab
   const [justAddedId, setJustAddedId] = useState(null);
   const [menuFor, setMenuFor] = useState(null);
   const [deleting, setDeleting] = useState(null); // the batch while the pop-up asks
   const [said, setSaid] = useState('');
   const editExitRef = useRef(null);
+  const announceExitRef = useRef(null);
+  // The class being cancelled: { kind: 'cancel', date }
+  const [announce, setAnnounce] = useState(null);
+  // A line on the Classes tab after one's sent ("Class on Thu 13 Nov cancelled…")
+  const [classNotice, setClassNotice] = useState(null);
 
   const handle = accountHandle();
   const urlOf = (id) => offeringUrl(handle, id);
@@ -86,7 +93,7 @@ export default function LiveClassesPage({ openRequest = null, onFocus }) {
   useEffect(() => {
     if (!openRequest) return;
     setOpenId(openRequest.id);
-    setTab(openRequest.tab ?? 'members');
+    setTab(openRequest.tab ?? 'classes');
     setView('details');
   }, [openRequest?.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,6 +110,16 @@ export default function LiveClassesPage({ openRequest = null, onFocus }) {
     const toList = () => setView('list');
     if (view === 'details') {
       onFocus({ title: openTitle ?? 'Batch', minimal: true, exitLabel: 'All batches', onExit: toList });
+    } else if (view === 'announce') {
+      onFocus({
+        title: openTitle ?? 'Batch',
+        minimal: true,
+        exitLabel: 'Your batch',
+        onExit: () => {
+          if (announceExitRef.current && announceExitRef.current() === false) return;
+          setView('details');
+        },
+      });
     } else if (view === 'edit') {
       onFocus({
         title: openTitle ?? 'Edit batch',
@@ -119,9 +136,10 @@ export default function LiveClassesPage({ openRequest = null, onFocus }) {
   useEffect(() => () => onFocus?.(null), [onFocus]);
 
   const openBatch = (id, next) => {
+    setClassNotice(null);
     setOpenId(id);
     setJustAddedId(null);
-    setTab('members');
+    setTab('classes');
     setView(next);
   };
 
@@ -133,20 +151,50 @@ export default function LiveClassesPage({ openRequest = null, onFocus }) {
         onDone={(id) => {
           setJustAddedId(id);
           setOpenId(id);
-          setTab('members');
+          setTab('classes');
           setView('details');
         }}
       />
     );
   }
 
-  if ((view === 'details' || view === 'edit') && !open) {
+  if ((view === 'details' || view === 'edit' || view === 'announce') && !open) {
     return (
       <EditPlaceholder
         title="This batch isn’t here"
         sub="It may have been deleted. Go back to see your batches."
         backLabel="Live classes"
         onBack={() => setView('list')}
+      />
+    );
+  }
+
+  if (view === 'announce' && announce) {
+    const now = appNow();
+    const members = membersOf(open, now).filter((m) => m.status !== 'removed');
+    const back = () => {
+      setTab('classes');
+      setView('details');
+    };
+    return (
+      <BatchAnnounce
+        key={JSON.stringify(announce)}
+        batch={open}
+        change={announce}
+        members={members}
+        hostName={mockAccount.name}
+        now={now}
+        guardRef={announceExitRef}
+        onClose={back}
+        onConfirm={(told) => {
+          const fresh = getBatch(open.id) ?? open;
+          const ok = cancelClass(fresh, announce.date, told, now);
+          const who = told.email > 0 ? ` ${told.email} ${told.email === 1 ? 'member was' : 'members were'} told.` : '';
+          setClassNotice(
+            ok ? `The class on ${classDay(announce.date, null)} is cancelled.${who}` : 'That couldn’t be saved. Try again.',
+          );
+          back();
+        }}
       />
     );
   }
@@ -162,8 +210,17 @@ export default function LiveClassesPage({ openRequest = null, onFocus }) {
         batch={open}
         url={urlOf(open.id)}
         tab={tab}
-        onTab={setTab}
+        onTab={(t) => {
+          setClassNotice(null);
+          setTab(t);
+        }}
         onEdit={() => setView('edit')}
+        onAnnounce={(change) => {
+          setClassNotice(null);
+          setAnnounce(change);
+          setView('announce');
+        }}
+        classNotice={tab === 'classes' ? classNotice : null}
       />
     );
   }

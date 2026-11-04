@@ -6,7 +6,8 @@ import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates
 import { buildSignupUpdates } from '../data/signupUpdates';
 import { buildRecordingUpdates } from '../data/recordingUpdates';
 import { buildCancelUpdates, buildRescheduleUpdates } from '../data/cancelUpdates';
-import { buildDueUpdates, buildJoinUpdates, buildRejoinUpdates } from '../data/batchUpdates';
+import { buildDueUpdates, buildJoinUpdates, buildNoticeUpdates, buildRejoinUpdates } from '../data/batchUpdates';
+import { onBatchesChange } from '../data/batches';
 import { onMembersChange } from '../data/batchMembers';
 import { onRecordingsChange } from '../data/recordings';
 import { onSignupsChange } from '../data/webinarSignups';
@@ -74,6 +75,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
   useEffect(() => onSignupsChange(() => setSignupsTick((n) => n + 1)), []);
   useEffect(() => onRecordingsChange(() => setRecordingsTick((n) => n + 1)), []);
   useEffect(() => onMembersChange(() => setMembersTick((n) => n + 1)), []);
+  useEffect(() => onBatchesChange(() => setMembersTick((n) => n + 1)), []); // a class cancelled, a break
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(id);
@@ -91,6 +93,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
         ...buildJoinUpdates({ lastSeen, now }),
         ...buildDueUpdates({ lastSeen }),
         ...buildRejoinUpdates({ lastSeen, now }),
+        ...buildNoticeUpdates({ now }),
       ].sort((a, b) => b.at - a.at),
     // signupsTick, recordingsTick: they live outside React, so a change bumps them
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,7 +149,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
 
   // Shown in this open: tinted if it was new when the list opened
   // The coach's own changes (cancelled, rescheduled) are records, never new
-  const isNew = (u) => u.kind !== 'cancelled-session' && u.kind !== 'rescheduled-session' && u.at > seenBefore;
+  const isNew = (u) =>
+    u.kind !== 'cancelled-session' && u.kind !== 'rescheduled-session' && u.kind !== 'batch-off' && u.at > seenBefore;
   const groups = [
     { id: 'today', label: 'Today', items: updates.filter((u) => u.today) },
     { id: 'earlier', label: 'Earlier', items: updates.filter((u) => !u.today) },
@@ -201,6 +205,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                             else if (u.kind === 'recording') onOpenWebinar?.(u.webinarId, { tab: 'recording' });
                             else if (u.kind === 'batch-joins' || u.kind === 'batch-dues' || u.kind === 'batch-rejoins')
                               onOpenBatch?.(u.batchId, { tab: 'members' });
+                            else if (u.kind === 'batch-off') onOpenBatch?.(u.batchId, { tab: 'classes' });
                             else onOpenBooking?.(u.bookingId);
                           }}
                         >
@@ -212,6 +217,10 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                           ) : u.kind === 'batch-dues' ? (
                             <span className="bk-face" aria-hidden="true">
                               <IndianRupee size={17} />
+                            </span>
+                          ) : u.kind === 'batch-off' ? (
+                            <span className="bk-face" aria-hidden="true">
+                              <CalendarX size={17} />
                             </span>
                           ) : u.kind === 'cancelled-session' ? (
                             <span className="bk-face" aria-hidden="true">
@@ -235,6 +244,11 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                                   <SignedUp update={u} verb="rejoined" />
                                 ) : u.kind === 'batch-dues' ? (
                                   <strong>{u.line}</strong>
+                                ) : u.kind === 'batch-off' ? (
+                                  <>
+                                    <strong>{u.what}</strong>
+                                    {u.told > 0 ? ` · ${u.told} ${u.told === 1 ? 'member' : 'members'} told` : ''}
+                                  </>
                                 ) : u.kind === 'cancelled-session' ? (
                                   <>
                                     <strong>Session cancelled</strong>
