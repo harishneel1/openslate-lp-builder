@@ -59,25 +59,14 @@ export const TITLE_MAX = 60;
 export const DESCRIPTION_MAX = 1000;
 export const PRICE_MAX = 999999;
 
-// Starting names: the first one none of their batches has
-export const TITLE_SUGGESTIONS = ['Morning Yoga', 'Evening Yoga', 'Weekend Yoga', 'Beginners Yoga'];
+// Examples under the name box, from different kinds of classes (a batch
+// can be any class that meets every week: dance, art, yoga, music…), the
+// way Cult names its sessions. Shown, not offered to tap.
+export const NAME_EXAMPLES = ['Bharatanatyam for Beginners', 'Weekend Kathak', 'Watercolour Basics', 'Evening Yoga'];
 
-// Starting description, from the name and schedule
+// Starting description, from the schedule (no kind of class assumed)
 export const descriptionFor = (batch) =>
-  `Live ${String(batch.title || 'yoga').trim()} classes on Zoom, ${daysLine(batch.days)} at ` +
-  `${timeLine(batch.startTime)}. Join from home, at your own pace, with corrections as we go.`;
-
-// The question every new batch starts with: what a yoga teacher needs
-// to know before someone's first class
-export const HEALTH_QUESTIONS = [
-  {
-    id: 'q-health',
-    text: 'Any injuries, surgeries or health conditions I should know about?',
-    type: 'long',
-    required: true,
-    options: [],
-  },
-];
+  `Live classes on Zoom, ${daysLine(batch.days)} at ${timeLine(batch.startTime)}. Join from home, every week.`;
 
 // ---------- Saving ----------
 

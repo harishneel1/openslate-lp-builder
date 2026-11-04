@@ -1,5 +1,5 @@
 import TimePicker from './TimePicker';
-import { LENGTHS, PRICE_MAX, WEEKDAYS, classesPerMonth, scheduleLine } from '../data/batches';
+import { LENGTHS, PRICE_MAX, WEEKDAYS, scheduleLine } from '../data/batches';
 import './QuestionInput.css';
 import './CallDetailsInput.css';
 import './BatchFields.css';
@@ -16,8 +16,8 @@ import './BatchFields.css';
 //
 //   FeeField         the monthly fee, in rupees
 //     [₹ 2000 ] a month
-//     → "About 26 classes a month. People pay on the day they join, then
-//        on the same date every month."
+//     → note: one plain line under it, or none (Create a batch: "Put in
+//        any amount. You can change it later.")
 //
 // value: the batch draft ({ days, startTime, durationMins, timeZone, price })
 // onChange(field, value)
@@ -138,9 +138,8 @@ export function ScheduleFields({ value, onChange, showProblem = false }) {
   );
 }
 
-export function FeeField({ value, onChange, showProblem = false }) {
+export function FeeField({ value, onChange, showProblem = false, note = null }) {
   const problem = feeProblem(value.price);
-  const n = Number(value.price) || 0;
   return (
     <div className="bfld">
       <label className="qinput__field">
@@ -156,7 +155,7 @@ export function FeeField({ value, onChange, showProblem = false }) {
               value={value.price}
               maxLength={6}
               placeholder="2000"
-              aria-describedby="bfld-fee-note"
+              aria-describedby={note ? 'bfld-fee-note' : undefined}
               onChange={(e) => onChange('price', e.target.value.replace(/\D/g, ''))}
             />
           </span>
@@ -168,10 +167,11 @@ export function FeeField({ value, onChange, showProblem = false }) {
           {problem}
         </span>
       )}
-      <p className="bfld__summary" id="bfld-fee-note">
-        {n > 0 && value.days.length > 0 ? `About ${classesPerMonth(value)} classes a month. ` : ''}
-        People pay the full fee on the day they join, then on the same date every month until they cancel.
-      </p>
+      {note && (
+        <p className="bfld__summary" id="bfld-fee-note">
+          {note}
+        </p>
+      )}
     </div>
   );
 }

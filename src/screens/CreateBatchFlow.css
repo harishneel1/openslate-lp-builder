@@ -108,3 +108,11 @@
     animation: none;
   }
 }
+
+/* Examples under the name box, from different kinds of classes */
+.bflow__examples {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}

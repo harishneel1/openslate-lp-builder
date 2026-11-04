@@ -533,7 +533,6 @@ function ContractForm({ contract, backLabel, onBack, onCreated, onSaved }) {
             <div className="call__chips" role="radiogroup" aria-labelledby="ce-type">
               {[
                 ['onetime', 'One-time payment'],
-                ['subscription', 'Every month'],
                 ['free', 'Free'],
               ].map(([id, text]) => (
                 <button
@@ -549,9 +548,7 @@ function ContractForm({ contract, backLabel, onBack, onCreated, onSaved }) {
               ))}
             </div>
             {draft.type === 'subscription' && (
-              <p className="qinput__example">
-                People pay on the day they join, then on the same date every month until they cancel.
-              </p>
+              <p className="qinput__example">This contract charges every month. Pick one above to change that.</p>
             )}
           </div>
 

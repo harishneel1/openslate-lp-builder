@@ -313,8 +313,9 @@ function contractFields({ title, cover, description, type, prices, gst, question
     title: String(title ?? '').trim(),
     cover: cover || null,
     description: String(description ?? '').trim(),
-    // 'subscription': charged every month, from the day each person joins
-    // (a batch's contract is always one; see saveBatchContract)
+    // 'subscription': charged every month, from the day each person joins.
+    // Only a batch makes one (saveBatchContract); the contract screen
+    // offers one-time and free, and keeps a monthly contract's type.
     type: free ? 'free' : type === 'subscription' ? 'subscription' : 'onetime',
     price: main ? payAmount(main) : 0,
     currency: main?.currency ?? 'INR',

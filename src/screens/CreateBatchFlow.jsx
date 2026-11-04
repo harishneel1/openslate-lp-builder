@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Copy, ExternalLink } from 'lucide-react';
-import QuestionsInput from '../components/QuestionsInput';
 import { FeeField, ScheduleFields, feeProblem, scheduleProblem } from '../components/BatchFields';
 import { useCopy } from './OfferingsHome';
 import {
@@ -8,15 +7,12 @@ import {
   DEFAULT_LENGTH,
   DEFAULT_START,
   DESCRIPTION_MAX,
-  HEALTH_QUESTIONS,
+  NAME_EXAMPLES,
   TITLE_MAX,
-  TITLE_SUGGESTIONS,
   descriptionFor,
-  loadBatches,
   newBatchId,
 } from '../data/batches';
 import { storeBatch } from '../data/batchSave';
-import { cleanQuestions, questionsProblem } from '../data/callQuestions';
 import { coachZone } from '../data/buildBookingsJson';
 import '../components/QuestionInput.css';
 import './CreateCallFlow.css'; // the ready screen's look (.ready), shared with Create a 1:1 call
@@ -25,12 +21,16 @@ import './CreateBatchFlow.css';
 // ------------------------------------------------------------
 // "Create a batch": one question per screen, like Create a 1:1 call.
 //
-//   1 Name your batch          "Morning Yoga" (tap a suggestion or type)
+//   1 Name your batch          empty, with examples from different kinds
+//                              of classes (dance, art, yoga…) under it
 //   2 When does it meet?       days, start time, length (BatchFields.jsx)
 //   3 What's the monthly fee?  rupees a month, from the day each person joins
-//   4 Describe your batch      starts from the name and schedule
-//   5 Ask before they join     health questions, starting with injuries
+//   4 Describe your batch      starts from the schedule
 //   then: a short "setting it up" checklist, and "… is ready" with its link
+//
+// Nothing here assumes a kind of class, so it works for any coach.
+// New batches ask no questions on the join page beyond name, email and
+// phone; coaches add their own in Edit.
 //
 // The batch, and its monthly contract, only exist once they finish
 // (storeBatch in batchSave.js). Leaving before that keeps nothing.
@@ -49,18 +49,7 @@ const STEPS = [
     title: 'Describe your batch',
     sub: 'What happens in class, who it’s for, and anything they need (a mat, an empty stomach).',
   },
-  {
-    id: 'questions',
-    title: 'Ask before they join',
-    sub: 'We always ask their name, email and phone. Add what you need to know before their first class.',
-  },
 ];
-
-// The first suggested name none of their batches has
-function startingTitle() {
-  const taken = loadBatches().map((b) => b.title.trim().toLowerCase());
-  return TITLE_SUGGESTIONS.find((t) => !taken.includes(t.toLowerCase())) ?? '';
-}
 
 // What stops a screen from moving on, or null
 function problemOf(step, draft) {
@@ -68,7 +57,6 @@ function problemOf(step, draft) {
   if (step === 'schedule') return scheduleProblem(draft);
   if (step === 'fee') return feeProblem(draft.price);
   if (step === 'about') return draft.description.trim() ? null : 'Write a line or two about your batch.';
-  if (step === 'questions') return questionsProblem(draft.questions)?.text ?? null;
   return null;
 }
 
@@ -76,14 +64,14 @@ export default function CreateBatchFlow({ onExit, onDone, url }) {
   const [batchId] = useState(newBatchId);
   const [draft, setDraft] = useState(() => ({
     id: batchId,
-    title: startingTitle(),
+    title: '',
     days: DEFAULT_DAYS,
     startTime: DEFAULT_START,
     durationMins: DEFAULT_LENGTH,
     timeZone: coachZone(),
     price: '',
     description: '',
-    questions: HEALTH_QUESTIONS,
+    questions: [], // none to start: coaches add their own in Edit
   }));
   const [at, setAt] = useState(0);
   const [tried, setTried] = useState(false); // pressed Next with a problem: show it
@@ -99,7 +87,7 @@ export default function CreateBatchFlow({ onExit, onDone, url }) {
   // until they write their own
   useEffect(() => {
     if (!touchedAbout) setDraft((d) => ({ ...d, description: descriptionFor(d) }));
-  }, [draft.title, draft.days, draft.startTime, touchedAbout]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draft.days, draft.startTime, touchedAbout]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Each screen starts at the top, with its heading in focus for screen readers
   useEffect(() => {
@@ -128,7 +116,6 @@ export default function CreateBatchFlow({ onExit, onDone, url }) {
       title: draft.title.trim(),
       price: Number(draft.price),
       description: draft.description.trim(),
-      questions: cleanQuestions(draft.questions),
     });
     if (!saved) {
       setFailed(true);
@@ -168,32 +155,20 @@ export default function CreateBatchFlow({ onExit, onDone, url }) {
               className="qinput__text"
               value={draft.title}
               maxLength={TITLE_MAX}
-              placeholder="Morning Yoga"
+              placeholder="Morning Batch"
               aria-label="Batch name"
               onChange={(e) => change('title', e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && next()}
             />
-            <div className="call__try">
-              <span className="call__try-label">Try</span>
-              <div className="call__try-list">
-                {TITLE_SUGGESTIONS.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    className={`call__try-chip ${draft.title === t ? 'call__try-chip--on' : ''}`}
-                    onClick={() => change('title', t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <p className="bflow__examples">For example: {NAME_EXAMPLES.join(', ')}</p>
           </div>
         )}
 
         {step.id === 'schedule' && <ScheduleFields value={draft} onChange={change} showProblem={tried} />}
 
-        {step.id === 'fee' && <FeeField value={draft} onChange={change} showProblem={tried} />}
+        {step.id === 'fee' && (
+          <FeeField value={draft} onChange={change} showProblem={tried} note="Put in any amount. You can change it later." />
+        )}
 
         {step.id === 'about' && (
           <div className="qinput__field">
@@ -208,12 +183,8 @@ export default function CreateBatchFlow({ onExit, onDone, url }) {
                 change('description', e.target.value);
               }}
             />
-            <span className="qinput__example">We wrote a start from your batch’s name and time. Make it yours.</span>
+            <span className="qinput__example">We wrote a start from your batch’s days and time. Make it yours.</span>
           </div>
-        )}
-
-        {step.id === 'questions' && (
-          <QuestionsInput cards value={draft.questions} onChange={(list) => change('questions', list)} />
         )}
 
         {tried && problem && step.id !== 'schedule' && step.id !== 'fee' && (
