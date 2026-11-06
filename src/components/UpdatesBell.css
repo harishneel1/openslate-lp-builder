@@ -263,3 +263,14 @@
 .upd__item--new .bk-face {
   background: #fff;
 }
+/* Storage running out (data/storageUpdates.js): amber when almost full,
+   red when full, as on the Cloud Storage page */
+.bk-face.upd__storage--almost {
+  color: #b45309;
+  background: #fef6e7;
+}
+
+.bk-face.upd__storage--full {
+  color: #b42318;
+  background: #fdecec;
+}

@@ -1,0 +1,820 @@
+/* The Cloud Storage tab. The page frame, panels and buttons come from
+   OfferingsHome.css, so it looks like 1:1 calls; only what's new is here.
+
+   One colour per kind, the same everywhere on the page: its file tiles,
+   its filter's dot and its part of the meter. Each kind has a solid
+   colour (meter, dots), a soft tint (tile) and a deep shade (tile icon
+   and label), from the same families the webinar screens use.
+     videos     orange (as the webinar date tiles)
+     documents  blue
+     images     green */
+
+.cs {
+  --cs-video: var(--color-primary);
+  --cs-video-tint: var(--color-primary-tint);
+  --cs-video-ink: #c4560a;
+  --cs-document: #3b73d1;
+  --cs-document-tint: #e8f0fc;
+  --cs-document-ink: #2557a8;
+  --cs-image: var(--color-success);
+  --cs-image-tint: #e3f5ea;
+  --cs-image-ink: #177a42;
+  --cs-track: #efeff1;
+}
+
+/* A kind's solid colour: meter parts, the key's swatches, filter dots */
+.cs-kind--video {
+  background: var(--cs-video);
+}
+
+.cs-kind--document {
+  background: var(--cs-document);
+}
+
+.cs-kind--image {
+  background: var(--cs-image);
+}
+
+/* ---------- How full it is ---------- */
+.cs-meter {
+  padding: 24px;
+}
+
+.cs-meter__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cs-meter__used {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.cs-meter__big {
+  margin-right: 2px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-meter__left {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-meter__bar {
+  display: flex;
+  height: 12px;
+  margin-top: 14px;
+  overflow: hidden;
+  background: var(--cs-track);
+  border-radius: var(--radius-pill);
+}
+
+.cs-meter__seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+/* A hairline between parts, so they read as separate */
+.cs-meter__seg + .cs-meter__seg {
+  box-shadow: inset 2px 0 0 var(--color-surface);
+}
+
+.cs-meter__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.cs-meter__key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-meter__key strong {
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-meter__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* After a delete: what was freed. Takes no room until there's something to say. */
+.cs-meter__said {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-success);
+}
+
+.cs-meter__said:not(:empty) {
+  margin-top: 12px;
+}
+
+.cs-meter__said--error {
+  color: #b45309;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-meter__seg {
+    transition: none;
+  }
+}
+
+/* ---------- The list's head: title, sort, filters ---------- */
+.cs__head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cs__head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cs__sort select {
+  padding: 8px 32px 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  appearance: none;
+  cursor: pointer;
+}
+
+.cs__sort select:hover {
+  border-color: #d6d6d6;
+}
+
+.cs__sort select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cs__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cs__chip:hover {
+  border-color: #d6d6d6;
+}
+
+.cs__chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cs__chip--on,
+.cs__chip--on:hover {
+  color: #fff;
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.cs__chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cs__chip-count {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cs__chip--on .cs__chip-count {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- One thing stored ---------- */
+.cs__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 16px 24px;
+}
+
+.cs-row + .cs-row {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Its open menu sits above the rows under it */
+.cs-row--menu {
+  z-index: var(--z-dropdown);
+}
+
+/* A file's tile: its kind's icon over its format, in the kind's colours */
+.cs-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+.cs-tile__ext {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.cs-tile--video {
+  color: var(--cs-video-ink);
+  background: var(--cs-video-tint);
+}
+
+.cs-tile--document {
+  color: var(--cs-document-ink);
+  background: var(--cs-document-tint);
+}
+
+.cs-tile--image {
+  color: var(--cs-image-ink);
+  background: var(--cs-image-tint);
+}
+
+.cs-row__text {
+  min-width: 0;
+}
+
+.cs-row__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A recording's name opens its session */
+.cs-row__open {
+  max-width: 100%;
+  overflow: hidden;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cs-row__open:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cs-row__open:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.cs-row__detail {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cs-row__size {
+  min-width: 64px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* "No file in the prototype", after Download: across the row, under the name */
+.cs-row__note {
+  grid-column: 2 / -1;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.cs-row__note:empty {
+  display: none;
+}
+
+/* Narrow: the sort goes under the title; each row is its icon beside
+   the name, with the size and actions underneath, so names get the
+   whole width */
+@media (max-width: 720px) {
+  .cs-meter {
+    padding: 18px;
+  }
+
+  .cs__head-row {
+    flex-wrap: wrap;
+  }
+
+  .cs-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    padding: 16px 18px;
+  }
+
+  .cs-row__name,
+  .cs-row__detail,
+  .cs-row__open {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .cs-row__size {
+    grid-column: 2;
+    min-width: 0;
+    margin-top: 4px;
+    text-align: left;
+  }
+
+  .cs-row__actions {
+    grid-column: 2;
+    margin-top: 4px;
+  }
+}
+
+/* ---------- Title, with Upgrade plan and Upload on the right ---------- */
+.cs__top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ---------- Running out ---------- */
+/* Almost full: amber. Full: red. The number used, what's left (or over)
+   and a line saying what it means take the colour; the meter's parts
+   keep their kind colours, so the breakdown still reads. */
+.cs-meter--almost .cs-meter__big,
+.cs-meter--almost .cs-meter__left {
+  color: #b45309;
+}
+
+.cs-meter--full .cs-meter__big,
+.cs-meter--full .cs-meter__left {
+  color: #b42318;
+}
+
+.cs-meter--almost .cs-meter__bar {
+  box-shadow: 0 0 0 2px #fde7c2;
+}
+
+.cs-meter--full .cs-meter__bar {
+  box-shadow: 0 0 0 2px #f6cfcb;
+}
+
+.cs-meter__alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: var(--radius-sm);
+}
+
+.cs-meter__alert svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.cs-meter__alert strong {
+  font-weight: 600;
+}
+
+.cs-meter__alert--almost {
+  color: #8a4b0b;
+  background: #fef6e7;
+}
+
+.cs-meter__alert--full {
+  color: #8f1d14;
+  background: #fdecec;
+}
+
+/* ---------- Top right: Upgrade plan (a link, new tab), Upload ---------- */
+.cs__top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cs__top-actions a {
+  text-decoration: none;
+}
+
+/* ---------- A file uploading ---------- */
+.cs-row--uploading {
+  background: #fcfcfd;
+}
+
+.cs-up__bar {
+  height: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: var(--cs-track);
+  border-radius: var(--radius-pill);
+}
+
+.cs-up__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.15s linear;
+}
+
+/* ---------- Files that weren't uploaded ---------- */
+.cs-refused {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #8a4b0b;
+  background: #fef6e7;
+  border: 1px solid #fde7c2;
+  border-radius: var(--radius-md);
+}
+
+.cs-refused > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.cs-refused__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs-refused__text strong {
+  font-weight: 600;
+}
+
+.cs-refused__list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+
+.cs-refused__close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px 0 0;
+  color: inherit;
+  border-radius: var(--radius-sm);
+}
+
+.cs-refused__close:hover {
+  background: #fde7c2;
+}
+
+.cs-refused__close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Dragging files over the window: "Drop to upload" ---------- */
+/* Covers everything, so it's clear a drop anywhere works. It takes no
+   pointer events: the drop itself is heard on the window. */
+.cs-drop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+  background: rgba(253, 241, 231, 0.88);
+}
+
+.cs-drop__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 520px);
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-primary-hover);
+  background: var(--color-surface);
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-lg);
+}
+
+.cs-drop__title {
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.cs-drop__text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-up__bar span {
+    transition: none;
+  }
+}
+
+/* Storage full and they tried to add something: the full line pulses once */
+.cs-meter__alert--nudge {
+  animation: cs-nudge 0.6s ease;
+}
+
+@keyframes cs-nudge {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-meter__alert--nudge {
+    animation: none;
+    outline: 2px solid #f0b4ae;
+  }
+}
+
+/* ---------- Search, beside the sort ---------- */
+.cs__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cs__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+
+.cs__search svg {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+}
+
+.cs__search input {
+  width: 220px;
+  padding: 8px 12px 8px 36px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.cs__search input:hover {
+  border-color: #d6d6d6;
+}
+
+.cs__search input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Checkboxes ---------- */
+.cs-check {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+/* The real checkbox stays for keyboards and screen readers, over the box */
+.cs-check input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.cs-check__box {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #fff;
+  background: var(--color-surface);
+  border: 1.5px solid #c9c9cf;
+  border-radius: 5px;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.cs-check:hover .cs-check__box {
+  border-color: #9a9aa2;
+}
+
+.cs-check__box--on,
+.cs-check:hover .cs-check__box--on {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.cs-check input:focus-visible + .cs-check__box {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cs-check__dash {
+  width: 8px;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+/* An uploading row has no checkbox; its space keeps the columns lined up */
+.cs-check--none {
+  cursor: default;
+}
+
+/* A row's columns, with the checkbox first */
+.cs-row {
+  grid-template-columns: 20px 44px minmax(0, 1fr) auto auto;
+}
+
+.cs-row__note {
+  grid-column: 3 / -1;
+}
+
+.cs-row--selected {
+  background: #fafafb;
+}
+
+/* ---------- The bar above the rows: Select all, or what's selected ---------- */
+.cs-select {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-height: 56px;
+  padding: 8px 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cs-select--on {
+  background: #f6f6f7;
+}
+
+.cs-select__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.cs-select__text strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cs-select__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cs-select__delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #c4321f;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.cs-select__delete:hover {
+  background: #a82a1a;
+}
+
+.cs-select__delete:focus-visible {
+  outline: 2px solid #c4321f;
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .cs__tools {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .cs__search {
+    flex: 1;
+  }
+
+  .cs__search input {
+    width: 100%;
+  }
+
+  .cs-row {
+    grid-template-columns: 20px 44px minmax(0, 1fr);
+  }
+
+  .cs-row__size,
+  .cs-row__actions {
+    grid-column: 3;
+  }
+
+  .cs-select {
+    padding: 8px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-check__box {
+    transition: none;
+  }
+}

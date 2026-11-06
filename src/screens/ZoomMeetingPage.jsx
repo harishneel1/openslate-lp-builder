@@ -1,8 +1,25 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Mic, MicOff, PhoneOff, Users, Video, VideoOff, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Circle, Lock, Mic, MicOff, Pause, PhoneOff, Users, Video, VideoOff, X } from 'lucide-react';
 import { funnelTypes } from '../data/funnelTypes';
 import { mockAccount } from '../data/myPage';
-import { HEARTBEAT_MS, endSegment, heartbeat, startSegment } from '../data/recordings';
+import {
+  HEARTBEAT_MS,
+  endSegment,
+  heartbeat,
+  pauseRecording,
+  recordChoiceOf,
+  resumeRecording,
+  setRecordChoice,
+  startSegment,
+} from '../data/recordings';
+import {
+  FREE_BYTES,
+  PLANS_HREF,
+  RECORDING_BYTES_PER_HOUR,
+  assetsOf,
+  formatBytes,
+  usageOf,
+} from '../data/cloudStorage';
 import { isCancelled, webinarEnd, webinarStart, webinarWhen, zoomMeetingId } from '../data/webinar';
 import { classDay, classTime, dayOn, getBatch, nextClasses } from '../data/batches';
 import { funnelName } from '../utils/funnelName';
@@ -27,11 +44,43 @@ import './ZoomMeetingPage.css';
 // this is where the coach thinks they've gone. Mute, video and the
 // participants list work; End leaves, with Rejoin to come back.
 //
-// Recording is on by default, as Zoom's cloud auto-recording would be:
-// it starts when they're in the room and stops when they End (or close
-// the tab). The red "Recording" in the top bar says so, so it's never a
-// surprise; the recording then shows on the session's Recording tab
-// (data/recordings.js). There's no switch to turn it off in this version.
+// Before a webinar's room, "Ready to join?" (JoinScreen): whether to
+// record, ticked by default, with how much of their free storage they've
+// used and what an hour of recording takes. It's asked every time they
+// join (Rejoin too), starting from what they chose last time for this
+// session, so leaving and coming back never quietly changes it.
+//
+//   ┌──────────────── Ready to join? ────────────────┐
+//   │ Fix the Vasthu mistakes…                       │
+//   │ Sat 7 Nov, 7:00 pm IST                         │
+//   │ ┌────────────────────────────────────────────┐ │
+//   │ │ [✓] Record this session                    │ │
+//   │ │     Recordings use your free storage.      │ │
+//   │ │     ▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    │ │
+//   │ │     4.4 GB of 20 GB used · about 500 MB…   │ │
+//   │ └────────────────────────────────────────────┘ │
+//   │                [Join meeting]                  │
+//   └────────────────────────────────────────────────┘
+//
+// Ticked: recording starts when they're in the room and stops when they
+// End (or close the tab), and the red "Recording" in the top bar says
+// so. Unticked: nothing is recorded, and the top bar says "Not
+// recording", so they always know which. The recording then shows on the
+// session's Recording tab and in Cloud Storage (data/recordings.js).
+//
+// While recording, Pause recording in the toolbar stops it for a while
+// and Resume recording carries on, in the same recording: paused time is
+// left out of it, and of its size. The top bar's red "Recording" turns
+// to an amber "Recording paused" meanwhile. End while paused just leaves;
+// Rejoin starts unpaused (asked on "Ready to join?" as always).
+//
+// When their storage is almost full (80%+), "Ready to join?" says how
+// much is left. When it's full, it says just that, and the box is
+// unticked and locked: the session can't be recorded, but Join meeting
+// still works, so a full account never stops a live session. Upgrade
+// plan opens the plans page in a new tab (PLANS_HREF). A recording
+// under way is never stopped for being over: it's kept
+// (data/cloudStorage.js).
 //
 // A cancelled session's meeting is closed (in the real product, the Zoom
 // meeting is deleted): the room says so, nobody gets in, and nothing is
@@ -114,7 +163,23 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
   const [muted, setMuted] = useState(true);
   const [videoOn, setVideoOn] = useState(false);
   const [listOpen, setListOpen] = useState(false);
-  const [left, setLeft] = useState(false);
+  // Webinars start on "Ready to join?"; classes aren't recorded, so they go
+  // straight in. 'ready' | 'room' | 'left'
+  const [stage, setStage] = useState(() => (webinar?.kind === 'webinar' ? 'ready' : 'room'));
+  const left = stage === 'left';
+  // Record this session: what they chose last time here, ticked the first time
+  const [record, setRecord] = useState(() => recordChoiceOf(webinarId) ?? true);
+  // Whether this time in the room records: their choice, unless storage
+  // was full when they joined. Set on Join meeting.
+  const [recOn, setRecOn] = useState(false);
+  const recording = !isClass && recOn;
+  // Recording paused from the toolbar; never paused on joining
+  const [paused, setPaused] = useState(false);
+  const togglePause = () => {
+    if (paused) resumeRecording(webinarId);
+    else pauseRecording(webinarId);
+    setPaused((p) => !p);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -125,11 +190,12 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
     document.title = webinar ? `Zoom · ${webinar.name}` : 'Zoom';
   }, [webinar]);
 
-  // In the room: recording. Every so often it says it's still there, so a
-  // tab closed without End still ends its recording (at the last check).
-  // Leaving (End), closing the tab or going elsewhere stops it.
+  // In the room with Record this session ticked: recording. Every so
+  // often it says it's still there, so a tab closed without End still
+  // ends its recording (at the last check). Leaving (End), closing the
+  // tab or going elsewhere stops it.
   useEffect(() => {
-    if (!webinar || webinar.cancelled || left || isClass) return undefined; // classes aren't recorded yet
+    if (!webinar || webinar.cancelled || stage !== 'room' || !recording) return undefined;
     startSegment(webinarId);
     const beat = setInterval(() => heartbeat(webinarId), HEARTBEAT_MS);
     const stop = () => endSegment(webinarId);
@@ -139,7 +205,7 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
       window.removeEventListener('pagehide', stop);
       stop();
     };
-  }, [webinar, webinarId, left, isClass]);
+  }, [webinar, webinarId, stage, recording]);
 
   if (!webinar) {
     return (
@@ -185,6 +251,26 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
   const early = start !== null && now < start;
   const when = webinar.whenLine ? { line: webinar.whenLine } : null;
 
+  if (stage === 'ready') {
+    return (
+      <JoinScreen
+        name={webinar.name}
+        when={webinar.whenLine}
+        early={early}
+        record={record}
+        onRecord={setRecord}
+        onJoin={({ full }) => {
+          // Full: not recorded, and saved as blocked rather than as their
+          // choice, so next time the box starts as they'd want it
+          setRecordChoice(webinarId, record && !full, Date.now(), { full: full && record });
+          setRecOn(record && !full);
+          setPaused(false);
+          setStage('room');
+        }}
+      />
+    );
+  }
+
   if (left) {
     return (
       <div className="zm zm--center">
@@ -195,14 +281,18 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
               ? `Your ${isClass ? 'class' : 'webinar'} is still on. People who joined are waiting for you.`
               : `Meeting ID ${meetingId}. You can come back to it any time.`}
           </p>
-          {!isClass && (
+          {recording && (
             <p className="zm__message-text zm__message-rec">
-              Recording stopped. Rejoin and it carries on; otherwise you'll find it on your webinar page, on this
-              session's Recording tab, once Zoom has processed it.
+              Recording stopped. Rejoin with Record this session ticked and it carries on; otherwise you'll find it on
+              this session's Recording tab and in Cloud Storage, once Zoom has processed it.
             </p>
           )}
+          {!isClass && !recording && (
+            <p className="zm__message-text zm__message-rec">This session wasn't recorded while you were in.</p>
+          )}
           <div className="zm__message-actions">
-            <button type="button" className="zm__primary" onClick={() => setLeft(false)}>
+            {/* A webinar asks about recording again; a class goes straight back in */}
+            <button type="button" className="zm__primary" onClick={() => setStage(isClass ? 'room' : 'ready')}>
               Rejoin
             </button>
             <button type="button" className="zm__secondary" onClick={closeTab}>
@@ -222,11 +312,23 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
         </span>
         <h1 className="zm__title">{webinar.name}</h1>
         <p className="zm__meta">
-          {/* On by default for webinars: always shown while they're in the room */}
-          {!isClass && (
+          {/* A webinar always says whether it's recording, either way */}
+          {recording && !paused && (
             <span className="zm__rec">
               <span className="zm__rec-dot" aria-hidden="true" />
               Recording
+            </span>
+          )}
+          {recording && paused && (
+            <span className="zm__rec zm__rec--paused">
+              <Pause size={12} fill="currentColor" aria-hidden="true" />
+              Recording paused
+            </span>
+          )}
+          {!isClass && !recording && (
+            <span className="zm__rec zm__rec--off">
+              <VideoOff size={13} aria-hidden="true" />
+              Not recording
             </span>
           )}
           <span>Meeting ID {meetingId}</span>
@@ -240,7 +342,7 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
       {early && when && (
         <p className="zm__notice">
           Your {isClass ? 'class' : 'webinar'} starts at {when.line.split(', ').at(-1)}.{' '}
-          {isClass ? 'Members can get in from 15 minutes before.' : 'People who signed up can get in from 15 minutes before.'}
+          {isClass ? 'Members can get in from 15 minutes before.' : 'People who signed up can get in from 15 minutes before.'}{' '}
           Use the time to check your mic and camera.
         </p>
       )}
@@ -304,6 +406,15 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
           />
         </div>
         <div className="zm__tools-group">
+          {/* Only while recording: there's nothing to pause otherwise */}
+          {recording && (
+            <ToolButton
+              icon={paused ? Circle : Pause}
+              label={paused ? 'Resume recording' : 'Pause recording'}
+              paused={paused}
+              onClick={togglePause}
+            />
+          )}
           <ToolButton
             icon={Users}
             label="Participants"
@@ -313,7 +424,7 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
           />
         </div>
         <div className="zm__tools-group zm__tools-group--end">
-          <button type="button" className="zm__end" onClick={() => setLeft(true)}>
+          <button type="button" className="zm__end" onClick={() => setStage('left')}>
             <PhoneOff size={16} aria-hidden="true" /> End
           </button>
         </div>
@@ -322,13 +433,107 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
   );
 }
 
+// ---------- Ready to join? ----------
+// The one question before a webinar's room: record it or not. Ticked by
+// default. Under it, how full their free storage is, since a recording
+// counts toward it, and what an hour takes, so they can judge.
+// The storage figures are read once, when the screen opens.
+// onJoin({ full }): full says the box was locked because storage is full
+function JoinScreen({ name, when, early, record, onRecord, onJoin }) {
+  const [usage] = useState(() => {
+    const { funnels } = loadSaved();
+    const webinars = (Array.isArray(funnels) ? funnels : []).filter((f) => f?.type === 'webinar');
+    return usageOf(assetsOf({ webinars }));
+  });
+  const sharePct = Math.round(usage.share * 100);
+  const full = usage.level === 'full';
+  const almost = usage.level === 'almost';
+  const ticked = record && !full;
+
+  return (
+    <div className="zm zm--center">
+      <div className="zm-join">
+        <h1 className="zm-join__title">Ready to join?</h1>
+        <p className="zm-join__name">{name}</p>
+        {when && <p className="zm-join__when">{when}</p>}
+
+        <div
+          className={['zm-join__rec', ticked && 'zm-join__rec--on', full && 'zm-join__rec--full'].filter(Boolean).join(' ')}
+        >
+          <label className="zm-join__check">
+            <input
+              type="checkbox"
+              checked={ticked}
+              disabled={full}
+              onChange={(e) => onRecord(e.target.checked)}
+              aria-describedby="zm-join-storage"
+            />
+            <span className="zm-join__box" aria-hidden="true">
+              {ticked && <Check size={14} strokeWidth={3} />}
+              {full && <Lock size={12} strokeWidth={2.5} />}
+            </span>
+            <span className="zm-join__label">Record this session</span>
+          </label>
+
+          <div className="zm-join__storage" id="zm-join-storage">
+            {full ? (
+              <p className="zm-join__line zm-join__line--full">Your storage is full.</p>
+            ) : (
+              <p className="zm-join__line">
+                {ticked
+                  ? 'Recordings use your free storage.'
+                  : 'This session won’t be recorded. To change that later, leave and join again.'}
+              </p>
+            )}
+            <div
+              className="zm-join__bar"
+              role="meter"
+              aria-label="Free storage used"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={sharePct}
+              aria-valuetext={`${formatBytes(usage.used)} of ${formatBytes(FREE_BYTES)} used`}
+            >
+              <span style={{ width: `${usage.used > 0 ? Math.max(1, usage.share * 100) : 0}%` }} />
+            </div>
+            <p className="zm-join__figures">
+              {formatBytes(usage.used)} of {formatBytes(FREE_BYTES)} used
+              {usage.over > 0
+                ? ` · ${formatBytes(usage.over)} over`
+                : ` · about ${formatBytes(RECORDING_BYTES_PER_HOUR)} for each hour recorded`}
+            </p>
+            {almost && ticked && (
+              <p className="zm-join__almost">
+                <AlertTriangle size={14} aria-hidden="true" />
+                Almost full: {formatBytes(usage.left)} left.
+              </p>
+            )}
+            {(full || almost) && (
+              <a className="zm-join__more" href={PLANS_HREF} target="_blank" rel="noopener">
+                Upgrade plan
+              </a>
+            )}
+          </div>
+        </div>
+
+        <button type="button" className="zm__primary zm-join__go" onClick={() => onJoin({ full })}>
+          Join meeting
+        </button>
+        {early && <p className="zm-join__early">You can join before it starts to check your mic and camera.</p>}
+      </div>
+    </div>
+  );
+}
+
+
 // A toolbar button: icon over a short label, like Zoom's.
 // off: shown with a red slash colour (muted, video off); pressed: a toggle that's open
-function ToolButton({ icon: Icon, label, off = false, pressed, count, onClick }) {
+// paused: the recording's button while paused, in amber like the top bar
+function ToolButton({ icon: Icon, label, off = false, paused = false, pressed, count, onClick }) {
   return (
     <button
       type="button"
-      className={off ? 'zm__tool zm__tool--off' : 'zm__tool'}
+      className={['zm__tool', off && 'zm__tool--off', paused && 'zm__tool--paused'].filter(Boolean).join(' ')}
       onClick={onClick}
       aria-pressed={pressed}
     >

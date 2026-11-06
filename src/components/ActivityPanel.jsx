@@ -6,9 +6,11 @@ import {
   Mail,
   Plus,
   RotateCcw,
+  Trash2,
   UserMinus,
   Users,
   Video,
+  VideoOff,
   XCircle,
 } from 'lucide-react';
 import { activityByDay, sessionActivity } from '../data/sessionActivity';
@@ -47,6 +49,8 @@ const ICONS = {
   refund: RotateCcw, // older saves' refunds by hand
   removed: UserMinus,
   recording: Video,
+  'recording-deleted': Trash2,
+  'recording-off': VideoOff,
   // A 1:1 call's lines (data/callActivity.js)
   booked: CalendarPlus,
   declined: XCircle,

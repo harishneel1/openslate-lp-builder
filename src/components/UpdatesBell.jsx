@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, CalendarClock, CalendarX, IndianRupee, Video } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarClock, CalendarX, IndianRupee, Video } from 'lucide-react';
 import GuestInitials from './GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
 import { buildUpdates, loadLastSeen, saveLastSeen } from '../data/bookingUpdates';
 import { buildSignupUpdates } from '../data/signupUpdates';
 import { buildRecordingUpdates } from '../data/recordingUpdates';
+import { buildStorageUpdates } from '../data/storageUpdates';
+import { onStorageChange } from '../data/cloudStorage';
 import { buildCancelUpdates, buildRescheduleUpdates } from '../data/cancelUpdates';
 import { buildDueUpdates, buildJoinUpdates, buildNoticeUpdates, buildRejoinUpdates } from '../data/batchUpdates';
 import { onBatchesChange } from '../data/batches';
@@ -42,6 +44,8 @@ import './UpdatesBell.css';
 // (data/signupUpdates.js), which counts once in the badge.
 // A recording line (data/recordingUpdates.js) opens that session on its
 // Recording tab: onOpenWebinar(id, { tab: 'recording' }).
+// Storage running out (data/storageUpdates.js) is one line while they're
+// almost full or full; it opens Cloud Storage (onOpenStorage).
 // A cancelled session's line (data/cancelUpdates.js) is a record of what
 // the coach did: never new, so it doesn't count or ring. It opens that
 // session's people.
@@ -57,7 +61,7 @@ const TICK_MS = 60_000; // keeps "12 min ago" moving
 // People joining a batch (data/batchUpdates.js) are one line per batch per
 // day, like webinar sign-ups; clicking it opens that batch's Members tab
 // (onOpenBatch).
-export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebinar, onOpenBatch }) {
+export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebinar, onOpenBatch, onOpenStorage }) {
   const [bookings, setBookings] = useState(loadBookings);
   const [signupsTick, setSignupsTick] = useState(0); // a new sign-up rebuilds the list
   const [recordingsTick, setRecordingsTick] = useState(0); // so does a recording starting or stopping
@@ -74,6 +78,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
   useEffect(() => onBookingsChange(() => setBookings(loadBookings())), []);
   useEffect(() => onSignupsChange(() => setSignupsTick((n) => n + 1)), []);
   useEffect(() => onRecordingsChange(() => setRecordingsTick((n) => n + 1)), []);
+  useEffect(() => onStorageChange(() => setRecordingsTick((n) => n + 1)), []); // files deleted, pretend storage
   useEffect(() => onMembersChange(() => setMembersTick((n) => n + 1)), []);
   useEffect(() => onBatchesChange(() => setMembersTick((n) => n + 1)), []); // a class cancelled, a break
   useEffect(() => {
@@ -88,6 +93,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
         ...buildUpdates({ bookings, lastSeen, now }),
         ...buildSignupUpdates({ webinars, lastSeen, now }),
         ...buildRecordingUpdates({ webinars, lastSeen, now }),
+        ...buildStorageUpdates({ webinars, lastSeen, now }),
         ...buildCancelUpdates({ webinars, now }),
         ...buildRescheduleUpdates({ webinars, now }),
         ...buildJoinUpdates({ lastSeen, now }),
@@ -203,6 +209,7 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                             if (u.kind === 'signups' || u.kind === 'cancelled-session' || u.kind === 'rescheduled-session')
                               onOpenWebinar?.(u.webinarId);
                             else if (u.kind === 'recording') onOpenWebinar?.(u.webinarId, { tab: 'recording' });
+                            else if (u.kind === 'storage') onOpenStorage?.();
                             else if (u.kind === 'batch-joins' || u.kind === 'batch-dues' || u.kind === 'batch-rejoins')
                               onOpenBatch?.(u.batchId, { tab: 'members' });
                             else if (u.kind === 'batch-off') onOpenBatch?.(u.batchId, { tab: 'classes' });
@@ -213,6 +220,10 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                           {u.kind === 'recording' ? (
                             <span className="bk-face" aria-hidden="true">
                               <Video size={17} />
+                            </span>
+                          ) : u.kind === 'storage' ? (
+                            <span className={`bk-face upd__storage upd__storage--${u.level}`} aria-hidden="true">
+                              <AlertTriangle size={17} />
                             </span>
                           ) : u.kind === 'batch-dues' ? (
                             <span className="bk-face" aria-hidden="true">
@@ -267,6 +278,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                                   <>
                                     <strong>Your recording</strong> is ready
                                   </>
+                                ) : u.kind === 'storage' ? (
+                                  <strong>{u.line}</strong>
                                 ) : (
                                   <>
                                     <strong>{u.first}</strong> {VERBS[u.kind]}
@@ -287,6 +300,8 @@ export default function UpdatesBell({ webinars = [], onOpenBooking, onOpenWebina
                                 `${u.title}, now ${u.when}`
                               ) : u.kind === 'batch-dues' ? (
                                 u.title
+                              ) : u.kind === 'storage' ? (
+                                u.detail
                               ) : (
                                 `${u.title}, ${u.when}`
                               )}

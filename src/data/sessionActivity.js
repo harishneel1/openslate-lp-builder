@@ -2,6 +2,7 @@ import { formatTime, todayIn, zoned } from '../utils/slots';
 import { coachZone, shortDay } from './buildBookingsJson';
 import { emailOf, timeline } from './reminders';
 import { recordingOf } from './recordings';
+import { formatBytes, sizeOfRecording } from './cloudStorage';
 import { movesOf } from './reschedule';
 import { isCancelled, webinarEnd, webinarWhen } from './webinar';
 
@@ -62,7 +63,8 @@ function signedUp(list) {
 //     open: 'recording' | null (the tab a click opens: only the
 //     recording's line opens anything; every other line is just a record) }
 // kind: 'added' | 'signups' | 'reminder' | 'ended' | 'moved' |
-//       'cancelled' | 'removed' | 'recording'
+//       'cancelled' | 'removed' | 'recording' | 'recording-deleted' |
+//       'recording-off'
 // Refunds are part of the line that made them: the cancelled line (everyone
 // at once) or a removed line (one person, by hand)
 // run: the session; signups: its people (peopleOf); now
@@ -180,10 +182,34 @@ export function sessionActivity(run, signups = [], now = Date.now()) {
       });
     });
 
-  // The recording, once it's ready
+  // The recording, once it's ready; and if the coach deleted it (from
+  // Cloud Storage), when, and the space that freed
   const rec = recordingOf(run.id, now);
-  if (rec.status === 'ready') {
+  if (rec.status === 'ready' || rec.status === 'deleted') {
     out.push({ key: 'recording', kind: 'recording', at: rec.readyAt, title: 'Recording ready', detail: null, by: 'auto', open: 'recording' });
+  }
+  // Joined with "Record this session" unticked, and nothing recorded
+  if (rec.status === 'off') {
+    out.push({
+      key: 'recording-off',
+      kind: 'recording-off',
+      at: rec.offAt,
+      title: rec.full ? 'Not recorded: storage full' : 'Joined without recording',
+      detail: null,
+      by: rec.full ? 'auto' : 'you',
+      open: 'recording',
+    });
+  }
+  if (rec.status === 'deleted') {
+    out.push({
+      key: 'recording-deleted',
+      kind: 'recording-deleted',
+      at: rec.deletedAt,
+      title: 'Recording deleted',
+      detail: `Freed ${formatBytes(sizeOfRecording(rec.duration))} in Cloud Storage`,
+      by: 'you',
+      open: null,
+    });
   }
 
   return out.filter((e) => e.at <= now + 60_000).sort((a, b) => b.at - a.at);

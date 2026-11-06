@@ -33,6 +33,8 @@ import BookingsPage from './screens/BookingsPage';
 import ContractsPage from './screens/ContractsPage';
 import CallsPage from './screens/CallsPage';
 import LiveClassesPage from './screens/LiveClassesPage';
+import CloudStoragePage from './screens/CloudStoragePage';
+import { seedDemoFiles } from './data/cloudStorage';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
@@ -444,6 +446,12 @@ function App() {
   useEffect(() => {
     seedDemoRecordings(funnels.filter((f) => f.type === 'webinar'));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Demo only: a few files in Cloud Storage until coaches can upload their
+  // own (data/cloudStorage.js). Remove when uploads arrive.
+  useEffect(() => {
+    seedDemoFiles();
+  }, []);
 
   // The first visit to a published webinar's page: remember it, so its
   // pages screen turns into just the pages (FunnelOverview's editing)
@@ -1097,6 +1105,12 @@ function App() {
         />
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
+      ) : activeNav === 'cloud-storage' ? (
+        // A recording's name opens its session on the Recording tab
+        <CloudStoragePage
+          webinars={funnels.filter((f) => f.type === 'webinar')}
+          onOpenRecording={(id) => openSignups(id, { tab: 'recording' })}
+        />
       ) : (
         <p style={{ color: 'var(--color-text-muted)' }}>
           Dummy page. Click <strong>Webinars</strong> in the sidebar.

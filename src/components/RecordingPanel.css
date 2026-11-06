@@ -22,6 +22,12 @@
   animation: rec-blink 1.6s ease-in-out infinite;
 }
 
+/* Paused: amber, as the meeting's top bar shows it */
+.rec-panel__icon--paused {
+  color: #b45309;
+  background: #fef6e7;
+}
+
 /* Not recorded: nothing to celebrate, so grey */
 .rec-panel__icon--quiet {
   color: var(--color-text-muted);

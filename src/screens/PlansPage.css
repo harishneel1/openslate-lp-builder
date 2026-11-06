@@ -1,0 +1,12 @@
+/* The plans page placeholder: PageNotFound's centred page, with an
+   upgrade icon above it */
+.plans__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+}

@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Download, Hourglass, Lock, Pause, Play, VideoOff } from 'lucide-react';
+import { Download, Hourglass, Lock, Pause, Play, Trash2, VideoOff } from 'lucide-react';
+
+import { formatBytes, sizeOfRecording } from '../data/cloudStorage';
+import { coachZone, exactDay } from '../data/buildBookingsJson';
+import { zoned } from '../utils/slots';
 import './RecordingPanel.css';
 
 // ------------------------------------------------------------
@@ -13,14 +17,18 @@ import './RecordingPanel.css';
 //   │ Sat 7 Nov                                 │
 //   └───────────────────────────────────────────┘
 //   [❚❚]  12:04 / 58:30  ━━━━━━━━○────────────────
-//   Recorded on Sat 7 Nov at 7:02 pm · 58 min      [Download]
-//   🔒 Only you can see this recording.
+//   Recorded on Sat 7 Nov at 7:02 pm · 58 min · 487 MB   [Download]
+//   🔒 Only you can see this recording. It's kept in your Cloud Storage.
 //
 // Until then, a short message in the panel's empty-state style:
 //   not ready yet  before the session, or while Zoom gets it ready (hours,
 //                  sometimes days): check back later
 //   recording now  they're in the meeting
+//   paused         they're in the meeting, with the recording paused
 //   not recorded   the session ended and nobody joined from OpenSlate
+//   turned off     they joined with "Record this session" unticked
+//   deleted        the coach deleted it from Cloud Storage: when, and the
+//                  space it freed
 //
 // recording: from recordingOf (data/recordings.js)
 // ended:     the session is over
@@ -53,6 +61,18 @@ const timeOf = (ms) => new Date(ms).toLocaleTimeString('en-IN', { hour: 'numeric
 export default function RecordingPanel({ recording, ended = true, cancelled = false, title, day }) {
   const { status } = recording;
 
+  if (status === 'deleted') {
+    const day = exactDay(zoned(recording.deletedAt, coachZone()).date);
+    return (
+      <Message
+        icon={<Trash2 size={22} />}
+        tone="quiet"
+        title="You deleted this recording"
+        text={`You deleted it from Cloud Storage on ${day}, which freed up ${formatBytes(sizeOfRecording(recording.duration))}. It can't be brought back.`}
+      />
+    );
+  }
+
   if (cancelled && status === 'none') {
     return (
       <Message
@@ -60,6 +80,38 @@ export default function RecordingPanel({ recording, ended = true, cancelled = fa
         tone="quiet"
         title="This session was cancelled"
         text="It didn’t go ahead, so there’s no recording."
+      />
+    );
+  }
+
+  // They joined with recording turned off: say it was their choice, so it
+  // never reads as something that went wrong
+  if (status === 'off' && recording.full) {
+    return (
+      <Message
+        icon={<VideoOff size={22} />}
+        tone="quiet"
+        title="Not recorded: your storage was full"
+        text={
+          ended
+            ? 'Your storage was full when you joined, so this session wasn’t recorded.'
+            : 'Your storage was full when you joined, so this session isn’t being recorded.'
+        }
+      />
+    );
+  }
+
+  if (status === 'off') {
+    return (
+      <Message
+        icon={<VideoOff size={22} />}
+        tone="quiet"
+        title="You chose not to record this session"
+        text={
+          ended
+            ? 'You unticked Record this session when you joined, so there’s no recording.'
+            : 'You unticked Record this session when you joined. To record it, leave the meeting, join again and keep Record this session ticked.'
+        }
       />
     );
   }
@@ -73,7 +125,7 @@ export default function RecordingPanel({ recording, ended = true, cancelled = fa
         text={
           status === 'processing'
             ? 'Zoom can take a few hours, sometimes a few days, to get it ready after the session. Check back here later.'
-            : 'The session records on its own when you join with Join meeting. Once it’s over, Zoom can take a few hours or days to get the recording ready, so check back here later.'
+            : 'When you join with Join meeting, Record this session is ticked, so it records unless you untick it. Once it’s over, Zoom can take a few hours or days to get the recording ready, so check back here later.'
         }
       />
     );
@@ -90,13 +142,24 @@ export default function RecordingPanel({ recording, ended = true, cancelled = fa
     );
   }
 
+  if (status === 'paused') {
+    return (
+      <Message
+        icon={<Pause size={22} fill="currentColor" />}
+        tone="paused"
+        title="Recording paused"
+        text={`You paused the recording at ${timeOf(recording.pausedAt)}. Resume it from the meeting and it carries on in the same recording. Paused time isn't recorded.`}
+      />
+    );
+  }
+
   if (status === 'none') {
     return (
       <Message
         icon={<VideoOff size={22} />}
         tone="quiet"
         title="This session wasn't recorded"
-        text="Sessions record on their own when you join with Join meeting. Next time, start your webinar from here and the recording will show up in this tab."
+        text="Nobody joined with Join meeting, so nothing was recorded. Next time, join from here and keep Record this session ticked, and the recording will show up in this tab."
       />
     );
   }
@@ -120,7 +183,8 @@ function Ready({ recording, title, day }) {
   const [note, setNote] = useState(false); // "no file in the prototype", after Download
   const recordedOn = [day ? `Recorded on ${day}` : 'Recorded', `at ${timeOf(recording.startedAt)}`].join(' ');
   const length = lengthOf(recording.duration);
-  const parts = recording.parts > 1 ? `, in ${recording.parts} parts` : '';
+  // The length recorded, paused time left out. How many parts it came in
+  // (rejoins, pauses) isn't said: it's one recording to the coach.
 
   return (
     <div className="rec-panel">
@@ -128,8 +192,7 @@ function Ready({ recording, title, day }) {
 
       <div className="rec-panel__info">
         <p className="rec-panel__meta">
-          {recordedOn} · {length}
-          {parts}
+          {recordedOn} · {length} · {formatBytes(sizeOfRecording(recording.duration))}
         </p>
         <button type="button" className="oh__edit" onClick={() => setNote(true)}>
           <Download size={15} aria-hidden="true" /> Download
@@ -138,7 +201,7 @@ function Ready({ recording, title, day }) {
 
       <p className="rec-panel__private">
         <Lock size={14} aria-hidden="true" />
-        Only you can see this recording.
+        Only you can see this recording. It's kept in your Cloud Storage.
       </p>
 
       <p className="rec-panel__note" aria-live="polite">

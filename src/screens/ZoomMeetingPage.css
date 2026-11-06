@@ -437,6 +437,242 @@
   background: var(--zm-tile);
 }
 
+/* Not recording: the same pill as Recording, in grey, so it's still seen */
+.zm__rec--off {
+  padding-left: 8px;
+  color: var(--zm-muted);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Paused: amber, so it's neither "recording" red nor "off" grey */
+.zm__rec--paused {
+  padding-left: 8px;
+  color: #ffd27a;
+  background: rgba(245, 166, 35, 0.16);
+}
+
+/* The toolbar's Resume recording, while paused: the same amber */
+.zm__tool--paused,
+.zm__tool--paused:hover {
+  color: #ffd27a;
+}
+
+/* Its icon: a solid red dot, the usual sign for "record" */
+.zm__tool--paused .zm__tool-icon svg {
+  color: var(--zm-red);
+  fill: var(--zm-red);
+}
+
+/* ---------- Ready to join? ---------- */
+/* A webinar's one question before its room. Zoom's dark look like the
+   room, but the storage figures are ours: their meter is in the orange
+   recordings have in Cloud Storage. */
+.zm-join {
+  width: min(100%, 440px);
+  padding: 32px;
+  text-align: center;
+  background: var(--zm-bar);
+  border: 1px solid var(--zm-line);
+  border-radius: 12px;
+}
+
+.zm-join__title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.zm-join__name {
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.zm-join__when {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--zm-muted);
+}
+
+.zm-join__rec {
+  margin: 24px 0;
+  padding: 16px;
+  text-align: left;
+  background: var(--zm-bg);
+  border: 1px solid var(--zm-line);
+  border-radius: 10px;
+  transition: border-color 0.15s;
+}
+
+.zm-join__rec--on {
+  border-color: #5a4636;
+}
+
+.zm-join__check {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+/* The real checkbox stays for keyboards and screen readers, laid over the box */
+.zm-join__check input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.zm-join__box {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: #fff;
+  border: 2px solid var(--zm-muted);
+  border-radius: 5px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.zm-join__check input:checked + .zm-join__box {
+  background: var(--zm-blue);
+  border-color: var(--zm-blue);
+}
+
+.zm-join__check input:focus-visible + .zm-join__box {
+  outline: 2px solid #6b9bff;
+  outline-offset: 2px;
+}
+
+.zm-join__label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.zm-join__storage {
+  margin-top: 10px;
+  padding-left: 34px; /* under the label, not the box */
+}
+
+.zm-join__line {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--zm-text);
+}
+
+.zm-join__bar {
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  background: var(--zm-line);
+  border-radius: 999px;
+}
+
+.zm-join__bar span {
+  display: block;
+  height: 100%;
+  background: #ef8a3c;
+  border-radius: inherit;
+}
+
+.zm-join__figures {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--zm-muted);
+}
+
+/* Almost full: the bar and a short note in amber */
+.zm-join__almost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffd27a;
+}
+
+/* Full: locked. The box is greyed with a lock, the bar red and full, and
+   the line says why it can't record. Join meeting still works. */
+.zm-join__rec--full {
+  border-color: #5a2c2c;
+}
+
+.zm-join__rec--full .zm-join__check {
+  cursor: not-allowed;
+}
+
+.zm-join__rec--full .zm-join__check input {
+  cursor: not-allowed;
+}
+
+.zm-join__rec--full .zm-join__box {
+  color: var(--zm-muted);
+  background: var(--zm-tile);
+  border-color: var(--zm-line);
+}
+
+.zm-join__rec--full .zm-join__label {
+  color: var(--zm-muted);
+}
+
+.zm-join__line--full {
+  color: #ffb4b4;
+}
+
+.zm-join__rec--full .zm-join__bar span {
+  background: var(--zm-red);
+}
+
+/* Upgrade plan: a link under the figures (opens the plans page in a new tab) */
+.zm-join__more {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b9bff;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.zm-join__more:hover {
+  color: #9bbcff;
+}
+
+/* Unticked: the storage figures step back, since nothing will be added */
+.zm-join__rec:not(.zm-join__rec--on):not(.zm-join__rec--full) .zm-join__bar,
+.zm-join__rec:not(.zm-join__rec--on):not(.zm-join__rec--full) .zm-join__figures {
+  opacity: 0.5;
+}
+
+.zm-join__go {
+  justify-content: center;
+  width: 100%;
+}
+
+.zm-join__early {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--zm-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zm-join__rec,
+  .zm-join__box {
+    transition: none;
+  }
+}
+
 /* ---------- Narrow ---------- */
 @media (max-width: 720px) {
   .zm__panel {

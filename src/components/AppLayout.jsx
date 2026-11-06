@@ -3,7 +3,7 @@ import {
   Search, ChevronDown, ChevronRight, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
-  CalendarCheck, Users, Store, Video, Repeat,
+  CalendarCheck, Users, Store, Video, Repeat, Cloud,
 } from 'lucide-react';
 import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
@@ -28,6 +28,9 @@ const sidebarItems = [
   // (LiveClassesPage.jsx). Repeat, for classes that come round every week.
   { id: 'live-classes', label: 'Live classes', icon: Repeat },
   { id: 'services', label: 'Contracts', icon: Briefcase },
+  // Everything they keep with us, and how much of their 20 GB free it
+  // uses: webinar recordings now, their own files later (CloudStoragePage.jsx)
+  { id: 'cloud-storage', label: 'Cloud Storage', icon: Cloud },
   // Their storefront (the offerings page): set up once and shared, so it
   // sits last. The id is still 'my-page'. Bookings has no item here: the
   // "Your calendar" card at the top is the way in.
@@ -249,7 +252,13 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
 
           {/* Updates, then their profile */}
           <div className="topnav__actions">
-            <UpdatesBell webinars={webinars} onOpenBooking={onOpenBooking} onOpenWebinar={onOpenWebinar} onOpenBatch={onOpenBatch} />
+            <UpdatesBell
+              webinars={webinars}
+              onOpenBooking={onOpenBooking}
+              onOpenWebinar={onOpenWebinar}
+              onOpenBatch={onOpenBatch}
+              onOpenStorage={() => onNavigate('cloud-storage')}
+            />
             <div className="topnav__avatar" title="Your profile">H</div>
           </div>
         </header>
