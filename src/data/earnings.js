@@ -4,6 +4,7 @@ import { funnelTypes } from './funnelTypes';
 import { webinarWhen } from './webinar';
 import { coachZone } from './buildBookingsJson';
 import { funnelName } from '../utils/funnelName';
+import { onPayoutsChange, verifiedBank } from './payouts';
 
 // ------------------------------------------------------------
 // Earnings: the coach's money with us, as one ledger (Sales → Withdrawals,
@@ -36,7 +37,7 @@ import { funnelName } from '../utils/funnelName';
 // negative number, and the rest comes off what's arriving.
 //
 // Withdrawing (requestWithdrawal): any amount from MIN_WITHDRAWAL up to
-// what's ready, to their one bank account (BANK). It's 'processing' until
+// what's ready, to their verified bank account (data/payouts.js). It's 'processing' until
 // it reaches the bank, then 'paid', with the bank's reference (UTR).
 // The prototype pretends that takes PAYOUT_MS; in the real product the
 // payout service tells the server.
@@ -102,9 +103,14 @@ export const PAYOUT_PROMISE = 'within 1 working day';
 export const TDS_RATE = 0.001;
 export const TDS_LABEL = '0.1%';
 
-// Their bank account. One, fixed, until setting it up is designed (round 5).
+// The demo history's bank account: where its past withdrawals went
 export const BANK = { name: 'HDFC Bank', last4: '4521', holder: 'Harish Neel' };
-export const bankLine = (bank = BANK) => `${bank.name} ••${bank.last4}`;
+
+// Where withdrawals go now: their verified account (data/payouts.js), or
+// null when they haven't added one or it isn't verified yet
+export const currentBank = (now = Date.now()) => verifiedBank(now);
+
+export const bankLine = (bank = currentBank() ?? BANK) => `${bank.name} ••${bank.last4}`;
 
 // The coach's business, as it goes on their invoices. Fixed here until
 // a settings screen for it is designed. gstin: null when they aren't
@@ -421,7 +427,9 @@ export function onEarningsChange(callback) {
   window.addEventListener('storage', fromOtherTab);
   const offSignups = onSignupsChange(callback);
   const offBookings = onBookingsChange(callback);
+  const offPayouts = onPayoutsChange(callback);
   return () => {
+    offPayouts();
     window.removeEventListener(CHANGED_EVENT, callback);
     window.removeEventListener('storage', fromOtherTab);
     offSignups();
@@ -969,11 +977,13 @@ export function withdrawProblem(paise, ready) {
 
 // Starts a withdrawal to their bank. Returns its id, or null if the
 // amount isn't allowed or it couldn't be saved.
+// Only to a verified bank account.
 export function requestWithdrawal(paise, { webinars = [], now = Date.now() } = {}) {
   const { ready } = ledgerOf({ webinars, now });
-  if (withdrawProblem(paise, ready)) return null;
+  const bank = currentBank(now);
+  if (!bank || withdrawProblem(paise, ready)) return null;
   const id = `wd-${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  const ok = save({ ...load(), withdrawals: [...load().withdrawals, { id, at: now, amount: paise, bank: BANK, ref: refFor('pout_', id) }] });
+  const ok = save({ ...load(), withdrawals: [...load().withdrawals, { id, at: now, amount: paise, bank, ref: refFor('pout_', id) }] });
   return ok ? id : null;
 }
 

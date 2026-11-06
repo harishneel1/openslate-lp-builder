@@ -34,6 +34,7 @@ import {
   rangeLabel,
 } from '../data/earnings';
 import '../components/PrototypeControls.css'; // the Prototype controls panel, as on a batch's page
+import { PayoutControlRows } from './PayoutSetup';
 
 // ------------------------------------------------------------
 // What Sales' two tabs (TransactionsTab.jsx, WithdrawalsTab.jsx) share:
@@ -302,6 +303,7 @@ export function SalesTestControls() {
 
       {open && (
         <div className="proto__body">
+          <PayoutControlRows />
           <div className="proto__row">
             <span className="proto__label">Payments</span>
             <div className="proto__controls">

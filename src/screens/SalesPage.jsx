@@ -20,6 +20,7 @@ import './SalesPage.css';
 //
 // webinars: every webinar session (App's funnels of type 'webinar'), so
 // real paid sign-ups, free sign-ups and refunds show
+// onOpenPayouts(): go to Settings → Bank account (no verified bank account yet)
 // ------------------------------------------------------------
 
 const TABS = [
@@ -27,7 +28,7 @@ const TABS = [
   { id: 'transactions', label: 'Transactions' },
 ];
 
-export default function SalesPage({ webinars = [] }) {
+export default function SalesPage({ webinars = [], onOpenPayouts }) {
   // Always starts on Withdraw money
   const [tab, setTab] = useState(TABS[0].id);
   const choose = setTab;
@@ -63,7 +64,7 @@ export default function SalesPage({ webinars = [] }) {
       </div>
 
       <div id={`sales-panel-${tab}`} role="tabpanel" aria-labelledby={`sales-tab-${tab}`}>
-        {tab === 'withdrawals' ? <WithdrawalsTab webinars={webinars} /> : <TransactionsTab webinars={webinars} />}
+        {tab === 'withdrawals' ? <WithdrawalsTab webinars={webinars} onOpenPayouts={onOpenPayouts} /> : <TransactionsTab webinars={webinars} />}
       </div>
 
       <SalesTestControls />

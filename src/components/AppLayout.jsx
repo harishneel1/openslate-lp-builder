@@ -13,6 +13,7 @@ import { isPublished } from '../utils/publish';
 import { allClassesBetween, onBatchesChange } from '../data/batches';
 import { loadSaved } from '../utils/storage';
 import { formatTime, zoned } from '../utils/slots';
+import AccountMenu from './AccountMenu';
 import UpdatesBell from './UpdatesBell';
 import './AppLayout.css';
 
@@ -264,7 +265,8 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
               onOpenBatch={onOpenBatch}
               onOpenStorage={() => onNavigate('cloud-storage')}
             />
-            <div className="topnav__avatar" title="Your profile">H</div>
+            {/* Their account: Settings (AccountMenu.jsx) */}
+            <AccountMenu onNavigate={onNavigate} />
           </div>
         </header>
       )}

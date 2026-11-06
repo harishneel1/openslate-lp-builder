@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Banknote, Download, Landmark, Wallet } from 'lucide-react';
+import { AlertTriangle, Banknote, Download, Landmark, Loader2, Wallet } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import InfoTip from '../components/InfoTip';
 import { Pager, PeriodChoice, RangeButton, Segmented, Stat, Tile, useMoney } from './SalesShared';
+import { usePayout } from './PayoutSetup';
 import {
-  BANK,
   MIN_WITHDRAWAL,
   PAYOUT_PROMISE,
   SETTLE_LABEL,
   bankLine,
   clockTime,
+  currentBank,
   dayKey,
   describe,
   money,
@@ -47,10 +48,15 @@ import './SalesPage.css';
 //     plus still settling; the ⓘ on Withdrawable balance says why some
 //     of it isn't withdrawable yet, in one sentence. A withdrawal on its
 //     way shows in the statement ("Processing"), not as a line here.
+//   - Until there's a verified bank account (data/payouts.js), the card
+//     offers what to do instead of Request withdrawal, with a line under
+//     the balances: no account (Add bank account), being checked (View),
+//     or needs a fix (Fix it, in amber, saying what's wrong). Each opens
+//     Settings → Bank account (onOpenPayouts), the one place it's set up.
 //   - Request withdrawal is greyed out, with the reason under it, while
 //     less than the minimum (₹100) is withdrawable. It opens a pop-up:
 //     the amount (everything withdrawable to start with), the bank, and
-//     when it gets there.
+//     when it gets there, with Change beside the bank (Settings → Bank account).
 //   - The statement: All / Credit / Debit and newest or oldest first on
 //     the left; the period on the right, beside Download statement. The
 //     period button (RangeButton) opens quick picks (This month, Last
@@ -71,6 +77,7 @@ import './SalesPage.css';
 //     filter. 20 lines a page. On a phone each line is a small card.
 //
 // webinars: every webinar session, for real sign-ups' sales and refunds
+// onOpenPayouts(): go to Settings → Bank account
 // ------------------------------------------------------------
 
 const PAGE_SIZE = 20;
@@ -81,7 +88,7 @@ const DIRECTIONS = [
   { id: 'debit', label: 'Debit' },
 ];
 
-export default function WithdrawalsTab({ webinars = [] }) {
+export default function WithdrawalsTab({ webinars = [], onOpenPayouts }) {
   const ledger = useMoney(webinars);
   const [withdrawing, setWithdrawing] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -93,11 +100,22 @@ export default function WithdrawalsTab({ webinars = [] }) {
 
   return (
     <>
-      <Balances ledger={ledger} failed={failed} onWithdraw={() => setWithdrawing(true)} />
+      <Balances ledger={ledger} failed={failed} onWithdraw={() => setWithdrawing(true)} onOpenPayouts={onOpenPayouts} />
       <Statement entries={ledger.entries} now={ledger.now} />
 
       {withdrawing && (
-        <WithdrawDialog ready={ledger.ready} onCancel={() => setWithdrawing(false)} onConfirm={confirmWithdraw} />
+        <WithdrawDialog
+          ready={ledger.ready}
+          onCancel={() => setWithdrawing(false)}
+          onConfirm={confirmWithdraw}
+          onChangeBank={
+            onOpenPayouts &&
+            (() => {
+              setWithdrawing(false);
+              onOpenPayouts();
+            })
+          }
+        />
       )}
 
     </>
@@ -106,8 +124,39 @@ export default function WithdrawalsTab({ webinars = [] }) {
 
 // ---------- The three balances ----------
 
-function Balances({ ledger, failed, onWithdraw }) {
+// What the card says and offers until there's a verified bank account.
+// Every one opens Settings → Bank account, the one place it's added or fixed.
+const BANK_STATES = {
+  none: {
+    tone: 'blue',
+    icon: Landmark,
+    title: 'Add your bank account to withdraw',
+    text: () => 'Your money is safe here until you do.',
+    action: 'Add bank account',
+    primary: true,
+  },
+  checking: {
+    tone: 'blue',
+    icon: Loader2,
+    title: 'Checking your bank account',
+    text: () => 'This usually takes a few minutes. You can withdraw once it’s done.',
+    action: 'View',
+    primary: false,
+  },
+  'needs-fix': {
+    tone: 'amber',
+    icon: AlertTriangle,
+    title: 'Your bank account needs a fix',
+    text: (payout) => payout.problem?.message ?? '',
+    action: 'Fix it',
+    primary: true,
+  },
+};
+
+function Balances({ ledger, failed, onWithdraw, onOpenPayouts }) {
   const { ready, total, entries } = ledger;
+  const payout = usePayout();
+  const bankState = BANK_STATES[payout.status] ?? null;
   const canWithdraw = ready >= MIN_WITHDRAWAL;
   const why = canWithdraw
     ? null
@@ -143,22 +192,44 @@ function Balances({ ledger, failed, onWithdraw }) {
         </Stat>
 
         <div className="wd-bal__action">
-          <button
-            type="button"
-            className="oh__add wd-bal__withdraw"
-            aria-disabled={!canWithdraw || undefined}
-            aria-describedby={why ? 'wd-why' : undefined}
-            onClick={() => canWithdraw && onWithdraw()}
-          >
-            Request withdrawal
-          </button>
-          {why && (
-            <p className="wd-bal__why" id="wd-why">
-              {why}
-            </p>
+          {bankState ? (
+            <button
+              type="button"
+              className={bankState.primary ? 'oh__add wd-bal__withdraw' : 'oh__edit wd-bal__withdraw'}
+              onClick={onOpenPayouts}
+            >
+              {bankState.action}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="oh__add wd-bal__withdraw"
+                aria-disabled={!canWithdraw || undefined}
+                aria-describedby={why ? 'wd-why' : undefined}
+                onClick={() => canWithdraw && onWithdraw()}
+              >
+                Request withdrawal
+              </button>
+              {why && (
+                <p className="wd-bal__why" id="wd-why">
+                  {why}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
+
+      {bankState && (
+        <div className={`wd-bank wd-bank--${bankState.tone}`} role={payout.status === 'needs-fix' ? 'alert' : 'status'}>
+          <bankState.icon size={18} aria-hidden="true" className={payout.status === 'checking' ? 'wd-bank__spin' : undefined} />
+          <div>
+            <p className="wd-bank__title">{bankState.title}</p>
+            <p>{bankState.text(payout)}</p>
+          </div>
+        </div>
+      )}
 
       {failed && (
         <p className="wd-bal__line wd-bal__line--error" role="alert">
@@ -377,7 +448,8 @@ function Row({ entry: e, now }) {
 // ---------- Request withdrawal ----------
 // The amount (everything withdrawable, to start with), where it goes, and
 // when it gets there. Enter withdraws when the amount is fine.
-function WithdrawDialog({ ready, onCancel, onConfirm }) {
+// onChangeBank(): close it and go to Settings → Bank account
+function WithdrawDialog({ ready, onCancel, onConfirm, onChangeBank }) {
   const [text, setText] = useState(() => rupeesInput(ready));
   const [touched, setTouched] = useState(false);
   const input = useRef(null);
@@ -460,10 +532,15 @@ function WithdrawDialog({ ready, onCancel, onConfirm }) {
           <span className="wd-dlg__bank-icon" aria-hidden="true">
             <Landmark size={16} />
           </span>
-          <div>
+          <div className="wd-dlg__bank-text">
             <p className="wd-dlg__bank">{bankLine()}</p>
-            <p className="wd-dlg__holder">{BANK.holder}</p>
+            <p className="wd-dlg__holder">{currentBank()?.holder}</p>
           </div>
+          {onChangeBank && (
+            <button type="button" className="wd-dlg__change" onClick={onChangeBank}>
+              Change
+            </button>
+          )}
         </div>
         <p className="wd-dlg__note">It usually reaches your bank {PAYOUT_PROMISE}.</p>
       </div>

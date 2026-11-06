@@ -1,1304 +1,385 @@
-/* Sales (SalesPage.jsx) and its Withdrawals tab (WithdrawalsTab.jsx).
-   The frame, panels and buttons are OfferingsHome.css's. Credits are
-   green; debits are plain text, since most of them (withdrawals) go to
-   the coach's own bank. Every amount uses tabular figures, so columns of
-   rupees line up. */
+/* Settings (SettingsPage.jsx) and its Bank account section (PayoutSetup.jsx).
+   Tiles, pills and the tab bar come from SalesPage.css. */
 
-.sales {
+.settings {
   padding-bottom: 48px;
-
-  /* Sales' colours, from Cloud Storage's: each kind has a solid colour, a
-     pale tint for its tile and pill, and a dark ink for text on the tint */
-  --sx-orange: var(--color-primary);
-  --sx-orange-tint: var(--color-primary-tint);
-  --sx-orange-ink: #c4560a;
-  --sx-blue: #3b73d1;
-  --sx-blue-tint: #e8f0fc;
-  --sx-blue-ink: #2557a8;
-  --sx-green: var(--color-success);
-  --sx-green-tint: #e3f5ea;
-  --sx-green-ink: #177a42;
-  --sx-amber-tint: #fef6e7;
-  --sx-amber-ink: #8a4b0b;
-  --sx-red-tint: #fdecec;
-  --sx-red-ink: #8f1d14;
-  --sx-grey-tint: #efeff1;
-  --sx-grey-ink: #55555c;
 }
 
-/* ---------- Tiles: an icon on its kind's tint ---------- */
-.sx-tile {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.settings__panel {
+  margin-top: 24px;
 }
 
-.sx-tile--lg {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-}
-
-.sx-tile--webinar {
-  color: var(--sx-orange-ink);
-  background: var(--sx-orange-tint);
-}
-
-.sx-tile--call,
-.sx-tile--withdrawal {
-  color: var(--sx-blue-ink);
-  background: var(--sx-blue-tint);
-}
-
-.sx-tile--product,
-.sx-tile--sale {
-  color: var(--sx-green-ink);
-  background: var(--sx-green-tint);
-}
-
-.sx-tile--refund {
-  color: var(--sx-amber-ink);
-  background: var(--sx-amber-tint);
-}
-
-.sx-tile--tax {
-  color: var(--sx-grey-ink);
-  background: var(--sx-grey-tint);
-}
-
-/* A cell with a tile before its text */
-.sx-with-tile {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.sx-with-tile__text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  padding-top: 1px;
-}
-
-.sx-with-tile__text > span {
-  display: block;
-}
-
-/* ---------- Status pills ---------- */
-.sx-pill {
-  display: inline-block;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: var(--radius-pill);
-}
-
-.sx-pill--done,
-.sx-pill--completed {
-  color: var(--sx-green-ink);
-  background: var(--sx-green-tint);
-}
-
-.sx-pill--wait,
-.sx-pill--refund,
-.sx-pill--refunded,
-.sx-pill--part-refunded {
-  color: var(--sx-amber-ink);
-  background: var(--sx-amber-tint);
-}
-
-.sx-pill--processing {
-  color: var(--sx-blue-ink);
-  background: var(--sx-blue-tint);
-}
-
-.sx-pill--failed {
-  color: var(--sx-red-ink);
-  background: var(--sx-red-tint);
-}
-
-.sx-pill--free {
-  color: var(--sx-grey-ink);
-  background: var(--sx-grey-tint);
-}
-
-/* ---------- Sub-tabs, under the title ---------- */
-.sales__tabs {
-  display: flex;
-  gap: 24px;
-  margin-top: 16px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.sales__tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: -1px;
-  padding: 10px 0 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  border-bottom: 3px solid transparent;
-}
-
-.sales__tab:hover {
-  color: var(--color-text);
-}
-
-.sales__tab[aria-selected='true'] {
-  color: var(--color-text);
-  border-bottom-color: var(--color-primary);
-}
-
-.sales__tab:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -4px;
-  border-radius: 4px;
-}
-
-/* ---------- The three balances ---------- */
-.wd-bal {
+.settings__body {
   padding: 24px;
 }
 
-.wd-bal__grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  align-items: center;
-  gap: 20px 24px;
+.settings__proto {
+  margin-top: 24px;
 }
 
-.wd-stat {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.wd-stat__text {
-  min-width: 0;
-}
-
-.wd-stat + .wd-stat {
-  padding-left: 24px;
-  border-left: 1px solid var(--color-border);
-}
-
-.wd-stat__label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.wd-stat__value {
-  margin-top: 2px;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-}
-
-.wd-bal__action {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.wd-bal__withdraw[aria-disabled='true'],
-.wd-bal__withdraw[aria-disabled='true']:hover {
-  color: var(--color-text-disabled);
-  background: var(--color-bg);
-  cursor: not-allowed;
-}
-
-.wd-bal__why {
-  max-width: 24ch;
-  font-size: 13px;
-  line-height: 1.4;
-  text-align: right;
-  color: var(--color-text-muted);
-}
-
-.wd-bal__line {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 16px;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.wd-bal__line > svg {
-  flex-shrink: 0;
-  margin-top: 3px;
-  color: var(--color-text-muted);
-}
-
-.wd-bal__line--error,
-.wd-bal__line--error > svg {
-  font-weight: 500;
-  color: #b45309;
-}
-
-/* ---------- Account statement: its tools ---------- */
-.wd-st__head {
+/* ---------- Bank account ---------- */
+.po {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-width: 640px;
 }
 
-.wd-st__tools {
+.po-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 12px;
-}
-
-.wd-st__group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 12px;
-}
-
-/* The period and Download statement, together on the right */
-.wd-st__group--end {
-  margin-left: auto;
-}
-
-.wd-st__download {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* All | Credit | Debit: one control, the chosen part filled white */
-.wd-seg {
-  display: inline-flex;
-  padding: 3px;
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
-}
-
-.wd-seg__btn {
-  padding: 7px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  border-radius: 6px;
-}
-
-.wd-seg__btn:hover {
-  color: var(--color-text);
-}
-
-.wd-seg__btn[aria-pressed='true'] {
-  color: var(--color-text);
-  background: var(--color-surface);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-.wd-seg__btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-/* The period button, and its panel under it */
-.wd-rng {
-  position: relative;
-}
-
-.wd-rng__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text);
-  white-space: nowrap;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.wd-rng__btn:hover {
-  border-color: #d6d6d6;
-}
-
-.wd-rng__btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.wd-rng__btn > svg {
-  flex-shrink: 0;
-  color: var(--color-text-muted);
-}
-
-.wd-rng__btn[aria-expanded='true'] .wd-rng__chevron {
-  transform: rotate(180deg);
-}
-
-.wd-rng__panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 40;
-  width: min(340px, calc(100vw - 32px));
-  padding: 12px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-}
-
-/* Quick picks, then Custom's From and To */
-.wd-period__picks {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.wd-period__pick {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 9px 10px;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: left;
-  color: var(--color-text);
-  border-radius: var(--radius-sm);
-}
-
-.wd-period__pick:hover {
-  background: var(--color-bg);
-}
-
-.wd-period__pick[aria-pressed='true'] {
-  font-weight: 600;
-}
-
-.wd-period__pick svg {
-  color: var(--color-primary);
-}
-
-.wd-period__pick:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
-
-.wd-period__custom {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 8px;
-  padding: 12px 10px 4px;
-  border-top: 1px solid var(--color-border);
-}
-
-.wd-period__field {
-  min-width: 0;
-}
-
-.wd-period__label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-/* Our date picker's field, sized for here (DatePicker.jsx, Pickers.css) */
-.wd-period__date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  min-height: 40px;
-  padding: 0 10px;
-  font-size: 14px;
-  color: var(--color-text);
-  text-align: left;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.wd-period__date:hover {
-  border-color: #d6d6d6;
-}
-
-.wd-period__date:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.wd-period__date .pk__value {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* In the period panel there's only room for From and To one above the other */
-.wd-rng__panel .wd-period__custom {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* In the download pop-up the quick picks sit in rows, like chips */
-.wd-dl .wd-period__picks {
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.wd-dl .wd-period__pick {
-  padding: 7px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-}
-
-.wd-dl .wd-period__pick[aria-pressed='true'] {
-  color: #fff;
-  background: var(--color-text);
-  border-color: var(--color-text);
-}
-
-.wd-dl .wd-period__pick svg {
-  display: none;
-}
-
-.wd-dl .wd-period__custom {
-  padding: 12px 0 0;
-  border-top: 0;
-}
-
-/* Download statement pop-up */
-.wd-dl {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.wd-dl > .wd-period {
-  align-self: stretch;
-}
-
-.wd-dl__label {
-  margin: 16px 0 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.wd-dl__label:first-child {
-  margin-top: 0;
-}
-
-.wd-dl__empty {
-  margin-top: 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #b45309;
-}
-
-.wd-sort select {
-  min-height: 40px;
-  padding: 0 32px 0 12px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--color-text);
-  background: var(--color-surface)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236b6b6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E")
-    no-repeat right 10px center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  appearance: none;
-}
-
-.wd-sort select:hover {
-  border-color: #d6d6d6;
-}
-
-.wd-sort select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.wd-st__empty {
-  padding: 16px 0;
-  font-size: 14px;
-  text-align: center;
-  color: var(--color-text-muted);
-}
-
-/* ---------- Account statement: the table ---------- */
-.wd-table__wrap {
-  overflow-x: auto;
-}
-
-.wd-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.wd-table tbody tr:hover {
-  background: #fcfcfd;
-}
-
-.wd-table th {
-  padding: 12px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-}
-
-.wd-table th:first-child,
-.wd-table td:first-child {
-  padding-left: 24px;
-}
-
-.wd-table th:last-child,
-.wd-table td:last-child {
-  padding-right: 24px;
-}
-
-.wd-table td {
-  padding: 14px 16px;
-  vertical-align: top;
-  border-top: 1px solid var(--color-border);
-}
-
-.wd-num {
-  text-align: right !important;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.wd-row__date {
-  white-space: nowrap;
-}
-
-.wd-row__date span,
-.wd-row__title,
-.wd-row__detail {
-  display: block;
-}
-
-.wd-row__time,
-.wd-row__detail {
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.wd-row__desc {
-  min-width: 280px;
-}
-
-.wd-row__title {
-  font-weight: 600;
-}
-
-.wd-row__detail {
-  overflow-wrap: anywhere;
-}
-
-.wd-row__credit {
-  font-weight: 600;
-  color: var(--color-success);
-}
-
-.wd-row__debit {
-  font-weight: 600;
-}
-
-.wd-row__balance {
-  color: var(--color-text-muted);
-}
-
-.wd-dash {
-  color: var(--color-text-disabled);
-}
-
-
-/* ---------- Pages ---------- */
-.wd-pager {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--color-border);
 }
 
-.wd-pager__count {
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.wd-pager__nav {
+/* A line that says how it went: amber for a fix, green when verified */
+.po-alert {
   display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.wd-pager__btn {
-  display: grid;
-  place-items: center;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 8px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  border-radius: var(--radius-md);
 }
 
-.wd-pager__btn:hover:not(:disabled) {
-  background: var(--color-bg);
+.po-alert > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.wd-pager__btn[aria-current='page'] {
-  border-color: var(--color-text);
+.po-alert__title {
+  font-weight: 700;
 }
 
-.wd-pager__btn:disabled {
-  color: var(--color-text-disabled);
-  cursor: not-allowed;
-}
-
-.wd-pager__btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.wd-pager__gap {
-  padding: 0 4px;
-  color: var(--color-text-muted);
-}
-
-/* ---------- Request withdrawal pop-up ---------- */
-.wd-dlg {
-  display: flex;
-  flex-direction: column;
-}
-
-.wd-dlg__label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.wd-dlg__box {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-  padding: 0 12px;
-  font-size: 22px;
-  font-weight: 600;
-  background: var(--color-surface);
-  border: 1px solid #d6d6da;
-  border-radius: var(--radius-sm);
-}
-
-.wd-dlg__box:focus-within {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.wd-dlg__box--error {
-  border-color: #d97706;
-}
-
-.wd-dlg__box span {
-  color: var(--color-text-muted);
-}
-
-.wd-dlg__box input {
+.po-alert__grow {
   flex: 1;
-  min-width: 0;
-  min-height: 52px;
-  font: inherit;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-  background: transparent;
-  border: 0;
-  outline: none;
 }
 
-.wd-dlg__hint {
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--color-text-muted);
+.po-alert .oh__add {
+  flex-shrink: 0;
+  align-self: center;
 }
 
-.wd-dlg__all {
-  font-size: 13px;
+.po-alert--fix {
+  color: var(--sx-amber-ink);
+  background: var(--sx-amber-tint);
+}
+
+.po-alert--checking {
+  color: var(--sx-blue-ink);
+  background: var(--sx-blue-tint);
+}
+
+.po-alert--checking .po-link {
+  color: var(--sx-blue-ink);
+}
+
+.po-alert__more {
+  margin-top: 4px;
+  opacity: 0.85;
+}
+
+.po-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+
+/* A quiet action written as a link: Cancel change */
+.po-link {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-text);
+  color: inherit;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.wd-dlg__all:focus-visible {
+.po-link:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
-.wd-dlg__error {
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #b45309;
+.po-card__foot {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--color-border);
 }
 
-.wd-dlg__error:empty {
-  display: none;
+.po-alert--done {
+  color: var(--sx-green-ink);
+  background: var(--sx-green-tint);
 }
 
-.wd-dlg__to {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-  padding: 12px 14px;
-  background: var(--color-bg);
+/* The account, masked */
+.po-card {
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
-.wd-dlg__bank-icon {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  color: #2f5bd3;
-  background: #eaf0fd;
-  border-radius: 50%;
+.po-card__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.wd-dlg__bank {
-  font-size: 15px;
-  font-weight: 600;
+.po-card__who {
+  flex: 1;
+  min-width: 0;
 }
 
-.wd-dlg__holder {
+.po-card__bank {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.po-card__branch {
   font-size: 13px;
   color: var(--color-text-muted);
 }
 
-.wd-dlg__note {
+.po-dl {
+  margin: 0;
+  padding: 4px 16px;
+}
+
+.po-dl div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.po-dl div + div {
+  border-top: 1px solid var(--color-border);
+}
+
+.po-dl dt {
+  color: var(--color-text-muted);
+}
+
+.po-dl dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Being checked */
+.po-checking {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--sx-blue-tint);
+  border-radius: var(--radius-md);
+}
+
+.po-checking .sx-tile {
+  background: var(--color-surface);
+}
+
+.po-checking__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sx-blue-ink);
+}
+
+.po-checking__text {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.po-spin {
+  animation: po-spin 1s linear infinite;
+}
+
+@keyframes po-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-spin {
+    animation: none;
+  }
+}
+
+/* ---------- The setup: one question a screen ---------- */
+.po-setup {
+  gap: 0;
+}
+
+.po-setup__top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 32px;
+  margin-bottom: 8px;
+}
+
+.po-setup__step {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.po-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.po-back:hover {
+  color: var(--color-text);
+}
+
+.po-back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.po-setup__title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.po-setup__help {
+  margin: 6px 0 20px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.po-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-bottom: 16px;
+}
+
+.po-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.po-field-row .po-field {
+  margin-bottom: 0;
+}
+
+.po-field__label {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.po-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.po-input:hover {
+  border-color: #bdbdc2;
+}
+
+.po-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* PAN and IFSC: capitals, a little spaced, so they're easy to check */
+.po-input--code {
+  max-width: 280px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.po-input--error {
+  border-color: #d97706;
+}
+
+.po-field__note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.po-field__note--row {
+  margin: 6px 0 16px;
+}
+
+.po-field__note--row:empty {
+  margin: 0 0 16px;
+}
+
+.po-field__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--sx-green-ink);
+}
+
+.po-field__error {
+  font-weight: 500;
+  color: #b45309;
+}
+
+.po-setup .po-actions {
+  margin-top: 8px;
+}
+
+.po-setup__fine {
   margin-top: 10px;
   font-size: 13px;
   color: var(--color-text-muted);
 }
 
-/* ---------- Narrower screens ---------- */
-/* The button goes under the three balances */
-@media (max-width: 960px) {
-  .wd-bal__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .wd-bal__action {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-  }
-
-  .wd-bal__why {
-    max-width: none;
-    text-align: left;
-  }
-}
-
-/* Phones: balances stack, and each statement line is a small card */
-@media (max-width: 720px) {
-  .wd-bal {
+@media (max-width: 640px) {
+  .settings__body {
     padding: 20px;
   }
 
-  .wd-bal__grid {
-    grid-template-columns: minmax(0, 1fr);
+  .po-field-row {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
-  .wd-stat + .wd-stat {
-    padding: 16px 0 0;
-    border-top: 1px solid var(--color-border);
-    border-left: 0;
+  .po-field-row .po-field {
+    margin-bottom: 16px;
   }
 
-  .wd-bal__withdraw {
+  .po-alert {
+    flex-wrap: wrap;
+  }
+
+  .po-dl div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .po-actions .oh__add,
+  .po-alert .oh__add {
     width: 100%;
-  }
-
-  .wd-st__group,
-  .wd-st__group--end {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .wd-stat__label {
-    white-space: normal;
-  }
-
-  .wd-st__download {
-    white-space: nowrap;
-  }
-
-  .wd-rng,
-  .wd-rng__btn,
-  .wd-st__download {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .wd-rng__panel {
-    left: 0;
-    right: auto;
-    width: 100%;
-  }
-
-  .wd-table thead {
-    display: none;
-  }
-
-  .wd-table,
-  .wd-table tbody,
-  .wd-table tr,
-  .wd-table td {
-    display: block;
-  }
-
-  .wd-row {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 4px 12px;
-    padding: 14px 20px;
-    border-top: 1px solid var(--color-border);
-  }
-
-  .wd-table td,
-  .wd-table td:first-child,
-  .wd-table td:last-child {
-    padding: 0;
-    border: 0;
-  }
-
-  .wd-row__desc {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-  }
-
-  .wd-row__debit,
-  .wd-row__credit {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  /* Only the side with an amount shows */
-  .wd-row__debit:has(.wd-dash),
-  .wd-row__credit:has(.wd-dash) {
-    display: none !important;
-  }
-
-  /* Under the description: the date and time, then the balance after */
-  .wd-row__date {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    display: flex !important;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--color-text-muted);
-  }
-
-  .wd-row__date span {
-    display: inline;
-  }
-
-  .wd-row__time {
-    margin: 0;
-  }
-
-  .wd-row__balance {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    font-size: 13px;
-    text-align: left !important;
-  }
-
-  .wd-row__balance::before {
-    content: 'Balance after: ';
-  }
-
-  .wd-row__status {
-    grid-column: 1 / -1;
-    grid-row: 4;
-  }
-
-  .wd-row__status .sx-pill--done {
-    display: none;
-  }
-
-  .wd-pager {
-    padding: 14px 20px;
-  }
-}
-
-/* ---------- Transactions (TransactionsTab.jsx) ---------- */
-/* Two numbers, side by side */
-.tx-totals {
-  grid-template-columns: repeat(2, minmax(0, 220px)) !important;
-}
-
-.tx-left {
-  flex: 1 1 360px;
-}
-
-.tx-search {
-  position: relative;
-  display: flex;
-  flex: 1 1 220px;
-  align-items: center;
-  max-width: 320px;
-  color: var(--color-text-muted);
-}
-
-.tx-search svg {
-  position: absolute;
-  left: 12px;
-  pointer-events: none;
-}
-
-.tx-search input {
-  width: 100%;
-  min-height: 40px;
-  padding: 0 12px 0 36px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.tx-search input:hover {
-  border-color: #d6d6d6;
-}
-
-.tx-search input:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-/* How many filters are on, on the Filters button */
-.tx-count {
-  display: grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--color-text);
-  border-radius: var(--radius-pill);
-}
-
-/* The Filters panel opens leftwards from its button */
-.tx-filters {
-  right: auto;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: min(360px, calc(100vw - 32px));
-  padding: 16px;
-}
-
-.tx-filters__label {
-  margin: 14px 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.tx-filters__label:first-child {
-  margin-top: 0;
-}
-
-.tx-filters__select,
-.tx-filters__select select {
-  width: 100%;
-}
-
-.tx-filters__clear {
-  margin-top: 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.tx-filters__clear:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Show free sign-ups: a switch */
-.tx-switch {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  margin-top: 16px;
-  padding-top: 14px;
-  font-size: 14px;
-  font-weight: 500;
-  border-top: 1px solid var(--color-border);
-  cursor: pointer;
-}
-
-.tx-switch input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.tx-switch__track {
-  position: relative;
-  flex-shrink: 0;
-  width: 40px;
-  height: 22px;
-  background: #d6d6da;
-  border-radius: var(--radius-pill);
-  transition: background 0.15s;
-}
-
-.tx-switch__track::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s;
-}
-
-.tx-switch input:checked + .tx-switch__track {
-  background: var(--color-primary);
-}
-
-.tx-switch input:checked + .tx-switch__track::after {
-  transform: translateX(18px);
-}
-
-.tx-switch input:focus-visible + .tx-switch__track {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* The table's cells */
-.tx-row__who,
-.tx-row__what {
-  min-width: 200px;
-}
-
-.tx-row__who > span,
-.tx-row__what > span {
-  display: block;
-}
-
-.tx-copy {
-  display: flex !important;
-  align-items: center;
-  gap: 2px;
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.tx-copy__text {
-  overflow-wrap: anywhere;
-}
-
-.tx-copy__btn {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  color: var(--color-text-muted);
-  border-radius: 6px;
-  opacity: 0.7;
-}
-
-.tx-copy__btn:hover {
-  color: var(--color-text);
-  background: var(--color-bg);
-  opacity: 1;
-}
-
-.tx-copy__btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-  opacity: 1;
-}
-
-.tx-row__amount,
-.tx-row__status {
-  white-space: nowrap;
-}
-
-.tx-row__amount .info-tip,
-.tx-row__status .info-tip {
-  vertical-align: middle;
-}
-
-.tx-amount {
-  font-weight: 600;
-}
-
-.tx-amount--failed {
-  color: var(--color-text-muted);
-  text-decoration: line-through;
-}
-
-
-.tx-row__menu {
-  width: 48px;
-  padding-right: 16px !important;
-  text-align: right;
-}
-
-/* A coupon used: a small tag under the offering */
-.tx-coupon {
-  align-self: flex-start;
-  margin-top: 6px;
-  padding: 1px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--sx-green-ink);
-  background: var(--sx-green-tint);
-  border: 1px dashed #9fd6b4;
-  border-radius: 6px;
-}
-
-/* Issue refund pop-up */
-.wd-dlg > .wd-seg {
-  align-self: flex-start;
-}
-
-.tx-refund__what {
-  margin-bottom: 14px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
-.tx-refund__label {
-  margin-top: 16px;
-}
-
-.tx-refund__cost {
-  margin-top: 14px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Phones: each order is a small card */
-@media (max-width: 720px) {
-  .tx-totals {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  .tx-totals .wd-stat + .wd-stat {
-    padding: 0 0 0 16px;
-    border-top: 0;
-    border-left: 1px solid var(--color-border);
-  }
-
-  .tx-search {
-    max-width: none;
-  }
-
-  .tx-left > .wd-rng,
-  .tx-left > .wd-rng .wd-rng__btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* Customer and ⋯ on top, then the offering, then date and amount */
-  .tx-row {
-    grid-template-columns: minmax(0, 1fr) auto !important;
-  }
-
-  .tx-row .tx-row__who {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-  }
-
-  .tx-row .tx-row__menu {
-    grid-column: 2;
-    grid-row: 1;
-    width: auto;
-    padding: 0 !important;
-  }
-
-  .tx-row .tx-row__what {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    min-width: 0;
-    margin-top: 4px;
-    font-size: 14px;
-  }
-
-  .tx-row .wd-row__date {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .tx-row .tx-row__amount {
-    grid-column: 2;
-    grid-row: 3;
-  }
-
-  .tx-row .tx-row__status {
-    grid-column: 1 / -1;
-    grid-row: 4;
-  }
-
-  .tx-row .sx-pill--completed {
-    display: none;
   }
 }

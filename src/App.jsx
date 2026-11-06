@@ -36,6 +36,7 @@ import LiveClassesPage from './screens/LiveClassesPage';
 import CloudStoragePage from './screens/CloudStoragePage';
 import { seedDemoFiles } from './data/cloudStorage';
 import SalesPage from './screens/SalesPage';
+import SettingsPage from './screens/SettingsPage';
 import { seedDemoEarnings } from './data/earnings';
 import './App.css';
 import { funnelName } from './utils/funnelName';
@@ -1114,8 +1115,15 @@ function App() {
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : activeNav === 'sales' ? (
-        // Real paid sign-ups and their refunds are in its statement, so the money matches the webinars
-        <SalesPage webinars={funnels.filter((f) => f.type === 'webinar')} />
+        // Real paid sign-ups and their refunds are in its statement, so the money matches the webinars.
+        // No verified bank account: its card sends them to Settings → Bank account.
+        <SalesPage
+          webinars={funnels.filter((f) => f.type === 'webinar')}
+          onOpenPayouts={() => handleNavigate('settings')}
+        />
+      ) : activeNav === 'settings' ? (
+        // From the avatar menu, or Sales' "Add bank account"; Withdraw money goes back to Sales
+        <SettingsPage onWithdraw={() => handleNavigate('sales')} />
       ) : activeNav === 'cloud-storage' ? (
         // A recording's name opens its session on the Recording tab
         <CloudStoragePage
