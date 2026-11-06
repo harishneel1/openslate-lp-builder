@@ -48,15 +48,16 @@ import './SalesPage.css';
 //     plus still settling; the ⓘ on Withdrawable balance says why some
 //     of it isn't withdrawable yet, in one sentence. A withdrawal on its
 //     way shows in the statement ("Processing"), not as a line here.
-//   - Until there's a verified bank account (data/payouts.js), the card
-//     offers what to do instead of Request withdrawal, with a line under
-//     the balances: no account (Add bank account), being checked (View),
-//     or needs a fix (Fix it, in amber, saying what's wrong). Each opens
-//     Settings → Bank account (onOpenPayouts), the one place it's set up.
+//   - Until identity and bank account are both verified (data/payouts.js),
+//     the card offers what to do instead of Request withdrawal, with a
+//     line under the balances: nothing yet (Get started), no bank yet
+//     (Add bank account), being checked (View), or needs a fix (Fix it, in
+//     amber, saying what's wrong). Each opens Settings → Payment details
+//     (onOpenPayouts), the one place they're set up.
 //   - Request withdrawal is greyed out, with the reason under it, while
 //     less than the minimum (₹100) is withdrawable. It opens a pop-up:
 //     the amount (everything withdrawable to start with), the bank, and
-//     when it gets there, with Change beside the bank (Settings → Bank account).
+//     when it gets there, with Change beside the bank (Settings → Payment details).
 //   - The statement: All / Credit / Debit and newest or oldest first on
 //     the left; the period on the right, beside Download statement. The
 //     period button (RangeButton) opens quick picks (This month, Last
@@ -77,7 +78,7 @@ import './SalesPage.css';
 //     filter. 20 lines a page. On a phone each line is a small card.
 //
 // webinars: every webinar session, for real sign-ups' sales and refunds
-// onOpenPayouts(): go to Settings → Bank account
+// onOpenPayouts(): go to Settings → Payment details
 // ------------------------------------------------------------
 
 const PAGE_SIZE = 20;
@@ -124,39 +125,82 @@ export default function WithdrawalsTab({ webinars = [], onOpenPayouts }) {
 
 // ---------- The three balances ----------
 
-// What the card says and offers until there's a verified bank account.
-// Every one opens Settings → Bank account, the one place it's added or fixed.
-const BANK_STATES = {
-  none: {
-    tone: 'blue',
-    icon: Landmark,
-    title: 'Add your bank account to withdraw',
-    text: () => 'Your money is safe here until you do.',
-    action: 'Add bank account',
-    primary: true,
-  },
-  checking: {
-    tone: 'blue',
-    icon: Loader2,
-    title: 'Checking your bank account',
-    text: () => 'This usually takes a few minutes. You can withdraw once it’s done.',
-    action: 'View',
-    primary: false,
-  },
-  'needs-fix': {
-    tone: 'amber',
-    icon: AlertTriangle,
-    title: 'Your bank account needs a fix',
-    text: (payout) => payout.problem?.message ?? '',
-    action: 'Fix it',
-    primary: true,
-  },
-};
+// What the card says and offers until they can withdraw: identity and
+// bank both verified (data/payouts.js). Every one opens Settings →
+// Payment details, the one place they're set up or fixed. A fix comes
+// first, then what's missing, then what's being checked.
+function blockerOf({ kyc, bank }) {
+  if (kyc.status === 'needs-fix') {
+    return {
+      tone: 'amber',
+      icon: AlertTriangle,
+      title: 'Your identity documents need a fix',
+      text: kyc.problems[0]?.message ?? '',
+      action: 'Fix it',
+      primary: true,
+      urgent: true,
+    };
+  }
+  if (bank.status === 'needs-fix') {
+    return {
+      tone: 'amber',
+      icon: AlertTriangle,
+      title: 'Your bank account needs a fix',
+      text: bank.problem?.message ?? '',
+      action: 'Fix it',
+      primary: true,
+      urgent: true,
+    };
+  }
+  if (kyc.status === 'none') {
+    return {
+      tone: 'blue',
+      icon: Landmark,
+      title: 'Verify your identity and add your bank account to withdraw',
+      text: 'It takes a few minutes. Your money is safe here until you do.',
+      action: 'Get started',
+      primary: true,
+    };
+  }
+  if (bank.status === 'none') {
+    return {
+      tone: 'blue',
+      icon: Landmark,
+      title: 'Add your bank account to withdraw',
+      text:
+        kyc.status === 'checking'
+          ? 'We’re checking your identity documents meanwhile. Your money is safe here.'
+          : 'Your money is safe here until you do.',
+      action: 'Add bank account',
+      primary: true,
+    };
+  }
+  if (kyc.status === 'checking' || bank.status === 'checking') {
+    const both = kyc.status === 'checking' && bank.status === 'checking';
+    return {
+      tone: 'blue',
+      icon: Loader2,
+      spin: true,
+      title: both
+        ? 'Checking your identity and bank account'
+        : kyc.status === 'checking'
+          ? 'Checking your identity documents'
+          : 'Checking your bank account',
+      text:
+        kyc.status === 'checking'
+          ? 'This usually takes a few hours. You can withdraw once it’s done.'
+          : 'This usually takes a few minutes. You can withdraw once it’s done.',
+      action: 'View',
+      primary: false,
+    };
+  }
+  return null;
+}
 
 function Balances({ ledger, failed, onWithdraw, onOpenPayouts }) {
   const { ready, total, entries } = ledger;
   const payout = usePayout();
-  const bankState = BANK_STATES[payout.status] ?? null;
+  const bankState = payout.ready ? null : blockerOf(payout);
   const canWithdraw = ready >= MIN_WITHDRAWAL;
   const why = canWithdraw
     ? null
@@ -222,11 +266,11 @@ function Balances({ ledger, failed, onWithdraw, onOpenPayouts }) {
       </div>
 
       {bankState && (
-        <div className={`wd-bank wd-bank--${bankState.tone}`} role={payout.status === 'needs-fix' ? 'alert' : 'status'}>
-          <bankState.icon size={18} aria-hidden="true" className={payout.status === 'checking' ? 'wd-bank__spin' : undefined} />
+        <div className={`wd-bank wd-bank--${bankState.tone}`} role={bankState.urgent ? 'alert' : 'status'}>
+          <bankState.icon size={18} aria-hidden="true" className={bankState.spin ? 'wd-bank__spin' : undefined} />
           <div>
             <p className="wd-bank__title">{bankState.title}</p>
-            <p>{bankState.text(payout)}</p>
+            <p>{bankState.text}</p>
           </div>
         </div>
       )}
@@ -448,7 +492,7 @@ function Row({ entry: e, now }) {
 // ---------- Request withdrawal ----------
 // The amount (everything withdrawable, to start with), where it goes, and
 // when it gets there. Enter withdraws when the amount is fine.
-// onChangeBank(): close it and go to Settings → Bank account
+// onChangeBank(): close it and go to Settings → Payment details
 function WithdrawDialog({ ready, onCancel, onConfirm, onChangeBank }) {
   const [text, setText] = useState(() => rupeesInput(ready));
   const [touched, setTouched] = useState(false);

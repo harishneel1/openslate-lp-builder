@@ -1,4 +1,5 @@
-/* Settings (SettingsPage.jsx) and its Bank account section (PayoutSetup.jsx).
+/* Settings (SettingsPage.jsx) and its Payment details section
+   (PayoutSetup.jsx, IdentitySetup.jsx).
    Everything Settings shows is styled here, so it doesn't depend on any
    other page's stylesheet. The colours are Sales' (SalesPage.css), which
    come from Cloud Storage's: a pale tint for a tile or pill, a dark ink
@@ -13,6 +14,7 @@
   --po-green-ink: #177a42;
   --po-amber-tint: #fef6e7;
   --po-amber-ink: #8a4b0b;
+  --po-input-border: #d6d6da;
 }
 
 /* ---------- Sections, as tabs (as on Sales) ---------- */
@@ -100,6 +102,34 @@
 
 .settings__proto {
   margin-top: 24px;
+}
+
+/* The two parts on the left, how payouts work on the right */
+.settings__body--split {
+  display: grid;
+  grid-template-columns: minmax(0, 640px) minmax(220px, 300px);
+  gap: 40px;
+  align-items: start;
+}
+
+.settings__help {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.settings__help-title {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.settings__help p + p {
+  margin-top: 10px;
 }
 
 /* ---------- Bank account ---------- */
@@ -196,6 +226,111 @@
 .po-alert--done {
   color: var(--po-green-ink);
   background: var(--po-green-tint);
+}
+
+/* ---------- A part: Identity or Bank account ---------- */
+.po-part {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.po-part__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.po-part__who {
+  flex: 1;
+  min-width: 0;
+}
+
+.po-part__title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.po-part__sub {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.po-part__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 0 16px 16px 74px;
+}
+
+.po-part__text {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* Before the PAN is in, the bank part waits: quieter, no button */
+.po-part--locked .po-tile {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.po-part--locked .po-part__title {
+  color: var(--color-text-muted);
+}
+
+.po-part--locked .po-part__text {
+  color: var(--color-text-muted);
+}
+
+.po-part__note {
+  margin: 0 16px 16px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: var(--radius-sm);
+}
+
+.po-part__note--checking {
+  color: var(--po-blue-ink);
+  background: var(--po-blue-tint);
+}
+
+.po-part__alert {
+  margin: 0 16px 16px;
+}
+
+.po-part > .po-dl {
+  border-top: 1px solid var(--color-border);
+}
+
+.po-part__foot {
+  padding: 12px 16px 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.po-docs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.po-doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+.po-doc-chip--bad {
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
 }
 
 /* The account, masked */
@@ -377,7 +512,7 @@
   font-size: 16px;
   color: var(--color-text);
   background: var(--color-surface);
-  border: 1px solid #d6d6da;
+  border: 1px solid var(--po-input-border);
   border-radius: var(--radius-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -440,9 +575,285 @@
   color: var(--color-text-muted);
 }
 
+/* How they're paid: an individual or a business */
+.po-kind {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+}
+
+.po-kind legend {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+.po-kind__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--po-input-border);
+  border-radius: var(--radius-sm);
+}
+
+.po-kind__option input {
+  margin-top: 3px;
+  accent-color: var(--color-primary);
+}
+
+.po-kind__option--on {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.po-kind__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.po-kind__sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* After "Who are we paying?", the first screen's own part */
+.po-setup__rule {
+  margin: 4px 0 20px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.po-setup__subtitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.po-setup__subtitle + .po-setup__help {
+  margin-top: 2px;
+}
+
+/* Small choices: a business's type, GST or not */
+.po-types {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.po-types legend {
+  padding: 0;
+}
+
+.po-types__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.po-types__grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 420px;
+}
+
+.po-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--po-input-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.po-type input {
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.po-type--on {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.po-type:has(input:focus-visible),
+.po-kind__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.po-type:has(input:disabled) {
+  cursor: default;
+}
+
+.po-type:has(input:disabled):not(.po-type--on) {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.po-kind__option {
+  cursor: pointer;
+}
+
+/* A document: an empty drop zone, or the file with Replace */
+.po-upload {
+  width: 100%;
+  font: inherit;
+  border-radius: var(--radius-sm);
+}
+
+.po-upload--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 16px;
+  text-align: center;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1.5px dashed var(--po-input-border);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.po-upload--empty:hover,
+.po-upload--over {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.po-upload--empty:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.po-upload--empty:disabled {
+  cursor: progress;
+}
+
+.po-upload__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+}
+
+.po-upload__cta {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.po-upload__hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* No dragging on a phone */
+@media (hover: none) {
+  .po-upload__drop {
+    display: none;
+  }
+}
+
+.po-upload--done {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--po-input-border);
+}
+
+.po-upload--error {
+  border-color: #d97706;
+}
+
+.po-upload__thumb,
+.po-upload__file {
+  flex-shrink: 0;
+  width: 88px;
+  height: 56px;
+  border-radius: 6px;
+}
+
+.po-upload__thumb {
+  object-fit: cover;
+  background: var(--color-bg);
+}
+
+.po-upload__file {
+  display: grid;
+  place-items: center;
+  color: var(--po-blue-ink);
+  background: var(--po-blue-tint);
+}
+
+.po-upload__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.po-upload__name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.po-upload__size {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.po-upload .oh__edit {
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .settings__body--split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
 @media (max-width: 640px) {
   .settings__body {
     padding: 20px;
+  }
+
+  .po-part__body {
+    padding-left: 16px;
+  }
+
+  .po-kind {
+    grid-template-columns: 1fr;
+  }
+
+  .po-types__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .po-part__head .po-pill {
+    align-self: flex-start;
+  }
+
+  .po-part__body .oh__add {
+    width: 100%;
   }
 
   .po-field-row {

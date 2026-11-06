@@ -1,72 +1,76 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Check, CircleCheck, Landmark, Loader2 } from 'lucide-react';
 import {
+  BANK_OUTCOMES,
   CHECK_MS,
   IFSC_EXAMPLE,
-  OUTCOMES,
+  KYC_CHECK_MS,
+  KYC_OUTCOMES,
   accountProblem,
   cancelBankChange,
   cleanAccount,
   cleanIfsc,
-  cleanPan,
-  finishCheckNow,
+  finishChecksNow,
   holderProblem,
   ifscProblem,
   lookupIfsc,
   maskAccount,
-  maskPan,
   onPayoutsChange,
-  panNameOf,
-  panProblem,
+  payeeOf,
   payoutState,
+  resetToDemo,
   setNextOutcome,
-  startWithNoBank,
+  startFresh,
+  submitBank,
   submitBankChange,
-  submitPayout,
-  resetToDemoBank,
+  submitKyc,
 } from '../data/payouts';
+import { IdentityCard, IdentitySetup, titleCase } from './IdentitySetup';
 
 // ------------------------------------------------------------
-// Settings → Bank account: the bank account a coach's money is withdrawn to
-// (data/payouts.js). One section, four states:
+// Settings → Payment details: who the coach is and where their money goes
+// (data/payouts.js). Two parts on the page, in the order they're done:
 //
-//   none       the setup, straight away (nothing to look at before it):
-//              1. "What's your PAN?" (we show who it's registered to)
-//              2. "Which bank account should we pay into?": IFSC (the bank
-//                 and branch appear as it's typed), account number twice,
-//                 the name on the account (the PAN's name to start with)
-//              → Verify account
-//   checking   "Checking your bank account": we're sending ₹1 to it; they
-//              can leave the page
-//   needs-fix  amber: what's wrong, in words, and Fix it, which opens the
-//              setup on the field to fix, with everything they typed
-//   verified   their details, masked, with a green Verified pill. Right
-//              after a check passes: "HDFC Bank ••4521 is verified" and a
-//              Withdraw money button back to Sales.
+//   Identity   IdentityCard (IdentitySetup.jsx): PAN and Aadhaar, with a
+//              photo or PDF of each, checked against government records
+//   Bank       BankCard: the account withdrawals go to, checked by
+//              sending it ₹1. It must be in the payee's name (the coach,
+//              or their business; a proprietorship's can be either), so
+//              it can be added once identity is sent; before that it says so.
 //
-// Withdraw money's card (WithdrawalsTab.jsx) sends coaches here for all
-// of these, so this is the one place a bank account is added or fixed.
+// Withdrawing needs both verified. When the last one passes while they're
+// here: "You're ready to withdraw" and a Withdraw money button back to
+// Sales.
 //
-// Changing it (verified only): Change bank account opens the bank step
-// alone ("Which account should we pay into instead?"); the PAN stays.
-// The new account is checked while the old one keeps working:
+// Bank card, by status:
+//   none       what it's for, and Add bank account
+//   checking   "Checking your bank account": we're sending ₹1 to it
+//   needs-fix  amber: what's wrong, and Fix it, which opens the setup on
+//              the field to fix, with everything they typed
+//   verified   their details, masked, with a green Verified pill, and
+//              Change bank account
+// Changing it (verified only) opens the setup alone ("Which account should
+// we pay into instead?"). The new one is checked while the old one keeps
+// working:
 //   checking   a blue line: "Checking SBI ••5894. Withdrawals keep going
 //              to HDFC Bank ••4521 until it's verified." and Cancel change
 //   needs-fix  amber: what's wrong, Fix it and Cancel change
 //   passed     green: "SBI ••5894 is verified. Withdrawals now go to it."
-// The withdraw pop-up's Change link comes here too.
+//
+// Sales → Withdraw money's card (WithdrawalsTab.jsx) sends coaches here
+// for all of these, so this is the one place they're set up or fixed.
 //
 // onWithdraw(): go to Sales → Withdraw money
 // ------------------------------------------------------------
 
-// The payout account now, re-read when it changes and every second while
-// a check is running (the account's or a change's), so it ends on screen
-// as soon as it does
+// The payout state now, re-read when it changes and every second while a
+// check is running, so it ends on screen as soon as it does
 export function usePayout() {
   const [, setTick] = useState(0);
   useEffect(() => onPayoutsChange(() => setTick((n) => n + 1)), []);
   const state = payoutState(Date.now());
-  const checking = state.status === 'checking' || state.pending?.status === 'checking';
+  const checking =
+    state.kyc.status === 'checking' || state.bank.status === 'checking' || state.bank.pending?.status === 'checking';
   useEffect(() => {
     if (!checking) return undefined;
     const id = setInterval(() => setTick((n) => n + 1), 1000);
@@ -75,37 +79,79 @@ export function usePayout() {
   return state;
 }
 
-// 'HARISH NEEL' → 'Harish Neel'
-const titleCase = (name) => String(name ?? '').toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+// Whose name the account must be in, as a sentence
+function payeeLine(kyc) {
+  const payee = payeeOf(kyc);
+  if (kyc.type !== 'business') return `It must be in your own name, ${titleCase(payee.name)}.`;
+  if (payee.also) {
+    return `It can be in your business’s name, ${titleCase(payee.name)}, or your own, ${titleCase(payee.also)}.`;
+  }
+  return `It must be in the business’s name, ${titleCase(payee.name)}.`;
+}
 
-export default function PayoutsSection({ onWithdraw }) {
+// Moves the keyboard to a heading when a screen changes, so it isn't lost
+// when the button that was pressed disappears
+function useFocusOnChange(key) {
+  const ref = useRef(null);
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    ref.current?.focus();
+  }, [key]);
+  return ref;
+}
+
+export default function PaymentDetails({ onWithdraw }) {
   const payout = usePayout();
-  // What the setup is open for: null, 'fix' (the account's check failed),
-  // 'change' (a new account), 'fix-change' (the new account's check failed)
+  const { kyc, bank } = payout;
+  // What's open: null (the page), 'identity', 'bank' (adding or fixing
+  // the account), 'change' (a new account), 'fix-change'
   const [editing, setEditing] = useState(null);
   // Checks that end while they're here get a moment of their own
-  const [sawChecking, setSawChecking] = useState(payout.status === 'checking');
-  const [sawChange, setSawChange] = useState(payout.pending?.status === 'checking');
-  const pendingStatus = payout.pending?.status ?? null;
+  const [sawCheck, setSawCheck] = useState(kyc.status === 'checking' || bank.status === 'checking');
+  const [sawChange, setSawChange] = useState(bank.pending?.status === 'checking');
+  const pendingStatus = bank.pending?.status ?? null;
+  const top = useFocusOnChange(editing);
+
   useEffect(() => {
-    if (payout.status === 'checking') setSawChecking(true);
-  }, [payout.status]);
+    if (kyc.status === 'checking' || bank.status === 'checking') setSawCheck(true);
+  }, [kyc.status, bank.status]);
   useEffect(() => {
     if (pendingStatus === 'checking') setSawChange(true);
   }, [pendingStatus]);
   useEffect(() => {
-    if (editing === 'fix' && payout.status !== 'needs-fix') setEditing(null);
     if (editing === 'fix-change' && pendingStatus !== 'needs-fix') setEditing(null);
-  }, [editing, payout.status, pendingStatus]);
+  }, [editing, pendingStatus]);
 
-  if (payout.status === 'none' || editing === 'fix') {
+  if (editing === 'identity') {
+    const fixing = kyc.status === 'needs-fix';
     return (
-      <Setup
-        start={editing === 'fix' ? payout : null}
-        problem={editing === 'fix' ? payout.problem : null}
-        onCancel={editing === 'fix' ? () => setEditing(null) : null}
+      <IdentitySetup
+        start={fixing ? kyc : null}
+        problems={fixing ? kyc.problems : []}
+        onCancel={() => setEditing(null)}
         onSubmit={(details) => {
-          submitPayout(details);
+          const ok = submitKyc(details);
+          if (ok) setEditing(null);
+          return ok;
+        }}
+      />
+    );
+  }
+
+  if (editing === 'bank') {
+    const fixing = bank.status === 'needs-fix';
+    return (
+      <BankSetup
+        start={fixing ? bank.bank : { holder: titleCase(payeeOf(kyc).name) }}
+        problem={fixing ? bank.problem : null}
+        payeeLine={payeeLine(kyc)}
+        onCancel={() => setEditing(null)}
+        onSubmit={(details) => {
+          submitBank(details);
           setEditing(null);
         }}
       />
@@ -115,14 +161,15 @@ export default function PayoutsSection({ onWithdraw }) {
   if (editing === 'change' || editing === 'fix-change') {
     const fixing = editing === 'fix-change';
     return (
-      <Setup
+      <BankSetup
         change
-        start={{ pan: payout.pan, bank: fixing ? payout.pending.bank : { holder: payout.bank.holder } }}
-        problem={fixing ? payout.pending.problem : null}
-        current={payout.bank}
+        start={fixing ? bank.pending.bank : { holder: bank.bank.holder }}
+        problem={fixing ? bank.pending.problem : null}
+        payeeLine={payeeLine(kyc)}
+        current={bank.bank}
         onCancel={() => setEditing(null)}
-        onSubmit={({ bank }) => {
-          submitBankChange(bank);
+        onSubmit={(details) => {
+          submitBankChange(details);
           setSawChange(true);
           setEditing(null);
         }}
@@ -130,62 +177,155 @@ export default function PayoutsSection({ onWithdraw }) {
     );
   }
 
-  if (payout.status === 'checking') return <Checking payout={payout} />;
+  const justReady = sawCheck && payout.ready && !bank.pending;
+  const justChanged = !justReady && sawChange && !bank.pending && bank.changedAt;
 
-  if (payout.status === 'needs-fix') {
-    return (
-      <div className="po">
-        <div className="po-alert po-alert--fix" role="alert">
-          <AlertTriangle size={18} aria-hidden="true" />
-          <div>
-            <p className="po-alert__title">Your bank account needs a fix</p>
-            <p>{payout.problem.message}</p>
-          </div>
-        </div>
-        <Details payout={payout} status={<span className="po-pill po-pill--refund">Needs a fix</span>} />
-        <div className="po-actions">
-          <button type="button" className="oh__add" onClick={() => setEditing('fix')}>
-            Fix it
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Verified, maybe with a change being checked or needing a fix
-  const pending = payout.pending;
-  const current = `${payout.bank.bankName} ${maskAccount(payout.bank.account)}`;
-  const justChanged = sawChange && !pending && payout.changedAt;
   return (
     <div className="po">
-      {justChanged ? (
+      <h3 className="oh__sr-only" tabIndex={-1} ref={top}>
+        Identity and bank account
+      </h3>
+
+      {justReady && (
         <div className="po-alert po-alert--done" role="status">
           <CircleCheck size={18} aria-hidden="true" />
           <div className="po-alert__grow">
-            <p className="po-alert__title">{current} is verified</p>
+            <p className="po-alert__title">You’re ready to withdraw</p>
+            <p>
+              Your {kyc.type === 'business' ? 'business' : 'identity'} and {bank.bank.bankName} {maskAccount(bank.bank.account)} are verified.
+            </p>
+          </div>
+          {onWithdraw && (
+            <button type="button" className="oh__add" onClick={onWithdraw}>
+              Withdraw money
+            </button>
+          )}
+        </div>
+      )}
+
+      {justChanged && (
+        <div className="po-alert po-alert--done" role="status">
+          <CircleCheck size={18} aria-hidden="true" />
+          <div className="po-alert__grow">
+            <p className="po-alert__title">
+              {bank.bank.bankName} {maskAccount(bank.bank.account)} is verified
+            </p>
             <p>Withdrawals now go to it.</p>
           </div>
         </div>
-      ) : (
-        sawChecking &&
-        !pending && (
-          <div className="po-alert po-alert--done" role="status">
-            <CircleCheck size={18} aria-hidden="true" />
-            <div className="po-alert__grow">
-              <p className="po-alert__title">{current} is verified</p>
-              <p>Your earnings can now be withdrawn to it.</p>
-            </div>
-            {onWithdraw && (
-              <button type="button" className="oh__add" onClick={onWithdraw}>
-                Withdraw money
-              </button>
-            )}
+      )}
+
+      <IdentityCard
+        kyc={kyc}
+        bankAdded={bank.status !== 'none'}
+        onStart={() => setEditing('identity')} onFix={() => setEditing('identity')} />
+
+      <BankCard
+        payout={payout}
+        onAdd={() => setEditing('bank')}
+        onChange={() => setEditing('change')}
+        onFixChange={() => setEditing('fix-change')}
+      />
+    </div>
+  );
+}
+
+// ---------- The bank account on the page ----------
+
+function BankCard({ payout, onAdd, onChange, onFixChange }) {
+  const { kyc, bank } = payout;
+
+  if (bank.status === 'none') {
+    const locked = kyc.status === 'none';
+    return (
+      <section className={`po-part ${locked ? 'po-part--locked' : ''}`} aria-labelledby="po-bank-title">
+        <div className="po-part__head">
+          <span className="po-tile" aria-hidden="true">
+            <Landmark size={20} />
+          </span>
+          <div className="po-part__who">
+            <h3 className="po-part__title" id="po-bank-title">
+              Add your bank account
+            </h3>
+            <p className="po-part__sub">Where your earnings are sent when you withdraw</p>
           </div>
-        )
+        </div>
+        <div className="po-part__body">
+          {locked ? (
+            <p className="po-part__text">
+              You can add it once you’ve sent your documents above. The account must be in the same name, and we
+              check it is.
+            </p>
+          ) : (
+            <>
+              <p className="po-part__text">
+                {payeeLine(kyc)} We send it ₹1 to check.
+              </p>
+              {/* A fix to identity comes first, so this one waits quietly */}
+              <button
+                type="button"
+                className={kyc.status === 'needs-fix' ? 'oh__edit' : 'oh__add'}
+                onClick={onAdd}
+              >
+                Add bank account
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  const pending = bank.pending;
+  const current = `${bank.bank.bankName} ${maskAccount(bank.bank.account)}`;
+  const pill =
+    bank.status === 'verified' ? (
+      <span className="po-pill po-pill--done">Verified</span>
+    ) : bank.status === 'checking' ? (
+      <span className="po-pill po-pill--processing">Checking</span>
+    ) : (
+      <span className="po-pill po-pill--refund">Needs a fix</span>
+    );
+
+  return (
+    <section className="po-part" aria-labelledby="po-bank-title">
+      <div className="po-part__head">
+        <span className="po-tile" aria-hidden="true">
+          {bank.status === 'checking' ? <Loader2 size={20} className="po-spin" /> : <Landmark size={20} />}
+        </span>
+        <div className="po-part__who">
+          <h3 className="po-part__title" id="po-bank-title">
+            {current}
+          </h3>
+          <p className="po-part__sub">{bank.bank.branch}</p>
+        </div>
+        {pill}
+      </div>
+
+      {bank.status === 'checking' && (
+        <p className="po-part__note po-part__note--checking" role="status">
+          We’re sending ₹1 to {current} to make sure it’s yours. This usually takes a few minutes, and you can leave
+          this page.
+        </p>
+      )}
+
+      {bank.status === 'needs-fix' && (
+        <div className="po-alert po-alert--fix po-part__alert" role="alert">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <div className="po-alert__grow">
+            <p className="po-alert__title">Your bank account needs a fix</p>
+            <p>{bank.problem.message}</p>
+            <div className="po-alert__actions">
+              <button type="button" className="oh__add" onClick={onAdd}>
+                Fix it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {pending?.status === 'checking' && (
-        <div className="po-alert po-alert--checking" role="status">
+        <div className="po-alert po-alert--checking po-part__alert" role="status">
           <Loader2 size={18} aria-hidden="true" className="po-spin" />
           <div className="po-alert__grow">
             <p className="po-alert__title">
@@ -200,7 +340,7 @@ export default function PayoutsSection({ onWithdraw }) {
       )}
 
       {pending?.status === 'needs-fix' && (
-        <div className="po-alert po-alert--fix" role="alert">
+        <div className="po-alert po-alert--fix po-part__alert" role="alert">
           <AlertTriangle size={18} aria-hidden="true" />
           <div className="po-alert__grow">
             <p className="po-alert__title">
@@ -209,7 +349,7 @@ export default function PayoutsSection({ onWithdraw }) {
             <p>{pending.problem.message}</p>
             <p className="po-alert__more">Withdrawals still go to {current}.</p>
             <div className="po-alert__actions">
-              <button type="button" className="oh__add" onClick={() => setEditing('fix-change')}>
+              <button type="button" className="oh__add" onClick={onFixChange}>
                 Fix it
               </button>
               <button type="button" className="po-link" onClick={() => cancelBankChange()}>
@@ -220,141 +360,77 @@ export default function PayoutsSection({ onWithdraw }) {
         </div>
       )}
 
-      <Details
-        payout={payout}
-        status={<span className="po-pill po-pill--done">Verified</span>}
-        action={
-          !pending && (
-            <button type="button" className="oh__edit" onClick={() => setEditing('change')}>
-              Change bank account
-            </button>
-          )
-        }
-      />
-    </div>
-  );
-}
-
-// ---------- Their details, masked ----------
-
-const fullDate = (ms) =>
-  new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-
-function Details({ payout, status, action = null }) {
-  const { bank } = payout;
-  return (
-    <div className="po-card">
-      <div className="po-card__head">
-        <span className="po-tile" aria-hidden="true">
-          <Landmark size={20} />
-        </span>
-        <div className="po-card__who">
-          <p className="po-card__bank">
-            {bank.bankName} {maskAccount(bank.account)}
-          </p>
-          <p className="po-card__branch">{bank.branch}</p>
-        </div>
-        {status}
-      </div>
       <dl className="po-dl">
         <div>
           <dt>Account holder</dt>
-          <dd>{bank.holder}</dd>
+          <dd>{bank.bank.holder}</dd>
         </div>
         <div>
           <dt>IFSC</dt>
-          <dd>{bank.ifsc}</dd>
+          <dd>{bank.bank.ifsc}</dd>
         </div>
-        <div>
-          <dt>PAN</dt>
-          <dd>
-            {maskPan(payout.pan)} · {titleCase(payout.panName)}
-          </dd>
-        </div>
-        {payout.verifiedAt && (
+        {bank.verifiedAt && (
           <div>
             <dt>Verified on</dt>
-            <dd>{fullDate(payout.verifiedAt)}</dd>
+            <dd>
+              {new Date(bank.verifiedAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </dd>
           </div>
         )}
       </dl>
-      {action && <div className="po-card__foot">{action}</div>}
-    </div>
-  );
-}
 
-// ---------- While it's being checked ----------
-
-function Checking({ payout }) {
-  return (
-    <div className="po">
-      <div className="po-checking" role="status">
-        <span className="po-tile" aria-hidden="true">
-          <Loader2 size={20} className="po-spin" />
-        </span>
-        <div>
-          <p className="po-checking__title">Checking your bank account</p>
-          <p className="po-checking__text">
-            We’re sending ₹1 to {payout.bank.bankName} {maskAccount(payout.bank.account)} to make sure it’s yours. This
-            usually takes a few minutes, and you can leave this page.
-          </p>
+      {bank.status === 'verified' && !pending && (
+        <div className="po-card__foot">
+          <button type="button" className="oh__edit" onClick={onChange}>
+            Change bank account
+          </button>
         </div>
-      </div>
-      <Details payout={payout} status={<span className="po-pill po-pill--processing">Checking</span>} />
-    </div>
+      )}
+    </section>
   );
 }
 
 // ---------- Adding, fixing or changing the account ----------
-// Two steps (PAN, bank); a change is the bank step alone, the PAN staying.
-// start: what they gave before (fixing) or the PAN and name (changing);
-// problem: what to fix ({ step, field, message }), shown on that field;
+// start: what they gave before (fixing), or the name to start with;
+// problem: what to fix ({ field, message }), shown on that field;
+// payeeLine: whose name it must be in, as a sentence;
 // current: the account being replaced, when changing.
-// onSubmit({ pan, panName, bank })
-function Setup({ start, problem, onCancel, onSubmit, change = false, current = null }) {
-  const [step, setStep] = useState(change || problem?.step === 'bank' ? 'bank' : 'pan');
-  const [pan, setPan] = useState(start?.pan ?? '');
-  const [ifsc, setIfsc] = useState(start?.bank?.ifsc ?? '');
-  const [account, setAccount] = useState(start?.bank?.account ?? '');
-  const [again, setAgain] = useState(start?.bank?.account ?? '');
-  const [holder, setHolder] = useState(start?.bank?.holder ?? '');
+// onSubmit({ account, ifsc, holder })
+function BankSetup({ start, problem, payeeLine: whose, onCancel, onSubmit, change = false, current = null }) {
+  const [ifsc, setIfsc] = useState(start?.ifsc ?? '');
+  const [account, setAccount] = useState(start?.account ?? '');
+  const [again, setAgain] = useState(start?.account ?? '');
+  const [holder, setHolder] = useState(start?.holder ?? '');
   const [tried, setTried] = useState(Boolean(problem));
   // A problem from the check stays on its field until that field changes
   const [checkProblem, setCheckProblem] = useState(problem);
   const first = useRef(null);
 
-  const panName = panNameOf(pan);
-
-  // The keyboard goes to the step's first field, or to the one to fix
+  // The keyboard goes to the first field, or the one to fix
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      const fix = checkProblem?.step === step && document.getElementById(`po-${checkProblem.field}`);
+      const fix = checkProblem && document.getElementById(`po-${checkProblem.field}`);
       (fix || first.current)?.focus();
     });
     return () => cancelAnimationFrame(id);
-  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const errors =
-    step === 'pan'
-      ? { pan: panProblem(pan) }
-      : {
-          ifsc: ifscProblem(ifsc),
-          account: accountProblem(account, again) ?? (checkProblem?.field === 'account' ? checkProblem.message : null),
-          holder: holderProblem(holder) ?? (checkProblem?.field === 'holder' ? checkProblem.message : null),
-        };
+  const errors = {
+    ifsc: ifscProblem(ifsc),
+    account: accountProblem(account, again) ?? (checkProblem?.field === 'account' ? checkProblem.message : null),
+    holder: holderProblem(holder) ?? (checkProblem?.field === 'holder' ? checkProblem.message : null),
+  };
   const hasError = Object.values(errors).some(Boolean);
   const show = (field) => (tried ? errors[field] : null);
 
   const next = () => {
     setTried(true);
     if (hasError) return;
-    if (step === 'pan') {
-      if (!holder) setHolder(titleCase(panName));
-      setTried(false);
-      setStep('bank');
-      return;
-    }
-    onSubmit({ pan, panName, bank: { account, ifsc, holder: holder.trim() } });
+    onSubmit({ account, ifsc, holder: holder.trim() });
   };
 
   const bankInfo = lookupIfsc(ifsc);
@@ -362,219 +438,183 @@ function Setup({ start, problem, onCancel, onSubmit, change = false, current = n
   return (
     <div className="po po-setup">
       <div className="po-setup__top">
-        {change ? (
-          <button type="button" className="po-back" onClick={onCancel}>
-            <ArrowLeft size={16} aria-hidden="true" /> Cancel
-          </button>
-        ) : step === 'bank' ? (
-          <button
-            type="button"
-            className="po-back"
-            onClick={() => {
-              setTried(false);
-              setStep('pan');
-            }}
-          >
-            <ArrowLeft size={16} aria-hidden="true" /> Back
-          </button>
-        ) : (
-          onCancel && (
-            <button type="button" className="po-back" onClick={onCancel}>
-              <ArrowLeft size={16} aria-hidden="true" /> Cancel
-            </button>
-          )
-        )}
-        {!change && <p className="po-setup__step">Step {step === 'pan' ? 1 : 2} of 2</p>}
+        <button type="button" className="po-back" onClick={onCancel}>
+          <ArrowLeft size={16} aria-hidden="true" /> Cancel
+        </button>
       </div>
 
-      {step === 'pan' ? (
-        <>
-          <h3 className="po-setup__title">What’s your PAN?</h3>
-          <p className="po-setup__help">We need it to pay you, and to deduct and file TDS in your name.</p>
+      <h3 className="po-setup__title">
+        {change ? 'Which account should we pay into instead?' : 'Which bank account should we pay into?'}
+      </h3>
+      <p className="po-setup__help">
+        {whose}
+        {change && current
+          ? ` Withdrawals keep going to ${current.bankName} ${maskAccount(current.account)} until the new one is checked.`
+          : ''}
+      </p>
 
-          <div className="po-field">
-            <label className="po-field__label" htmlFor="po-pan">
-              PAN
-            </label>
-            <input
-              ref={first}
-              id="po-pan"
-              className={`po-input po-input--code ${show('pan') ? 'po-input--error' : ''}`}
-              value={pan}
-              placeholder="ABCPE1234F"
-              autoComplete="off"
-              aria-invalid={Boolean(show('pan')) || undefined}
-              aria-describedby="po-pan-note"
-              onChange={(e) => setPan(cleanPan(e.target.value))}
-              onKeyDown={(e) => e.key === 'Enter' && next()}
-            />
-            <p className="po-field__note" id="po-pan-note" role={show('pan') ? 'alert' : undefined}>
-              {show('pan') ? (
-                <span className="po-field__error">{show('pan')}</span>
-              ) : panName ? (
-                <span className="po-field__ok">
-                  <Check size={14} aria-hidden="true" /> Registered to {panName}
-                </span>
-              ) : (
-                'It’s on your PAN card.'
-              )}
-            </p>
-          </div>
-        </>
-      ) : (
-        <>
-          <h3 className="po-setup__title">
-            {change ? 'Which account should we pay into instead?' : 'Which bank account should we pay into?'}
-          </h3>
-          <p className="po-setup__help">
-            {change && current
-              ? `It must be in your own name. Withdrawals keep going to ${current.bankName} ${maskAccount(current.account)} until the new one is checked.`
-              : 'It must be in your own name.'}
-          </p>
+      <div className="po-field">
+        <label className="po-field__label" htmlFor="po-ifsc">
+          IFSC
+        </label>
+        <input
+          ref={first}
+          id="po-ifsc"
+          className={`po-input po-input--code ${show('ifsc') ? 'po-input--error' : ''}`}
+          value={ifsc}
+          placeholder={IFSC_EXAMPLE}
+          autoComplete="off"
+          aria-invalid={Boolean(show('ifsc')) || undefined}
+          aria-describedby="po-ifsc-note"
+          onChange={(e) => setIfsc(cleanIfsc(e.target.value))}
+        />
+        <p className="po-field__note" id="po-ifsc-note">
+          {bankInfo ? (
+            <span className="po-field__ok">
+              <Check size={14} aria-hidden="true" /> {bankInfo.bankName}, {bankInfo.branch}
+            </span>
+          ) : show('ifsc') ? (
+            <span className="po-field__error">{show('ifsc')}</span>
+          ) : (
+            'On your cheque book and in your bank’s app.'
+          )}
+        </p>
+      </div>
 
-          <div className="po-field">
-            <label className="po-field__label" htmlFor="po-ifsc">
-              IFSC
-            </label>
-            <input
-              ref={first}
-              id="po-ifsc"
-              className={`po-input po-input--code ${show('ifsc') ? 'po-input--error' : ''}`}
-              value={ifsc}
-              placeholder={IFSC_EXAMPLE}
-              autoComplete="off"
-              aria-invalid={Boolean(show('ifsc')) || undefined}
-              aria-describedby="po-ifsc-note"
-              onChange={(e) => setIfsc(cleanIfsc(e.target.value))}
-            />
-            <p className="po-field__note" id="po-ifsc-note">
-              {bankInfo ? (
-                <span className="po-field__ok">
-                  <Check size={14} aria-hidden="true" /> {bankInfo.bankName}, {bankInfo.branch}
-                </span>
-              ) : show('ifsc') ? (
-                <span className="po-field__error">{show('ifsc')}</span>
-              ) : (
-                'On your cheque book and in your bank’s app.'
-              )}
-            </p>
-          </div>
+      <div className="po-field-row">
+        <div className="po-field">
+          <label className="po-field__label" htmlFor="po-account">
+            Account number
+          </label>
+          <input
+            id="po-account"
+            className={`po-input ${show('account') ? 'po-input--error' : ''}`}
+            value={account}
+            inputMode="numeric"
+            autoComplete="off"
+            aria-invalid={Boolean(show('account')) || undefined}
+            aria-describedby="po-account-note"
+            onChange={(e) => {
+              setAccount(cleanAccount(e.target.value));
+              if (checkProblem?.field === 'account') setCheckProblem(null);
+            }}
+          />
+        </div>
+        <div className="po-field">
+          <label className="po-field__label" htmlFor="po-again">
+            Account number again
+          </label>
+          <input
+            id="po-again"
+            className={`po-input ${show('account') ? 'po-input--error' : ''}`}
+            value={again}
+            inputMode="numeric"
+            autoComplete="off"
+            aria-describedby="po-account-note"
+            onPaste={(e) => e.preventDefault()}
+            onChange={(e) => setAgain(cleanAccount(e.target.value))}
+          />
+        </div>
+      </div>
+      <p className="po-field__note po-field__note--row" id="po-account-note">
+        {show('account') && <span className="po-field__error">{show('account')}</span>}
+      </p>
 
-          <div className="po-field-row">
-            <div className="po-field">
-              <label className="po-field__label" htmlFor="po-account">
-                Account number
-              </label>
-              <input
-                id="po-account"
-                className={`po-input ${show('account') ? 'po-input--error' : ''}`}
-                value={account}
-                inputMode="numeric"
-                autoComplete="off"
-                aria-invalid={Boolean(show('account')) || undefined}
-                aria-describedby="po-account-note"
-                onChange={(e) => {
-                  setAccount(cleanAccount(e.target.value));
-                  if (checkProblem?.field === 'account') setCheckProblem(null);
-                }}
-              />
-            </div>
-            <div className="po-field">
-              <label className="po-field__label" htmlFor="po-again">
-                Account number again
-              </label>
-              <input
-                id="po-again"
-                className={`po-input ${show('account') ? 'po-input--error' : ''}`}
-                value={again}
-                inputMode="numeric"
-                autoComplete="off"
-                onPaste={(e) => e.preventDefault()}
-                onChange={(e) => setAgain(cleanAccount(e.target.value))}
-              />
-            </div>
-          </div>
-          <p className="po-field__note po-field__note--row" id="po-account-note">
-            {show('account') && <span className="po-field__error">{show('account')}</span>}
-          </p>
-
-          <div className="po-field">
-            <label className="po-field__label" htmlFor="po-holder">
-              Name on the account
-            </label>
-            <input
-              id="po-holder"
-              className={`po-input ${show('holder') ? 'po-input--error' : ''}`}
-              value={holder}
-              autoComplete="name"
-              aria-invalid={Boolean(show('holder')) || undefined}
-              aria-describedby="po-holder-note"
-              onChange={(e) => {
-                setHolder(e.target.value);
-                if (checkProblem?.field === 'holder') setCheckProblem(null);
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && next()}
-            />
-            <p className="po-field__note" id="po-holder-note">
-              {show('holder') ? <span className="po-field__error">{show('holder')}</span> : 'As your bank has it.'}
-            </p>
-          </div>
-        </>
-      )}
+      <div className="po-field">
+        <label className="po-field__label" htmlFor="po-holder">
+          Name on the account
+        </label>
+        <input
+          id="po-holder"
+          className={`po-input ${show('holder') ? 'po-input--error' : ''}`}
+          value={holder}
+          autoComplete="name"
+          aria-invalid={Boolean(show('holder')) || undefined}
+          aria-describedby="po-holder-note"
+          onChange={(e) => {
+            setHolder(e.target.value);
+            if (checkProblem?.field === 'holder') setCheckProblem(null);
+          }}
+          onKeyDown={(e) => e.key === 'Enter' && next()}
+        />
+        <p className="po-field__note" id="po-holder-note">
+          {show('holder') ? <span className="po-field__error">{show('holder')}</span> : 'As your bank has it.'}
+        </p>
+      </div>
 
       <div className="po-actions">
         <button type="button" className="oh__add" onClick={next}>
-          {step === 'pan' ? 'Continue' : change ? 'Verify new account' : 'Verify account'}
+          {change ? 'Verify new account' : 'Verify account'}
         </button>
       </div>
-      {step === 'bank' && (
-        <p className="po-setup__fine">We’ll send ₹1 to this account to check it’s yours.</p>
-      )}
+      <p className="po-setup__fine">We’ll send ₹1 to this account to check it’s yours.</p>
     </div>
   );
 }
 
 // ---------- Prototype controls (not part of the product) ----------
-// Rows for a Prototype controls panel (PrototypeControls.css): start with
-// no bank or the demo's verified one, how the next check ends, and
-// ending a check now. Used on Settings and under Sales.
+// Rows for a Prototype controls panel (PrototypeControls.css): start as a
+// new coach or the demo's verified one, how the next identity and bank
+// checks end, and ending running checks now. Used on Settings and under
+// Sales.
 export function PayoutControlRows() {
   const payout = usePayout();
+  const fresh = payout.kyc.status === 'none' && payout.bank.status === 'none';
+  const running =
+    payout.kyc.status === 'checking' ||
+    payout.bank.status === 'checking' ||
+    payout.bank.pending?.status === 'checking';
   return (
     <>
       <div className="proto__row">
-        <span className="proto__label">Bank account</span>
+        <span className="proto__label">Payment details</span>
         <div className="proto__controls">
-          <button type="button" className="proto__btn" aria-pressed={payout.status === 'none'} onClick={startWithNoBank}>
-            No bank yet
+          <button type="button" className="proto__btn" aria-pressed={fresh} onClick={startFresh}>
+            New coach, nothing added
           </button>
-          <button type="button" className="proto__btn" onClick={resetToDemoBank}>
-            Demo bank, verified
+          <button type="button" className="proto__btn" onClick={resetToDemo}>
+            Demo, all verified
           </button>
-          {payout.status === 'checking' && (
-            <button type="button" className="proto__btn" onClick={() => finishCheckNow()}>
-              Finish the check now
+          {running && (
+            <button type="button" className="proto__btn" onClick={() => finishChecksNow()}>
+              Finish the checks now
             </button>
           )}
         </div>
       </div>
       <div className="proto__row">
-        <span className="proto__label">Next check ends</span>
+        <span className="proto__label">Next identity check</span>
         <div className="proto__controls">
-          {OUTCOMES.map((o) => (
+          {KYC_OUTCOMES.map((o) => (
             <button
               key={o.id}
               type="button"
               className="proto__btn"
-              aria-pressed={(payout.nextOutcome ?? 'approve') === o.id}
-              onClick={() => setNextOutcome(o.id)}
+              aria-pressed={(payout.next.kyc ?? 'approve') === o.id}
+              onClick={() => setNextOutcome('kyc', o.id)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="proto__row">
+        <span className="proto__label">Next bank check</span>
+        <div className="proto__controls">
+          {BANK_OUTCOMES.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              className="proto__btn"
+              aria-pressed={(payout.next.bank ?? 'approve') === o.id}
+              onClick={() => setNextOutcome('bank', o.id)}
             >
               {o.label}
             </button>
           ))}
           <p className="proto__note">
-            A check takes {CHECK_MS / 1000} seconds in the prototype. After a failed one, the next goes through unless you
-            pick again.
+            In the prototype an identity check takes {KYC_CHECK_MS / 1000} seconds and a bank check {CHECK_MS / 1000}.
+            After a failed one, the next goes through unless you pick again.
           </p>
         </div>
       </div>

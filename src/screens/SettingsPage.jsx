@@ -1,6 +1,6 @@
 import { ChevronDown, FlaskConical } from 'lucide-react';
 import { useState } from 'react';
-import PayoutsSection, { PayoutControlRows } from './PayoutSetup';
+import PaymentDetails, { PayoutControlRows } from './PayoutSetup';
 import './OfferingsHome.css'; // the page frame and panels
 import '../components/PrototypeControls.css';
 import './SettingsPage.css';
@@ -8,27 +8,33 @@ import './SettingsPage.css';
 // ------------------------------------------------------------
 // Settings: the coach's account settings, opened from the avatar menu in
 // the top bar (AccountMenu.jsx) and from Sales → Withdraw money when
-// there's no verified bank account. One section for now, Bank account
-// (PayoutSetup.jsx; "Bank account" rather than "Payouts", a word many
-// coaches don't use); the next ones (business details for invoices, …)
-// join SECTIONS as tabs.
+// they can't withdraw yet. One section for now, Payment details
+// (PayoutSetup.jsx): who they are (PAN and Aadhaar) and the bank account
+// their money goes to. Invoice details join it next; other sections join
+// SECTIONS as tabs.
 //
 //   Settings
-//   Bank account
-//   ━━━━━━━━━━━━
-//   ┌ Bank account ──────────────────────────────────┐
-//   │ Where your earnings are sent when you withdraw. │
-//   │ (the setup, the check, or the verified account) │
-//   └────────────────────────────────────────────────┘
+//   Payment details
+//   ━━━━━━━━━━━━━━━
+//   ┌ Payment details ──────────────────────────────────────────────┐
+//   │ Who you are and where we send your money. …                   │
+//   │ ┌ Identity ─────────────────────┐   How payouts work          │
+//   │ │ (start, checking, fix, done)  │   You can sell right away…  │
+//   │ └───────────────────────────────┘   …                         │
+//   │ ┌ Bank account ─────────────────┐                             │
+//   │ └───────────────────────────────┘                             │
+//   └───────────────────────────────────────────────────────────────┘
 //   (Prototype controls)
+//
+// On a phone the help moves under the two parts.
 //
 // onWithdraw(): go to Sales → Withdraw money
 // ------------------------------------------------------------
 
-const SECTIONS = [{ id: 'bank', label: 'Bank account' }];
+const SECTIONS = [{ id: 'payments', label: 'Payment details' }];
 
 export default function SettingsPage({ onWithdraw }) {
-  const section = 'bank'; // the only one for now
+  const section = 'payments'; // the only one for now
 
   return (
     <div className="oh settings">
@@ -58,16 +64,34 @@ export default function SettingsPage({ onWithdraw }) {
         aria-labelledby={`settings-tab-${section}`}
       >
         <div className="oh__panel-head">
-          <h2 className="oh__panel-title">Bank account</h2>
-          <p className="oh__panel-sub">Where your earnings are sent when you withdraw.</p>
+          <h2 className="oh__panel-title">Payment details</h2>
+          <p className="oh__panel-sub">Who you are and where we send your money. Both are needed before you can withdraw.</p>
         </div>
-        <div className="settings__body">
-          <PayoutsSection onWithdraw={onWithdraw} />
+        <div className="settings__body settings__body--split">
+          <PaymentDetails onWithdraw={onWithdraw} />
+          <PayoutHelp />
         </div>
       </section>
 
       <SettingsTestControls />
     </div>
+  );
+}
+
+// ---------- How payouts work, beside the parts ----------
+function PayoutHelp() {
+  return (
+    <aside className="settings__help" aria-labelledby="settings-help-title">
+      <h3 className="settings__help-title" id="settings-help-title">
+        How payouts work
+      </h3>
+      <p>You can sell right away. What you earn waits safely in your balance until you withdraw it.</p>
+      <p>
+        To pay you, our payment partner has to verify who you are and that the bank account is yours. Your documents
+        are used only for this.
+      </p>
+      <p>Photos or PDFs, up to 5 MB each. Make sure every word on the card can be read.</p>
+    </aside>
   );
 }
 
