@@ -26,7 +26,9 @@ const sidebarItems = [
   { id: 'page-builder', label: 'Webinars', icon: MonitorPlay },
   // Batches: classes that meet every week, joined by paying monthly
   // (LiveClassesPage.jsx). Repeat, for classes that come round every week.
-  { id: 'live-classes', label: 'Live classes', icon: Repeat },
+  // hidden: left out of the sidebar for now. Everything else about live
+  // classes still works; remove `hidden` to bring the item back.
+  { id: 'live-classes', label: 'Live classes', icon: Repeat, hidden: true },
   { id: 'services', label: 'Contracts', icon: Briefcase },
   // Everything they keep with us, and how much of their 20 GB free it
   // uses: webinar recordings now, their own files later (CloudStoragePage.jsx)
@@ -276,7 +278,7 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
               <CalendarCard active={activeNav === 'bookings'} onOpen={() => onNavigate('bookings')} />
 
               <nav className="sidebar__nav">
-                {sidebarItems.map(({ id, label, icon: Icon, badge, hasMenu }) => {
+                {sidebarItems.filter((item) => !item.hidden).map(({ id, label, icon: Icon, badge, hasMenu }) => {
                   // Storefront, before it has a link: a small "Set up" tag
                   const tag = id === 'my-page' && !hasStorefront ? 'Set up' : badge;
                   return (
