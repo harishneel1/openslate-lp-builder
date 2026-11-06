@@ -186,6 +186,13 @@ export function onPayoutsChange(callback) {
 
 // ---------- Who's being paid ----------
 
+// 'HN LEARNING PRIVATE LIMITED' → 'HN Learning Private Limited': words
+// with no vowels (HN, LLP) stay in capitals
+export const nameCase = (name) =>
+  String(name ?? '').replace(/[A-Za-z]+/g, (w) =>
+    /[aeiou]/i.test(w) ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toUpperCase(),
+  );
+
 // What a business can be, and what each one asks for.
 //   panLetter   the 4th letter of its PAN (C company, F firm or LLP);
 //               null: a proprietorship has no PAN of its own
@@ -406,6 +413,16 @@ export function payoutState(now = Date.now()) {
     ready: kyc.status === 'verified' && account.status === 'verified',
     next: s.next,
   };
+}
+
+// Who invoices are from, when the coach is paid as a verified business:
+// { name, gstin, state } (gstin and state '' when not registered), or null for an
+// individual or before the business is verified (invoices then keep the
+// coach's own name, earnings.js's BUSINESS)
+export function invoiceIdentity(now = Date.now()) {
+  const { kyc } = payoutState(now);
+  if (kyc.type !== 'business' || kyc.status !== 'verified') return null;
+  return { name: nameCase(kyc.business.name), gstin: kyc.gstin, state: gstStateOf(kyc.gstin) };
 }
 
 // Where withdrawals go ({ name, last4, holder }), or null until identity

@@ -9,9 +9,9 @@ import './SettingsPage.css';
 // Settings: the coach's account settings, opened from the avatar menu in
 // the top bar (AccountMenu.jsx) and from Sales → Withdraw money when
 // they can't withdraw yet. One section for now, Payment details
-// (PayoutSetup.jsx): who they are (PAN and Aadhaar) and the bank account
-// their money goes to. Invoice details join it next; other sections join
-// SECTIONS as tabs.
+// (PayoutSetup.jsx): who they are (PAN and Aadhaar, or their business),
+// the bank account their money goes to, and what their invoices say.
+// Other sections join SECTIONS as tabs.
 //
 //   Settings
 //   Payment details
@@ -65,7 +65,7 @@ export default function SettingsPage({ onWithdraw }) {
       >
         <div className="oh__panel-head">
           <h2 className="oh__panel-title">Payment details</h2>
-          <p className="oh__panel-sub">Who you are and where we send your money. Both are needed before you can withdraw.</p>
+          <p className="oh__panel-sub">Who you are, where we send your money, and what your invoices say. You can withdraw once the first two are verified.</p>
         </div>
         <div className="settings__body settings__body--split">
           <PaymentDetails onWithdraw={onWithdraw} />

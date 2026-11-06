@@ -26,10 +26,17 @@ import {
   submitKyc,
 } from '../data/payouts';
 import { IdentityCard, IdentitySetup, titleCase } from './IdentitySetup';
+import { InvoiceSetup, InvoicesCard } from './InvoiceSettings';
+import { resetInvoiceSettings } from '../data/invoiceSettings';
 
 // ------------------------------------------------------------
 // Settings → Payment details: who the coach is and where their money goes
 // (data/payouts.js). Two parts on the page, in the order they're done:
+//
+// Each is its own titled section ("Your identity", "Your bank account"),
+// so they read as separate settings rather than steps. A third, "Your
+// invoices" (InvoiceSettings.jsx), is what buyers see on their invoices;
+// it never stops a withdrawal.
 //
 //   Identity   IdentityCard (IdentitySetup.jsx): PAN and Aadhaar, with a
 //              photo or PDF of each, checked against government records
@@ -108,7 +115,7 @@ export default function PaymentDetails({ onWithdraw }) {
   const payout = usePayout();
   const { kyc, bank } = payout;
   // What's open: null (the page), 'identity', 'bank' (adding or fixing
-  // the account), 'change' (a new account), 'fix-change'
+  // the account), 'change' (a new account), 'fix-change', 'invoices'
   const [editing, setEditing] = useState(null);
   // Checks that end while they're here get a moment of their own
   const [sawCheck, setSawCheck] = useState(kyc.status === 'checking' || bank.status === 'checking');
@@ -141,6 +148,8 @@ export default function PaymentDetails({ onWithdraw }) {
       />
     );
   }
+
+  if (editing === 'invoices') return <InvoiceSetup kyc={kyc} onDone={() => setEditing(null)} />;
 
   if (editing === 'bank') {
     const fixing = bank.status === 'needs-fix';
@@ -215,17 +224,45 @@ export default function PaymentDetails({ onWithdraw }) {
         </div>
       )}
 
-      <IdentityCard
-        kyc={kyc}
-        bankAdded={bank.status !== 'none'}
-        onStart={() => setEditing('identity')} onFix={() => setEditing('identity')} />
+      <section className="po-section" aria-labelledby="po-sec-identity">
+        <div className="po-section__head">
+          <h3 className="po-section__title" id="po-sec-identity">
+            Your identity
+          </h3>
+          <p className="po-section__sub">You, or your business, checked against government records.</p>
+        </div>
+        <IdentityCard
+          kyc={kyc}
+          bankAdded={bank.status !== 'none'}
+          onStart={() => setEditing('identity')}
+          onFix={() => setEditing('identity')}
+        />
+      </section>
 
-      <BankCard
-        payout={payout}
-        onAdd={() => setEditing('bank')}
-        onChange={() => setEditing('change')}
-        onFixChange={() => setEditing('fix-change')}
-      />
+      <section className="po-section" aria-labelledby="po-sec-bank">
+        <div className="po-section__head">
+          <h3 className="po-section__title" id="po-sec-bank">
+            Your bank account
+          </h3>
+          <p className="po-section__sub">Where your withdrawals go.</p>
+        </div>
+        <BankCard
+          payout={payout}
+          onAdd={() => setEditing('bank')}
+          onChange={() => setEditing('change')}
+          onFixChange={() => setEditing('fix-change')}
+        />
+      </section>
+
+      <section className="po-section" aria-labelledby="po-sec-invoices">
+        <div className="po-section__head">
+          <h3 className="po-section__title" id="po-sec-invoices">
+            Your invoices
+          </h3>
+          <p className="po-section__sub">What buyers see on the invoice for each purchase.</p>
+        </div>
+        <InvoicesCard kyc={kyc} onEdit={() => setEditing('invoices')} />
+      </section>
     </div>
   );
 }
@@ -238,16 +275,14 @@ function BankCard({ payout, onAdd, onChange, onFixChange }) {
   if (bank.status === 'none') {
     const locked = kyc.status === 'none';
     return (
-      <section className={`po-part ${locked ? 'po-part--locked' : ''}`} aria-labelledby="po-bank-title">
+      <div className={`po-part ${locked ? 'po-part--locked' : ''}`}>
         <div className="po-part__head">
           <span className="po-tile" aria-hidden="true">
             <Landmark size={20} />
           </span>
           <div className="po-part__who">
-            <h3 className="po-part__title" id="po-bank-title">
-              Add your bank account
-            </h3>
-            <p className="po-part__sub">Where your earnings are sent when you withdraw</p>
+            <h4 className="po-part__title">Add your bank account</h4>
+            <p className="po-part__sub">{locked ? 'After your documents' : 'Not added yet'}</p>
           </div>
         </div>
         <div className="po-part__body">
@@ -272,7 +307,7 @@ function BankCard({ payout, onAdd, onChange, onFixChange }) {
             </>
           )}
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -288,15 +323,13 @@ function BankCard({ payout, onAdd, onChange, onFixChange }) {
     );
 
   return (
-    <section className="po-part" aria-labelledby="po-bank-title">
+    <div className="po-part">
       <div className="po-part__head">
         <span className="po-tile" aria-hidden="true">
           {bank.status === 'checking' ? <Loader2 size={20} className="po-spin" /> : <Landmark size={20} />}
         </span>
         <div className="po-part__who">
-          <h3 className="po-part__title" id="po-bank-title">
-            {current}
-          </h3>
+          <h4 className="po-part__title">{current}</h4>
           <p className="po-part__sub">{bank.bank.branch}</p>
         </div>
         {pill}
@@ -390,7 +423,7 @@ function BankCard({ payout, onAdd, onChange, onFixChange }) {
           </button>
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -574,6 +607,9 @@ export function PayoutControlRows() {
           </button>
           <button type="button" className="proto__btn" onClick={resetToDemo}>
             Demo, all verified
+          </button>
+          <button type="button" className="proto__btn" onClick={resetInvoiceSettings}>
+            Invoice details back to the start
           </button>
           {running && (
             <button type="button" className="proto__btn" onClick={() => finishChecksNow()}>

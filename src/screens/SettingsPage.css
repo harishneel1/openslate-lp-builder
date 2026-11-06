@@ -228,7 +228,196 @@
   background: var(--po-green-tint);
 }
 
-/* ---------- A part: Identity or Bank account ---------- */
+/* ---------- The two sections: Who we pay, Where we send your money ----------
+   Each has its own heading outside its card, and a rule between them, so
+   they read as two separate settings rather than steps of one flow. */
+.po-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.po-section + .po-section {
+  margin-top: 12px;
+  padding-top: 28px;
+  border-top: 1px solid var(--color-border);
+}
+
+.po-section__title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.po-section__sub {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Identity's tile is green, the bank's blue (as Sales colours withdrawals) */
+.po-tile--id {
+  color: var(--po-green-ink);
+  background: var(--po-green-tint);
+}
+
+.po-part--locked .po-tile,
+.po-part--locked .po-tile--id {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+/* Invoices' tile in the page's own orange */
+.po-tile--inv {
+  color: #b4561c;
+  background: var(--color-primary-tint);
+}
+
+.po-pill--off {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.po-dd--note {
+  white-space: pre-line;
+}
+
+.po-dd--none {
+  color: var(--color-text-muted);
+}
+
+/* ---------- Your invoices: the form's own pieces ---------- */
+.po-setup__subtitle--gap {
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.po-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.po-switch-row__label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.po-switch-row__sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.po-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  background: #cfcfd4;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.po-switch[aria-checked='true'] {
+  background: var(--color-primary);
+}
+
+.po-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s;
+}
+
+.po-switch[aria-checked='true'] .po-switch__knob {
+  transform: translateX(20px);
+}
+
+.po-switch:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .po-switch,
+  .po-switch__knob {
+    transition: none;
+  }
+}
+
+.po-input--short {
+  max-width: 180px;
+}
+
+.po-textarea {
+  min-height: 112px;
+  padding: 12px 14px;
+  line-height: 1.5;
+  resize: vertical;
+  font-variant-numeric: normal;
+}
+
+.po-field__count {
+  text-align: right;
+}
+
+.po-gst-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--po-green-ink);
+  background: var(--po-green-tint);
+  border-radius: var(--radius-sm);
+}
+
+.po-gst-box > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.po-gst-box__id {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.po-gst-none {
+  margin-top: 0;
+}
+
+.po-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.po-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+/* ---------- A part: the card inside a section ---------- */
 .po-part {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);

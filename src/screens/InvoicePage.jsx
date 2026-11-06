@@ -1,5 +1,5 @@
 import { Printer } from 'lucide-react';
-import { BUSINESS, amountInWords, clockTime, dayKey, moneyIn, ordersOf } from '../data/earnings';
+import { amountInWords, clockTime, dayKey, invoiceFrom, moneyIn, ordersOf } from '../data/earnings';
 import { loadSaved } from '../utils/storage';
 import './InvoicePage.css';
 
@@ -8,6 +8,12 @@ import './InvoicePage.css';
 // "Download invoice" opens in a new tab (/?mock=invoice&order=<id>).
 // The prototype's PDF is the browser's print (Save as PDF); the real
 // product makes the PDF on the server from this same layout.
+//
+// The seller's details come from Settings → Payment details → Your
+// invoices (invoiceFrom in data/earnings.js): the name they chose, the
+// business's legal name under it when that's different, the address, the
+// GSTIN and state when the business is registered, and their note above
+// the footer. "For …" is the legal name, as it's the one that signs.
 //
 //   [HN]  Harish Neel                                   INVOICE
 //         7/4, 6th street, … Chennai 600024             6f63/2026/000534
@@ -78,6 +84,8 @@ export default function InvoicePage({ orderId }) {
   const c = order.currency;
   const discount = order.listMinor - order.paidMinor;
   const time = clockTime(order.at);
+  // The coach, or their verified business (Settings → Payment details)
+  const BUSINESS = invoiceFrom();
 
   return (
     <main className="inv-page">
@@ -96,8 +104,11 @@ export default function InvoicePage({ orderId }) {
             </span>
             <div>
               <p className="inv__business">{BUSINESS.name}</p>
+              {BUSINESS.legalName && <p className="inv__muted">{BUSINESS.legalName}</p>}
               <p className="inv__muted">{BUSINESS.address}</p>
-              <p className="inv__muted">{BUSINESS.gstin ? `GSTIN ${BUSINESS.gstin}` : 'Not registered for GST'}</p>
+              <p className="inv__muted">
+                {BUSINESS.gstin ? `GSTIN ${BUSINESS.gstin}, ${BUSINESS.gstState}` : 'Not registered for GST'}
+              </p>
             </div>
           </div>
           <div className="inv__title-block">
@@ -185,10 +196,12 @@ export default function InvoicePage({ orderId }) {
         </dl>
         <p className="inv__words">{amountInWords(order.paidMinor, c)}</p>
 
+        {BUSINESS.note && <p className="inv__note">{BUSINESS.note}</p>}
+
         <footer className="inv__foot">
           <p className="inv__muted">This is a computer-generated invoice and needs no signature.</p>
           <div className="inv__sign">
-            <p className="inv__strong">For {BUSINESS.name}</p>
+            <p className="inv__strong">For {BUSINESS.legalName ?? BUSINESS.name}</p>
             <p className="inv__muted">Authorised signatory</p>
           </div>
           <p className="inv__eoe">E. &amp; O.E.</p>

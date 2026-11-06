@@ -20,6 +20,7 @@ import {
   gstinProblem,
   maskAadhaar,
   maskPan,
+  nameCase,
   panNameOf,
   panProblem,
 } from '../data/payouts';
@@ -59,12 +60,8 @@ import { readPhoto } from '../utils/readPhoto';
 // file itself to storage.
 // ------------------------------------------------------------
 
-// 'HN LEARNING PRIVATE LIMITED' → 'HN Learning Private Limited': words
-// with no vowels (HN, LLP) stay in capitals
-export const titleCase = (name) =>
-  String(name ?? '').replace(/[A-Za-z]+/g, (w) =>
-    /[aeiou]/i.test(w) ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toUpperCase(),
-  );
+// 'HARISH NEEL' → 'Harish Neel', 'HN LEARNING LLP' → 'HN Learning LLP'
+export const titleCase = nameCase;
 
 const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -76,28 +73,26 @@ const fullDate = (ms) =>
 export function IdentityCard({ kyc, bankAdded = false, onStart, onFix }) {
   if (kyc.status === 'none') {
     return (
-      <section className="po-part" aria-labelledby="po-id-title">
+      <div className="po-part">
         <div className="po-part__head">
-          <span className="po-tile" aria-hidden="true">
+          <span className="po-tile po-tile--id" aria-hidden="true">
             <ShieldCheck size={20} />
           </span>
           <div className="po-part__who">
-            <h3 className="po-part__title" id="po-id-title">
-              Verify your identity
-            </h3>
-            <p className="po-part__sub">Your PAN and Aadhaar, or your business’s documents</p>
+            <h4 className="po-part__title">Verify your identity</h4>
+            <p className="po-part__sub">Not done yet</p>
           </div>
         </div>
         <div className="po-part__body">
           <p className="po-part__text">
-            We need these to pay you and to file TDS in the right name. It takes a few minutes if you have your
-            documents with you.
+            Your PAN and Aadhaar, or your business’s documents. We need them to pay you and to file TDS in the right
+            name. It takes a few minutes if you have them with you.
           </p>
           <button type="button" className="oh__add" onClick={onStart}>
             Start
           </button>
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -113,18 +108,14 @@ export function IdentityCard({ kyc, bankAdded = false, onStart, onFix }) {
     );
 
   return (
-    <section className="po-part" aria-labelledby="po-id-title">
+    <div className="po-part">
       <div className="po-part__head">
-        <span className="po-tile" aria-hidden="true">
+        <span className="po-tile po-tile--id" aria-hidden="true">
           {kyc.status === 'checking' ? <Loader2 size={20} className="po-spin" /> : <ShieldCheck size={20} />}
         </span>
         <div className="po-part__who">
-          <h3 className="po-part__title" id="po-id-title">
-            {business ? 'Business' : 'Identity'}
-          </h3>
-          <p className="po-part__sub">
-            {business ? `${titleCase(kyc.business.name)}, ${bt.as}` : `${titleCase(kyc.panName)}, as an individual`}
-          </p>
+          <h4 className="po-part__title">{titleCase(business ? kyc.business.name : kyc.panName)}</h4>
+          <p className="po-part__sub">{business ? capital(bt.as.replace(/^an? /, '')) : 'Individual'}</p>
         </div>
         {pill}
       </div>
@@ -215,7 +206,7 @@ export function IdentityCard({ kyc, bankAdded = false, onStart, onFix }) {
       {kyc.status === 'verified' && (
         <p className="po-part__foot">Verified details can’t be changed here. If they need to, contact support.</p>
       )}
-    </section>
+    </div>
   );
 }
 

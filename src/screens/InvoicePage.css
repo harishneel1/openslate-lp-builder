@@ -310,3 +310,14 @@
     border: 0;
   }
 }
+/* The coach's own note (Settings → Payment details → Your invoices) */
+.inv__note {
+  margin-top: 24px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-line;
+  color: #3d3d3d;
+  background: #f7f7f8;
+  border-radius: 8px;
+}

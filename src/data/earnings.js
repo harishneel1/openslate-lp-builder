@@ -4,7 +4,9 @@ import { funnelTypes } from './funnelTypes';
 import { webinarWhen } from './webinar';
 import { coachZone } from './buildBookingsJson';
 import { funnelName } from '../utils/funnelName';
-import { onPayoutsChange, verifiedBank } from './payouts';
+import { invoiceIdentity, onPayoutsChange, verifiedBank } from './payouts';
+import { initials } from '../utils/initials';
+import { addressLine, loadInvoiceSettings } from './invoiceSettings';
 
 // ------------------------------------------------------------
 // Earnings: the coach's money with us, as one ledger (Sales → Withdrawals,
@@ -64,7 +66,7 @@ import { onPayoutsChange, verifiedBank } from './payouts';
 // cents) and the rate it became rupees at; its gross and everything in
 // the ledger are rupees. Refunding from a payment (refundOrder) takes the
 // whole refund out of the coach's balance: our fee isn't given back.
-// Each paid order has an invoice in the coach's name (BUSINESS), numbered
+// Each paid order has an invoice in the coach's name (invoiceFrom), numbered
 // <code>/<year>/<running number> like TagMango's.
 //
 // Kept in this browser (localStorage) under KEY:
@@ -112,9 +114,9 @@ export const currentBank = (now = Date.now()) => verifiedBank(now);
 
 export const bankLine = (bank = currentBank() ?? BANK) => `${bank.name} ••${bank.last4}`;
 
-// The coach's business, as it goes on their invoices. Fixed here until
-// a settings screen for it is designed. gstin: null when they aren't
-// registered for GST.
+// The coach's business, as their invoices began. What they show now
+// comes from Settings → Payment details → Your invoices: use invoiceFrom().
+// invoiceCode (the first part of every invoice number) stays from here.
 export const BUSINESS = {
   name: 'Harish Neel',
   initials: 'HN',
@@ -125,6 +127,33 @@ export const BUSINESS = {
 
 // What buyers can pay in, and what a unit was worth in rupees (made-up
 // rates for the prototype; the payment gateway gives the real one)
+// Who an invoice is from (Settings → Payment details → Your invoices):
+//   { name, legalName, initials, address, gstin, gstState, note, send,
+//     invoiceCode }
+// name: the name they chose for invoices. When they're paid as a
+// verified business, its GSTIN goes on too, and its legal name
+// (legalName) when that's different from name; a GST invoice's address is
+// the registered one. The prototype works this out when the invoice is
+// opened, so old invoices change with it; the real product fixes each
+// invoice's details when it's issued.
+export function invoiceFrom(now = Date.now()) {
+  const s = loadInvoiceSettings();
+  const business = invoiceIdentity(now);
+  const name = s.displayName.trim() || BUSINESS.name;
+  const gstin = business?.gstin || null;
+  return {
+    ...BUSINESS,
+    name,
+    legalName: business && business.name.toLowerCase() !== name.toLowerCase() ? business.name : null,
+    initials: initials(name),
+    address: gstin && !s.regSame ? addressLine(s.regAddress, s.regPin) : addressLine(s.address, s.pin),
+    gstin,
+    gstState: business?.state || null,
+    note: s.note.trim(),
+    send: s.send,
+  };
+}
+
 export const CURRENCIES = {
   INR: { symbol: '₹', locale: 'en-IN', rate: 1, words: ['Rupees', 'Paise'] },
   USD: { symbol: '$', locale: 'en-US', rate: 84.2, words: ['US Dollars', 'Cents'] },
