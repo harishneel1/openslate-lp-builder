@@ -30,6 +30,9 @@ const sidebarItems = [
   // classes still works; remove `hidden` to bring the item back.
   { id: 'live-classes', label: 'Live classes', icon: Repeat, hidden: true },
   { id: 'services', label: 'Contracts', icon: Briefcase },
+  // The coach's money with us: what they can withdraw and the account
+  // statement (SalesPage.jsx). ArrowLeftRight, for money in and out.
+  { id: 'sales', label: 'Sales', icon: ArrowLeftRight },
   // Everything they keep with us, and how much of their 20 GB free it
   // uses: webinar recordings now, their own files later (CloudStoragePage.jsx)
   { id: 'cloud-storage', label: 'Cloud Storage', icon: Cloud },

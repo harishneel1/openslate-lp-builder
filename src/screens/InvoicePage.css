@@ -1,0 +1,312 @@
+/* One invoice (InvoicePage.jsx): a sheet on a grey page on screen, the
+   sheet alone when printed or saved as a PDF. Plain and black on white,
+   so it prints cleanly; tabular figures so amounts line up. */
+
+.inv-page {
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+  background: var(--color-bg);
+}
+
+.inv-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  max-width: 820px;
+  margin: 0 auto 16px;
+}
+
+.inv-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.inv-bar__btn:hover {
+  filter: brightness(0.95);
+}
+
+.inv-bar__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.inv-bar__hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.inv {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 48px 56px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #141414;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.inv p {
+  margin: 0;
+}
+
+.inv__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #141414;
+}
+
+.inv__from {
+  display: flex;
+  gap: 14px;
+  max-width: 420px;
+}
+
+.inv__logo {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  background: #141414;
+  border-radius: 8px;
+}
+
+.inv__business {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.inv__muted {
+  font-size: 13px;
+  color: #5c5c5c;
+}
+
+.inv__title-block {
+  text-align: right;
+}
+
+.inv__title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.inv__meta {
+  margin: 8px 0 0;
+}
+
+.inv__meta div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.inv__meta dt {
+  color: #5c5c5c;
+}
+
+.inv__meta dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.inv__parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 24px 0;
+}
+
+.inv__label {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5c5c5c;
+}
+
+.inv__strong {
+  font-weight: 600;
+}
+
+.inv__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inv__table th {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  color: #5c5c5c;
+  background: #f4f4f5;
+  border-bottom: 1px solid #e2e2e4;
+}
+
+.inv__table td {
+  padding: 14px 12px;
+  vertical-align: top;
+  border-bottom: 1px solid #e2e2e4;
+}
+
+.inv__num {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.inv__coupon {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #5c5c5c;
+}
+
+.inv__totals {
+  width: min(320px, 100%);
+  margin: 16px 0 0 auto;
+}
+
+.inv__totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 12px;
+}
+
+.inv__totals dt {
+  color: #5c5c5c;
+}
+
+.inv__totals dd {
+  margin: 0;
+}
+
+.inv__total {
+  margin-top: 4px;
+  padding-top: 10px !important;
+  border-top: 1px solid #141414;
+}
+
+.inv__total dt,
+.inv__total dd {
+  font-size: 16px;
+  font-weight: 700;
+  color: #141414;
+}
+
+.inv__words {
+  margin-top: 12px !important;
+  padding: 0 12px;
+  font-size: 13px;
+  font-style: italic;
+  text-align: right;
+  color: #5c5c5c;
+}
+
+.inv__foot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 8px 24px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e2e4;
+}
+
+.inv__sign {
+  text-align: right;
+}
+
+.inv__eoe {
+  grid-column: 2;
+  font-size: 12px;
+  text-align: right;
+  color: #5c5c5c;
+}
+
+.inv--missing {
+  text-align: center;
+}
+
+.inv-missing__title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.inv-missing__text {
+  margin-top: 8px !important;
+  color: #5c5c5c;
+}
+
+@media (max-width: 640px) {
+  .inv {
+    padding: 24px 20px;
+  }
+
+  .inv__title-block {
+    text-align: left;
+  }
+
+  .inv__meta div {
+    justify-content: flex-start;
+  }
+
+  .inv__parties {
+    grid-template-columns: 1fr;
+  }
+
+  .inv__table {
+    font-size: 13px;
+  }
+
+  .inv__table th,
+  .inv__table td {
+    padding: 8px 6px;
+  }
+}
+
+/* Printing or saving as PDF: the sheet alone, edge to edge */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  .inv-page {
+    min-height: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  .inv-bar {
+    display: none;
+  }
+
+  .inv {
+    max-width: none;
+    padding: 0;
+    border: 0;
+  }
+}

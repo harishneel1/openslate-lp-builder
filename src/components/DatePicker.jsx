@@ -24,6 +24,8 @@ import './Pickers.css';
 // id: for the <label htmlFor> beside it
 // value: 'YYYY-MM-DD' or ''; onChange('YYYY-MM-DD')
 // min: the first date that can be picked (today by default)
+// max: the last date that can be picked, or '' for no limit (the default).
+//      For past dates, like a statement's period: min far back, max today.
 // className: the field's look where it's used (e.g. 'qinput__text qinput__picker')
 // ------------------------------------------------------------
 
@@ -103,7 +105,17 @@ export function usePanel() {
   return { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown };
 }
 
-export default function DatePicker({ id, value, onChange, min = todayISO(), className = '', placeholder = 'Pick a date' }) {
+export default function DatePicker({
+  id,
+  value,
+  onChange,
+  min = todayISO(),
+  max = '',
+  className = '',
+  placeholder = 'Pick a date',
+}) {
+  // Keeps a day between min and max
+  const clamp = (iso) => (iso < min ? min : max && iso > max ? max : iso);
   const { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown } = usePanel();
   const [focus, setFocus] = useState(min); // the day the keyboard is on
   const gridRef = useRef(null);
@@ -117,7 +129,8 @@ export default function DatePicker({ id, value, onChange, min = todayISO(), clas
   const monthName = new Date(year, month, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
   const openCalendar = () => {
-    const start = chosen && chosen >= min ? chosen : min;
+    // No date yet: the first pickable day, or today when there's a last day (past dates)
+    const start = chosen ? clamp(chosen) : max ? clamp(today) : min;
     setFocus(start);
     moved.current = true;
     setOpen(true);
@@ -136,7 +149,7 @@ export default function DatePicker({ id, value, onChange, min = todayISO(), clas
   };
 
   const moveTo = (iso) => {
-    const next = iso < min ? min : iso;
+    const next = clamp(iso);
     moved.current = true;
     setFocus(next);
   };
@@ -165,6 +178,8 @@ export default function DatePicker({ id, value, onChange, min = todayISO(), clas
 
   // The previous month is all before min: nothing to pick there
   const prevDisabled = toISO(new Date(year, month, 0)) < min;
+  // The next month is all after max
+  const nextDisabled = Boolean(max) && toISO(new Date(year, month + 1, 1)) > max;
 
   return (
     <div className="pk" ref={wrapRef}>
@@ -190,7 +205,7 @@ export default function DatePicker({ id, value, onChange, min = todayISO(), clas
               <button
                 type="button"
                 className="pk__nav"
-                onClick={() => setFocus((f) => (addMonths(f, -1) < min ? min : addMonths(f, -1)))}
+                onClick={() => setFocus((f) => clamp(addMonths(f, -1)))}
                 disabled={prevDisabled}
                 aria-label="Previous month"
               >
@@ -199,7 +214,13 @@ export default function DatePicker({ id, value, onChange, min = todayISO(), clas
               <p className="pk__month" aria-live="polite">
                 {monthName}
               </p>
-              <button type="button" className="pk__nav" onClick={() => setFocus((f) => addMonths(f, 1))} aria-label="Next month">
+              <button
+                type="button"
+                className="pk__nav"
+                onClick={() => setFocus((f) => clamp(addMonths(f, 1)))}
+                disabled={nextDisabled}
+                aria-label="Next month"
+              >
                 <ChevronRight size={18} aria-hidden="true" />
               </button>
             </div>
@@ -232,7 +253,7 @@ export default function DatePicker({ id, value, onChange, min = todayISO(), clas
                             ]
                               .filter(Boolean)
                               .join(' ')}
-                            disabled={iso < min}
+                            disabled={iso < min || Boolean(max && iso > max)}
                             tabIndex={iso === focus ? 0 : -1}
                             aria-pressed={iso === chosen}
                             aria-current={iso === today ? 'date' : undefined}

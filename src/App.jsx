@@ -35,6 +35,8 @@ import CallsPage from './screens/CallsPage';
 import LiveClassesPage from './screens/LiveClassesPage';
 import CloudStoragePage from './screens/CloudStoragePage';
 import { seedDemoFiles } from './data/cloudStorage';
+import SalesPage from './screens/SalesPage';
+import { seedDemoEarnings } from './data/earnings';
 import './App.css';
 import { funnelName } from './utils/funnelName';
 import { recommendedThemeId } from './data/themes';
@@ -451,6 +453,12 @@ function App() {
   // own (data/cloudStorage.js). Remove when uploads arrive.
   useEffect(() => {
     seedDemoFiles();
+  }, []);
+
+  // Demo only: about 80 days of payments, withdrawals, a refund and TDS,
+  // so Sales has history to show (data/earnings.js). Remove for production.
+  useEffect(() => {
+    seedDemoEarnings();
   }, []);
 
   // The first visit to a published webinar's page: remember it, so its
@@ -1105,6 +1113,9 @@ function App() {
         />
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
+      ) : activeNav === 'sales' ? (
+        // Real paid sign-ups and their refunds are in its statement, so the money matches the webinars
+        <SalesPage webinars={funnels.filter((f) => f.type === 'webinar')} />
       ) : activeNav === 'cloud-storage' ? (
         // A recording's name opens its session on the Recording tab
         <CloudStoragePage
