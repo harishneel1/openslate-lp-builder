@@ -1,0 +1,295 @@
+/* Settings → WhatsApp (WhatsAppSettings.jsx). Product tokens, and the
+   amber Settings already uses for "needs your attention" (SettingsPage.css). */
+
+/* ---------- The checklist ---------- */
+.wac {
+  max-width: 560px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.wac__legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wac__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* The rows' padding sits outside, so the boxes line up with the heading */
+  margin: 0 -12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* The whole row ticks the box, not just the box */
+.wac__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  line-height: 1.45;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.wac__row:hover {
+  background: var(--color-bg);
+}
+
+.wac__row:has(.wac__box:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.wac__box {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* The (i) sits on the line, right after the words */
+.wac__tip {
+  display: inline-flex;
+  margin-left: 4px;
+  vertical-align: -6px;
+}
+
+/* The one line coaches miss: set apart in amber, as Settings' fixes are */
+.wac__row--warn {
+  margin-top: 8px;
+  font-weight: 600;
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  box-shadow: inset 3px 0 0 #d97706;
+}
+
+.wac__row--warn:hover {
+  background: #fdefd6;
+}
+
+/* ---------- Connect ---------- */
+.wac__go {
+  margin-top: 24px;
+}
+
+/* Left Meta's window early: calm, not a warning (no colour, no icon) */
+.wac__left {
+  max-width: 560px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.wac__connect:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-bg);
+  cursor: not-allowed;
+}
+
+.wac__note {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+  .wac__connect {
+    width: 100%;
+  }
+
+  /* The (i) can land anywhere on a wrapped line: its bubble hangs from the
+     whole row instead, the row's width, so it never runs off the screen */
+  .wac__row {
+    position: relative;
+  }
+
+  .wac__tip .info-tip {
+    position: static;
+  }
+
+  .wac__tip .info-tip__tip {
+    top: calc(100% - 4px);
+    right: 12px;
+    left: 12px;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wac__row {
+    transition: none;
+  }
+}
+
+/* ---------- While Meta's window is open, then while setup finishes ----------
+   The whole app dims, so it's clear the action is in the other window */
+.wac-wait {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(17, 17, 17, 0.5);
+}
+
+.wac-wait__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 24px 24px;
+  text-align: center;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+}
+
+.wac-wait__card:focus {
+  outline: none;
+}
+
+.wac-wait__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 14px;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+}
+
+.wac-wait__title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.wac-wait__text {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Blocked: Cancel and Try again, side by side */
+.wac-wait__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 640px) {
+  .wac-wait__actions {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+
+  .wac-wait__actions button {
+    width: 100%;
+  }
+}
+
+/* For when Meta's window has gone behind this one */
+.wac-wait__show {
+  margin-top: 16px;
+  padding: 6px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wac-wait__show:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.wac-wait__spin {
+  animation: wac-spin 1s linear infinite;
+}
+
+@keyframes wac-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wac-wait__spin {
+    animation: none;
+  }
+}
+
+/* ---------- What stopped setup: in place of Connect ----------
+   Amber, as Settings' other "needs a fix" notes (po-alert--fix) */
+.wac-error {
+  max-width: 560px;
+  margin-top: 24px;
+  padding: 16px 18px;
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  border-radius: var(--radius-md);
+  box-shadow: inset 3px 0 0 #d97706;
+}
+
+.wac-error__title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.wac-error__title:focus {
+  outline: none;
+}
+
+.wac-error__text {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wac-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-top: 14px;
+}
+
+.wac-error__help {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wac-error__help:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (max-width: 640px) {
+  .wac-error .oh__add {
+    width: 100%;
+  }
+}

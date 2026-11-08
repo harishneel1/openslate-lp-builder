@@ -803,3 +803,12 @@
     display: none;
   }
 }
+/* ---------- Not connected: the way to Settings ---------- */
+.wa-invite {
+  gap: 4px;
+  margin-top: 0;
+}
+
+.wa-invite__go {
+  margin-top: 12px;
+}

@@ -1,6 +1,7 @@
 import { ChevronDown, FlaskConical } from 'lucide-react';
 import { useState } from 'react';
 import PaymentDetails, { PayoutControlRows } from './PayoutSetup';
+import WhatsAppSettings, { WhatsAppControlRows } from './WhatsAppSettings';
 import './OfferingsHome.css'; // the page frame and panels
 import '../components/PrototypeControls.css';
 import './SettingsPage.css';
@@ -8,9 +9,12 @@ import './SettingsPage.css';
 // ------------------------------------------------------------
 // Settings: the coach's account settings, opened from the avatar menu in
 // the top bar (AccountMenu.jsx) and from Sales → Withdraw money when
-// they can't withdraw yet. One section for now, Payment details
-// (PayoutSetup.jsx): who they are (PAN and Aadhaar, or their business),
-// the bank account their money goes to, and what their invoices say.
+// they can't withdraw yet. Two sections, as tabs:
+//   Payment details (PayoutSetup.jsx): who they are (PAN and Aadhaar, or
+//     their business), the bank account their money goes to, and what
+//     their invoices say.
+//   WhatsApp (WhatsAppSettings.jsx): the one number every webinar and
+//     1:1 call sends reminders from.
 // Other sections join SECTIONS as tabs.
 //
 //   Settings
@@ -29,12 +33,27 @@ import './SettingsPage.css';
 // On a phone the help moves under the two parts.
 //
 // onWithdraw(): go to Sales → Withdraw money
+// startOn: the section to open on ('payments' or 'whatsapp'); Payment details if left out
 // ------------------------------------------------------------
 
-const SECTIONS = [{ id: 'payments', label: 'Payment details' }];
+const SECTIONS = [
+  { id: 'payments', label: 'Payment details' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+];
 
-export default function SettingsPage({ onWithdraw }) {
-  const section = 'payments'; // the only one for now
+export default function SettingsPage({ onWithdraw, startOn = 'payments' }) {
+  const [section, setSection] = useState(SECTIONS.some((s) => s.id === startOn) ? startOn : 'payments');
+
+  // Arrow keys move between the tabs, as tabs do
+  const onTabKey = (e) => {
+    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const at = SECTIONS.findIndex((s) => s.id === section);
+    const next = SECTIONS[(at + step + SECTIONS.length) % SECTIONS.length].id;
+    setSection(next);
+    document.getElementById(`settings-tab-${next}`)?.focus();
+  };
 
   return (
     <div className="oh settings">
@@ -51,6 +70,8 @@ export default function SettingsPage({ onWithdraw }) {
             aria-controls={`settings-panel-${s.id}`}
             tabIndex={section === s.id ? 0 : -1}
             className="settings__tab"
+            onClick={() => setSection(s.id)}
+            onKeyDown={onTabKey}
           >
             {s.label}
           </button>
@@ -63,17 +84,23 @@ export default function SettingsPage({ onWithdraw }) {
         role="tabpanel"
         aria-labelledby={`settings-tab-${section}`}
       >
-        <div className="oh__panel-head">
-          <h2 className="oh__panel-title">Payment details</h2>
-          <p className="oh__panel-sub">Who you are, where we send your money, and what your invoices say. You can withdraw once the first two are verified.</p>
-        </div>
-        <div className="settings__body settings__body--split">
-          <PaymentDetails onWithdraw={onWithdraw} />
-          <PayoutHelp />
-        </div>
+        {section === 'whatsapp' ? (
+          <WhatsAppSettings />
+        ) : (
+          <>
+            <div className="oh__panel-head">
+              <h2 className="oh__panel-title">Payment details</h2>
+              <p className="oh__panel-sub">Who you are, where we send your money, and what your invoices say. You can withdraw once the first two are verified.</p>
+            </div>
+            <div className="settings__body settings__body--split">
+              <PaymentDetails onWithdraw={onWithdraw} />
+              <PayoutHelp />
+            </div>
+          </>
+        )}
       </section>
 
-      <SettingsTestControls />
+      <SettingsTestControls section={section} />
     </div>
   );
 }
@@ -98,7 +125,8 @@ function PayoutHelp() {
 // ---------- Prototype controls: not part of the product ----------
 const OPEN_KEY = 'pagebuilder:settings-controls-open';
 
-function SettingsTestControls() {
+// section: the open tab, whose controls show
+function SettingsTestControls({ section }) {
   const [open, setOpen] = useState(() => {
     try {
       return sessionStorage.getItem(OPEN_KEY) === '1';
@@ -125,7 +153,7 @@ function SettingsTestControls() {
       </button>
       {open && (
         <div className="proto__body">
-          <PayoutControlRows />
+          {section === 'whatsapp' ? <WhatsAppControlRows /> : <PayoutControlRows />}
         </div>
       )}
     </section>

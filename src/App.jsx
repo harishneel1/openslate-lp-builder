@@ -37,6 +37,7 @@ import CloudStoragePage from './screens/CloudStoragePage';
 import { seedDemoFiles } from './data/cloudStorage';
 import SalesPage from './screens/SalesPage';
 import SettingsPage from './screens/SettingsPage';
+import { OPEN_SETTINGS_EVENT } from './data/whatsappConnection';
 import { seedDemoEarnings } from './data/earnings';
 import './App.css';
 import { funnelName } from './utils/funnelName';
@@ -504,8 +505,15 @@ function App() {
     }));
   };
 
+  // Settings, opened on one of its tabs: { section, n } (n opens it fresh
+  // again on a second request). From a Reminders tab's "Set up in Settings"
+  // (OPEN_SETTINGS_EVENT, whatsappConnection.js). Null: its first tab, as
+  // every other way there (the avatar menu, Sales) opens it.
+  const [settingsRequest, setSettingsRequest] = useState(null);
+
   const handleNavigate = (id) => {
     setActiveNav(id);
+    setSettingsRequest(null);
     closeFunnel();
   };
 
@@ -521,6 +529,17 @@ function App() {
   // that call's editor open, since the call is where its contract changes.
   // Cleared on the way to 1:1 calls from the sidebar, so that opens the list.
   const [callRequest, setCallRequest] = useState(null);
+
+  // A Reminders tab's "Set up in Settings": Settings, on its WhatsApp tab
+  useEffect(() => {
+    const open = () => {
+      handleNavigate('settings');
+      setSettingsRequest({ section: 'whatsapp', n: Date.now() });
+    };
+    window.addEventListener(OPEN_SETTINGS_EVENT, open);
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, open);
+  }); // every render, so it always uses the current handleNavigate
+
   // A 1:1 call open on its page or in its editor: the same focus bar as an
   // open webinar ({ title, exitLabel, onExit, ... }), or null on the list
   const [callFocus, setCallFocus] = useState(null);
@@ -1123,7 +1142,11 @@ function App() {
         />
       ) : activeNav === 'settings' ? (
         // From the avatar menu, or Sales' "Add bank account"; Withdraw money goes back to Sales
-        <SettingsPage onWithdraw={() => handleNavigate('sales')} />
+        <SettingsPage
+          key={settingsRequest?.n ?? 'settings'}
+          startOn={settingsRequest?.section}
+          onWithdraw={() => handleNavigate('sales')}
+        />
       ) : activeNav === 'cloud-storage' ? (
         // A recording's name opens its session on the Recording tab
         <CloudStoragePage

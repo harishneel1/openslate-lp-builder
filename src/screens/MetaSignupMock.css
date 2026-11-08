@@ -1,0 +1,387 @@
+/* The mock Meta signup window (MetaSignupMock.jsx). Meta's look, not
+   ours: their system font, blue and greys, so it reads as "now I'm in
+   Meta's window" during a walkthrough. Nothing here uses product tokens. */
+
+.mx {
+  --mx-blue: #0866ff;
+  --mx-blue-hover: #0759e0;
+  --mx-text: #1c1e21;
+  --mx-muted: #65676b;
+  --mx-line: #ced0d4;
+  --mx-soft: #f0f2f5;
+  --mx-green: #31a24c;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--mx-text);
+  background: #fff;
+}
+
+.mx *,
+.mx *::before,
+.mx *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- Top: our app and Meta, linked, and how far along ---------- */
+.mx__bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px 0;
+}
+
+.mx__pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mx__avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.mx__avatar--app {
+  color: #fff;
+  background: #ef8a3c; /* our product's orange: our side of the link */
+}
+
+.mx__avatar--meta {
+  font-size: 11px;
+  color: var(--mx-blue);
+  background: #e7f0ff;
+}
+
+.mx__dots {
+  width: 28px;
+  border-top: 2px dotted var(--mx-line);
+}
+
+.mx__progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  background: var(--mx-soft);
+  border-radius: 2px;
+}
+
+.mx__progress span {
+  display: block;
+  height: 100%;
+  background: var(--mx-blue);
+  transition: width 0.25s ease;
+}
+
+/* ---------- The screen ---------- */
+.mx__body {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 28px 24px 24px;
+}
+
+.mx__title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.mx__text {
+  margin: 0 0 16px;
+  color: var(--mx-muted);
+}
+
+.mx__text strong {
+  color: var(--mx-text);
+}
+
+.mx__fine {
+  display: block;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--mx-muted);
+}
+
+.mx__ticks {
+  margin: 0 0 20px;
+  padding: 16px 16px 16px 36px;
+  background: var(--mx-soft);
+  border-radius: 8px;
+}
+
+.mx__ticks li + li {
+  margin-top: 8px;
+}
+
+/* ---------- Fields ---------- */
+.mx__field {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.mx__label {
+  display: block;
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mx__input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  font: inherit;
+  color: var(--mx-text);
+  background: #fff;
+  border: 1px solid var(--mx-line);
+  border-radius: 6px;
+  appearance: none;
+}
+
+.mx__input:focus-visible {
+  border-color: var(--mx-blue);
+  outline: 2px solid #c6dcff;
+  outline-offset: 0;
+}
+
+.mx__input--code {
+  max-width: 180px;
+  font-size: 20px;
+  letter-spacing: 0.3em;
+}
+
+.mx__select {
+  position: relative;
+  display: block;
+}
+
+.mx__select svg {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  color: var(--mx-muted);
+  pointer-events: none;
+}
+
+.mx__select .mx__input {
+  padding-right: 32px;
+}
+
+.mx__phone {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.mx__radios {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mx__radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.mx__radio input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--mx-blue);
+}
+
+.mx__perms {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--mx-line);
+  border-radius: 8px;
+}
+
+.mx__perms li {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.mx__perms li + li {
+  border-top: 1px solid var(--mx-line);
+}
+
+.mx__perms svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--mx-blue);
+}
+
+.mx__link {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--mx-blue);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* ---------- Bottom: Back and Next ---------- */
+.mx__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--mx-line);
+}
+
+.mx__btn {
+  min-width: 88px;
+  height: 36px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--mx-text);
+  background: var(--mx-soft);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mx__btn:hover {
+  background: #e4e6eb;
+}
+
+.mx__btn--primary {
+  color: #fff;
+  background: var(--mx-blue);
+}
+
+.mx__btn--primary:hover {
+  background: var(--mx-blue-hover);
+}
+
+.mx__btn:disabled {
+  color: #bcc0c4;
+  background: var(--mx-soft);
+  cursor: not-allowed;
+}
+
+.mx__btn:focus-visible,
+.mx__link:focus-visible,
+.mx__radio:has(input:focus-visible) {
+  outline: 2px solid var(--mx-blue);
+  outline-offset: 2px;
+}
+
+/* ---------- Done ---------- */
+.mx__done {
+  padding-top: 24px;
+  text-align: center;
+}
+
+.mx__done-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  color: #fff;
+  background: var(--mx-green);
+  border-radius: 50%;
+}
+
+.mx__alone {
+  padding: 10px 12px;
+  color: #8a4b0b;
+  background: #fef6e7;
+  border-radius: 6px;
+}
+
+/* ---------- Facebook's login ---------- */
+.mx--login {
+  justify-content: center;
+  background: var(--mx-soft);
+}
+
+.mx__login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 32px);
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 28px 24px 24px;
+  text-align: center;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.mx__login .mx__text {
+  margin-bottom: 8px;
+}
+
+/* The dialog's own title line, as Facebook's login has (no logo) */
+.mx__brand {
+  align-self: stretch;
+  margin: -4px 0 10px;
+  padding-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mx-muted);
+  border-bottom: 1px solid var(--mx-line);
+}
+
+.mx__face {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  background: #7b8794;
+  border-radius: 50%;
+}
+
+.mx__btn--wide {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mx__progress span {
+    transition: none;
+  }
+}
+
+/* Meta's own error, on its screen: red, as Meta's are */
+.mx__error {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #b3261e;
+  background: #fdecea;
+  border: 1px solid #f5c2bd;
+  border-radius: 6px;
+}

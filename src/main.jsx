@@ -15,6 +15,7 @@ import RefundDetailsPage from './screens/RefundDetailsPage.jsx'
 import BatchPage from './screens/BatchPage.jsx'
 import PlansPage from './screens/PlansPage.jsx'
 import InvoicePage from './screens/InvoicePage.jsx'
+import MetaSignupMock from './screens/MetaSignupMock.jsx'
 import { accountHandle, savedHandle } from './data/myPage'
 import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
@@ -53,6 +54,9 @@ import { loadSaved } from './utils/storage'
 //   for now). The "Refunded ₹…" badge in a session's Manage people opens it in a new tab.
 // ?mock=invoice&order=<order id> → one payment's invoice in the coach's name, to save as a
 //   PDF (Sales → Transactions → ⋯ → Download invoice)
+// ?mock=meta-signup → a stand-in for Meta's WhatsApp signup window (MetaSignupMock.jsx).
+//   Connect WhatsApp in Settings → WhatsApp opens it as a popup; opened on its own,
+//   it can be clicked through but connects nothing.
 // ?mock=plans → the plans page, where Upgrade plan goes (Cloud Storage, "Ready to
 //   join?"): a placeholder until plans are decided. Opens in a new tab.
 // /<webinar slug> (e.g. localhost:5173/fix-the-vasthu-mistakes) → that webinar's shared
@@ -103,6 +107,7 @@ function Root() {
   if (mock === 'zoom') return <ZoomMeetingPage webinarId={params.get('webinar')} batchId={params.get('batch')} />
   if (mock === 'batch') return <BatchPage batchId={params.get('batch')} />
   if (mock === 'plans') return <PlansPage />
+  if (mock === 'meta-signup') return <MetaSignupMock />
   // One payment's invoice, from Sales → Transactions' Download invoice
   if (mock === 'invoice') return <InvoicePage orderId={params.get('order')} />
   if (mock === 'refund') return <RefundDetailsPage webinarId={params.get('webinar')} personId={params.get('person')} />

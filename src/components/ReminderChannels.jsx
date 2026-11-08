@@ -1,7 +1,7 @@
 import { Mail, MessageCircle } from 'lucide-react';
 import { useWhatsApp } from './WhatsAppTab';
 import { useSwitches } from './WhatsAppMessages';
-import { SETUP_STEPS, hasNumber, messageStatus, setupStep } from '../data/whatsappConnection';
+import { hasNumber, messageStatus } from '../data/whatsappConnection';
 import { MESSAGES } from '../data/whatsappMessages';
 import './ReminderChannels.css';
 
@@ -21,7 +21,7 @@ import './ReminderChannels.css';
 // Each card's second line is worth reading on its own, so a creator
 // looking at one channel sees when the other needs them:
 //   Email     "3 of 3 reminders on", "All off"
-//   WhatsApp  "Not connected · Set it up", "Step 2 of 3" (setting up),
+//   WhatsApp  "Not connected · Set it up" (it's set up in Settings),
 //             "2 of 3 reminders on · 1 in review",
 //             and in red "Paused", "Needs a new name",
 //             "1 message not approved"
@@ -89,8 +89,6 @@ function ChannelLogo({ id }) {
 
 // What the WhatsApp card says under its name
 function whatsAppSummary(connection, kind, switches) {
-  const step = setupStep(connection);
-  if (step) return { text: `Step ${step} of ${SETUP_STEPS}` };
   if (!hasNumber(connection)) return { text: 'Not connected · Set it up' };
   if (connection.status === 'lost') return { text: 'Paused', warn: true };
   if (connection.nameStatus === 'rejected') return { text: 'Needs a new name', warn: true };

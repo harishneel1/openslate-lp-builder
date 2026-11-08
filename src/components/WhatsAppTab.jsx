@@ -1,21 +1,15 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
-import WhatsAppDrawer, { NameBadge } from './WhatsAppDrawer';
 import WhatsAppMessages from './WhatsAppMessages';
 import {
-  MOCK_REJECTION,
-  SETUP_STEPS,
   WHATSAPP_CHANGED_EVENT,
   anyInReview,
   demo,
-  finishSetup,
-  goToStep,
+  goToWhatsAppSettings,
   hasNumber,
   loadWhatsApp,
   messageStatus,
-  reconnectWhatsApp,
   settleReview,
-  setupStep,
 } from '../data/whatsappConnection';
 import { MESSAGES } from '../data/whatsappMessages';
 import '../screens/EditFrame.css'; // the buttons (es__btn), as in the calendar's drawer
@@ -24,26 +18,31 @@ import './WhatsAppTab.css';
 
 // ------------------------------------------------------------
 // The WhatsApp half of the Reminders tab, on a webinar's page
-// (WebinarDetails.jsx) and a 1:1 call's page (CallOverview.jsx). It's
-// the only place the creator deals with WhatsApp: the connection is one
-// for the whole account, so connecting here connects every webinar and
-// call.
+// (WebinarDetails.jsx) and a 1:1 call's page (CallOverview.jsx): which
+// WhatsApp reminders this webinar or call sends. The number itself is
+// one for the whole account, connected and looked after in Settings →
+// WhatsApp (WhatsAppSettings.jsx). This tab only points there:
 //
-// Not connected: three steps, then connected. What each step is hasn't
-// been settled yet (it depends on Meta's process and our WhatsApp
-// partner's), so each is a placeholder for now, with Continue and Back:
+// Not connected:
+//   Remind people on WhatsApp too
+//   Connect your number once in Settings, and every webinar and 1:1
+//   call can use it.
+//   [ Set up in Settings ]
 //
-//   ① ── ② ── ③
-//   Step 2
-//   What this step asks of you goes here.
-//   [ Back ]  [ Continue ]
+// Connected: one line at the top, with the way to Settings:
+//   (●) Sending from +91 98765 43210            [WhatsApp settings]
+//       as Harish Neel
+// Below it, this webinar's or call's WhatsApp reminders, with their
+// switches (WhatsAppMessages.jsx).
 //
-// Continue on the last step connects a stand-in number, and the tab
-// shows the finished design below.
+// When the number can't send at all (dropped by WhatsApp, or a name
+// Meta rejected), one line says so, and that it's fixed in Settings.
+// A message Meta rejected shows on its own row instead. The name's
+// review isn't mentioned here: Settings shows it.
 //
-// Connected: one line at the top ("Sending from …", with Manage), the
-// name's review, and what's wrong if anything is. Below it, this webinar's
-// or call's WhatsApp reminders (WhatsAppMessages.jsx).
+// Settings opens through goToWhatsAppSettings (whatsappConnection.js),
+// which the app hears (App.jsx), so nothing between here and the app
+// needs to pass it down.
 //
 // Prototype controls at the bottom move the connection between states.
 // ------------------------------------------------------------
@@ -87,7 +86,7 @@ export default function WhatsAppTab({ kind, offering, offeringName, links }) {
       {hasNumber(connection) ? (
         <Connected connection={connection} kind={kind} offering={offering} offeringName={offeringName} links={links} />
       ) : (
-        <Setup step={setupStep(connection)} />
+        <NotConnected />
       )}
       <DemoControls connection={connection} kind={kind} />
     </div>
@@ -95,59 +94,16 @@ export default function WhatsAppTab({ kind, offering, offeringName, links }) {
 }
 
 // ------------------------------------------------------------
-// Not connected yet: the three steps
+// Not connected: the way to Settings
 // ------------------------------------------------------------
-const STEPS = Array.from({ length: SETUP_STEPS }, (_, i) => i + 1);
-
-// step: the step they're on, or 0 before they've started (shown as step 1)
-function Setup({ step }) {
-  const on = Math.max(step, 1);
-  const last = on === SETUP_STEPS;
-
+function NotConnected() {
   return (
-    <div className="wa-setup">
-      <div className="wa-head">
-        <h3 className="wa-head__title">Remind people on WhatsApp too</h3>
-        <p className="wa-head__text">
-          Reminders go from your own WhatsApp number, so people see your name and their replies come straight to you.
-          Emails keep going out as they do now.
-        </p>
-      </div>
-
-      <section className="wa-card" aria-labelledby="wa-step-title">
-        <ol className="wa-steps" aria-label={`Step ${on} of ${SETUP_STEPS}`}>
-          {STEPS.map((n) => (
-            <li
-              key={n}
-              className={`wa-steps__step ${n < on ? 'wa-steps__step--done' : ''} ${n === on ? 'wa-steps__step--now' : ''}`}
-              aria-current={n === on ? 'step' : undefined}
-            >
-              <span className="wa-steps__dot">{n}</span>
-              <span className="wa-steps__name">Step {n}</span>
-            </li>
-          ))}
-        </ol>
-
-        <h4 id="wa-step-title" className="wa-q">
-          Step {on}
-        </h4>
-        <p className="wa-card__text">What this step asks of you goes here.</p>
-
-        <div className="wa-card__actions">
-          {on > 1 && (
-            <button type="button" className="es__btn es__btn--quiet" onClick={() => goToStep(on - 1)}>
-              Back
-            </button>
-          )}
-          <button
-            type="button"
-            className="es__btn es__btn--primary"
-            onClick={() => (last ? finishSetup() : goToStep(on + 1))}
-          >
-            {last ? 'Finish' : 'Continue'}
-          </button>
-        </div>
-      </section>
+    <div className="wa-card wa-invite">
+      <h3 className="wa-head__title">Remind people on WhatsApp too</h3>
+      <p className="wa-head__text">Connect your number once in Settings, and every webinar and 1:1 call can use it.</p>
+      <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={goToWhatsAppSettings}>
+        Set up in Settings
+      </button>
     </div>
   );
 }
@@ -156,8 +112,8 @@ function Setup({ step }) {
 // Connected (or lost)
 // ------------------------------------------------------------
 function Connected({ connection, kind, offering, offeringName, links }) {
-  const [managing, setManaging] = useState(false);
   const lost = connection.status === 'lost';
+  const nameRejected = !lost && connection.nameStatus === 'rejected';
 
   return (
     <div className="wa-on">
@@ -169,41 +125,32 @@ function Connected({ connection, kind, offering, offeringName, links }) {
           <p className="wa-from__line">
             Sending from <strong>{connection.number}</strong>
           </p>
-          <p className="wa-from__sub">
-            as {connection.name}
-            <NameBadge connection={connection} />
-          </p>
+          <p className="wa-from__sub">as {connection.name}</p>
         </div>
-        <button type="button" className="es__btn es__btn--quiet wa-from__manage" onClick={() => setManaging(true)}>
-          Manage
+        <button type="button" className="es__btn es__btn--quiet wa-from__manage" onClick={goToWhatsAppSettings}>
+          WhatsApp settings
         </button>
       </div>
 
-      {lost ? (
+      {(lost || nameRejected) && (
         <div className="cal-note cal-note--warn wa-problem" role="alert">
           <p>
-            <strong>WhatsApp reminders are paused.</strong> WhatsApp stopped letting us send from this number. This
-            happens when the number is removed from WhatsApp Business or connected somewhere else. Emails still go
-            out.
+            {lost ? (
+              <>
+                <strong>WhatsApp reminders are paused.</strong> Emails still go out. Reconnect your number in
+                Settings.
+              </>
+            ) : (
+              <>
+                <strong>Meta didn’t approve the name “{connection.name}”.</strong> Choose another in Settings.
+              </>
+            )}
           </p>
-          <button type="button" className="es__btn es__btn--primary" onClick={reconnectWhatsApp}>
-            Reconnect
+          <button type="button" className="es__btn es__btn--primary" onClick={goToWhatsAppSettings}>
+            {lost ? 'Reconnect in Settings' : 'Choose a name in Settings'}
           </button>
         </div>
-      ) : connection.nameStatus === 'rejected' ? (
-        <div className="cal-note cal-note--warn wa-problem" role="alert">
-          <p>
-            <strong>Meta didn’t approve “{connection.name}”.</strong> {MOCK_REJECTION}
-          </p>
-          <button type="button" className="es__btn es__btn--primary" onClick={() => setManaging(true)}>
-            Choose another name
-          </button>
-        </div>
-      ) : connection.nameStatus === 'review' ? (
-        <p className="cal-note" role="status">
-          Meta is checking your name. It usually takes a few minutes, and sometimes up to a day.
-        </p>
-      ) : null}
+      )}
 
       <WhatsAppMessages
         connection={connection}
@@ -212,8 +159,6 @@ function Connected({ connection, kind, offering, offeringName, links }) {
         offeringName={offeringName}
         links={links}
       />
-
-      {managing && <WhatsAppDrawer connection={connection} onClose={() => setManaging(false)} />}
     </div>
   );
 }

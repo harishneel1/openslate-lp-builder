@@ -3,8 +3,9 @@ import { MESSAGE_IDS } from './whatsappMessages';
 
 // ------------------------------------------------------------
 // The creator's WhatsApp connection: one for the whole account, used by
-// every webinar and 1:1 call. Reached only from the WhatsApp tab of a
-// webinar or a call (WhatsAppTab.jsx); there's no settings page for it.
+// every webinar and 1:1 call. Connected and looked after in Settings →
+// WhatsApp (WhatsAppSettings.jsx); the Reminders tab of a webinar or a
+// call (WhatsAppTab.jsx) still shows it too, until its own round.
 //
 // Reminders on WhatsApp always go from the creator's own number. Getting
 // it connected takes three steps. What each step is hasn't been settled
@@ -31,7 +32,12 @@ import { MESSAGE_IDS } from './whatsappMessages';
 //                                     is approved once this has passed
 //     business: 'Harish Neel',        their business on Meta
 //     sharedChats: true,              chose to share their existing chats
+//                                     (older saves only: no longer asked)
 //     connectedAt: ISO string,
+//     welcomed: false,                not yet seen "You're all set" in
+//                                     Settings; missing means seen (older saves)
+//     verified: false,                Meta has verified their business,
+//                                     which raises the daily limit (DAILY_LIMIT)
 //     messages: {                     our default messages (whatsappMessages.js),
 //       'call-1h': {                  sent to Meta for review on this number
 //         status: 'review' | 'approved' | 'rejected',
@@ -50,6 +56,13 @@ const KEY = 'pagebuilder:mock-whatsapp';
 
 // Fired on every change, so every tab showing the connection follows it
 export const WHATSAPP_CHANGED_EVENT = 'whatsapp-changed';
+
+// How many different students a number can start conversations with in a
+// day: Meta's limits, unverified and verified. Meta can change them, so
+// they're here only. To confirm with AiSensy.
+export const DAILY_LIMIT = { unverified: 250, verified: 2000 };
+
+export const dailyLimit = (connection) => (connection?.verified ? DAILY_LIMIT.verified : DAILY_LIMIT.unverified);
 
 // How many steps getting connected takes
 export const SETUP_STEPS = 3;
@@ -164,10 +177,15 @@ export function connectWhatsApp({ number, name, business, sharedChats }) {
     business,
     sharedChats: Boolean(sharedChats),
     connectedAt: new Date().toISOString(),
+    welcomed: false,
+    verified: false,
     messages: messagesInReview(),
   };
   return saveWhatsApp(connection) ? connection : null;
 }
+
+// "You're all set" seen: not shown again
+export const markWelcomed = () => update({ welcomed: true });
 
 // A lost number, connected again (the stand-in: straight back)
 export const reconnectWhatsApp = () => update({ status: 'connected' });
@@ -217,6 +235,12 @@ function setMessage(id, status) {
 
 export const disconnectWhatsApp = () => saveWhatsApp(null);
 
+// ---------- Going to Settings → WhatsApp ----------
+// From anywhere (a webinar's or a call's Reminders tab): the app (App.jsx)
+// hears this and opens Settings on its WhatsApp tab.
+export const OPEN_SETTINGS_EVENT = 'open-whatsapp-settings';
+export const goToWhatsAppSettings = () => window.dispatchEvent(new Event(OPEN_SETTINGS_EVENT));
+
 // ---------- Prototype controls (the demo panel on the WhatsApp tab) ----------
 
 export const demo = {
@@ -234,4 +258,11 @@ export const demo = {
   },
   rejectMessage: (id) => setMessage(id, 'rejected'),
   reset: () => saveWhatsApp(null),
+  // Settings' connected screen
+  setVerified: (verified) => update({ verified }),
+  replayWelcome: () => update({ welcomed: false }),
+  // Back in review, as just after connecting (the stand-in approves them again shortly)
+  reconnect: () => update({ status: 'connected' }),
+  nameInReview: () => update({ nameStatus: 'review', reviewEndsAt: new Date(Date.now() + REVIEW_MS).toISOString() }),
+  messagesInReview: () => update({ messages: messagesInReview() }),
 };
