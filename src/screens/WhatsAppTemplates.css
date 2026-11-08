@@ -1,0 +1,497 @@
+/* Settings → WhatsApp → Templates (WhatsAppTemplates.jsx), and the
+   Connection / Templates switch above both (WhatsAppSettings.jsx). */
+
+/* ---------- Connection | Templates ----------
+   Lighter than Settings' own tabs above it: a small switch inside the
+   panel, so it reads as "within WhatsApp", not a second row of tabs */
+.wst {
+  padding: 16px 24px 0;
+}
+
+.wst__list {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+.wst__tab {
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  transition: background 0.15s, color 0.15s;
+}
+
+.wst__tab:hover {
+  color: var(--color-text);
+}
+
+.wst__tab[aria-selected='true'] {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.wst__tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Something in Templates needs them: just after the word */
+.wst__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 5px;
+  vertical-align: 6px;
+  background: #d97706;
+  border-radius: 50%;
+}
+
+/* ---------- The list ---------- */
+/* The list uses the panel's full width, as a table should */
+
+.wtp-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.wtp-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wtp-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Status filters, with how many in each */
+.wtp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.wtp-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.wtp-filter:hover {
+  color: var(--color-text);
+}
+
+.wtp-filter[aria-pressed='true'] {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.wtp-filter:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.wtp-filter__count {
+  min-width: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+.wtp-empty {
+  padding: 32px 0;
+  font-size: 15px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.wtp-scroll {
+  overflow-x: auto;
+}
+
+.wtp-table {
+  width: 100%;
+  font-size: 15px;
+  border-collapse: collapse;
+}
+
+.wtp-table th {
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.wtp-table th:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.wtp-table th:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.wtp-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* The whole row opens the template */
+.wtp-tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.wtp-tr:hover {
+  background: var(--color-bg);
+}
+
+.wtp-name {
+  font-weight: 600;
+  text-align: left;
+  color: var(--color-text);
+}
+
+.wtp-name:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.wtp-date {
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+/* Badges, on the WhatsApp tab's .wa-badge shape */
+.wtp-badge--good {
+  color: var(--color-success);
+  background: var(--color-success-tint);
+}
+
+.wtp-badge--wait {
+  color: #7a4f0f;
+  background: #fff6e5;
+}
+
+.wtp-badge--bad {
+  color: #b42318;
+  background: #fdecec;
+}
+
+.wtp-badge--draft {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+/* ---------- One template ---------- */
+.wtp-dialog {
+  width: min(820px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  margin: auto;
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-hover);
+}
+
+.wtp-dialog::backdrop {
+  background: rgba(17, 17, 17, 0.45);
+}
+
+.wtp-dialog__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 20px 64px 18px 28px;
+  position: relative;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wtp-dialog__title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.wtp-dialog__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+}
+
+.wtp-dialog__close:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.wtp-dialog__close:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+.wtp-dialog__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  padding: 24px 28px 28px;
+}
+
+.wtp-dialog__phone {
+  justify-self: center;
+}
+
+/* The journey: a short timeline, joined by a dotted line */
+.wtp-journey__title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.wtp-journey__when {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.wtp-steps {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wtp-step {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 22px;
+}
+
+.wtp-step:last-child {
+  padding-bottom: 0;
+}
+
+.wtp-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 40px;
+  bottom: 4px;
+  left: 18px;
+  border-left: 2px dotted var(--color-border);
+}
+
+.wtp-step__icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.wtp-step--good .wtp-step__icon {
+  color: var(--color-success);
+  border-color: var(--color-success-tint);
+  background: var(--color-success-tint);
+}
+
+.wtp-step--wait .wtp-step__icon {
+  color: #a16207;
+  border-color: #fff6e5;
+  background: #fff6e5;
+}
+
+.wtp-step--bad .wtp-step__icon {
+  color: #b42318;
+  border-color: #fdecec;
+  background: #fdecec;
+}
+
+.wtp-step__words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wtp-step__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wtp-step__text {
+  color: var(--color-text-muted);
+}
+
+.wtp-step__why {
+  margin-top: 4px;
+  color: #b42318;
+}
+
+@media (max-width: 720px) {
+  .wtp-dialog__body {
+    grid-template-columns: 1fr;
+  }
+
+  .wtp-dialog__head {
+    padding: 18px 56px 16px 20px;
+  }
+
+  .wtp-dialog__body {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .wst {
+    padding: 14px 20px 0;
+  }
+
+  .wtp-table th,
+  .wtp-table td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wst__tab,
+  .wtp-tr {
+    transition: none;
+  }
+}
+
+/* ---------- Create template, top right (as AiSensy's) ---------- */
+.wtp__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.wtp__create {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wtp-muted {
+  color: var(--color-text-muted);
+}
+
+/* ---------- The Action column ---------- */
+.wtp-action-head {
+  display: block;
+  text-align: right;
+}
+
+.wtp-actions {
+  white-space: nowrap;
+  text-align: right;
+  cursor: default;
+}
+
+.wtp-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+}
+
+.wtp-icon:hover {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.wtp-icon--danger:hover {
+  color: #b42318;
+  background: #fdecec;
+  box-shadow: none;
+}
+
+.wtp-icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+/* ---------- A template's own actions, under its journey ---------- */
+.wtp-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.wtp-dialog__actions .oh__add,
+.wtp-dialog__actions .es__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wtp-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b42318;
+}
+
+.wtp-delete:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wtp-delete:focus-visible {
+  outline: 2px solid #b42318;
+  outline-offset: 2px;
+  border-radius: 2px;
+}

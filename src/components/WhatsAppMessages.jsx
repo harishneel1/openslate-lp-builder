@@ -189,9 +189,25 @@ function RowStatus({ on, lost, status, onWhy }) {
 // become a short list under it, with matching numbered dots on the phone.
 // The footer flips through this page's messages in the order they go.
 // ------------------------------------------------------------
-function MessagePreview({ message, kind, connection, offeringName, links, onClose, onPick }) {
-  const status = messageStatus(connection, message.id);
-  const lost = connection.status === 'lost';
+//
+// Also used by Settings → WhatsApp → Templates (WhatsAppTemplates.jsx),
+// for a sample with no particular webinar or call behind it:
+//   links null      the buttons show but go nowhere (no "Tap to try it")
+//   showStatus      false: no review line (not connected yet)
+//   title           the drawer's title, if not "WhatsApp reminder: …"
+export function MessagePreview({
+  message,
+  kind,
+  connection,
+  offeringName,
+  links,
+  onClose,
+  onPick,
+  showStatus = true,
+  title,
+}) {
+  const status = showStatus ? messageStatus(connection, message.id) : null;
+  const lost = showStatus && connection.status === 'lost';
   const all = MESSAGES[kind];
   const at = all.findIndex((m) => m.id === message.id);
   const before = all[at - 1] ?? null;
@@ -201,19 +217,21 @@ function MessagePreview({ message, kind, connection, offeringName, links, onClos
     host: connection.name,
     call: offeringName,
     webinar: offeringName,
+    batch: offeringName,
+    next: 'Thu 19 Nov',
     date: 'Thu 12 Nov',
     time: kind === 'call' ? '4:00 pm' : '7:00 pm',
   };
 
   const notes = [
     { id: 'fill', target: '.wam__fill', label: 'Filled in for each booking' },
-    { id: 'tap', target: '.wamp__btn', label: 'Tap to try it' },
+    ...(links ? [{ id: 'tap', target: '.wamp__btn', label: 'Tap to try it' }] : []),
     { id: 'reply', target: '.wamp__reply', label: 'Replies come to your WhatsApp' },
   ];
 
   return (
     <Drawer
-      title={`WhatsApp reminder: ${message.name.toLowerCase()}`}
+      title={title ?? `WhatsApp reminder: ${message.name.toLowerCase()}`}
       sub={message.when}
       onClose={onClose}
       footer={
@@ -242,52 +260,70 @@ function MessagePreview({ message, kind, connection, offeringName, links, onClos
       ) : null}
 
       <Annotated notes={notes} watch={message.id} caption={<p className="wamp__caption">What your customers receive</p>}>
-        <figure className="wamp__phone" aria-label={`The message on WhatsApp, from ${connection.name}`}>
-          <div className="wamp__screen">
-            <div className="wamp__top">
-              <ChevronLeft size={18} aria-hidden="true" />
-              <span className="wa-chat__face" aria-hidden="true">
-                {initials(connection.name)}
-              </span>
-              <span className="wa-chat__who">
-                <span className="wa-chat__name">{connection.name}</span>
-                <span className="wa-chat__kind">Business account</span>
-              </span>
-            </div>
-
-            <div className="wamp__chat">
-              <div className="wamp__bubble">
-                <p className="wam__text">
-                  <Filled body={message.body} values={values} />
-                  <span className="wa-chat__time">{message.sentAt}</span>
-                </p>
-                {message.buttons.map((b) => (
-                  <a
-                    key={b}
-                    className="wamp__btn"
-                    href={hrefFor(kind, b, links)}
-                    target="_blank"
-                    rel="noreferrer"
-                    // The browser's own hint: the phone's rounded screen would clip ours
-                    title={BUTTONS[kind][b].hint}
-                  >
-                    {BUTTONS[kind][b].label}
-                    <ExternalLink size={13} aria-hidden="true" />
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            <div className="wamp__reply" aria-hidden="true">
-              <span className="wamp__reply-box">Message</span>
-              <span className="wamp__reply-send">
-                <MessageCircle size={15} />
-              </span>
-            </div>
-          </div>
-        </figure>
+        <PhoneMessage message={message} kind={kind} sender={connection.name} values={values} links={links} />
       </Annotated>
     </Drawer>
+  );
+}
+
+// The phone, showing one message as the student gets it. Also used by
+// Settings → WhatsApp → Templates (WhatsAppTemplates.jsx).
+//   sender   the business name at the top of the chat
+//   values   the blanks' sample values ({ first_name, call, … })
+//   links    where the buttons go (see hrefFor), or null: they show but go nowhere
+export function PhoneMessage({ message, kind, sender, values, links }) {
+  return (
+    <figure className="wamp__phone" aria-label={`The message on WhatsApp, from ${sender}`}>
+      <div className="wamp__screen">
+        <div className="wamp__top">
+          <ChevronLeft size={18} aria-hidden="true" />
+          <span className="wa-chat__face" aria-hidden="true">
+            {initials(sender)}
+          </span>
+          <span className="wa-chat__who">
+            <span className="wa-chat__name">{sender}</span>
+            <span className="wa-chat__kind">Business account</span>
+          </span>
+        </div>
+
+        <div className="wamp__chat">
+          <div className="wamp__bubble">
+            <p className="wam__text">
+              <Filled body={message.body} values={values} />
+              <span className="wa-chat__time">{message.sentAt}</span>
+            </p>
+            {message.buttons.map((b) =>
+              links ? (
+                <a
+                  key={b}
+                  className="wamp__btn"
+                  href={hrefFor(kind, b, links)}
+                  target="_blank"
+                  rel="noreferrer"
+                  // The browser's own hint: the phone's rounded screen would clip ours
+                  title={BUTTONS[kind][b].hint}
+                >
+                  {BUTTONS[kind][b].label}
+                  <ExternalLink size={13} aria-hidden="true" />
+                </a>
+              ) : (
+                // A sample: shows where it'd go, goes nowhere
+                <span key={b} className="wamp__btn" title={BUTTONS[kind][b].hint}>
+                  {BUTTONS[kind][b].label}
+                </span>
+              ),
+            )}
+          </div>
+        </div>
+
+        <div className="wamp__reply" aria-hidden="true">
+          <span className="wamp__reply-box">Message</span>
+          <span className="wamp__reply-send">
+            <MessageCircle size={15} />
+          </span>
+        </div>
+      </div>
+    </figure>
   );
 }
 

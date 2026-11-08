@@ -3,6 +3,8 @@ import { AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 import InfoTip from '../components/InfoTip';
 import { useWhatsApp } from '../components/WhatsAppTab';
 import WhatsAppConnected from './WhatsAppConnected';
+import WhatsAppTemplates, { templatesNeedAttention } from './WhatsAppTemplates';
+import { clearTemplates, decideReviewsNow, nextOutcome, setNextOutcome, useTemplates } from '../data/whatsappTemplates';
 import { connectWhatsApp, demo, finishSetup, hasNumber, messageStatus } from '../data/whatsappConnection';
 import { MESSAGE_IDS } from '../data/whatsappMessages';
 import {
@@ -93,12 +95,78 @@ const CHECKS = [
   { id: 'app', text: 'I understand this number will stop working in the WhatsApp app', warn: true },
 ];
 
-export default function WhatsAppSettings() {
+// Two parts, switched at the top of the panel:
+//   Connection   connecting the number, and what's connected
+//   Templates    the messages it sends, and Meta's review of each
+//                (WhatsAppTemplates.jsx). A dot when one needs them.
+// startView: 'connection' (the default) or 'templates'
+export default function WhatsAppSettings({ startView = 'connection' }) {
   const connection = useWhatsApp();
+  const own = useTemplates();
+  const [view, setView] = useState(startView);
+
+  return (
+    <>
+      <ViewSwitch view={view} onView={setView} attention={templatesNeedAttention(connection, own)} />
+      {view === 'templates' ? (
+        <WhatsAppTemplates connection={connection} onConnect={() => setView('connection')} />
+      ) : (
+        <Connection connection={connection} onSeeAll={() => setView('templates')} />
+      )}
+    </>
+  );
+}
+
+const VIEWS = [
+  { id: 'connection', label: 'Connection' },
+  { id: 'templates', label: 'Templates' },
+];
+
+// Connection | Templates: tabs, with arrow keys between them
+function ViewSwitch({ view, onView, attention }) {
+  const onKey = (e) => {
+    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const at = VIEWS.findIndex((v) => v.id === view);
+    const next = VIEWS[(at + step + VIEWS.length) % VIEWS.length].id;
+    onView(next);
+    document.getElementById(`wst-${next}`)?.focus();
+  };
+
+  return (
+    <div className="wst">
+      <div className="wst__list" role="tablist" aria-label="WhatsApp">
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            id={`wst-${v.id}`}
+            type="button"
+            role="tab"
+            aria-selected={view === v.id}
+            tabIndex={view === v.id ? 0 : -1}
+            className="wst__tab"
+            aria-label={v.id === 'templates' && attention ? 'Templates, needs attention' : undefined}
+            onClick={() => onView(v.id)}
+            onKeyDown={onKey}
+          >
+            {v.label}
+            {v.id === 'templates' && attention && <span className="wst__dot" aria-hidden="true" />}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Connection: connecting, and what's connected ----------
+// onSeeAll(): go to Templates (from the connected screen's Messages row)
+function Connection({ connection, onSeeAll }) {
   const signup = useSignup();
 
   // While finishing, the checklist stays under the dimmed page until it's done
-  if (hasNumber(connection) && signup.phase === 'idle') return <WhatsAppConnected connection={connection} />;
+  if (hasNumber(connection) && signup.phase === 'idle')
+    return <WhatsAppConnected connection={connection} onSeeAll={onSeeAll} />;
 
   return (
     <>
@@ -417,7 +485,44 @@ export function WhatsAppControlRows() {
           </div>
         </div>
       )}
+      <TemplateControlRows />
     </>
+  );
+}
+
+// Their own templates: how Meta's review of the next one goes
+function TemplateControlRows() {
+  const own = useTemplates(); // re-renders when they change
+  const outcome = nextOutcome();
+  const inReview = own.some((t) => t.status === 'review');
+  return (
+    <div className="proto__row">
+      <span className="proto__label">Your templates</span>
+      <div className="proto__controls">
+        <button
+          type="button"
+          className="proto__btn"
+          aria-pressed={outcome === 'approve'}
+          onClick={() => setNextOutcome('approve')}
+        >
+          Next one approved
+        </button>
+        <button
+          type="button"
+          className="proto__btn"
+          aria-pressed={outcome === 'reject'}
+          onClick={() => setNextOutcome('reject')}
+        >
+          Next one rejected
+        </button>
+        <button type="button" className="proto__btn" onClick={decideReviewsNow} disabled={!inReview}>
+          Meta decides now
+        </button>
+        <button type="button" className="proto__btn" onClick={clearTemplates} disabled={own.length === 0}>
+          Delete all of mine
+        </button>
+      </div>
+    </div>
   );
 }
 

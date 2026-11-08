@@ -203,42 +203,6 @@
   border-radius: 2px;
 }
 
-/* ---------- Side panel: every message ---------- */
-.wcn-group + .wcn-group {
-  margin-top: 24px;
-}
-
-.wcn-group__title {
-  margin-bottom: 6px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-}
-
-.wcn-group__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.wcn-msg {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 12px;
-  padding: 12px 0;
-  font-size: 15px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.wcn-msg__why {
-  flex-basis: 100%;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #b42318;
-}
-
 /* ---------- Side panel: Get verified ---------- */
 .wcn-verify {
   display: flex;

@@ -42,7 +42,9 @@ import { MESSAGE_IDS } from './whatsappMessages';
 //       'call-1h': {                  sent to Meta for review on this number
 //         status: 'review' | 'approved' | 'rejected',
 //         reviewEndsAt: ISO string,   stand-in, as for the name
-//       },
+//         sentAt: ISO string,         sent to Meta (Templates' journey)
+//         decidedAt: ISO string,      Meta approved or rejected it
+//       },                            (both missing on older saves)
 //       ...
 //     },
 //   }
@@ -91,7 +93,11 @@ function messagesInReview(now = Date.now()) {
   return Object.fromEntries(
     MESSAGE_IDS.map((id, i) => [
       id,
-      { status: 'review', reviewEndsAt: new Date(now + MESSAGE_REVIEW_MS + i * MESSAGE_REVIEW_STEP_MS).toISOString() },
+      {
+        status: 'review',
+        sentAt: new Date(now).toISOString(),
+        reviewEndsAt: new Date(now + MESSAGE_REVIEW_MS + i * MESSAGE_REVIEW_STEP_MS).toISOString(),
+      },
     ]),
   );
 }
@@ -198,6 +204,14 @@ export function renameWhatsApp(name) {
 // A message's review, or 'review' for one not sent to Meta yet
 export const messageStatus = (connection, id) => connection?.messages?.[id]?.status ?? 'review';
 
+// A message's journey with Meta: when it was sent, and when Meta decided
+// (null while in review). Older saves fall back to the connection's date.
+export function messageDates(connection, id) {
+  const m = connection?.messages?.[id] ?? {};
+  const sent = m.sentAt ?? connection?.connectedAt ?? null;
+  return { sent, decided: m.status === 'review' ? null : (m.decidedAt ?? sent) };
+}
+
 // Anything still with Meta: the name, or any message
 export const anyInReview = (connection) =>
   hasNumber(connection) &&
@@ -218,7 +232,7 @@ export function settleReview(now = Date.now()) {
   for (const id of MESSAGE_IDS) {
     const m = messages[id];
     if (m.status === 'review' && m.reviewEndsAt && now >= Date.parse(m.reviewEndsAt)) {
-      messages[id] = { status: 'approved' };
+      messages[id] = { status: 'approved', sentAt: m.sentAt, decidedAt: m.reviewEndsAt };
       changed = true;
     }
   }
@@ -230,7 +244,14 @@ export function settleReview(now = Date.now()) {
 function setMessage(id, status) {
   const c = loadWhatsApp();
   if (!hasNumber(c)) return;
-  update({ messages: { ...messagesInReview(), ...c.messages, [id]: { status } } });
+  const was = c.messages?.[id] ?? {};
+  update({
+    messages: {
+      ...messagesInReview(),
+      ...c.messages,
+      [id]: { status, sentAt: was.sentAt, decidedAt: new Date().toISOString() },
+    },
+  });
 }
 
 export const disconnectWhatsApp = () => saveWhatsApp(null);
@@ -253,7 +274,8 @@ export const demo = {
     const c = loadWhatsApp();
     if (!hasNumber(c)) return;
     const messages = { ...messagesInReview(), ...c.messages };
-    for (const id of ids) messages[id] = { status: 'approved' };
+    const now = new Date().toISOString();
+    for (const id of ids) messages[id] = { status: 'approved', sentAt: messages[id]?.sentAt, decidedAt: now };
     update({ messages });
   },
   rejectMessage: (id) => setMessage(id, 'rejected'),

@@ -1,0 +1,374 @@
+/* Settings → WhatsApp → Templates → Create template
+   (WhatsAppTemplateEditor.jsx): AiSensy's layout, in product tokens.
+   The form on the left, the live preview on the right. */
+
+.wte__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wte__back {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: -8px;
+  color: var(--color-text);
+  border-radius: 50%;
+}
+
+.wte__back:hover {
+  background: var(--color-bg);
+}
+
+.wte__back:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+.wte {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 40px;
+  align-items: start;
+}
+
+.wte__form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+
+.wte__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.wte__field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Each section: a title and a line under it, as AiSensy's */
+.wte__title {
+  display: block;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.wte__optional {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.wte__text {
+  margin: 2px 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.wte__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wte__hint {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.wte__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+}
+
+select.wte__input {
+  padding-right: 32px;
+}
+
+.wte__input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.wte__input[aria-invalid='true'] {
+  border-color: #d97706;
+}
+
+.wte__textarea {
+  min-height: 140px;
+  padding: 12px 14px;
+  line-height: 1.5;
+  resize: vertical;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.wte__error {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b45309;
+}
+
+/* ---------- The message's toolbar ---------- */
+.wte__tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--color-bg);
+  border: 1px solid #d6d6da;
+  border-bottom: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.wte__tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 34px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  border-radius: 6px;
+}
+
+.wte__tool:hover {
+  background: var(--color-surface);
+}
+
+.wte__tool:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+.wte__tool--text {
+  margin-left: auto;
+}
+
+.wte__count {
+  margin-top: 4px;
+  font-size: 12px;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Sample values for the variables ---------- */
+.wte__samples {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.wte__samples .wte__hint {
+  margin-top: -6px;
+}
+
+.wte__sample {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.wte__sample-tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Interactive actions ---------- */
+.wte__radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+
+.wte__radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.wte__radio input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.wte__adds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.wte__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+}
+
+.wte__add:hover:not(:disabled) {
+  border-color: var(--color-text);
+}
+
+.wte__add:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.wte__add:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.wte__add-count {
+  min-width: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+.wte__button {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* A quick reply has no link or number: its words take the room */
+.wte__button:not(:has(input + input)) .wte__input {
+  grid-column: 2 / 4;
+}
+
+.wte__button-kind {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.wte__button-error {
+  grid-column: 2 / -1;
+  margin-top: 0;
+}
+
+.wte__remove {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+}
+
+.wte__remove:hover {
+  color: #b42318;
+  background: #fdecec;
+}
+
+.wte__remove:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
+/* ---------- Save as draft, Submit ---------- */
+.wte__submit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.wte__submit .oh__add:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-bg);
+  cursor: not-allowed;
+}
+
+.wte__submit .wte__hint {
+  flex-basis: 100%;
+  margin-top: 0;
+}
+
+/* ---------- The preview, kept in view ---------- */
+.wte__preview {
+  position: sticky;
+  top: 16px;
+}
+
+.wte__phone {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+@media (max-width: 900px) {
+  .wte {
+    grid-template-columns: 1fr;
+  }
+
+  .wte__preview {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .wte__pair {
+    grid-template-columns: 1fr;
+  }
+
+  .wte__button {
+    grid-template-columns: minmax(0, 1fr) 36px;
+  }
+
+  .wte__button-kind,
+  .wte__button .wte__input,
+  .wte__button-error {
+    grid-column: 1;
+  }
+
+  .wte__button .wte__remove {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}

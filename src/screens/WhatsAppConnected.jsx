@@ -5,7 +5,6 @@ import Drawer from '../components/Drawer';
 import InfoTip from '../components/InfoTip';
 import {
   DAILY_LIMIT,
-  MOCK_MESSAGE_REJECTION,
   MOCK_REJECTION,
   anyInReview,
   dailyLimit,
@@ -15,7 +14,7 @@ import {
   reconnectWhatsApp,
   renameWhatsApp,
 } from '../data/whatsappConnection';
-import { MESSAGES, MESSAGE_IDS } from '../data/whatsappMessages';
+import { MESSAGE_IDS } from '../data/whatsappMessages';
 import './EditFrame.css'; // es__btn, for the side panels' buttons
 import './WhatsAppConnected.css';
 
@@ -42,21 +41,16 @@ import './WhatsAppConnected.css';
 //   the display name rejected        Meta's reason               Choose another name
 //   a message rejected               only the email goes for it  See which
 //
-// Side panels (Drawer): every message and its review (See all), Get
-// verified (Coming soon), and a new display name. Disconnect asks first
+// Messages' "See all", and a rejected message's "See which", go to the
+// Templates tab (onSeeAll). Side panels (Drawer): Get verified (Coming
+// soon), and a new display name. Disconnect asks first
 // (ConfirmDialog); it's also how to change number: disconnect, then
 // connect the new one.
 //
 // "Connected on" isn't shown: nothing to do with it.
 // connection: the saved connection (connected or lost)
+// onSeeAll(): go to Settings → WhatsApp → Templates
 // ------------------------------------------------------------
-
-// The messages, by what sends them, in the order they go
-const GROUPS = [
-  { kind: 'call', label: '1:1 calls' },
-  { kind: 'webinar', label: 'Webinars' },
-  { kind: 'batch', label: 'Live classes' },
-];
 
 const STATUS = {
   approved: { label: 'Approved', badge: 'good' },
@@ -66,8 +60,8 @@ const STATUS = {
 
 const fmt = (n) => n.toLocaleString('en-IN');
 
-export default function WhatsAppConnected({ connection }) {
-  const [panel, setPanel] = useState(null); // 'messages' | 'verify' | 'rename'
+export default function WhatsAppConnected({ connection, onSeeAll }) {
+  const [panel, setPanel] = useState(null); // 'verify' | 'rename'
   const [disconnecting, setDisconnecting] = useState(false);
   const lost = connection.status === 'lost';
   const problem = problemOf(connection);
@@ -98,7 +92,7 @@ export default function WhatsAppConnected({ connection }) {
 
       <div className="settings__body wcn">
         {problem ? (
-          <Problem problem={problem} connection={connection} onOpen={setPanel} />
+          <Problem problem={problem} connection={connection} onOpen={setPanel} onSeeAll={onSeeAll} />
         ) : welcome ? (
           <Welcome inReview={anyInReview(connection)} onClose={() => setWelcomeOpen(false)} />
         ) : null}
@@ -142,7 +136,7 @@ export default function WhatsAppConnected({ connection }) {
             <dt>Messages</dt>
             <dd>
               {messagesSummary(connection)}
-              <button type="button" className="wcn-link" onClick={() => setPanel('messages')}>
+              <button type="button" className="wcn-link" onClick={onSeeAll}>
                 See all
               </button>
             </dd>
@@ -154,7 +148,6 @@ export default function WhatsAppConnected({ connection }) {
         </button>
       </div>
 
-      {panel === 'messages' && <MessagesPanel connection={connection} onClose={() => setPanel(null)} />}
       {panel === 'verify' && <VerifyPanel onClose={() => setPanel(null)} />}
       {panel === 'rename' && <RenamePanel current={connection.name} onClose={() => setPanel(null)} />}
 
@@ -186,7 +179,7 @@ function problemOf(c) {
   return null;
 }
 
-function Problem({ problem, connection, onOpen }) {
+function Problem({ problem, connection, onOpen, onSeeAll }) {
   const heading = useRef(null);
   useEffect(() => heading.current?.focus(), [problem.id]);
 
@@ -207,7 +200,7 @@ function Problem({ problem, connection, onOpen }) {
       title: problem.count === 1 ? '1 reminder wasn’t approved' : `${problem.count} reminders weren’t approved`,
       text: `Only the email goes for ${problem.count === 1 ? 'it' : 'them'}.`,
       action: 'See which',
-      onAction: () => onOpen('messages'),
+      onAction: onSeeAll,
     },
   }[problem.id];
 
@@ -262,41 +255,6 @@ function messagesSummary(c) {
 }
 
 // ---------- Side panels ----------
-function MessagesPanel({ connection, onClose }) {
-  return (
-    <Drawer
-      title="Reminder messages"
-      sub="Meta checks each one before it can go out. Until then, only the email goes."
-      onClose={onClose}
-      footer={
-        <button type="button" className="es__btn es__btn--primary" onClick={onClose}>
-          Done
-        </button>
-      }
-    >
-      {GROUPS.map((g) => (
-        <section key={g.kind} className="wcn-group" aria-labelledby={`wcn-group-${g.kind}`}>
-          <h3 className="wcn-group__title" id={`wcn-group-${g.kind}`}>
-            {g.label}
-          </h3>
-          <ul className="wcn-group__list">
-            {MESSAGES[g.kind].map((m) => {
-              const status = messageStatus(connection, m.id);
-              return (
-                <li key={m.id} className="wcn-msg">
-                  <span className="wcn-msg__name">{m.name}</span>
-                  <Badge status={status} />
-                  {status === 'rejected' && <p className="wcn-msg__why">{MOCK_MESSAGE_REJECTION}</p>}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
-    </Drawer>
-  );
-}
-
 function VerifyPanel({ onClose }) {
   return (
     <Drawer
