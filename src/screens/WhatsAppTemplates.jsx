@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Clock, Copy, FileText, Pencil, Plus, Send, Trash2, X, XCircle } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
+import RowMenu from '../components/RowMenu';
 import { PhoneMessage } from '../components/WhatsAppMessages';
 import TemplatePhone from './TemplatePhone';
 import WhatsAppTemplateEditor from './WhatsAppTemplateEditor';
@@ -11,16 +12,16 @@ import {
   messageDates,
   messageStatus,
 } from '../data/whatsappConnection';
-import { MESSAGES } from '../data/whatsappMessages';
+import { LIVE_CLASSES_SHOWN, MESSAGES } from '../data/whatsappMessages';
 import {
   deleteTemplate,
+  duplicateName,
   CHOICES_CHANGED_EVENT,
   isLegacy,
   rejectionOf,
   usesOf,
   momentById,
   sampleValues,
-  suggestName,
   toMeta,
   useTemplates,
 } from '../data/whatsappTemplates';
@@ -34,7 +35,7 @@ import './WhatsAppTemplates.css';
 //
 //   Templates                                   [+ Create template]
 //   All 10 · Draft 1 · In review 1 · …      [All | 1:1 calls | Webinars]
-//   Name                       Category  Status     Updated      Action
+//   Name                                  Status     Updated      Action
 //   session_reminder_tamil     Utility   Draft      8 Nov 2026   ⧉ 🗑
 //   1:1 call · 24 hours before Utility   Approved   8 Nov 2026   ⧉
 //   …
@@ -48,11 +49,11 @@ import './WhatsAppTemplates.css';
 // A click on a row opens the template: its journey with Meta on the left,
 // the message on a phone on the right, and what can be done with it
 // (Edit for a draft or one Meta rejected, Duplicate, Delete for theirs).
-// Duplicate opens the editor with a copy, for the same message: a
-// ready-made one starts a template from our wording. A live class's
-// ready-made message can't be duplicated (templates are for 1:1 calls and
-// webinars), and one of theirs made with the first editor starts a new
-// template from step 1 instead.
+// Each row's ⋯ menu: Duplicate, and Delete for theirs. Duplicate opens
+// the editor on a copy of everything, named <original>_duplicate, saved
+// only when they save or submit it. A live class's ready-made message
+// can't be duplicated (templates are for 1:1 calls and webinars), nor one
+// of theirs made with the first editor (it has no message to copy).
 //
 // Statuses, with Meta's own words in brackets:
 //   Draft         not sent to Meta yet (ready-made ones, until connected)
@@ -67,15 +68,18 @@ import './WhatsAppTemplates.css';
 // Our ready-made templates, each with its template name (call_24h_reminder)
 // and what it's for, in words (1:1 call · 24 hours before)
 const KIND_NAME = { call: '1:1 call', webinar: 'Webinar', batch: 'Live class' };
-const READY_MADE = Object.entries(MESSAGES).flatMap(([kind, list]) =>
-  list.map((message) => ({
-    id: message.id,
-    kind,
-    message,
-    name: message.template,
-    about: `${KIND_NAME[kind]} · ${message.name}`,
-  })),
-);
+// (Live classes' only while they're in the sidebar: LIVE_CLASSES_SHOWN)
+const READY_MADE = Object.entries(MESSAGES)
+  .filter(([kind]) => kind !== 'batch' || LIVE_CLASSES_SHOWN)
+  .flatMap(([kind, list]) =>
+    list.map((message) => ({
+      id: message.id,
+      kind,
+      message,
+      name: message.template,
+      about: `${KIND_NAME[kind]} · ${message.name}`,
+    })),
+  );
 
 // What one of theirs is for, in words, or null (made with the first editor)
 const aboutOf = (t) => {
@@ -83,7 +87,6 @@ const aboutOf = (t) => {
   return m ? `${KIND_NAME[t.product]} · ${m.name}` : null;
 };
 
-const CATEGORY = { UTILITY: 'Utility', MARKETING: 'Marketing' };
 
 const STATUS = {
   draft: { label: 'Draft', badge: 'draft' },
@@ -126,22 +129,21 @@ const fmtWhen = (iso) =>
     minute: '2-digit',
   });
 
-// What can be duplicated: theirs, and our 1:1 call and webinar messages
-const canDuplicate = (row) => row.own || ['call', 'webinar'].includes(row.readyMade?.kind);
+// What can be duplicated: theirs (not ones made with the first editor:
+// they have no message to copy), and our 1:1 call and webinar messages
+const canDuplicate = (row) =>
+  row.own ? !isLegacy(row.template) : ['call', 'webinar'].includes(row.readyMade?.kind);
 
-// A ready-made template, as the start of their own: our wording, with
-// the next free name for that message (call_24h_reminder_1)
-const copyOfReadyMade = (row, taken) => ({
-  product: row.kind,
-  moment: row.id,
-  body: row.message.body,
-  name: suggestName(row.id, taken),
-});
-
-// One of theirs, as the start of another, for the same message (null for
-// one made with the first editor: that starts a new template from step 1)
-const copyOfOwn = (t, taken) =>
-  isLegacy(t) ? null : { product: t.product, moment: t.moment, body: t.body, name: suggestName(t.moment, taken) };
+// A copy, ready for the editor: everything as it was (which message it's
+// for, the wording with its details), named <original>_duplicate. Nothing
+// is saved until they save or submit it (copiedFrom names the original,
+// for the editor's title).
+const copyOf = (row, taken) => {
+  const from = row.own
+    ? { product: row.template.product, moment: row.template.moment, body: row.template.body }
+    : { product: row.readyMade.kind, moment: row.readyMade.id, body: row.readyMade.message.body };
+  return { ...from, name: duplicateName(row.name, taken), copiedFrom: row.name };
+};
 
 // startCreate: { product, moment } to open straight on a new template for
 //   that message (a reminder's "Create a new template")
@@ -150,6 +152,7 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
   const own = useTemplates();
   const [filter, setFilter] = useState('all');
   const [product, setProduct] = useState('all'); // PRODUCT_FILTERS
+  const [menu, setMenu] = useState(null); // the row whose ⋯ menu is open
   const [open, setOpen] = useState(null); // a row's key
   const [editing, setEditing] = useState(() => (startCreate ? { initial: { ...startCreate } } : null)); // { initial } while the editor's open
   const [removing, setRemoving] = useState(null); // one of theirs, to delete
@@ -208,7 +211,8 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
 
   const duplicate = (row) => {
     setOpen(null);
-    setEditing({ initial: row.own ? copyOfOwn(row.template, taken) : copyOfReadyMade(row.readyMade, taken) });
+    setMenu(null);
+    setEditing({ initial: copyOf(row, taken) });
   };
 
   // ---------- The editor, in place of the list ----------
@@ -288,7 +292,6 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
               <thead>
                 <tr>
                   <th scope="col">Name</th>
-                  <th scope="col">Category</th>
                   <th scope="col">Status</th>
                   <th scope="col">Updated</th>
                   <th scope="col">
@@ -313,35 +316,33 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
                       {r.about && <span className="wtp-about">{r.about}</span>}
                       {r.own && <UsedOn id={r.template.id} />}
                     </td>
-                    <td className="wtp-muted">{CATEGORY[r.category]}</td>
                     <td>
                       <span className={`wa-badge wtp-badge--${STATUS[r.status].badge}`}>{STATUS[r.status].label}</span>
                     </td>
                     <td className="wtp-muted wtp-date">{fmtDay(r.updated)}</td>
                     {/* The row's own buttons: a click here doesn't open the template */}
                     <td className="wtp-actions" onClick={(e) => e.stopPropagation()}>
-                      {canDuplicate(r) && (
-                        <button
-                          type="button"
-                          className="wtp-icon"
-                          onClick={() => duplicate(r)}
-                          aria-label={`Duplicate ${r.name}`}
-                          title="Duplicate"
-                        >
-                          <Copy size={17} aria-hidden="true" />
-                        </button>
-                      )}
-                      {r.own && (
-                        <button
-                          type="button"
-                          className="wtp-icon wtp-icon--danger"
-                          onClick={() => setRemoving(r.template)}
-                          aria-label={`Delete ${r.name}`}
-                          title="Delete"
-                        >
-                          <Trash2 size={17} aria-hidden="true" />
-                        </button>
-                      )}
+                      <RowMenu
+                        title={r.name}
+                        open={menu === r.key}
+                        onOpenChange={(o) => setMenu(o ? r.key : null)}
+                        items={[
+                          ...(canDuplicate(r) ? [{ label: 'Duplicate', icon: Copy, onSelect: () => duplicate(r) }] : []),
+                          ...(r.own
+                            ? [
+                                {
+                                  label: 'Delete',
+                                  icon: Trash2,
+                                  danger: true,
+                                  onSelect: () => {
+                                    setMenu(null);
+                                    setRemoving(r.template);
+                                  },
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

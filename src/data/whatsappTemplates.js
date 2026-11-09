@@ -237,6 +237,20 @@ const snakeOf = (name) =>
       .replace(/([0-9])([A-Za-z])/g, '$1_$2'),
   );
 
+// A copy's name: the original's with _duplicate, numbered if that's
+// taken (call_24h_reminder_duplicate, then _duplicate_2 …), kept within
+// the name field's 60 characters
+export const NAME_MAX = 60;
+export function duplicateName(original, taken = []) {
+  const make = (n) => {
+    const tail = n === 1 ? '_duplicate' : `_duplicate_${n}`;
+    return `${String(original).slice(0, NAME_MAX - tail.length)}${tail}`;
+  };
+  let n = 1;
+  while (takenBy(make(n), taken)) n += 1;
+  return make(n);
+}
+
 // One made with the first editor: no moment
 export const isLegacy = (t) => !t?.moment;
 
@@ -437,10 +451,9 @@ export function blanksOf(body) {
 }
 // ---------- Which template each reminder sends ----------
 // A webinar's or a 1:1 call's Reminders → WhatsApp tab picks, for each of
-// its messages, our default or one of the coach's approved templates for
-// that product. Any of them: a 5-minute template can go on the 24-hour
-// message if they want (it's their wording). Picked per webinar session or
-// call, the same keys as the on/off switches (whatsappMessages.js).
+// its messages, our default or one of the coach's approved templates made
+// for that same message (WhatsAppTemplatePicker.jsx). Picked per webinar
+// session or call, the same keys as the on/off switches (whatsappMessages.js).
 //
 // Kept in this browser (the stand-in):
 //   { 'call:<id>': {

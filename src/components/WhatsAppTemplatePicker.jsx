@@ -9,20 +9,18 @@ import './WhatsAppTemplatePicker.css';
 
 // ------------------------------------------------------------
 // Which template one of a webinar's or a call's WhatsApp messages sends,
-// opened from "Change" on its row (WhatsAppMessages.jsx). Every approved
-// template the coach has made for that product is here, whatever message
-// it was made for (a 5-minute one can go on the 24-hour message: it's
-// their wording), grouped so the closest fit comes first:
+// opened from "Change" on its row (WhatsAppMessages.jsx): our default,
+// and the coach's approved templates made for that same message (a
+// 24-hour row lists only 24-hour ones):
 //
 //   Change the 24 hours before message                            ✕
 //   ────────────────────────────────────────────────────────────────
 //   ◉ call_24h_reminder   Our default           ┌──────────────┐
-//   Made for 24 hours before                    │ the selected │
+//   Yours                                       │ the selected │
 //   ○ discovery_call_24h_reminder               │ one on a     │
-//   Your other 1:1 call templates               │ phone, kept  │
-//   ○ discovery_call_5min_reminder              │ in view      │
-//     Made for 5 minutes before                 └──────────────┘
-//   1 more isn’t approved by Meta yet …
+//   ○ call_24h_reminder_1                       │ phone, kept  │
+//   1 more isn’t approved by Meta yet …         │ in view      │
+//                                               └──────────────┘
 //   + Create a new template
 //   ────────────────────────────────────────────────────────────────
 //                                        Cancel   [Use this message]
@@ -31,7 +29,8 @@ import './WhatsAppTemplatePicker.css';
 // pick shows at once. Too narrow for both, it goes above the options.
 //
 // Only approved ones can be picked: Meta lets nothing else go out. One
-// that isn't yet is counted, so the coach knows why it isn't listed.
+// for this message that isn't yet is counted, so the coach knows why it
+// isn't listed.
 // "Create a new template" opens Settings → WhatsApp → Templates on a new
 // one for this message.
 //
@@ -42,8 +41,6 @@ import './WhatsAppTemplatePicker.css';
 // connection, offeringName, links: for the preview
 // onUse(templateId | null), onClose()
 // ------------------------------------------------------------
-
-const KIND_ONE = { call: '1:1 call', webinar: 'webinar' };
 
 export default function WhatsAppTemplatePicker({
   kind,
@@ -57,11 +54,11 @@ export default function WhatsAppTemplatePicker({
   onClose,
 }) {
   const moment = momentById(momentId);
-  const pickable = pickableOf(own, kind);
-  const same = pickable.filter((t) => t.moment === momentId);
-  const others = pickable.filter((t) => t.moment !== momentId);
+  // Only templates made for this message: a 24-hour row lists 24-hour ones
+  const pickable = pickableOf(own, kind).filter((t) => t.moment === momentId);
   const waiting = own.filter(
-    (t) => !isLegacy(t) && t.product === kind && ['draft', 'review', 'rejected'].includes(t.status),
+    (t) =>
+      !isLegacy(t) && t.product === kind && t.moment === momentId && ['draft', 'review', 'rejected'].includes(t.status),
   ).length;
   // A pick that's gone (deleted, or no longer approved) shows as our default
   const start = pickable.some((t) => t.id === current) ? current : null;
@@ -113,22 +110,17 @@ export default function WhatsAppTemplatePicker({
 
           {option(null, moment.template, 'Our default')}
 
-          {same.length > 0 && (
+          {pickable.length > 0 && (
             <>
-              <p className="wtk-picker__group">Made for {moment.name.toLowerCase()}</p>
-              {same.map((t) => option(t.id, t.name))}
-            </>
-          )}
-
-          {others.length > 0 && (
-            <>
-              <p className="wtk-picker__group">Your other {KIND_ONE[kind]} templates</p>
-              {others.map((t) => option(t.id, t.name, `Made for ${momentById(t.moment)?.name.toLowerCase()}`))}
+              <p className="wtk-picker__group">Yours</p>
+              {pickable.map((t) => option(t.id, t.name))}
             </>
           )}
 
           {pickable.length === 0 && (
-            <p className="wtk-picker__empty">You haven’t got an approved {KIND_ONE[kind]} template of your own yet.</p>
+            <p className="wtk-picker__empty">
+              You haven’t got an approved template of your own for {moment.name.toLowerCase()} yet.
+            </p>
           )}
           {waiting > 0 && (
             <p className="wtk-picker__waiting">

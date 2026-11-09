@@ -86,8 +86,9 @@ import './WhatsAppTemplateEditor.css';
 // says what's wrong, beside it), then sends it for review. Submit needs a
 // connected number.
 //
-// initial:     a template to edit, or to start from (Duplicate): has a
-//              product and a moment. null: start at step 1.
+// initial:     a template to edit, or to start from: has a product and a
+//              moment (and copiedFrom, the original's name, for a
+//              duplicate). null: start at step 1.
 // connected:   a number is connected (Submit allowed)
 // sender:      the business name, for the preview and Meta's examples
 // taken:       every other template's name, theirs and ours, and whose it
@@ -138,6 +139,7 @@ export default function WhatsAppTemplateEditor({ initial, connected, sender, tak
       start={draft}
       fresh={!initial?.moment}
       editing={Boolean(initial?.id)}
+      copiedFrom={initial?.copiedFrom ?? null}
       rejected={initial?.status === 'rejected' ? rejectionOf(initial) : null}
       connected={connected}
       sender={sender}
@@ -225,8 +227,9 @@ function MomentPicker({ product, onProduct, onPick, onBack }) {
 // start: { id?, createdAt?, product, moment, name, body }
 // fresh: a new template (its message can still be changed)
 // editing: one of theirs, saved before
+// copiedFrom: the original's name, when it's a duplicate (the title says so)
 // rejected: Meta's reason, when it's one Meta turned down (shown at the top)
-function Writer({ start, fresh, editing, rejected, connected, sender, taken, onChangeMoment, onDone }) {
+function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender, taken, onChangeMoment, onDone }) {
   const [t, setT] = useState(start);
   const [errors, setErrors] = useState({});
   const [leaving, setLeaving] = useState(false);
@@ -314,7 +317,15 @@ function Writer({ start, fresh, editing, rejected, connected, sender, taken, onC
           <ArrowLeft size={20} aria-hidden="true" />
         </button>
         <div className="wte__head-words">
-          <h2 className="oh__panel-title">{editing ? 'Edit template' : 'New template'}</h2>
+          <h2 className="oh__panel-title">
+            {editing ? 'Edit template' : copiedFrom ? (
+              <>
+                Duplicate of <code className="wte__code wte__code--title">{copiedFrom}</code>
+              </>
+            ) : (
+              'New template'
+            )}
+          </h2>
           <p className="wte__for">
             <span className="wte__for-what">
               {product.one} · {moment.name}

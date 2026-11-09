@@ -657,6 +657,13 @@ select.wte__input {
   overflow-wrap: anywhere;
 }
 
+/* The original's name in a duplicate's title */
+.wte__code--title {
+  font-size: 0.8em;
+  font-weight: 600;
+  vertical-align: 2px;
+}
+
 /* Taken: whose it is, and the next free name, one click away */
 .wte__taken {
   display: flex;

@@ -125,8 +125,21 @@
   color: var(--color-text-muted);
 }
 
+/* Scrolls sideways only when it must (narrow screens), so a row's ⋯ menu
+   isn't clipped by the scroll box on wider ones */
 .wtp-scroll {
-  overflow-x: auto;
+  overflow-x: visible;
+}
+
+@media (max-width: 720px) {
+  .wtp-scroll {
+    overflow-x: auto;
+  }
+
+  /* Room under the last rows for an open menu */
+  .wtp-scroll:has(.row-menu__list) {
+    padding-bottom: 120px;
+  }
 }
 
 .wtp-table {
@@ -440,29 +453,11 @@
   cursor: default;
 }
 
-.wtp-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  color: var(--color-text-muted);
-  border-radius: var(--radius-sm);
-}
-
-.wtp-icon:hover {
-  color: var(--color-text);
-  background: var(--color-surface);
-  box-shadow: inset 0 0 0 1px var(--color-border);
-}
-
-.wtp-icon--danger:hover {
-  color: #b42318;
-  background: #fdecec;
-  box-shadow: none;
-}
-
-.wtp-icon:focus-visible {
-  outline: 2px solid var(--color-primary);
+/* The ⋯ menu's wrapper is only as wide as its button, so the button sits
+   at the cell's right (under "Action") and the menu opens right under it */
+.wtp-actions .row-menu {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* ---------- A template's own actions, under its journey ---------- */

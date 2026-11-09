@@ -174,6 +174,15 @@ export const BUTTONS = {
 
 export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.batch].map((m) => m.id);
 
+// Live classes are left out of the sidebar for now (AppLayout.jsx, its
+// item's `hidden`). While they are, Settings doesn't count or list their
+// message either, so the numbers match what a coach can see. Turn this on
+// with the sidebar item.
+export const LIVE_CLASSES_SHOWN = false;
+export const SHOWN_MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...(LIVE_CLASSES_SHOWN ? MESSAGES.batch : [])].map(
+  (m) => m.id,
+);
+
 // The message with its blanks filled in: { first_name, call, webinar, host, date, time }
 export const fillMessage = (body, values) => body.replace(/\{(\w+)\}/g, (all, key) => values[key] ?? all);
 

@@ -14,7 +14,7 @@ import {
   reconnectWhatsApp,
   renameWhatsApp,
 } from '../data/whatsappConnection';
-import { MESSAGE_IDS } from '../data/whatsappMessages';
+import { SHOWN_MESSAGE_IDS } from '../data/whatsappMessages';
 import './EditFrame.css'; // es__btn, for the side panels' buttons
 import './WhatsAppConnected.css';
 
@@ -39,7 +39,7 @@ import './WhatsAppConnected.css';
 // each with the one thing to do:
 //   the number dropped by WhatsApp   paused, emails still go     Reconnect
 //   the display name rejected        Meta's reason               Choose another name
-//   a message rejected               only the email goes for it  See which
+//   a message rejected               where to see why            See which
 //
 // Messages' "See all", and a rejected message's "See which", go to the
 // Templates tab (onSeeAll). Side panels (Drawer): Get verified (Coming
@@ -174,7 +174,7 @@ export default function WhatsAppConnected({ connection, onSeeAll }) {
 function problemOf(c) {
   if (c.status === 'lost') return { id: 'lost' };
   if (c.nameStatus === 'rejected') return { id: 'name' };
-  const rejected = MESSAGE_IDS.filter((id) => messageStatus(c, id) === 'rejected');
+  const rejected = SHOWN_MESSAGE_IDS.filter((id) => messageStatus(c, id) === 'rejected');
   if (rejected.length) return { id: 'message', count: rejected.length };
   return null;
 }
@@ -198,7 +198,7 @@ function Problem({ problem, connection, onOpen, onSeeAll }) {
     },
     message: {
       title: problem.count === 1 ? '1 reminder wasn’t approved' : `${problem.count} reminders weren’t approved`,
-      text: `Only the email goes for ${problem.count === 1 ? 'it' : 'them'}.`,
+      text: `Meta’s reason is in Templates. Pick another template for ${problem.count === 1 ? 'it' : 'them'} on the call or webinar.`,
       action: 'See which',
       onAction: onSeeAll,
     },
@@ -247,9 +247,9 @@ function Badge({ status }) {
 // "8 reminders: 7 approved, 1 in review", or "8 reminders, all approved"
 function messagesSummary(c) {
   const counts = { approved: 0, review: 0, rejected: 0 };
-  MESSAGE_IDS.forEach((id) => (counts[messageStatus(c, id)] += 1));
+  SHOWN_MESSAGE_IDS.forEach((id) => (counts[messageStatus(c, id)] += 1));
   const parts = Object.entries(counts).filter(([, n]) => n > 0);
-  const total = `${MESSAGE_IDS.length} reminders`;
+  const total = `${SHOWN_MESSAGE_IDS.length} reminders`;
   if (parts.length === 1) return `${total}, all ${STATUS[parts[0][0]].label.toLowerCase()}`;
   return `${total}: ${parts.map(([s, n]) => `${n} ${STATUS[s].label.toLowerCase()}`).join(', ')}`;
 }

@@ -6,7 +6,7 @@ import WhatsAppConnected from './WhatsAppConnected';
 import WhatsAppTemplates from './WhatsAppTemplates';
 import { REJECTIONS, clearTemplates, decideReviewsNow, nextOutcome, setNextOutcome, useTemplates } from '../data/whatsappTemplates';
 import { connectWhatsApp, demo, finishSetup, hasNumber, messageStatus } from '../data/whatsappConnection';
-import { MESSAGE_IDS } from '../data/whatsappMessages';
+import { SHOWN_MESSAGE_IDS as MESSAGE_IDS } from '../data/whatsappMessages';
 import {
   BLOCK_CHANGED_EVENT,
   ERROR_CHANGED_EVENT,
