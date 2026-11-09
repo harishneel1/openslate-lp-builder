@@ -5,8 +5,8 @@
 }
 
 /* ---------- Top bar ----------
-   Just the coach's brand on the left and Updates + their profile on the
-   right. The logo sits on the sidebar's centre line (72px rail). */
+   Just the coach's brand on the left and Updates on the right (their
+   account and Settings are at the foot of the sidebar). The logo sits on the sidebar's centre line (72px rail). */
 .topnav {
   height: 60px;
   flex-shrink: 0;
@@ -508,4 +508,15 @@
 .mypage--active.bkcard .bkcard__icon {
   color: var(--color-primary);
   background: var(--color-surface);
+}
+/* ---------- The foot: Settings, then who's signed in ----------
+   Pushed to the bottom of the rail, below a line, so the account sits
+   apart from what the coach sells. */
+.sidebar__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
 }

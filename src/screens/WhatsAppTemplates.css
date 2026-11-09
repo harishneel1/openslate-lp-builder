@@ -1,55 +1,4 @@
-/* Settings → WhatsApp → Templates (WhatsAppTemplates.jsx), and the
-   Connection / Templates switch above both (WhatsAppSettings.jsx). */
-
-/* ---------- Connection | Templates ----------
-   Lighter than Settings' own tabs above it: a small switch inside the
-   panel, so it reads as "within WhatsApp", not a second row of tabs */
-.wst {
-  padding: 16px 24px 0;
-}
-
-.wst__list {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--color-bg);
-  border-radius: var(--radius-pill);
-}
-
-.wst__tab {
-  padding: 6px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  border-radius: var(--radius-pill);
-  transition: background 0.15s, color 0.15s;
-}
-
-.wst__tab:hover {
-  color: var(--color-text);
-}
-
-.wst__tab[aria-selected='true'] {
-  color: var(--color-text);
-  background: var(--color-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.wst__tab:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Something in Templates needs them: just after the word */
-.wst__dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-left: 5px;
-  vertical-align: 6px;
-  background: #d97706;
-  border-radius: 50%;
-}
+/* Settings → WhatsApp → Templates (WhatsAppTemplates.jsx) */
 
 /* ---------- The list ---------- */
 /* The list uses the panel's full width, as a table should */
@@ -83,11 +32,53 @@
 }
 
 /* Status filters, with how many in each */
+/* Status on the left, what it's for on the right */
+.wtp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-bottom: 16px;
+}
+
 .wtp-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 16px;
+}
+
+/* What it's for: a small switch, lighter than the status pills */
+.wtp-kinds {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+.wtp-kind {
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+}
+
+.wtp-kind:hover {
+  color: var(--color-text);
+}
+
+.wtp-kind[aria-pressed='true'] {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.wtp-kind:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .wtp-filter {
@@ -177,9 +168,20 @@
 }
 
 .wtp-name {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 14px;
   font-weight: 600;
   text-align: left;
   color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+/* What it's for, under the name: 1:1 call · 24 hours before */
+.wtp-about {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .wtp-name:focus-visible {
@@ -385,10 +387,6 @@
 }
 
 @media (max-width: 640px) {
-  .wst {
-    padding: 14px 20px 0;
-  }
-
   .wtp-table th,
   .wtp-table td {
     padding-left: 8px;
@@ -397,7 +395,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wst__tab,
   .wtp-tr {
     transition: none;
   }

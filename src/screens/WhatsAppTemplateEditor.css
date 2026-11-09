@@ -1,11 +1,15 @@
 /* Settings → WhatsApp → Templates → Create template
-   (WhatsAppTemplateEditor.jsx): AiSensy's layout, in product tokens.
-   The form on the left, the live preview on the right. */
+   (WhatsAppTemplateEditor.jsx). Step 1 (wtk): what it's for. Step 2
+   (wte): the words on the left, the live preview on the right. */
 
 .wte__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+}
+
+.wte__head .wte__back {
+  margin-top: -3px;
 }
 
 .wte__back {
@@ -172,143 +176,6 @@ select.wte__input {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Sample values for the variables ---------- */
-.wte__samples {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 14px;
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
-}
-
-.wte__samples .wte__hint {
-  margin-top: -6px;
-}
-
-.wte__sample {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-}
-
-.wte__sample-tag {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------- Interactive actions ---------- */
-.wte__radios {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 22px;
-}
-
-.wte__radio {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.wte__radio input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: var(--color-primary);
-}
-
-.wte__adds {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.wte__add {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid #d6d6da;
-  border-radius: var(--radius-sm);
-}
-
-.wte__add:hover:not(:disabled) {
-  border-color: var(--color-text);
-}
-
-.wte__add:disabled {
-  color: var(--color-text-disabled);
-  cursor: not-allowed;
-}
-
-.wte__add:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.wte__add-count {
-  min-width: 20px;
-  padding: 0 6px;
-  font-size: 12px;
-  line-height: 20px;
-  text-align: center;
-  background: var(--color-bg);
-  border-radius: var(--radius-pill);
-}
-
-.wte__button {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1fr) 36px;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-/* A quick reply has no link or number: its words take the room */
-.wte__button:not(:has(input + input)) .wte__input {
-  grid-column: 2 / 4;
-}
-
-.wte__button-kind {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.wte__button-error {
-  grid-column: 2 / -1;
-  margin-top: 0;
-}
-
-.wte__remove {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  color: var(--color-text-muted);
-  border-radius: var(--radius-sm);
-}
-
-.wte__remove:hover {
-  color: #b42318;
-  background: #fdecec;
-}
-
-.wte__remove:focus-visible {
-  outline: 2px solid var(--color-primary);
-}
-
 /* ---------- Save as draft, Submit ---------- */
 .wte__submit {
   display: flex;
@@ -342,6 +209,494 @@ select.wte__input {
   margin-top: 6px;
 }
 
+/* ---------- Step 2's own pieces ---------- */
+/* What it's for, under the title: the message, when it goes, Change */
+.wte__for {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.wte__for-what {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* A quiet action written as a link */
+.wte__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: #c9c9cd;
+}
+
+.wte__link:hover {
+  text-decoration-color: currentColor;
+}
+
+.wte__link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Under the message: Use our wording again on the left, the count on the right */
+.wte__under {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.wte__under .wte__count {
+  margin-top: 0;
+}
+
+.wte__reset {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* + Insert detail and its menu, at the toolbar's right end */
+.wte__detail {
+  position: relative;
+  margin-left: auto;
+}
+
+.wte__detail .wte__tool--text {
+  margin-left: 0;
+  gap: 4px;
+}
+
+.wte__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: 280px;
+  padding: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.wte__menu-item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+
+.wte__menu-item:hover,
+.wte__menu-item:focus-visible {
+  background: var(--color-bg);
+  outline: none;
+}
+
+.wte__menu-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wte__menu-hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* The moment's buttons: shown, not editable */
+.wte__locked {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.wte__lock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  background: var(--color-bg);
+}
+
+.wte__lock:first-child {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.wte__lock:last-child {
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.wte__lock + .wte__lock {
+  border-top: 1px solid var(--color-border);
+}
+
+.wte__lock-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.wte__lock-name {
+  font-weight: 600;
+}
+
+.wte__lock-hint {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Step 1: what it's for ---------- */
+.wtk {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 760px;
+}
+
+.wtk__step {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.wtk__step > .wte__title {
+  margin-bottom: 12px;
+}
+
+.wtk__products {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.wtk__product {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.wtk__product:hover {
+  border-color: #b9b9be;
+}
+
+.wtk__product--on,
+.wtk__product--on:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.wtk__product:has(.wtk__radio:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* The card is the radio: the input itself stays for the keyboard */
+.wtk__radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wtk__product-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: 10px;
+}
+
+.wtk__product--on .wtk__product-icon {
+  color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.wtk__product-words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wtk__product-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.wtk__product-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* The messages: one list, a row each, each opening the editor */
+.wtk__moments {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.wtk__moments li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.wtk__moment {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.wtk__moments li:first-child .wtk__moment {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.wtk__moments li:last-child .wtk__moment {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.wtk__moments li:only-child .wtk__moment {
+  border-radius: var(--radius-md);
+}
+
+.wtk__moment:hover {
+  background: var(--color-bg);
+}
+
+.wtk__moment:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.wtk__moment-words {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wtk__moment-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wtk__moment-when {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.wtk__moment-go {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.wtk__moment:hover .wtk__moment-go {
+  color: var(--color-text);
+}
+
+/* ---------- The message box, with details as tags ----------
+   Looks like the old textarea; lines wrap as WhatsApp's do */
+.wte__box {
+  min-height: 168px;
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  cursor: text;
+}
+
+.wte__box:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.wte__box[aria-invalid='true'] {
+  border-color: #d97706;
+}
+
+/* A detail: its name in a small tag, tinted like the email editor's
+   (ReminderEditor.css .re-chip). It can't be typed into; Backspace takes
+   it whole; hovering says what it fills in (data-tip, tooltip.css). A
+   click puts the cursor beside it rather than selecting it, so typing
+   next can't replace it. */
+.wte-chip {
+  position: relative;
+  display: inline-block;
+  padding: 0 7px;
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  color: #b4520c;
+  background: var(--color-primary-tint);
+  border-radius: 6px;
+  cursor: default;
+  user-select: none;
+}
+
+.wte__count--over {
+  font-weight: 600;
+  color: #b45309;
+}
+
+/* ---------- Why Meta turned it down, at the top when fixing one ---------- */
+.wte__rejected {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #8f1d14;
+  background: #fdecec;
+  border-radius: var(--radius-md);
+}
+
+.wte__rejected-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.wte__rejected-title {
+  font-weight: 700;
+}
+
+/* ---------- What would get it turned down, under the message ---------- */
+.wte__problems {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wte__problem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: var(--radius-sm);
+}
+
+.wte__problem-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Submit waits on these */
+.wte__problem--block {
+  color: #8f1d14;
+  background: #fdecec;
+}
+
+/* Meta may turn it down: it can still go */
+.wte__problem--warn {
+  color: #8a4b0b;
+  background: #fef6e7;
+}
+
+/* ---------- The template name ----------
+   An identifier, so it's shown as one: the code face makes the
+   underscores easy to count */
+.wte__input--name {
+  max-width: 420px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 14px;
+}
+
+.wte__code {
+  padding: 1px 6px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.92em;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+/* Taken: whose it is, and the next free name, one click away */
+.wte__taken {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  max-width: 560px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #8a4b0b;
+  background: #fef6e7;
+  border-radius: var(--radius-sm);
+}
+
+.wte__taken .wte__code {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.wte__use {
+  padding: 4px 10px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #e8c48a;
+  border-radius: 6px;
+}
+
+.wte__use:hover {
+  border-color: #b45309;
+}
+
+.wte__use:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 @media (max-width: 900px) {
   .wte {
     grid-template-columns: 1fr;
@@ -357,18 +712,23 @@ select.wte__input {
     grid-template-columns: 1fr;
   }
 
-  .wte__button {
-    grid-template-columns: minmax(0, 1fr) 36px;
+  .wtk__products {
+    grid-template-columns: 1fr;
   }
 
-  .wte__button-kind,
-  .wte__button .wte__input,
-  .wte__button-error {
-    grid-column: 1;
+  .wte__lock {
+    flex-wrap: wrap;
   }
 
-  .wte__button .wte__remove {
-    grid-column: 2;
-    grid-row: 1;
+  .wte__lock-hint {
+    flex-basis: 100%;
+    padding-left: 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wtk__product,
+  .wtk__moment {
+    transition: none;
   }
 }

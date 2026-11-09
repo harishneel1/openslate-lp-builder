@@ -4,25 +4,19 @@ import { MESSAGE_IDS } from './whatsappMessages';
 // ------------------------------------------------------------
 // The creator's WhatsApp connection: one for the whole account, used by
 // every webinar and 1:1 call. Connected and looked after in Settings →
-// WhatsApp (WhatsAppSettings.jsx); the Reminders tab of a webinar or a
-// call (WhatsAppTab.jsx) still shows it too, until its own round.
+// WhatsApp → Connection (WhatsAppSettings.jsx), through Meta's own sign-up
+// window (metaSignup.js; mocked by MetaSignupMock.jsx). A webinar's or a
+// call's Reminders tab (WhatsAppTab.jsx) shows it and points to Settings.
 //
-// Reminders on WhatsApp always go from the creator's own number. Getting
-// it connected takes three steps. What each step is hasn't been settled
-// (it depends on Meta's process and our WhatsApp partner's), so for now
-// they're placeholders the creator clicks through (WhatsAppTab.jsx), and
-// the last one connects a stand-in number.
+// Reminders on WhatsApp always go from the creator's own number.
 //
 // Everything is kept in this browser. In the real product our WhatsApp
 // partner keeps the connection and tells us when Meta approves the name
 // or drops the number.
 //
-// Saved as null (not started, or disconnected), or one of:
+// Saved as null (not connected, or disconnected), or, connected (or
+// lost: WhatsApp stopped letting us send from it):
 //
-//   Part way through setting up:
-//   { status: 'setup', step: 2 }      the step they're on (1 to SETUP_STEPS)
-//
-//   Connected (or lost: WhatsApp stopped letting us send from it):
 //   {
 //     status: 'connected' | 'lost',
 //     number: '+91 98765 43210',
@@ -66,14 +60,11 @@ export const DAILY_LIMIT = { unverified: 250, verified: 2000 };
 
 export const dailyLimit = (connection) => (connection?.verified ? DAILY_LIMIT.verified : DAILY_LIMIT.unverified);
 
-// How many steps getting connected takes
-export const SETUP_STEPS = 3;
-
 // How long the stand-in's name review takes. Meta's real one takes
 // anything from minutes to a day or two.
 const REVIEW_MS = 20 * 1000;
 
-// The number and name the stand-in connects at the end of the steps
+// The number and name the stand-in connects (Prototype controls' Connected)
 export const MOCK_NUMBER = '+91 98765 43210';
 export const DEFAULT_NAME = mockAccount.name;
 
@@ -109,7 +100,6 @@ export function loadWhatsApp() {
   try {
     const c = JSON.parse(localStorage.getItem(KEY));
     if (!isObject(c)) return null;
-    if (c.status === 'setup') return Number.isInteger(c.step) && c.step >= 1 && c.step <= SETUP_STEPS ? c : null;
     if (!['connected', 'lost'].includes(c.status)) return null;
     if (typeof c.number !== 'string' || typeof c.name !== 'string') return null;
     if (!['review', 'approved', 'rejected'].includes(c.nameStatus)) return null;
@@ -133,7 +123,7 @@ function saveWhatsApp(connection) {
 
 function update(changes) {
   const current = loadWhatsApp();
-  if (!current || current.status === 'setup') return null;
+  if (!hasNumber(current)) return null;
   const next = { ...current, ...changes };
   return saveWhatsApp(next) ? next : null;
 }
@@ -154,15 +144,9 @@ export function dayLabel(day) {
   return `${part({ weekday: 'short' })} ${d.getDate()} ${part({ month: 'short' })}`;
 }
 
-// ---------- Setting up ----------
+// ---------- Connecting ----------
 
-// The step they're on (1 to SETUP_STEPS), or 0 before they've started
-export const setupStep = (connection) => (connection?.status === 'setup' ? connection.step : 0);
-
-// Move to a step. Step 1 also starts it; 0 goes back to not started.
-export const goToStep = (step) => saveWhatsApp(step >= 1 ? { status: 'setup', step } : null);
-
-// Done with the last step: the stand-in number is connected
+// The stand-in number, connected straight away (Prototype controls)
 export const finishSetup = () =>
   connectWhatsApp({ number: MOCK_NUMBER, name: DEFAULT_NAME, business: DEFAULT_NAME, sharedChats: false });
 

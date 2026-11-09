@@ -508,7 +508,7 @@ function App() {
   // Settings, opened on one of its tabs: { section, n } (n opens it fresh
   // again on a second request). From a Reminders tab's "Set up in Settings"
   // (OPEN_SETTINGS_EVENT, whatsappConnection.js). Null: its first tab, as
-  // every other way there (the avatar menu, Sales) opens it.
+  // every other way there (the sidebar, Sales) opens it.
   const [settingsRequest, setSettingsRequest] = useState(null);
 
   const handleNavigate = (id) => {
@@ -1141,7 +1141,7 @@ function App() {
           onOpenPayouts={() => handleNavigate('settings')}
         />
       ) : activeNav === 'settings' ? (
-        // From the avatar menu, or Sales' "Add bank account"; Withdraw money goes back to Sales
+        // From the sidebar's Settings or account menu, or Sales' "Add bank account"; Withdraw money goes back to Sales
         <SettingsPage
           key={settingsRequest?.n ?? 'settings'}
           startOn={settingsRequest?.section}

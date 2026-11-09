@@ -12,7 +12,16 @@ import {
   messageStatus,
 } from '../data/whatsappConnection';
 import { MESSAGES } from '../data/whatsappMessages';
-import { MOCK_TEMPLATE_REJECTION, deleteTemplate, useTemplates } from '../data/whatsappTemplates';
+import {
+  deleteTemplate,
+  isLegacy,
+  rejectionOf,
+  momentById,
+  sampleValues,
+  suggestName,
+  toMeta,
+  useTemplates,
+} from '../data/whatsappTemplates';
 import './WhatsAppTemplates.css';
 
 // ------------------------------------------------------------
@@ -22,7 +31,7 @@ import './WhatsAppTemplates.css';
 // here, beside the connection.
 //
 //   Templates                                   [+ Create template]
-//   All 10 · Draft 1 · In review 1 · Approved 7 · Needs action 1
+//   All 10 · Draft 1 · In review 1 · …      [All | 1:1 calls | Webinars]
 //   Name                       Category  Status     Updated      Action
 //   session_reminder_tamil     Utility   Draft      8 Nov 2026   ⧉ 🗑
 //   1:1 call · 24 hours before Utility   Approved   8 Nov 2026   ⧉
@@ -37,7 +46,11 @@ import './WhatsAppTemplates.css';
 // A click on a row opens the template: its journey with Meta on the left,
 // the message on a phone on the right, and what can be done with it
 // (Edit for a draft or one Meta rejected, Duplicate, Delete for theirs).
-// Duplicate opens the editor with a copy.
+// Duplicate opens the editor with a copy, for the same message: a
+// ready-made one starts a template from our wording. A live class's
+// ready-made message can't be duplicated (templates are for 1:1 calls and
+// webinars), and one of theirs made with the first editor starts a new
+// template from step 1 instead.
 //
 // Statuses, with Meta's own words in brackets:
 //   Draft         not sent to Meta yet (ready-made ones, until connected)
@@ -49,11 +62,24 @@ import './WhatsAppTemplates.css';
 // onConnect(): go to the Connection tab
 // ------------------------------------------------------------
 
-// Our ready-made templates, named so each stands alone
+// Our ready-made templates, each with its template name (call_24h_reminder)
+// and what it's for, in words (1:1 call · 24 hours before)
 const KIND_NAME = { call: '1:1 call', webinar: 'Webinar', batch: 'Live class' };
 const READY_MADE = Object.entries(MESSAGES).flatMap(([kind, list]) =>
-  list.map((message) => ({ id: message.id, kind, message, name: `${KIND_NAME[kind]} · ${message.name}` })),
+  list.map((message) => ({
+    id: message.id,
+    kind,
+    message,
+    name: message.template,
+    about: `${KIND_NAME[kind]} · ${message.name}`,
+  })),
 );
+
+// What one of theirs is for, in words, or null (made with the first editor)
+const aboutOf = (t) => {
+  const m = momentById(t.moment);
+  return m ? `${KIND_NAME[t.product]} · ${m.name}` : null;
+};
 
 const CATEGORY = { UTILITY: 'Utility', MARKETING: 'Marketing' };
 
@@ -72,24 +98,19 @@ const FILTERS = [
   { id: 'rejected', label: 'Needs action' },
 ];
 
+// What it's for: every template, or only 1:1 calls' or webinars'
+const PRODUCT_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'call', label: '1:1 calls' },
+  { id: 'webinar', label: 'Webinars' },
+];
+
 const EMPTY = {
   draft: 'No drafts.',
   review: 'Nothing in review.',
   approved: 'Nothing approved yet.',
   rejected: 'Nothing needs action.',
 };
-
-// What the sample booking fills in, on a ready-made template
-const sampleValues = (kind, sender) => ({
-  first_name: 'Priya',
-  host: sender,
-  call: 'Discovery call',
-  webinar: 'Grow your practice',
-  batch: 'Morning yoga',
-  date: 'Thu 12 Nov',
-  next: 'Thu 19 Nov',
-  time: kind === 'call' ? '4:00 pm' : '7:00 pm',
-});
 
 const fmtDay = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -103,56 +124,27 @@ const fmtWhen = (iso) =>
     minute: '2-digit',
   });
 
-// A name Meta allows, not already taken: "1:1 call · 24 hours before" → call_24_hours_before
-function freeName(base, taken) {
-  const clean =
-    base
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .replace(/^1_1_/, '') || 'template';
-  let name = clean;
-  for (let n = 2; taken.includes(name); n += 1) name = `${clean}_${n}`;
-  return name;
-}
+// What can be duplicated: theirs, and our 1:1 call and webinar messages
+const canDuplicate = (row) => row.own || ['call', 'webinar'].includes(row.readyMade?.kind);
 
-// A ready-made template, as the start of their own: our {details} become
-// numbered variables, with the sample booking's values as their examples
-function copyOfReadyMade(row, sender, taken) {
-  const values = sampleValues(row.kind, sender);
-  const order = [];
-  const body = row.message.body.replace(/\{(\w+)\}/g, (all, key) => {
-    if (!order.includes(key)) order.push(key);
-    return `{{${order.indexOf(key) + 1}}}`;
-  });
-  const buttons = row.message.buttons.map((b) => {
-    const kinds = {
-      call: { manage: 'Manage booking', join: 'Join call' },
-      webinar: { details: 'View details', join: 'Join webinar' },
-    };
-    return { type: 'url', text: kinds[row.kind]?.[b] ?? 'Open', url: '', phone: '' };
-  });
-  return {
-    name: freeName(`${row.name} copy`, taken),
-    category: 'UTILITY',
-    language: 'English',
-    body,
-    samples: Object.fromEntries(order.map((key, i) => [i + 1, values[key] ?? ''])),
-    footer: '',
-    action: buttons.length ? 'cta' : 'none',
-    buttons,
-  };
-}
+// A ready-made template, as the start of their own: our wording, with
+// the next free name for that message (call_24h_reminder_1)
+const copyOfReadyMade = (row, taken) => ({
+  product: row.kind,
+  moment: row.id,
+  body: row.message.body,
+  name: suggestName(row.id, taken),
+});
 
-// One of theirs, as the start of another
-const copyOfOwn = (t, taken) => {
-  const { id, status, createdAt, sentAt, decidedAt, reviewEndsAt, outcome, ...rest } = t;
-  return { ...rest, name: freeName(`${t.name}_copy`, taken) };
-};
+// One of theirs, as the start of another, for the same message (null for
+// one made with the first editor: that starts a new template from step 1)
+const copyOfOwn = (t, taken) =>
+  isLegacy(t) ? null : { product: t.product, moment: t.moment, body: t.body, name: suggestName(t.moment, taken) };
 
 export default function WhatsAppTemplates({ connection, onConnect }) {
   const own = useTemplates();
   const [filter, setFilter] = useState('all');
+  const [product, setProduct] = useState('all'); // PRODUCT_FILTERS
   const [open, setOpen] = useState(null); // a row's key
   const [editing, setEditing] = useState(null); // { initial } while the editor's open
   const [removing, setRemoving] = useState(null); // one of theirs, to delete
@@ -165,7 +157,9 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
       key: t.id,
       own: true,
       template: t,
+      product: t.product,
       name: t.name,
+      about: aboutOf(t),
       category: t.category,
       status: t.status,
       updated: t.decidedAt ?? t.sentAt ?? t.createdAt,
@@ -176,7 +170,9 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
         key: r.id,
         own: false,
         readyMade: r,
+        product: r.kind,
         name: r.name,
+        about: r.about,
         category: 'UTILITY',
         status: connected ? messageStatus(connection, r.id) : 'draft',
         dates,
@@ -184,19 +180,30 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
       };
     }),
   ];
-  const taken = own.map((t) => t.name);
+  // Every name in use, and whose it is in words (for the editor's
+  // "already used by …"): ours, then theirs. The one being edited isn't
+  // taken by itself.
+  const takenExcept = (id) => [
+    ...READY_MADE.map((r) => ({ name: r.name, whose: `our ready-made template for ${r.about}` })),
+    ...own
+      .filter((t) => t.id !== id)
+      .map((t) => ({ name: t.name, whose: aboutOf(t) ? `your template for ${aboutOf(t)}` : 'one of your templates' })),
+  ];
+  const taken = takenExcept(null);
 
+  // The product picked first, then the status: the status counts are the product's
+  const ofProduct = rows.filter((r) => product === 'all' || r.product === product);
   const counts = Object.fromEntries(FILTERS.map((f) => [f.id, 0]));
-  rows.forEach((r) => {
+  ofProduct.forEach((r) => {
     counts.all += 1;
     counts[r.status] += 1;
   });
-  const shown = rows.filter((r) => filter === 'all' || r.status === filter);
+  const shown = ofProduct.filter((r) => filter === 'all' || r.status === filter);
   const opened = rows.find((r) => r.key === open);
 
   const duplicate = (row) => {
     setOpen(null);
-    setEditing({ initial: row.own ? copyOfOwn(row.template, taken) : copyOfReadyMade(row.readyMade, sender, taken) });
+    setEditing({ initial: row.own ? copyOfOwn(row.template, taken) : copyOfReadyMade(row.readyMade, taken) });
   };
 
   // ---------- The editor, in place of the list ----------
@@ -206,7 +213,7 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
         initial={editing.initial}
         connected={connected}
         sender={sender}
-        takenNames={taken.filter((n) => n !== editing.initial?.name || !editing.initial?.id)}
+        taken={takenExcept(editing.initial?.id)}
         onDone={() => setEditing(null)}
       />
     );
@@ -237,23 +244,39 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
           </div>
         )}
 
-        <div className="wtp-filters" role="group" aria-label="Show">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              className="wtp-filter"
-              aria-pressed={filter === f.id}
-              onClick={() => setFilter(f.id)}
-            >
-              {f.label}
-              <span className="wtp-filter__count">{counts[f.id]}</span>
-            </button>
-          ))}
+        <div className="wtp-bar">
+          <div className="wtp-filters" role="group" aria-label="Show">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className="wtp-filter"
+                aria-pressed={filter === f.id}
+                onClick={() => setFilter(f.id)}
+              >
+                {f.label}
+                <span className="wtp-filter__count">{counts[f.id]}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="wtp-kinds" role="group" aria-label="For">
+            {PRODUCT_FILTERS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="wtp-kind"
+                aria-pressed={product === p.id}
+                onClick={() => setProduct(p.id)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {shown.length === 0 ? (
-          <p className="wtp-empty">{EMPTY[filter]}</p>
+          <p className="wtp-empty">{filter === 'all' ? 'No templates here yet.' : EMPTY[filter]}</p>
         ) : (
           <div className="wtp-scroll">
             <table className="wtp-table">
@@ -282,6 +305,7 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
                       >
                         {r.name}
                       </button>
+                      {r.about && <span className="wtp-about">{r.about}</span>}
                     </td>
                     <td className="wtp-muted">{CATEGORY[r.category]}</td>
                     <td>
@@ -290,15 +314,17 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
                     <td className="wtp-muted wtp-date">{fmtDay(r.updated)}</td>
                     {/* The row's own buttons: a click here doesn't open the template */}
                     <td className="wtp-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="wtp-icon"
-                        onClick={() => duplicate(r)}
-                        aria-label={`Duplicate ${r.name}`}
-                        title="Duplicate"
-                      >
-                        <Copy size={17} aria-hidden="true" />
-                      </button>
+                      {canDuplicate(r) && (
+                        <button
+                          type="button"
+                          className="wtp-icon"
+                          onClick={() => duplicate(r)}
+                          aria-label={`Duplicate ${r.name}`}
+                          title="Duplicate"
+                        >
+                          <Copy size={17} aria-hidden="true" />
+                        </button>
+                      )}
                       {r.own && (
                         <button
                           type="button"
@@ -328,7 +354,7 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
             setOpen(null);
             setEditing({ initial: opened.template });
           }}
-          onDuplicate={() => duplicate(opened)}
+          onDuplicate={canDuplicate(opened) ? () => duplicate(opened) : null}
           onDelete={() => setRemoving(opened.template)}
         />
       )}
@@ -367,8 +393,14 @@ function TemplateDialog({ row, sender, onClose, onEdit, onDuplicate, onDelete })
   const status = row.status;
   const sent = row.own ? t.sentAt : row.dates?.sent;
   const decided = row.own ? t.decidedAt : row.dates?.decided;
-  const why = row.own ? MOCK_TEMPLATE_REJECTION : MOCK_MESSAGE_REJECTION;
-  const canEdit = row.own && (status === 'draft' || status === 'rejected');
+  const why = row.own ? rejectionOf(t) : MOCK_MESSAGE_REJECTION;
+  const legacy = row.own && isLegacy(t);
+  const canEdit = row.own && !legacy && (status === 'draft' || status === 'rejected');
+  // What it's for, in a line: "1:1 call · 1 hour before", and when it goes
+  const when = row.own ? momentById(t.moment)?.when : row.readyMade.message.when;
+  const about = legacy
+    ? 'Made with the old editor'
+    : `${row.own ? '' : 'Ready-made · '}${row.about}${when ? ` · ${when}` : ''}`;
 
   return (
     <dialog
@@ -397,7 +429,7 @@ function TemplateDialog({ row, sender, onClose, onEdit, onDuplicate, onDelete })
             Template journey
           </h3>
           <p className="wtp-journey__when">
-            {row.own ? `${CATEGORY[t.category]} · ${t.language}` : `Ready-made · ${row.readyMade.message.when}`}
+            {about}
           </p>
           <ol className="wtp-steps">
             {row.own && <Step icon={FileText} tone="done" title="Created" text={fmtWhen(t.createdAt)} />}
@@ -433,10 +465,12 @@ function TemplateDialog({ row, sender, onClose, onEdit, onDuplicate, onDelete })
                 {status === 'rejected' ? 'Edit and resubmit' : 'Edit'}
               </button>
             )}
-            <button type="button" className="es__btn es__btn--quiet" onClick={onDuplicate}>
-              <Copy size={16} aria-hidden="true" />
-              Duplicate
-            </button>
+            {onDuplicate && (
+              <button type="button" className="es__btn es__btn--quiet" onClick={onDuplicate}>
+                <Copy size={16} aria-hidden="true" />
+                Duplicate
+              </button>
+            )}
             {row.own && (
               <button type="button" className="wtp-delete" onClick={onDelete}>
                 <Trash2 size={16} aria-hidden="true" />
@@ -448,7 +482,7 @@ function TemplateDialog({ row, sender, onClose, onEdit, onDuplicate, onDelete })
 
         <div className="wtp-dialog__phone">
           {row.own ? (
-            <TemplatePhone template={t} sender={sender} />
+            <TemplatePhone template={toMeta(t, sender)} sender={sender} />
           ) : (
             <PhoneMessage
               message={row.readyMade.message}
@@ -478,9 +512,3 @@ function Step({ icon: Icon, tone, title, text, why }) {
     </li>
   );
 }
-
-// Something here needs the coach: a template Meta didn't approve, ours
-// or theirs. For the dot on the Templates tab.
-export const templatesNeedAttention = (connection, own = []) =>
-  (hasNumber(connection) && READY_MADE.some((r) => messageStatus(connection, r.id) === 'rejected')) ||
-  own.some((t) => t.status === 'rejected');

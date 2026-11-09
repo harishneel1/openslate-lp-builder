@@ -6,7 +6,7 @@
 // and lands among someone's personal chats, so WhatsApp gets only the
 // ones that get people to turn up:
 //
-//   1:1 calls   24 hours before, 1 hour before, 5 minutes before
+//   1:1 calls   confirmation, 24 hours before, 1 hour before, 5 minutes before
 //   Webinars    confirmation, 24 hours before, 1 hour before, 5 minutes before
 //   Batches     a class cancelled (Live classes: sent once, when the
 //               coach cancels it, BatchAnnounce.jsx; no switches)
@@ -33,6 +33,10 @@ export const WHATSAPP_SWITCHES_EVENT = 'whatsapp-switches-changed';
 
 // Each message: when it goes, what it says, and its buttons.
 //   name     the row's name, like the emails' ("24 hours before")
+//   template its template name, as Meta takes it: lowercase letters,
+//            numbers and _ (the name in Settings → WhatsApp → Templates).
+//            The coach's own templates for the same message start from
+//            it: call_24h_reminder_1, call_24h_reminder_2 …
 //   when     when it goes, in a sentence, under the preview's title
 //   example  when it goes in the preview's example, finishing "This is
 //            exactly what your student Priya gets on WhatsApp, …"
@@ -48,7 +52,18 @@ export const WHATSAPP_SWITCHES_EVENT = 'whatsapp-switches-changed';
 export const MESSAGES = {
   call: [
     {
+      id: 'call-confirm',
+      template: 'call_confirmation',
+      name: 'Confirmation after booking',
+      when: 'Goes out as soon as someone books.',
+      example: 'right after she books a call for 4:00 pm on Thursday',
+      body: 'Hi {first_name}, your *{call}* with {host} is booked for {date} at {time}.\n\nNeed to change it? Use the button below.',
+      buttons: ['manage'],
+      sentAt: '10:12 am',
+    },
+    {
       id: 'call-24h',
+      template: 'call_24h_reminder',
       name: '24 hours before',
       when: 'Goes out 24 hours before the call.',
       example: '24 hours before her call at 4:00 pm on Thursday',
@@ -58,6 +73,7 @@ export const MESSAGES = {
     },
     {
       id: 'call-1h',
+      template: 'call_1h_reminder',
       name: '1 hour before',
       when: 'Goes out 1 hour before the call.',
       example: '1 hour before her call at 4:00 pm on Thursday',
@@ -67,6 +83,7 @@ export const MESSAGES = {
     },
     {
       id: 'call-5m',
+      template: 'call_5min_reminder',
       name: '5 minutes before',
       when: 'Goes out 5 minutes before the call.',
       example: '5 minutes before her call at 4:00 pm on Thursday',
@@ -78,6 +95,7 @@ export const MESSAGES = {
   webinar: [
     {
       id: 'webinar-confirm',
+      template: 'webinar_confirmation',
       name: 'Confirmation after registering',
       when: 'Goes out as soon as someone registers.',
       example: 'right after she registers for your webinar on Thu 12 Nov',
@@ -87,6 +105,7 @@ export const MESSAGES = {
     },
     {
       id: 'webinar-24h',
+      template: 'webinar_24h_reminder',
       name: '24 hours before',
       when: 'Goes out 24 hours before the webinar.',
       example: '24 hours before your webinar at 7:00 pm on Thu 12 Nov',
@@ -96,6 +115,7 @@ export const MESSAGES = {
     },
     {
       id: 'webinar-1h',
+      template: 'webinar_1h_reminder',
       name: '1 hour before',
       when: 'Goes out 1 hour before the webinar.',
       example: '1 hour before your webinar at 7:00 pm on Thu 12 Nov',
@@ -105,6 +125,7 @@ export const MESSAGES = {
     },
     {
       id: 'webinar-now', // its id from when it was called "Starting now", so saved switches carry on
+      template: 'webinar_5min_reminder',
       name: '5 minutes before',
       when: 'Goes out 5 minutes before the webinar.',
       example: '5 minutes before your webinar at 7:00 pm on Thu 12 Nov',
@@ -120,6 +141,7 @@ export const MESSAGES = {
   batch: [
     {
       id: 'batch-cancel',
+      template: 'class_cancelled',
       name: 'Class cancelled',
       when: 'Goes out when you cancel a class.',
       example: 'when you cancel a class',

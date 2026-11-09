@@ -1,4 +1,4 @@
-import { ChevronDown, FlaskConical } from 'lucide-react';
+import { ChevronDown, FlaskConical, Landmark, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import PaymentDetails, { PayoutControlRows } from './PayoutSetup';
 import WhatsAppSettings, { WhatsAppControlRows } from './WhatsAppSettings';
@@ -7,101 +7,135 @@ import '../components/PrototypeControls.css';
 import './SettingsPage.css';
 
 // ------------------------------------------------------------
-// Settings: the coach's account settings, opened from the avatar menu in
-// the top bar (AccountMenu.jsx) and from Sales → Withdraw money when
-// they can't withdraw yet. Two sections, as tabs:
+// Settings: the coach's account settings, opened from Settings at the foot
+// of the sidebar (AppLayout.jsx), the account menu under it
+// (AccountMenu.jsx), and Sales → Withdraw money when they can't withdraw yet. A menu on the left, the open page on the right:
 //   Payment details (PayoutSetup.jsx): who they are (PAN and Aadhaar, or
 //     their business), the bank account their money goes to, and what
 //     their invoices say.
-//   WhatsApp (WhatsAppSettings.jsx): the one number every webinar and
-//     1:1 call sends reminders from.
-// Other sections join SECTIONS as tabs.
+//   WhatsApp (WhatsAppSettings.jsx), in two pages:
+//     Connection  the one number every webinar and 1:1 call sends from
+//     Templates   the messages it sends, and Meta's review of each
+// Other pages join PAGES.
 //
 //   Settings
-//   Payment details
-//   ━━━━━━━━━━━━━━━
-//   ┌ Payment details ──────────────────────────────────────────────┐
-//   │ Who you are and where we send your money. …                   │
-//   │ ┌ Identity ─────────────────────┐   How payouts work          │
-//   │ │ (start, checking, fix, done)  │   You can sell right away…  │
-//   │ └───────────────────────────────┘   …                         │
-//   │ ┌ Bank account ─────────────────┐                             │
-//   │ └───────────────────────────────┘                             │
-//   └───────────────────────────────────────────────────────────────┘
+//   ┌───────────────────┐ ┌ Payment details ─────────────────────────┐
+//   │ ▣ Payment details │ │ Who you are and where we send your money │
+//   │ ◯ WhatsApp        │ │ …                                        │
+//   │   │ Connection    │ │                                          │
+//   │   │ Templates     │ │                                          │
+//   └───────────────────┘ └──────────────────────────────────────────┘
 //   (Prototype controls)
 //
-// On a phone the help moves under the two parts.
+// On a phone the menu becomes one row of pills above the page.
 //
 // onWithdraw(): go to Sales → Withdraw money
-// startOn: the section to open on ('payments' or 'whatsapp'); Payment details if left out
+// startOn: the page to open on: 'payments', 'whatsapp' (its Connection),
+//   'whatsapp-connection' or 'whatsapp-templates'; Payment details if left out
 // ------------------------------------------------------------
 
-const SECTIONS = [
-  { id: 'payments', label: 'Payment details' },
-  { id: 'whatsapp', label: 'WhatsApp' },
+const PAGES = [
+  { id: 'payments', label: 'Payment details', icon: Landmark },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    icon: MessageCircle,
+    children: [
+      { id: 'whatsapp-connection', label: 'Connection', short: 'WhatsApp connection' },
+      { id: 'whatsapp-templates', label: 'Templates', short: 'WhatsApp templates' },
+    ],
+  },
 ];
 
-export default function SettingsPage({ onWithdraw, startOn = 'payments' }) {
-  const [section, setSection] = useState(SECTIONS.some((s) => s.id === startOn) ? startOn : 'payments');
+// Every page that can be open, in menu order
+const OPENABLE = PAGES.flatMap((p) => (p.children ? p.children : [p]));
+const openable = (id) => {
+  if (id === 'whatsapp') return 'whatsapp-connection';
+  return OPENABLE.some((p) => p.id === id) ? id : 'payments';
+};
 
-  // Arrow keys move between the tabs, as tabs do
-  const onTabKey = (e) => {
-    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-    if (!step) return;
-    e.preventDefault();
-    const at = SECTIONS.findIndex((s) => s.id === section);
-    const next = SECTIONS[(at + step + SECTIONS.length) % SECTIONS.length].id;
-    setSection(next);
-    document.getElementById(`settings-tab-${next}`)?.focus();
-  };
+export default function SettingsPage({ onWithdraw, startOn = 'payments' }) {
+  const [page, setPage] = useState(() => openable(startOn));
+  const onWhatsApp = page.startsWith('whatsapp');
 
   return (
     <div className="oh settings">
       <h1 className="oh__title">Settings</h1>
 
-      <div className="settings__tabs" role="tablist" aria-label="Settings">
-        {SECTIONS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            role="tab"
-            id={`settings-tab-${s.id}`}
-            aria-selected={section === s.id}
-            aria-controls={`settings-panel-${s.id}`}
-            tabIndex={section === s.id ? 0 : -1}
-            className="settings__tab"
-            onClick={() => setSection(s.id)}
-            onKeyDown={onTabKey}
-          >
-            {s.label}
-          </button>
-        ))}
+      <div className="settings__layout">
+        <SettingsMenu page={page} onPage={setPage} />
+
+        <section className="oh__panel settings__panel" aria-label={OPENABLE.find((p) => p.id === page)?.short ?? 'Payment details'}>
+          {onWhatsApp ? (
+            <WhatsAppSettings
+              view={page === 'whatsapp-templates' ? 'templates' : 'connection'}
+              onView={(v) => setPage(`whatsapp-${v}`)}
+            />
+          ) : (
+            <>
+              <div className="oh__panel-head">
+                <h2 className="oh__panel-title">Payment details</h2>
+                <p className="oh__panel-sub">Who you are, where we send your money, and what your invoices say. You can withdraw once the first two are verified.</p>
+              </div>
+              <div className="settings__body settings__body--split">
+                <PaymentDetails onWithdraw={onWithdraw} />
+                <PayoutHelp />
+              </div>
+            </>
+          )}
+        </section>
       </div>
 
-      <section
-        className="oh__panel settings__panel"
-        id={`settings-panel-${section}`}
-        role="tabpanel"
-        aria-labelledby={`settings-tab-${section}`}
-      >
-        {section === 'whatsapp' ? (
-          <WhatsAppSettings />
-        ) : (
-          <>
-            <div className="oh__panel-head">
-              <h2 className="oh__panel-title">Payment details</h2>
-              <p className="oh__panel-sub">Who you are, where we send your money, and what your invoices say. You can withdraw once the first two are verified.</p>
-            </div>
-            <div className="settings__body settings__body--split">
-              <PaymentDetails onWithdraw={onWithdraw} />
-              <PayoutHelp />
-            </div>
-          </>
-        )}
-      </section>
-
-      <SettingsTestControls section={section} />
+      <SettingsTestControls section={onWhatsApp ? 'whatsapp' : 'payments'} />
     </div>
+  );
+}
+
+// ---------- The menu on the left ----------
+// A page with pages of its own (WhatsApp) is a heading for them: a click
+// on it opens its first page. Its icon lights up while one of them is open.
+function SettingsMenu({ page, onPage }) {
+  return (
+    <nav className="smenu" aria-label="Settings">
+      <ul className="smenu__list">
+        {PAGES.map(({ id, label, icon: Icon, children }) => {
+          const inside = children ? children.some((c) => c.id === page) : page === id;
+          return (
+            <li key={id} className={`smenu__group ${inside ? 'smenu__group--in' : ''}`}>
+              <button
+                type="button"
+                className={`smenu__item ${!children && inside ? 'smenu__item--on' : ''}`}
+                aria-current={!children && inside ? 'page' : undefined}
+                onClick={() => onPage(children ? children[0].id : id)}
+              >
+                <Icon size={18} className="smenu__icon" aria-hidden="true" />
+                <span className="smenu__label">{label}</span>
+              </button>
+              {children && (
+                <ul className="smenu__sub">
+                  {children.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        className={`smenu__subitem ${page === c.id ? 'smenu__subitem--on' : ''}`}
+                        aria-current={page === c.id ? 'page' : undefined}
+                        onClick={() => onPage(c.id)}
+                      >
+                        <span className="smenu__label">{c.label}</span>
+                        {/* On a phone the pills have no heading above them, so they say whose they are */}
+                        <span className="smenu__short" aria-hidden="true">
+                          {c.short}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 

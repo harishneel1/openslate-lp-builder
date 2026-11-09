@@ -1,31 +1,60 @@
-/* The avatar's menu (AccountMenu.jsx). The avatar itself keeps its look
-   from AppLayout.css (.topnav__avatar). */
+/* Who's signed in, at the foot of the sidebar (AccountMenu.jsx). Lined up
+   with the nav items above it: the avatar sits on their icons' centre line. */
 
 .acct {
   position: relative;
 }
 
 .acct__trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 8px;
+  overflow: hidden;
+  font-size: 15px;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: box-shadow 0.15s;
+  transition: background 0.15s;
 }
 
 .acct__trigger:hover,
 .acct__trigger[aria-expanded='true'] {
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
+  background: #f5f5f5;
 }
 
 .acct__trigger:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
+.acct__avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+.acct__who {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+/* Above the avatar, fixed to the screen so the sidebar can't clip it */
 .acct__menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  position: fixed;
   z-index: var(--z-dropdown, 50);
-  min-width: 200px;
+  min-width: 220px;
   padding: 6px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -34,11 +63,11 @@
 }
 
 .acct__name {
+  margin-bottom: 4px;
   padding: 8px 10px 10px;
   font-size: 14px;
   font-weight: 700;
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 4px;
 }
 
 .acct__item {
@@ -50,6 +79,7 @@
   font-size: 14px;
   font-weight: 500;
   text-align: left;
+  text-decoration: none;
   color: var(--color-text);
   border-radius: var(--radius-sm);
 }
@@ -62,4 +92,10 @@
 .acct__item:focus-visible {
   background: var(--color-bg);
   outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acct__trigger {
+    transition: none;
+  }
 }

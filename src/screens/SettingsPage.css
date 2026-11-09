@@ -6,6 +6,7 @@
    for what's on it. */
 
 .settings {
+  max-width: 1240px;
   padding-bottom: 48px;
 
   --po-blue-tint: #e8f0fc;
@@ -17,42 +18,193 @@
   --po-input-border: #d6d6da;
 }
 
-/* ---------- Sections, as tabs (as on Sales) ---------- */
-.settings__tabs {
+/* ---------- The menu on the left, the open page on the right ----------
+   The menu reads like the app's own sidebar (AppLayout.css): muted words,
+   the open page on the orange tint. WhatsApp's pages hang off a thin
+   line under its name, so they read as its parts, not as more sections. */
+.settings__layout {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  margin-top: 24px;
+}
+
+.smenu {
+  position: sticky;
+  top: 0;
+}
+
+.smenu__list,
+.smenu__sub {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.smenu__list {
   display: flex;
-  gap: 24px;
-  margin-top: 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  border-bottom: 1px solid var(--color-border);
+  flex-direction: column;
+  gap: 4px;
 }
 
-.settings__tab {
-  display: inline-flex;
-  flex-shrink: 0;
+.smenu__item,
+.smenu__subitem {
+  display: flex;
   align-items: center;
-  margin-bottom: -1px;
-  padding: 10px 0 12px;
-  font-size: 16px;
-  font-weight: 600;
-  white-space: nowrap;
+  width: 100%;
+  font-size: 15px;
+  text-align: left;
   color: var(--color-text-muted);
-  border-bottom: 3px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
 }
 
-.settings__tab:hover {
+.smenu__item {
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.smenu__item:hover,
+.smenu__subitem:hover {
   color: var(--color-text);
+  background: #efefef;
 }
 
-.settings__tab[aria-selected='true'] {
+.smenu__icon {
+  flex-shrink: 0;
+}
+
+.smenu__label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The open page, or the section whose page is open */
+.smenu__item--on,
+.smenu__item--on:hover,
+.smenu__subitem--on,
+.smenu__subitem--on:hover {
   color: var(--color-text);
-  border-bottom-color: var(--color-primary);
+  font-weight: 500;
+  background: var(--color-primary-tint);
 }
 
-.settings__tab:focus-visible {
+.smenu__item--on .smenu__icon,
+.smenu__group--in .smenu__icon {
+  color: var(--color-primary);
+}
+
+.smenu__group--in > .smenu__item {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* WhatsApp's pages: on a line from under its icon */
+.smenu__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 4px 21px;
+  padding-left: 10px;
+  border-left: 1px solid #dedede;
+}
+
+.smenu__subitem {
+  position: relative;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* The open one marks its stretch of the line in orange */
+.smenu__subitem--on::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: -11px;
+  width: 2px;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+.smenu__short {
+  display: none;
+}
+
+.smenu__item:focus-visible,
+.smenu__subitem:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: -4px;
-  border-radius: 4px;
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smenu__item,
+  .smenu__subitem {
+    transition: none;
+  }
+}
+
+/* Narrower: the menu becomes pills above the page, wrapping onto a
+   second line rather than hiding one off the edge */
+@media (max-width: 860px) {
+  .settings__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .smenu {
+    position: static;
+  }
+
+  .smenu__list,
+  .smenu__sub {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .smenu__sub {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  /* WhatsApp's own name is said by its pills instead */
+  .smenu__group > .smenu__item:has(+ .smenu__sub) {
+    display: none;
+  }
+
+  .smenu__item,
+  .smenu__subitem {
+    width: auto;
+    padding: 8px 14px;
+    font-size: 14px;
+    white-space: nowrap;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+  }
+
+  .smenu__item--on,
+  .smenu__subitem--on {
+    background: var(--color-primary-tint);
+    border-color: transparent;
+  }
+
+  .smenu__subitem--on::before {
+    display: none;
+  }
+
+  .smenu__subitem .smenu__label {
+    display: none;
+  }
+
+  .smenu__short {
+    display: inline;
+  }
 }
 
 /* ---------- The bank's tile and the status pill ---------- */
@@ -93,7 +245,8 @@
 }
 
 .settings__panel {
-  margin-top: 24px;
+  margin-top: 0;
+  min-width: 0;
 }
 
 .settings__body {

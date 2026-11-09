@@ -1,28 +1,268 @@
 import { useEffect, useState } from 'react';
+import { BUTTONS, MESSAGES } from './whatsappMessages';
 
 // ------------------------------------------------------------
 // The coach's own WhatsApp templates, made in Settings → WhatsApp →
-// Templates → Create template (WhatsAppTemplateEditor.jsx), as in AiSensy.
-// Our ready-made ones live in whatsappMessages.js; these sit beside them
-// in the same list.
+// Templates → Create template (WhatsAppTemplateEditor.jsx). Our ready-made
+// ones live in whatsappMessages.js; these sit beside them in the same list.
+//
+// Each one is the coach's own wording for one of our reminders (a
+// "moment": a 1:1 call's 1 hour before, a webinar's confirmation …). The
+// moment decides everything a coach shouldn't have to: the category
+// (always Utility: reminders about something they booked), the buttons
+// (the moment's own, as on our ready-made message), and which details can
+// be filled in.
 //
 // Kept in this browser (the stand-in):
 //   [{
-//     id, name,                 name: lowercase letters, numbers, _ (Meta's rule)
-//     category: 'UTILITY' | 'MARKETING',
-//     language: 'English',
-//     body: 'Hi {{1}}, …',      WhatsApp's formatting; {{1}}, {{2}} … blanks
-//     samples: { 1: 'Priya' },  an example for each blank (Meta asks for one)
-//     footer: '',
-//     action: 'none' | 'cta' | 'replies' | 'all',
-//     buttons: [{ type: 'url', text, url } | { type: 'phone', text, phone } | { type: 'reply', text }],
+//     id,
+//     name: 'call_1h_reminder_1',  lowercase letters, numbers and _ only
+//                               (Meta's rule), unique across theirs and
+//                               ours (READY_MADE_NAMES)
+//     product: 'call' | 'webinar',
+//     moment: 'call-1h',        one of MESSAGES[product] (whatsappMessages.js)
+//     language: 'English',     only English, for now
+//     category: 'UTILITY',
+//     body: 'Hi {first_name}, …',  WhatsApp's formatting (*bold*, _italic_,
+//                               ~strike~); details as {key}, from DETAILS
 //     status: 'draft' | 'review' | 'approved' | 'rejected',
+//     reason: 'unclear' | …       why Meta turned it down (REJECTIONS)
 //     createdAt, sentAt, decidedAt, reviewEndsAt: ISO strings,
+//     meta: { … }               what was sent to Meta (toMeta), on submit
 //   }]
+//
+// Older saves (made with the first editor, AiSensy's form) have no
+// moment, and keep their own {{1}} body, samples, footer and buttons.
+// They still show in the list and on the phone, and can be deleted; to
+// change one, the coach starts a new one (isLegacy).
 //
 // Submit sends one to Meta: "In review", and the stand-in approves it a
 // little later (or rejects it, when the prototype controls say so).
 // ------------------------------------------------------------
+
+// ---------- What a template can be for ----------
+export const PRODUCTS = [
+  { id: 'call', label: '1:1 calls', one: '1:1 call', text: 'A confirmation when someone books, then reminders.' },
+  { id: 'webinar', label: 'Webinars', one: 'Webinar', text: 'A confirmation when someone registers, then reminders.' },
+];
+export const productById = (id) => PRODUCTS.find((p) => p.id === id);
+
+// The moments of a product: our ready-made messages (whatsappMessages.js)
+export const momentsOf = (product) => MESSAGES[product] ?? [];
+export const momentById = (id) => [...MESSAGES.call, ...MESSAGES.webinar].find((m) => m.id === id) ?? null;
+
+// The buttons a moment's message always has: [{ key, label, hint }]
+export const buttonsOf = (product, momentId) =>
+  (momentById(momentId)?.buttons ?? []).map((key) => ({ key, ...BUTTONS[product][key] }));
+
+// ---------- Details: what's filled in for each student ----------
+// What "+ Insert detail" offers for each product. The keys are our
+// ready-made messages' own, so their wording starts a template as it is.
+export const DETAILS = {
+  call: [
+    { key: 'first_name', label: 'First name', hint: 'Each student’s first name' },
+    { key: 'call', label: 'Call name', hint: 'The name of the call they booked' },
+    { key: 'date', label: 'Date', hint: 'The call’s date, e.g. Thu 12 Nov' },
+    { key: 'time', label: 'Time', hint: 'The call’s time, e.g. 4:00 pm' },
+    { key: 'host', label: 'Your name', hint: 'Your name, as on your page' },
+  ],
+  webinar: [
+    { key: 'first_name', label: 'First name', hint: 'Each person’s first name' },
+    { key: 'webinar', label: 'Webinar name', hint: 'The webinar’s title' },
+    { key: 'date', label: 'Date', hint: 'The webinar’s date, e.g. Thu 12 Nov' },
+    { key: 'time', label: 'Time', hint: 'The webinar’s time, e.g. 7:00 pm' },
+    { key: 'host', label: 'Your name', hint: 'Your name, as on your page' },
+  ],
+};
+
+// What the sample booking fills in: the preview's, and the examples Meta asks for
+export const sampleValues = (product, sender) => ({
+  first_name: 'Priya',
+  host: sender,
+  call: 'Discovery call',
+  webinar: 'Grow your practice',
+  batch: 'Morning yoga',
+  date: 'Thu 12 Nov',
+  next: 'Thu 19 Nov',
+  time: product === 'call' ? '4:00 pm' : '7:00 pm',
+});
+
+// The coach writes details by name, {First name}; they're kept by key, {first_name}
+export function toLabels(body, product) {
+  const details = DETAILS[product] ?? [];
+  return String(body ?? '').replace(/\{(\w+)\}/g, (all, key) => {
+    const d = details.find((x) => x.key === key);
+    return d ? `{${d.label}}` : all;
+  });
+}
+
+export function toKeys(text, product) {
+  const details = DETAILS[product] ?? [];
+  return String(text ?? '').replace(/\{([^{}\n]+)\}/g, (all, name) => {
+    const d = details.find((x) => x.label.toLowerCase() === name.trim().toLowerCase());
+    return d ? `{${d.key}}` : all;
+  });
+}
+
+// Anything in {braces} that isn't a detail we can fill in: ['Course']
+export function unknownDetails(text, product) {
+  const known = (DETAILS[product] ?? []).map((d) => d.label.toLowerCase());
+  return [...String(text ?? '').matchAll(/\{([^{}\n]*)\}/g)]
+    .map((m) => m[1].trim())
+    .filter((name) => !known.includes(name.toLowerCase()));
+}
+
+// ---------- Names ----------
+// Meta's rule, and ours: lowercase letters, numbers and _ only, with at
+// least one letter or number. What the coach sees is what Meta gets.
+export const NAME_RULE = /^(?=.*[a-z0-9])[a-z0-9_]+$/;
+export const NAME_EXAMPLE = 'discovery_call_5min_reminder';
+
+// What they type, made into a name Meta takes as they type it: capitals
+// become lowercase, spaces and dashes _, anything else is dropped
+export const cleanName = (text) =>
+  String(text ?? '')
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+
+// Our ready-made templates' names, which are always taken:
+// [{ name: 'call_24h_reminder', label: '1:1 call · 24 hours before' }]
+export const READY_MADE_NAMES = PRODUCTS.flatMap((p) =>
+  momentsOf(p.id).map((m) => ({ name: m.template, label: `${p.one} · ${m.name}` })),
+).concat((MESSAGES.batch ?? []).map((m) => ({ name: m.template, label: `Live class · ${m.name}` })));
+
+// The template a taken name belongs to, or null
+// taken: [{ name, … }], every other template's
+export const takenBy = (name, taken = []) => taken.find((t) => t.name === name) ?? null;
+
+// The first free name for a message: its own name numbered, since ours
+// always has the plain one: call_24h_reminder_1, then _2 …
+export function suggestName(momentId, taken = []) {
+  const base = momentById(momentId)?.template ?? 'reminder';
+  if (!takenBy(base, taken)) return base;
+  let n = 1;
+  while (takenBy(`${base}_${n}`, taken)) n += 1;
+  return `${base}_${n}`;
+}
+
+// ---------- Checks: what gets a reminder turned down ----------
+// The common reasons Meta turns down a Utility message, checked as the
+// coach writes, so "Not approved" is rare. Each says what's wrong and
+// how to fix it, in a line.
+//   block: true   Submit waits until it's fixed (Save as draft doesn't)
+//   block: false  a warning: Meta may turn it down, but it can go
+// body: details as {key}
+
+// Words that make a reminder read as an advert (Meta's "marketing")
+const PROMO = [
+  'offer',
+  'offers',
+  'discount',
+  'discounts',
+  'sale',
+  'coupon',
+  'promo',
+  'cashback',
+  'deal',
+  'deals',
+  'hurry',
+  'buy now',
+  'limited seats',
+  'limited time',
+  'limited period',
+  'early bird',
+  'special price',
+  'last chance',
+  'don’t miss',
+  "don't miss",
+];
+
+// How many words around each detail, at least, for Meta to see what the
+// message is about
+export const WORDS_PER_DETAIL = 2;
+
+export function messageProblems(body, product) {
+  const text = String(body ?? '');
+  const known = (DETAILS[product] ?? []).map((d) => d.key);
+  const plain = text.replace(/\{\w+\}/g, ' ').replace(/[*_~]/g, ' ');
+  const details = [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+  const words = plain.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
+  const out = [];
+
+  if (!words.length && !details.length) return [{ id: 'empty', block: true, text: 'Write the message.' }];
+  if (text.length > LIMITS.body) out.push({ id: 'long', block: true, text: `Keep it to ${LIMITS.body} characters.` });
+  if (details.some((k) => !known.includes(k)))
+    out.push({ id: 'unknown', block: true, text: 'A detail here can’t be filled in. Delete it and add it again with + Insert detail.' });
+  if (/^[\s*_~]*\{\w+\}/.test(text) || /\{\w+\}[\s*_~.!?]*$/.test(text))
+    out.push({
+      id: 'edge',
+      block: true,
+      text: 'Meta turns down messages that start or end with a detail. Add a few words before or after it.',
+    });
+  if (/\{\w+\}[\s*_~]*\{\w+\}/.test(text))
+    out.push({
+      id: 'together',
+      block: true,
+      text: 'Two details sit side by side. Put a word or two between them, like “with” or “at”.',
+    });
+  if (details.length && words.length < details.length * WORDS_PER_DETAIL)
+    out.push({
+      id: 'thin',
+      block: true,
+      text: 'There are a lot of details for so few words. Add a little more about what the message is for.',
+    });
+  if (/(https?:\/\/|www\.)\S+|\b[\w-]+\.(com|in|net|org|io|me|co|link|app)\b/i.test(plain))
+    out.push({
+      id: 'link',
+      block: true,
+      text: 'Take the link out of the message. The buttons under it already take students where they need to go.',
+    });
+  const lower = plain.toLowerCase();
+  const promo = PROMO.find((w) => new RegExp(`(^|[^\\p{L}])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}])`, 'u').test(lower));
+  if (promo || /\d+\s?%\s?off/i.test(plain))
+    out.push({
+      id: 'promo',
+      block: false,
+      text: `“${promo ?? '% off'}” reads like an advert. Meta may turn the reminder down as marketing: keep it to the booking.`,
+    });
+  return out;
+}
+
+// callOneHourBefore → call_one_hour_before (older saves only)
+const snakeOf = (name) =>
+  cleanName(
+    String(name ?? '')
+      .replace(/([a-z])([A-Z0-9])/g, '$1_$2')
+      .replace(/([0-9])([A-Za-z])/g, '$1_$2'),
+  );
+
+// One made with the first editor: no moment
+export const isLegacy = (t) => !t?.moment;
+
+// ---------- What Meta gets ----------
+// Our {key} details become Meta's numbered blanks, in order of first
+// appearance, each with its example from the sample booking; the buttons
+// are the moment's. Only ever built here: the coach never sees {{1}}.
+export function toMeta(t, sender = '') {
+  if (isLegacy(t)) return t;
+  const values = sampleValues(t.product, sender);
+  const order = [];
+  const body = String(t.body ?? '').replace(/\{(\w+)\}/g, (all, key) => {
+    if (!(DETAILS[t.product] ?? []).some((d) => d.key === key)) return all;
+    if (!order.includes(key)) order.push(key);
+    return `{{${order.indexOf(key) + 1}}}`;
+  });
+  return {
+    name: t.name,
+    category: t.category ?? 'UTILITY',
+    language: 'English',
+    body,
+    samples: Object.fromEntries(order.map((key, i) => [i + 1, values[key] ?? ''])),
+    footer: '',
+    buttons: buttonsOf(t.product, t.moment).map((b) => ({ type: 'url', text: b.label })),
+  };
+}
 
 const KEY = 'pagebuilder:mock-whatsapp-templates';
 const NEXT_KEY = 'pagebuilder:mock-whatsapp-next-template-review';
@@ -30,16 +270,34 @@ export const TEMPLATES_CHANGED_EVENT = 'whatsapp-templates-changed';
 
 const REVIEW_MS = 15 * 1000;
 
-// The kind of reason Meta gives
-export const MOCK_TEMPLATE_REJECTION =
-  'Meta found the message unclear about why it’s being sent. Say what it’s about, and keep blanks inside the sentence.';
+// Why Meta turns a template down: the stand-in's reasons, in the words
+// a coach can act on. The real ones come from our WhatsApp partner;
+// these are the common ones for reminders.
+export const REJECTIONS = {
+  unclear: {
+    label: 'Unclear',
+    text: 'Meta found it unclear why the message is being sent. Say what it’s about: the booking, and when it is.',
+  },
+  marketing: {
+    label: 'Reads as marketing',
+    text: 'Meta read this as marketing. Reminders have to stick to the booking: what, when and how to join.',
+  },
+  details: {
+    label: 'Too many details',
+    text: 'Meta found too many details for the words around them. Add a little more about what the message is for.',
+  },
+};
+
+// Why Meta turned this one down (older saves: Unclear)
+export const rejectionOf = (t) => REJECTIONS[t?.reason]?.text ?? REJECTIONS.unclear.text;
 
 export const LIMITS = { body: 1024, footer: 60, button: 25, replies: 3, urls: 2, phones: 1 };
 
 export function loadTemplates() {
   try {
     const all = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(all) ? all : [];
+    // Saved while names were camelCase (callOneHourBefore): as Meta's
+    return Array.isArray(all) ? all.map((t) => (t?.moment && !NAME_RULE.test(t.name) ? { ...t, name: snakeOf(t.name) } : t)) : [];
   } catch {
     return [];
   }
@@ -73,7 +331,7 @@ export function saveDraft(template) {
 }
 
 // Submitted to Meta: saved, and in review
-export function submitTemplate(template) {
+export function submitTemplate(template, sender = '') {
   const draft = saveDraft(template);
   if (!draft) return null;
   const all = loadTemplates().map((t) =>
@@ -85,6 +343,7 @@ export function submitTemplate(template) {
           decidedAt: null,
           reviewEndsAt: new Date(Date.now() + REVIEW_MS).toISOString(),
           outcome: takeNextOutcome(),
+          meta: isLegacy(t) ? undefined : toMeta(t, sender),
         }
       : t,
   );
@@ -102,15 +361,22 @@ export function settleTemplates() {
   const settled = all.map((t) => {
     if (t.status !== 'review' || !t.reviewEndsAt || Date.now() < Date.parse(t.reviewEndsAt)) return t;
     changed = true;
-    return { ...t, status: t.outcome === 'reject' ? 'rejected' : 'approved', decidedAt: t.reviewEndsAt };
+    const [verdict, reason] = String(t.outcome ?? 'approve').split(':');
+    return verdict === 'reject'
+      ? { ...t, status: 'rejected', reason: REJECTIONS[reason] ? reason : 'unclear', decidedAt: t.reviewEndsAt }
+      : { ...t, status: 'approved', reason: undefined, decidedAt: t.reviewEndsAt };
   });
   if (changed) saveAll(settled);
 }
 
-// Prototype: how Meta's next review goes ('approve' | 'reject')
+// Prototype: how Meta's next review goes: 'approve', or 'reject:<reason>'
+// (a REJECTIONS id)
 export function nextOutcome() {
   try {
-    return localStorage.getItem(NEXT_KEY) === 'reject' ? 'reject' : 'approve';
+    const saved = localStorage.getItem(NEXT_KEY) ?? 'approve';
+    if (saved === 'reject') return 'reject:unclear'; // older saves
+    const [verdict, reason] = saved.split(':');
+    return verdict === 'reject' && REJECTIONS[reason] ? saved : 'approve';
   } catch {
     return 'approve';
   }
@@ -127,7 +393,7 @@ export function setNextOutcome(outcome) {
 
 function takeNextOutcome() {
   const outcome = nextOutcome();
-  if (outcome === 'reject') setNextOutcome('approve'); // once, so trying again goes through
+  if (outcome !== 'approve') setNextOutcome('approve'); // once, so trying again goes through
   return outcome;
 }
 

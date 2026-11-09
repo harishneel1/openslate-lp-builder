@@ -3,7 +3,7 @@ import {
   Search, ChevronDown, ChevronRight, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
-  CalendarCheck, Users, Store, Video, Repeat, Cloud,
+  CalendarCheck, Users, Store, Video, Repeat, Cloud, Settings,
 } from 'lucide-react';
 import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
@@ -133,6 +133,28 @@ function useHasStorefront() {
   return has;
 }
 
+// Settings and who's signed in, at the foot of the sidebar: everything
+// about the account in one corner. Settings is one click, always in view,
+// and plain: no dots or tags on it.
+function SidebarFoot({ activeNav, onNavigate }) {
+  return (
+    <div className="sidebar__foot">
+      <button
+        type="button"
+        onClick={() => onNavigate('settings')}
+        className={`sidebar__item ${activeNav === 'settings' ? 'sidebar__item--active' : ''}`}
+        title="Settings"
+      >
+        <span className="sidebar__icon-wrap">
+          <Settings size={20} className="sidebar__icon" />
+        </span>
+        <span className="sidebar__label">Settings</span>
+      </button>
+      <AccountMenu onNavigate={onNavigate} />
+    </div>
+  );
+}
+
 // Focus mode: while a webinar or a 1:1 call is open, the app's top nav and
 // sidebar step back and one slim bar takes their place: exit on the left,
 // its name in the middle, save status on the right.
@@ -256,7 +278,7 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
           {/* The coach's own brand: what their students see too */}
           <div className="topnav__logo">HN</div>
 
-          {/* Updates, then their profile */}
+          {/* Updates. Their account and Settings are at the foot of the sidebar. */}
           <div className="topnav__actions">
             <UpdatesBell
               webinars={webinars}
@@ -265,8 +287,6 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
               onOpenBatch={onOpenBatch}
               onOpenStorage={() => onNavigate('cloud-storage')}
             />
-            {/* Their account: Settings (AccountMenu.jsx) */}
-            <AccountMenu onNavigate={onNavigate} />
           </div>
         </header>
       )}
@@ -303,6 +323,8 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
                   );
                 })}
               </nav>
+
+              <SidebarFoot activeNav={activeNav} onNavigate={onNavigate} />
             </aside>
           </div>
         )}
