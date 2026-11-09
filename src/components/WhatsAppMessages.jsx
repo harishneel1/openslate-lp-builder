@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, Eye, MessageCircle } from 'lucide-react';
 import Drawer from './Drawer';
-import { messageStatus } from '../data/whatsappConnection';
+import { MOCK_MESSAGE_REJECTION, messageStatus } from '../data/whatsappConnection';
 import { BUTTONS, MESSAGES, WHATSAPP_SWITCHES_EVENT, setSwitch, switchesOf } from '../data/whatsappMessages';
+import { messageFor, setChoice, useChoices, useTemplates } from '../data/whatsappTemplates';
+import WhatsAppTemplatePicker from './WhatsAppTemplatePicker';
 import { initials } from '../utils/initials';
 import '../screens/WebinarReminders.css'; // the rows, switch and icon button, as for the emails
 import './WhatsAppTab.css';
@@ -17,15 +19,23 @@ import './WhatsAppTab.css';
 //
 //   Message                                          On    View
 //   24 hours before                                [●━]     👁
-//   1 hour before                                  [●━]     👁
-//     [In review] Meta is checking it. Until then, only the email goes.
+//   Sends call_24h_reminder [Not approved] Change
 //
-// An approved message says nothing. A switched-off one is greyed and
-// only says if Meta rejected it (switching it on wouldn't send it).
+// Its state is a badge on that same line, explained on hover (Meta's
+// reason, for one it turned down): Not approved, In review, or Paused.
+// An approved message has no badge. A switched-off one is greyed and only
+// shows Not approved (switching it on wouldn't send it).
+//
+// Under each name, the template it sends, and Change: our default, or
+// any of the coach's approved templates for this product, picked for this
+// webinar session or call (WhatsAppTemplatePicker.jsx). If a picked one is
+// deleted, ours goes again and the row says so until they pick again.
+//
+//   24 hours before                                 [●━]     👁
+//   Sends discovery_call_24h_reminder · Change
 //
 // View opens the message as a student sees it on WhatsApp, with example
-// details, and why Meta said no if it did. The wording is ours and fixed,
-// by design: coaches choose which messages go, never what they say.
+// details, and why Meta said no if it did.
 //
 // connection: the connected (or lost) number
 // kind: 'call' | 'webinar'
@@ -36,7 +46,10 @@ import './WhatsAppTab.css';
 // ------------------------------------------------------------
 export default function WhatsAppMessages({ connection, kind, offering, offeringName, links }) {
   const switches = useSwitches(offering, kind);
-  const [viewing, setViewing] = useState(null); // the message open in its preview
+  const own = useTemplates();
+  const { picks, fellBack } = useChoices(offering);
+  const [viewing, setViewing] = useState(null); // the message open in its preview: its id ('call-24h')
+  const [changing, setChanging] = useState(null); // the message whose template is being picked
   const lost = connection.status === 'lost';
   const messages = MESSAGES[kind];
   const who = kind === 'call' ? 'people who book' : 'people who register';
@@ -64,12 +77,25 @@ export default function WhatsAppMessages({ connection, kind, offering, offeringN
 
         {messages.map((m) => {
           const on = switches[m.id];
-          const status = messageStatus(connection, m.id);
+          const sends = messageFor(m.id, picks, own);
+          // Theirs is approved already (only approved ones can be picked)
+          const status = sends.own ? 'approved' : messageStatus(connection, m.id);
           return (
             <div key={m.id} role="row" className={`rm__row wam__row ${on ? '' : 'rm__row--off'}`}>
               <span role="cell" className="wam__name-cell">
                 <span className="rm__name">{m.name}</span>
-                <RowStatus on={on} lost={lost} status={status} onWhy={() => setViewing(m)} />
+                <span className="wam__sends">
+                  Sends <code className="wam__tpl">{sends.templateName}</code>
+                  <StateBadge on={on} lost={lost} status={status} />
+                  <button type="button" className="cal-link wam__change" onClick={() => setChanging(m.id)}>
+                    Change
+                  </button>
+                </span>
+                {fellBack[m.id] && !sends.own && (
+                  <span className="wam__status">
+                    {fellBack[m.id]} was deleted, so our default goes instead.
+                  </span>
+                )}
               </span>
 
               <span role="cell" className="rm__col">
@@ -89,7 +115,7 @@ export default function WhatsAppMessages({ connection, kind, offering, offeringN
                 <button
                   type="button"
                   className="rm__icon"
-                  onClick={() => setViewing(m)}
+                  onClick={() => setViewing(m.id)}
                   aria-label={`See the WhatsApp reminder ${m.name.toLowerCase()}`}
                   data-tip="See message"
                   data-tip-align="end"
@@ -104,13 +130,30 @@ export default function WhatsAppMessages({ connection, kind, offering, offeringN
 
       {viewing && (
         <MessagePreview
-          message={viewing}
+          message={messageFor(viewing, picks, own)}
           kind={kind}
           connection={connection}
           offeringName={offeringName}
           links={links}
           onClose={() => setViewing(null)}
-          onPick={setViewing}
+          onPick={(m) => setViewing(m.momentId ?? m.id)}
+        />
+      )}
+
+      {changing && (
+        <WhatsAppTemplatePicker
+          kind={kind}
+          momentId={changing}
+          current={picks[changing] ?? null}
+          own={own}
+          connection={connection}
+          offeringName={offeringName}
+          links={links}
+          onClose={() => setChanging(null)}
+          onUse={(id) => {
+            setChoice(offering, offeringName, changing, id);
+            setChanging(null);
+          }}
         />
       )}
     </div>
@@ -133,36 +176,31 @@ export function useSwitches(offering, kind) {
   return switches;
 }
 
-// Under a message's name: why it isn't going, if it isn't. A rejected
-// message says so even when switched off, since switching it on won't
-// send it; the rest only matter while it's on.
-function RowStatus({ on, lost, status, onWhy }) {
-  if (status === 'rejected' && !lost) {
-    return (
-      <span className="wam__status">
-        <span className="wa-badge wa-badge--bad">Not approved</span> {on ? 'Only the email goes.' : ''}
-        <button type="button" className="cal-link wam__why" onClick={onWhy}>
-          See why
-        </button>
-      </span>
-    );
-  }
-  if (!on) return null;
-  if (lost) {
-    return (
-      <span className="wam__status">
-        <span className="wa-badge wa-badge--bad">Paused</span> The email still goes.
-      </span>
-    );
-  }
-  if (status === 'review') {
-    return (
-      <span className="wam__status">
-        <span className="wa-badge wa-badge--wait">In review</span> Meta is checking it. Until then, only the email goes.
-      </span>
-    );
-  }
-  return null;
+// Beside the template a message sends: its state, as one badge, and why
+// on hover or keyboard focus (the app's tooltip, data-tip). Not approved
+// shows even when switched off, since switching it on won't send it; the
+// rest only matter while it's on. Nothing for an approved one.
+const STATES = {
+  rejected: { label: 'Not approved', tone: 'bad', tip: MOCK_MESSAGE_REJECTION },
+  lost: { label: 'Paused', tone: 'bad', tip: 'WhatsApp stopped letting us send from your number. Reconnect it in Settings.' },
+  review: { label: 'In review', tone: 'wait', tip: 'Meta is checking it. Usually a few minutes, up to 24 hours.' },
+};
+
+function StateBadge({ on, lost, status }) {
+  const id = status === 'rejected' && !lost ? 'rejected' : !on ? null : lost ? 'lost' : status === 'review' ? 'review' : null;
+  if (!id) return null;
+  const s = STATES[id];
+  return (
+    <span
+      className={`wa-badge wa-badge--${s.tone} wam__state`}
+      tabIndex={0}
+      data-tip={s.tip}
+      data-tip-align="start"
+      aria-label={`${s.label}: ${s.tip}`}
+    >
+      {s.label}
+    </span>
+  );
 }
 
 // ------------------------------------------------------------
@@ -206,22 +244,14 @@ export function MessagePreview({
   showStatus = true,
   title,
 }) {
-  const status = showStatus ? messageStatus(connection, message.id) : null;
+  // One of the coach's own templates (message.own) is approved already
+  const status = !showStatus ? null : message.own ? 'approved' : messageStatus(connection, message.id);
   const lost = showStatus && connection.status === 'lost';
   const all = MESSAGES[kind];
-  const at = all.findIndex((m) => m.id === message.id);
+  const at = all.findIndex((m) => m.id === (message.momentId ?? message.id));
   const before = all[at - 1] ?? null;
   const after = all[at + 1] ?? null;
-  const values = {
-    first_name: 'Priya',
-    host: connection.name,
-    call: offeringName,
-    webinar: offeringName,
-    batch: offeringName,
-    next: 'Thu 19 Nov',
-    date: 'Thu 12 Nov',
-    time: kind === 'call' ? '4:00 pm' : '7:00 pm',
-  };
+  const values = sampleValuesFor(kind, connection, offeringName);
 
   const notes = [
     { id: 'fill', target: '.wam__fill', label: 'Filled in for each booking' },
@@ -252,11 +282,15 @@ export function MessagePreview({
       }
     >
       {lost ? (
-        <p className="wamp__status wamp__status--bad">Paused: WhatsApp dropped your number. The email still goes.</p>
+        <p className="wamp__status wamp__status--bad">Paused: WhatsApp stopped letting us send from your number.</p>
       ) : status === 'review' ? (
-        <p className="wamp__status">Meta is checking this message. Until it’s approved, only the email goes.</p>
+        <p className="wamp__status">Meta is checking this message. Usually a few minutes, up to 24 hours.</p>
       ) : status === 'rejected' ? (
-        <p className="wamp__status wamp__status--bad">Meta didn’t approve this message. Only the email goes for now.</p>
+        <p className="wamp__status wamp__status--bad">Meta didn’t approve this message. {MOCK_MESSAGE_REJECTION}</p>
+      ) : message.own ? (
+        <p className="wamp__status">
+          Your template <code className="wam__tpl">{message.templateName}</code>, in place of our default.
+        </p>
       ) : null}
 
       <Annotated notes={notes} watch={message.id} caption={<p className="wamp__caption">What your customers receive</p>}>
@@ -265,6 +299,18 @@ export function MessagePreview({
     </Drawer>
   );
 }
+
+// The example booking the previews fill in: Priya, this call or webinar
+export const sampleValuesFor = (kind, connection, offeringName) => ({
+  first_name: 'Priya',
+  host: connection.name,
+  call: offeringName,
+  webinar: offeringName,
+  batch: offeringName,
+  next: 'Thu 19 Nov',
+  date: 'Thu 12 Nov',
+  time: kind === 'call' ? '4:00 pm' : '7:00 pm',
+});
 
 // The phone, showing one message as the student gets it. Also used by
 // Settings → WhatsApp → Templates (WhatsAppTemplates.jsx).

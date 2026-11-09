@@ -32,6 +32,8 @@ import './SettingsPage.css';
 // onWithdraw(): go to Sales → Withdraw money
 // startOn: the page to open on: 'payments', 'whatsapp' (its Connection),
 //   'whatsapp-connection' or 'whatsapp-templates'; Payment details if left out
+// startCreate: { product, moment } to open Templates on a new template for
+//   that message (a reminder's "Create a new template")
 // ------------------------------------------------------------
 
 const PAGES = [
@@ -54,7 +56,7 @@ const openable = (id) => {
   return OPENABLE.some((p) => p.id === id) ? id : 'payments';
 };
 
-export default function SettingsPage({ onWithdraw, startOn = 'payments' }) {
+export default function SettingsPage({ onWithdraw, startOn = 'payments', startCreate = null }) {
   const [page, setPage] = useState(() => openable(startOn));
   const onWhatsApp = page.startsWith('whatsapp');
 
@@ -70,6 +72,7 @@ export default function SettingsPage({ onWithdraw, startOn = 'payments' }) {
             <WhatsAppSettings
               view={page === 'whatsapp-templates' ? 'templates' : 'connection'}
               onView={(v) => setPage(`whatsapp-${v}`)}
+              startCreate={startCreate}
             />
           ) : (
             <>

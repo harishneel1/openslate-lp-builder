@@ -101,7 +101,7 @@ function NotConnected() {
     <div className="wa-card wa-invite">
       <h3 className="wa-head__title">Remind people on WhatsApp too</h3>
       <p className="wa-head__text">Connect your number once in Settings, and every webinar and 1:1 call can use it.</p>
-      <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={goToWhatsAppSettings}>
+      <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={() => goToWhatsAppSettings()}>
         Set up in Settings
       </button>
     </div>
@@ -127,7 +127,7 @@ function Connected({ connection, kind, offering, offeringName, links }) {
           </p>
           <p className="wa-from__sub">as {connection.name}</p>
         </div>
-        <button type="button" className="es__btn es__btn--quiet wa-from__manage" onClick={goToWhatsAppSettings}>
+        <button type="button" className="es__btn es__btn--quiet wa-from__manage" onClick={() => goToWhatsAppSettings()}>
           WhatsApp settings
         </button>
       </div>
@@ -137,8 +137,7 @@ function Connected({ connection, kind, offering, offeringName, links }) {
           <p>
             {lost ? (
               <>
-                <strong>WhatsApp reminders are paused.</strong> Emails still go out. Reconnect your number in
-                Settings.
+                <strong>WhatsApp reminders are paused.</strong> Reconnect your number in Settings.
               </>
             ) : (
               <>
@@ -146,7 +145,7 @@ function Connected({ connection, kind, offering, offeringName, links }) {
               </>
             )}
           </p>
-          <button type="button" className="es__btn es__btn--primary" onClick={goToWhatsAppSettings}>
+          <button type="button" className="es__btn es__btn--primary" onClick={() => goToWhatsAppSettings()}>
             {lost ? 'Reconnect in Settings' : 'Choose a name in Settings'}
           </button>
         </div>

@@ -176,6 +176,15 @@
   overflow-wrap: anywhere;
 }
 
+/* Where one of theirs is sent from, under what it's for */
+.wtp-used {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-success);
+}
+
 /* What it's for, under the name: 1:1 call · 24 hours before */
 .wtp-about {
   display: block;

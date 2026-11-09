@@ -14,8 +14,10 @@ import {
 import { MESSAGES } from '../data/whatsappMessages';
 import {
   deleteTemplate,
+  CHOICES_CHANGED_EVENT,
   isLegacy,
   rejectionOf,
+  usesOf,
   momentById,
   sampleValues,
   suggestName,
@@ -141,12 +143,15 @@ const copyOfReadyMade = (row, taken) => ({
 const copyOfOwn = (t, taken) =>
   isLegacy(t) ? null : { product: t.product, moment: t.moment, body: t.body, name: suggestName(t.moment, taken) };
 
-export default function WhatsAppTemplates({ connection, onConnect }) {
+// startCreate: { product, moment } to open straight on a new template for
+//   that message (a reminder's "Create a new template")
+export default function WhatsAppTemplates({ connection, onConnect, startCreate = null }) {
+  useChoicesVersion(); // "Used on …" follows reminders' picks
   const own = useTemplates();
   const [filter, setFilter] = useState('all');
   const [product, setProduct] = useState('all'); // PRODUCT_FILTERS
   const [open, setOpen] = useState(null); // a row's key
-  const [editing, setEditing] = useState(null); // { initial } while the editor's open
+  const [editing, setEditing] = useState(() => (startCreate ? { initial: { ...startCreate } } : null)); // { initial } while the editor's open
   const [removing, setRemoving] = useState(null); // one of theirs, to delete
   const connected = hasNumber(connection);
   const sender = connected ? connection.name : DEFAULT_NAME;
@@ -306,6 +311,7 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
                         {r.name}
                       </button>
                       {r.about && <span className="wtp-about">{r.about}</span>}
+                      {r.own && <UsedOn id={r.template.id} />}
                     </td>
                     <td className="wtp-muted">{CATEGORY[r.category]}</td>
                     <td>
@@ -372,6 +378,11 @@ export default function WhatsAppTemplates({ connection, onConnect }) {
           }}
         >
           <p>“{removing.name}” will be removed from your templates. This can’t be undone.</p>
+          {usesOf(removing.id).length > 0 && (
+            <p>
+              It’s sent by {listOf(usesOf(removing.id))}. Those reminders will go back to our default wording.
+            </p>
+          )}
         </ConfirmDialog>
       )}
     </>
@@ -428,9 +439,10 @@ function TemplateDialog({ row, sender, onClose, onEdit, onDuplicate, onDelete })
           <h3 id="wtp-journey-title" className="wtp-journey__title">
             Template journey
           </h3>
-          <p className="wtp-journey__when">
-            {about}
-          </p>
+          <p className="wtp-journey__when">{about}</p>
+          {row.own && usesOf(t.id).length > 0 && (
+            <p className="wtp-journey__when wtp-used">Used on {listOf(usesOf(t.id))}</p>
+          )}
           <ol className="wtp-steps">
             {row.own && <Step icon={FileText} tone="done" title="Created" text={fmtWhen(t.createdAt)} />}
             {status === 'draft' && (
@@ -511,4 +523,29 @@ function Step({ icon: Icon, tone, title, text, why }) {
       </div>
     </li>
   );
+}
+
+// "Discovery call, Coaching session and Yoga basics"
+const listOf = (names) =>
+  names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+
+// Where one of theirs is sent from: "Used on Discovery call", or nothing
+function UsedOn({ id }) {
+  const names = usesOf(id);
+  if (!names.length) return null;
+  return <span className="wtp-used">Used on {listOf(names)}</span>;
+}
+
+// Re-render when a reminder's pick changes anywhere
+function useChoicesVersion() {
+  const [, setN] = useState(0);
+  useEffect(() => {
+    const bump = () => setN((n) => n + 1);
+    window.addEventListener(CHOICES_CHANGED_EVENT, bump);
+    window.addEventListener('storage', bump);
+    return () => {
+      window.removeEventListener(CHOICES_CHANGED_EVENT, bump);
+      window.removeEventListener('storage', bump);
+    };
+  }, []);
 }

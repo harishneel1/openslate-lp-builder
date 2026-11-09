@@ -350,8 +350,13 @@ export function submitTemplate(template, sender = '') {
   return saveAll(all) ? all.find((t) => t.id === draft.id) : null;
 }
 
+// Deleted: and every reminder that sent it goes back to our default,
+// with a note on the row saying so (choices below)
 export function deleteTemplate(id) {
-  return saveAll(loadTemplates().filter((t) => t.id !== id));
+  const gone = loadTemplates().find((t) => t.id === id);
+  const ok = saveAll(loadTemplates().filter((t) => t.id !== id));
+  if (ok && gone) dropChoicesOf(gone);
+  return ok;
 }
 
 // The stand-in for Meta: reviews that are due, decided
@@ -429,4 +434,124 @@ export function useTemplates() {
 export function blanksOf(body) {
   const found = [...String(body).matchAll(/\{\{(\d+)\}\}/g)].map((m) => Number(m[1]));
   return [...new Set(found)].sort((a, b) => a - b);
+}
+// ---------- Which template each reminder sends ----------
+// A webinar's or a 1:1 call's Reminders → WhatsApp tab picks, for each of
+// its messages, our default or one of the coach's approved templates for
+// that product. Any of them: a 5-minute template can go on the 24-hour
+// message if they want (it's their wording). Picked per webinar session or
+// call, the same keys as the on/off switches (whatsappMessages.js).
+//
+// Kept in this browser (the stand-in):
+//   { 'call:<id>': {
+//       name: 'Discovery call',          for "Used on …" in Templates
+//       picks: { 'call-24h': 'tpl-…' },  missing: our default
+//       fellBack: { 'call-24h': 'discovery_call_24h_reminder' },
+//                                         a picked one was deleted: our
+//                                         default goes now, and the row says so
+//   } }
+const CHOICES_KEY = 'pagebuilder:mock-whatsapp-choices';
+export const CHOICES_CHANGED_EVENT = 'whatsapp-choices-changed';
+
+function loadChoices() {
+  try {
+    const all = JSON.parse(localStorage.getItem(CHOICES_KEY) ?? '{}');
+    return all && typeof all === 'object' && !Array.isArray(all) ? all : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveChoices(all) {
+  try {
+    localStorage.setItem(CHOICES_KEY, JSON.stringify(all));
+  } catch {
+    return false;
+  }
+  window.dispatchEvent(new Event(CHOICES_CHANGED_EVENT));
+  return true;
+}
+
+// One webinar session's or call's choices: { picks, fellBack }
+export function choicesOf(offering) {
+  const c = loadChoices()[offering] ?? {};
+  return { picks: c.picks ?? {}, fellBack: c.fellBack ?? {} };
+}
+
+// Pick a template for one message (templateId null: our default). Clears
+// the "went back to our default" note for it.
+export function setChoice(offering, offeringName, momentId, templateId) {
+  const all = loadChoices();
+  const c = all[offering] ?? {};
+  const picks = { ...(c.picks ?? {}) };
+  const fellBack = { ...(c.fellBack ?? {}) };
+  if (templateId) picks[momentId] = templateId;
+  else delete picks[momentId];
+  delete fellBack[momentId];
+  all[offering] = { name: offeringName ?? c.name, picks, fellBack };
+  return saveChoices(all);
+}
+
+// Where a template is picked: ['Discovery call', 'Coaching session']
+export function usesOf(templateId) {
+  return Object.values(loadChoices())
+    .filter((c) => Object.values(c.picks ?? {}).includes(templateId))
+    .map((c) => c.name ?? 'A call');
+}
+
+// A deleted template's picks: our default instead, with a note
+function dropChoicesOf(t) {
+  const all = loadChoices();
+  let changed = false;
+  for (const c of Object.values(all)) {
+    for (const [momentId, id] of Object.entries(c.picks ?? {})) {
+      if (id !== t.id) continue;
+      delete c.picks[momentId];
+      c.fellBack = { ...(c.fellBack ?? {}), [momentId]: t.name };
+      changed = true;
+    }
+  }
+  if (changed) saveChoices(all);
+}
+
+// The coach's templates that a product's reminders can send: approved,
+// made for that product (newest first)
+export const pickableOf = (own, product) =>
+  own.filter((t) => !isLegacy(t) && t.product === product && t.status === 'approved');
+
+// What one message of a webinar or call sends: our ready-made message, or
+// their picked template in its place (same shape, for the phone preview):
+//   { …moment, momentId, templateName, own, body, buttons }
+// A pick that isn't there or isn't approved any more: ours.
+export function messageFor(momentId, picks, own) {
+  const moment = momentById(momentId);
+  const t = own.find((x) => x.id === picks[momentId] && x.status === 'approved' && !isLegacy(x));
+  if (!t) return { ...moment, momentId, templateName: moment.template, own: false };
+  const madeFor = momentById(t.moment);
+  return {
+    ...moment,
+    id: t.id,
+    momentId,
+    templateName: t.name,
+    own: true,
+    body: t.body,
+    // Its own buttons: the ones of the message it was made for
+    buttons: madeFor?.buttons ?? moment.buttons,
+  };
+}
+
+// A webinar session's or call's choices, kept up to date
+export function useChoices(offering) {
+  const [c, setC] = useState(() => choicesOf(offering));
+  useEffect(() => {
+    const refresh = () => setC(choicesOf(offering));
+    refresh();
+    window.addEventListener(CHOICES_CHANGED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener(CHOICES_CHANGED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [offering]);
+  return c;
 }

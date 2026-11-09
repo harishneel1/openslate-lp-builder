@@ -101,10 +101,11 @@ const CHECKS = [
 //                (WhatsAppTemplates.jsx)
 // view: 'connection' | 'templates'; onView(view) moves between them (the
 //   connected screen's "See all", Templates' "Connect WhatsApp")
-export default function WhatsAppSettings({ view = 'connection', onView }) {
+// startCreate: { product, moment } to open Templates' editor on a new one
+export default function WhatsAppSettings({ view = 'connection', onView, startCreate = null }) {
   const connection = useWhatsApp();
   return view === 'templates' ? (
-    <WhatsAppTemplates connection={connection} onConnect={() => onView('connection')} />
+    <WhatsAppTemplates connection={connection} onConnect={() => onView('connection')} startCreate={startCreate} />
   ) : (
     <Connection connection={connection} onSeeAll={() => onView('templates')} />
   );

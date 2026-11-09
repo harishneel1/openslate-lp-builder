@@ -242,9 +242,13 @@ export const disconnectWhatsApp = () => saveWhatsApp(null);
 
 // ---------- Going to Settings → WhatsApp ----------
 // From anywhere (a webinar's or a call's Reminders tab): the app (App.jsx)
-// hears this and opens Settings on its WhatsApp tab.
+// hears this and opens Settings on WhatsApp.
+//   page:   'whatsapp' (Connection, the default) or 'whatsapp-templates'
+//   create: { product, moment } to open Templates' editor on a new
+//           template for that message (a reminder's "Create a new template")
 export const OPEN_SETTINGS_EVENT = 'open-whatsapp-settings';
-export const goToWhatsAppSettings = () => window.dispatchEvent(new Event(OPEN_SETTINGS_EVENT));
+export const goToWhatsAppSettings = ({ page = 'whatsapp', create = null } = {}) =>
+  window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: { page, create } }));
 
 // ---------- Prototype controls (the demo panel on the WhatsApp tab) ----------
 

@@ -505,7 +505,7 @@ function App() {
     }));
   };
 
-  // Settings, opened on one of its tabs: { section, n } (n opens it fresh
+  // Settings, opened on one of its pages: { section, create, n } (n opens it fresh
   // again on a second request). From a Reminders tab's "Set up in Settings"
   // (OPEN_SETTINGS_EVENT, whatsappConnection.js). Null: its first tab, as
   // every other way there (the sidebar, Sales) opens it.
@@ -530,11 +530,13 @@ function App() {
   // Cleared on the way to 1:1 calls from the sidebar, so that opens the list.
   const [callRequest, setCallRequest] = useState(null);
 
-  // A Reminders tab's "Set up in Settings": Settings, on its WhatsApp tab
+  // A Reminders tab's "Set up in Settings": Settings, on WhatsApp. Or, from
+  // a reminder's "Create a new template", on Templates with the editor open
+  // for that message (create: { product, moment })
   useEffect(() => {
-    const open = () => {
+    const open = (e) => {
       handleNavigate('settings');
-      setSettingsRequest({ section: 'whatsapp', n: Date.now() });
+      setSettingsRequest({ section: e.detail?.page ?? 'whatsapp', create: e.detail?.create ?? null, n: Date.now() });
     };
     window.addEventListener(OPEN_SETTINGS_EVENT, open);
     return () => window.removeEventListener(OPEN_SETTINGS_EVENT, open);
@@ -1145,6 +1147,7 @@ function App() {
         <SettingsPage
           key={settingsRequest?.n ?? 'settings'}
           startOn={settingsRequest?.section}
+          startCreate={settingsRequest?.create}
           onWithdraw={() => handleNavigate('sales')}
         />
       ) : activeNav === 'cloud-storage' ? (

@@ -812,3 +812,39 @@
 .wa-invite__go {
   margin-top: 12px;
 }
+/* Under a message's name: the template it sends, and Change */
+.wam__sends {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.wam__tpl {
+  padding: 1px 6px;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-radius: 4px;
+}
+
+.wam__change {
+  padding: 0;
+  font-size: 13px;
+}
+
+/* The state badge beside a template: focusable, so its hint (data-tip)
+   shows for the keyboard too; a help cursor says there's more on hover */
+.wam__state {
+  cursor: help;
+}
+
+.wam__state:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
