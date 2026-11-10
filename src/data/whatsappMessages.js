@@ -54,9 +54,11 @@ export const WHATSAPP_SWITCHES_EVENT = 'whatsapp-switches-changed';
 //
 // The 2-hour call message asks the student to confirm they're coming:
 // "Yes, I'll be there" is a quick reply (their answer comes back to us),
-// and "Can't make it? Change it" opens their booking page to reschedule
-// or cancel. It took over from the 1-hour message, which had Join call and
-// Manage booking: Join is still on the 5-minute one.
+// "Can't make it? Change it" opens their booking page to reschedule or
+// cancel, and Join call opens the meeting link, so the link is to hand
+// whenever they look. Three buttons: WhatsApp's most before it folds them
+// behind "See all options". It took over from the 1-hour message.
+// (Changing a message's buttons means Meta reviews it again.)
 export const MESSAGES = {
   call: [
     {
@@ -86,7 +88,7 @@ export const MESSAGES = {
       when: 'Goes out 2 hours before the call, and asks them to confirm they’re coming.',
       example: '2 hours before her call at 4:00 pm on Thursday',
       body: 'Hi {first_name}, your {call} with {host} starts in 2 hours, at {time}.\n\n{host} has kept this time just for you and we need your reply to go ahead.\n\nSo please tap Yes or No below.',
-      buttons: ['yes', 'change'],
+      buttons: ['yes', 'change', 'join'],
       sentAt: '2:00 pm',
       replaces: 'call-1h',
     },

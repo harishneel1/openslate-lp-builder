@@ -38,8 +38,8 @@ import './CallReminderEditor.css';
 // note under the title say which: applyLabel and note.
 //
 // Fixed parts the coach can't delete: the Join call button, and on the
-// 24-hour email the reschedule-or-cancel line (a student's only way to
-// move their booking).
+// 24-hour and 2-hour emails the reschedule-or-cancel line (a student's
+// only way to move their booking).
 //
 // reminderId: 'dayBefore' | 'hourBefore'
 // value: the words to start from: { subject, body } (the call's draft)

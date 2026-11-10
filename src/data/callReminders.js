@@ -27,8 +27,9 @@ import { DEFAULT_MEETING_LINK } from './bookingsStore';
 // The body is the same simple HTML as the webinar emails, with fill-in
 // fields as markers ({{first_name}}): CALL_FIELDS lists them. Two parts
 // aren't in the body, so they can't be deleted: the Join call button, and
-// on the 24-hour email the line with links to reschedule or cancel
-// (a student's only way to move their booking).
+// on the 24-hour and 2-hour emails the line with links to reschedule or
+// cancel (a student's only way to move their booking; the same choice as
+// the 2-hour WhatsApp message's "Can't make it? Change it").
 //
 // Every time is worked out from the booking as it is now, never stored:
 //   - a rescheduled booking's reminders follow its new time
@@ -84,6 +85,7 @@ export const CALL_REMINDERS = [
     short: '2-hour',
     example: ['If Rohan’s call with you is at 4:00 PM on Thursday, he gets this email at ', '2:00 PM on Thursday', '.'],
     offsetMins: 120,
+    manage: true,
     subject: 'Starting in 2 hours: {{call_title}} with {{your_name}}',
     body:
       '<p>Hi {{first_name}},</p>' +
@@ -334,7 +336,7 @@ export function emailValues(booking, hostName, fallbackZone = 'Asia/Kolkata') {
   };
 }
 
-// The fixed line under the Join button on the 24-hour email, filled in
+// The fixed line under the Join button on the 24-hour and 2-hour emails, filled in
 // (escaped: the values are the person's own)
 const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export const manageLineHtml = (values) =>
