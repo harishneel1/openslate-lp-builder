@@ -140,7 +140,7 @@ export const CALL_FIELDS = [
   { key: 'call_title', label: 'Call name', hint: 'Fills in this call’s name' },
   { key: 'date', label: 'Date', hint: 'Fills in the call’s date, e.g. Thu 5 Nov' },
   { key: 'time', label: 'Time', hint: 'Fills in the call’s time on their clock, e.g. 4:00 pm IST' },
-  { key: 'your_name', label: 'Your name', hint: 'Fills in your name' },
+  { key: 'your_name', label: 'Coach name', hint: 'Fills in your name as the coach' },
 ];
 
 // ---------- The words of each email ----------

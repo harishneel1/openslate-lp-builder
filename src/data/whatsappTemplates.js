@@ -75,14 +75,14 @@ export const DETAILS = {
     { key: 'call', label: 'Call name', hint: 'The name of the call they booked' },
     { key: 'date', label: 'Date', hint: 'The call’s date, e.g. Thu 12 Nov' },
     { key: 'time', label: 'Time', hint: 'The call’s time, e.g. 4:00 pm' },
-    { key: 'host', label: 'Your name', hint: 'Your name, as on your page' },
+    { key: 'host', label: 'Coach name', hint: 'Your name as the coach' },
   ],
   webinar: [
     { key: 'first_name', label: 'First name', hint: 'Each person’s first name' },
     { key: 'webinar', label: 'Webinar name', hint: 'The webinar’s title' },
     { key: 'date', label: 'Date', hint: 'The webinar’s date, e.g. Thu 12 Nov' },
     { key: 'time', label: 'Time', hint: 'The webinar’s time, e.g. 7:00 pm' },
-    { key: 'host', label: 'Your name', hint: 'Your name, as on your page' },
+    { key: 'host', label: 'Coach name', hint: 'Your name as the coach' },
   ],
 };
 

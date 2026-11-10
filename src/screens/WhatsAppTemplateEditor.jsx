@@ -59,7 +59,7 @@ import './WhatsAppTemplateEditor.css';
 //    reminder emails are edited (CallReminderEditor.jsx):
 //
 //   ← New template
-//     1:1 call · 2 hours before  Change
+//     1:1 call · 2 hours before
 //   ┌──────────────────────────────────────────┬──────────────┐
 //   │ Name [call_2h_reminder_1]                 │ the message  │
 //   │ Message   B I S          + Insert detail ▾│ on a phone,  │
@@ -231,7 +231,7 @@ function MomentPicker({ product, onProduct, onPick, onBack }) {
 // Step 2: the words
 // ------------------------------------------------------------
 // start: { id?, createdAt?, product, moment, name, body }
-// fresh: a new template (its message can still be changed)
+// fresh: a new template, so ← goes back to step 1 to pick another message
 // editing: one of theirs, saved before
 // copiedFrom: the original's name, when it's a duplicate (the title says so)
 // rejected: Meta's reason, when it's one Meta turned down (shown at the top)
@@ -317,8 +317,9 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
         <button
           type="button"
           className="wte__back"
-          onClick={() => (changed ? setLeaving(true) : onDone())}
-          aria-label="Back to templates"
+          // A new one goes back to step 1 (another message); a saved one, to the list
+          onClick={() => (changed ? setLeaving(fresh ? 'moment' : true) : fresh ? onChangeMoment() : onDone())}
+          aria-label={fresh ? 'Back to choosing the message' : 'Back to templates'}
         >
           <ArrowLeft size={20} aria-hidden="true" />
         </button>
@@ -336,16 +337,6 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
             <span className="wte__for-what">
               {product.one} · {moment.name}
             </span>
-            <span className="wte__for-when">{moment.when}</span>
-            {fresh && (
-              <button
-                type="button"
-                className="wte__link"
-                onClick={() => (changed ? setLeaving('moment') : onChangeMoment())}
-              >
-                Change
-              </button>
-            )}
           </p>
         </div>
       </div>
@@ -463,7 +454,13 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
               <p className="wte__text">{buttonsWhy(t.product, buttons)}</p>
               <ul className="wte__locked">
                 {buttons.map((b) => (
-                  <li key={b.key} className="wte__lock">
+                  <li
+                    key={b.key}
+                    className="wte__lock"
+                    tabIndex={0}
+                    data-tip="Buttons can’t be edited"
+                    data-tip-align="start"
+                  >
                     <Lock size={15} className="wte__lock-icon" aria-hidden="true" />
                     <span className="wte__lock-name">{b.label}</span>
                     <span className="wte__lock-hint">{b.hint}</span>

@@ -29,7 +29,7 @@ export const NOTICE_FIELDS = [
   { key: 'date', label: 'Date', hint: 'Fills in the class’s date' },
   { key: 'time', label: 'Time', hint: 'Fills in the class’s time' },
   { key: 'next_class', label: 'Next class', hint: 'Fills in when the next class is' },
-  { key: 'your_name', label: 'Your name', hint: 'Fills in your name' },
+  { key: 'your_name', label: 'Coach name', hint: 'Fills in your name as the coach' },
 ];
 
 // The email each cancellation starts from

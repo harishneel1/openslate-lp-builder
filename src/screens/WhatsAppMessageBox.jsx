@@ -8,7 +8,7 @@ import { DETAILS } from '../data/whatsappTemplates';
 // coach can't type into or change, as in the reminder emails' editor
 // (ReminderEditor.jsx):
 //
-//   Hi [First name], your *[Call name]* with [Your name] starts in 1 hour.
+//   Hi [First name], your *[Call name]* with [Coach name] starts in 1 hour.
 //
 // A tag is one piece: the cursor steps over it, Backspace or Delete takes
 // all of it, and hovering says what it fills in. Tags only come from

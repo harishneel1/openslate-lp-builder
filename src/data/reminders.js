@@ -32,7 +32,7 @@ export const FIELDS = [
   { key: 'date', label: 'Date', hint: 'Fills in the webinar’s date' },
   { key: 'time', label: 'Time', hint: 'Fills in the webinar’s time' },
   { key: 'join_link', label: 'Join link', hint: 'Fills in each person’s own join link' },
-  { key: 'your_name', label: 'Your name', hint: 'Fills in your name' },
+  { key: 'your_name', label: 'Coach name', hint: 'Fills in your name as the coach' },
   {
     key: 'refund_amount',
     label: 'Refund amount',

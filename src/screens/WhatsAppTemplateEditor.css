@@ -210,7 +210,7 @@ select.wte__input {
 }
 
 /* ---------- Step 2's own pieces ---------- */
-/* What it's for, under the title: the message, when it goes, Change */
+/* What it's for, under the title: the product and the message */
 .wte__for {
   display: flex;
   flex-wrap: wrap;
@@ -346,6 +346,12 @@ select.wte__input {
 
 .wte__lock + .wte__lock {
   border-top: 1px solid var(--color-border);
+}
+
+/* Focusable, so keyboard users get the "can't be edited" hint too */
+.wte__lock:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .wte__lock-icon {
