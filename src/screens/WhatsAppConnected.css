@@ -74,6 +74,83 @@
   background: var(--color-success-tint);
 }
 
+/* Messages in review: calm, not a warning */
+.wcn-note--wait {
+  background: var(--color-bg);
+}
+
+/* Where it stands: connected, Meta approving, reminders live */
+.wcn-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.wcn-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+}
+
+/* An arrow between steps */
+.wcn-step + .wcn-step::before {
+  content: '→';
+  margin-right: 4px;
+  color: #b5b5b5;
+}
+
+.wcn-step__mark {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #cfcfd4;
+  border-radius: 50%;
+}
+
+.wcn-step--done {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.wcn-step--done .wcn-step__mark {
+  color: #fff;
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.wcn-step--now {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* The step under way: a ring with its live part in orange */
+.wcn-step--now .wcn-step__mark {
+  border-color: var(--color-primary-tint);
+  border-top-color: var(--color-primary);
+  animation: wcn-spin 1.2s linear infinite;
+}
+
+@keyframes wcn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wcn-step--now .wcn-step__mark {
+    animation: none;
+    border-color: var(--color-primary);
+  }
+}
+
 .wcn-note--problem {
   align-items: center;
   color: var(--po-amber-ink);
@@ -264,4 +341,9 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* ---------- The box on the right: what our default messages are ---------- */
+.wcn-help__btn {
+  margin-top: 14px;
 }

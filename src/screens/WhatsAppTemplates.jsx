@@ -11,6 +11,7 @@ import {
   hasNumber,
   messageDates,
   messageStatus,
+  markTemplatesIntroSeen,
 } from '../data/whatsappConnection';
 import { LIVE_CLASSES_SHOWN, MESSAGES } from '../data/whatsappMessages';
 import {
@@ -163,6 +164,13 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
   const connected = hasNumber(connection);
   const sender = connected ? connection.name : DEFAULT_NAME;
 
+  // The note about our default messages: on the first visit after
+  // connecting, marked seen as it shows, and there for this visit until closed
+  const [introOpen, setIntroOpen] = useState(() => connected && connection.templatesIntro === false);
+  useEffect(() => {
+    if (connected && connection.templatesIntro === false) markTemplatesIntroSeen();
+  }, [connected, connection?.templatesIntro]);
+
   // Every row: theirs (newest first), then ours
   const rows = [
     ...own.map((t) => ({
@@ -248,6 +256,14 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
       </div>
 
       <div className="settings__body wtp">
+        {introOpen && (
+          <div className="wtp-note wtp-intro" role="status">
+            <p>These are default reminder messages we submitted for you. You can write your own versions any time.</p>
+            <button type="button" className="wtp-intro__close" onClick={() => setIntroOpen(false)} aria-label="Close">
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        )}
         {!connected && (
           <div className="wtp-note">
             <p>Templates go to Meta for review once your WhatsApp number is connected.</p>

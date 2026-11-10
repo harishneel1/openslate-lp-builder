@@ -31,6 +31,33 @@
   border-radius: 2px;
 }
 
+/* The first visit after connecting: what the ready-made rows are */
+.wtp-intro {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.wtp-intro__close {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -3px -6px 0 0;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+}
+
+.wtp-intro__close:hover {
+  color: var(--color-text);
+  background: #e9e9ec;
+}
+
+.wtp-intro__close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
 /* Status filters, with how many in each */
 /* Status on the left, what it's for on the right */
 .wtp-bar {

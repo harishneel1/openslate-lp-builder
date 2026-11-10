@@ -28,6 +28,8 @@ import { MESSAGE_IDS } from './whatsappMessages';
 //     sharedChats: true,              chose to share their existing chats
 //                                     (older saves only: no longer asked)
 //     connectedAt: ISO string,
+//     templatesIntro: false,          not yet seen Templates' note about our
+//                                     default messages; missing means seen
 //     welcomed: false,                not yet seen "You're all set" in
 //                                     Settings; missing means seen (older saves)
 //     verified: false,                Meta has verified their business,
@@ -168,6 +170,7 @@ export function connectWhatsApp({ number, name, business, sharedChats }) {
     sharedChats: Boolean(sharedChats),
     connectedAt: new Date().toISOString(),
     welcomed: false,
+    templatesIntro: false,
     verified: false,
     messages: messagesInReview(),
   };
@@ -176,6 +179,9 @@ export function connectWhatsApp({ number, name, business, sharedChats }) {
 
 // "You're all set" seen: not shown again
 export const markWelcomed = () => update({ welcomed: true });
+
+// Templates' note about our default messages seen: not shown again
+export const markTemplatesIntroSeen = () => update({ templatesIntro: true });
 
 // A lost number, connected again (the stand-in: straight back)
 export const reconnectWhatsApp = () => update({ status: 'connected' });
@@ -270,7 +276,7 @@ export const demo = {
   reset: () => saveWhatsApp(null),
   // Settings' connected screen
   setVerified: (verified) => update({ verified }),
-  replayWelcome: () => update({ welcomed: false }),
+  replayWelcome: () => update({ welcomed: false, templatesIntro: false }),
   // Back in review, as just after connecting (the stand-in approves them again shortly)
   reconnect: () => update({ status: 'connected' }),
   nameInReview: () => update({ nameStatus: 'review', reviewEndsAt: new Date(Date.now() + REVIEW_MS).toISOString() }),

@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Drawer from '../components/Drawer';
 import InfoTip from '../components/InfoTip';
 import {
   DAILY_LIMIT,
   MOCK_REJECTION,
-  anyInReview,
   dailyLimit,
   disconnectWhatsApp,
   markWelcomed,
@@ -24,26 +23,41 @@ import './WhatsAppConnected.css';
 //
 //   WhatsApp  [● Connected]
 //   Used for every webinar and 1:1 call.
-//   ───────────────────────────────────────────────────────
-//   ┃ You're all set                                    ✕ ┃  first visit only
-//   ┃ Meta is reviewing your reminder messages. …         ┃
-//
-//   Number          +91 98765 43210
+//   ───────────────────────────────────────────────────────────────────
+//   ┃ Connected. Your reminders are being approved.  ┃  ┌ Default reminders, ┐
+//   ┃ It usually takes a few minutes, and up to 24 h. ┃  │ ready to use       │
+//   ┃ ✓ Connected → ◷ Meta approving · 5 of 8 → ○ Reminders live │ We've submitted … │
+//                                                       │ [See default messages]
+//   Number          +91 98765 43210                     └────────────────────┘
 //   Display name    Harish Neel  [In review]
 //   Daily limit     250 students ⓘ   Get verified to raise it
 //   Messages        8 reminders: 7 approved, 1 in review   See all
 //
 //   Disconnect WhatsApp
 //
-// Something wrong takes the place of "You're all set", most urgent first,
-// each with the one thing to do:
-//   the number dropped by WhatsApp   paused, emails still go     Reconnect
-//   the display name rejected        Meta's reason               Choose another name
-//   a message rejected               where to see why            See which
+// The note at the top, one at a time:
+//   something wrong   most urgent first, each with the one thing to do
+//                     (it replaces the others):
+//     the number dropped by WhatsApp   paused, emails still go     Reconnect
+//     the display name rejected        Meta's reason               Choose another name
+//     a message rejected               where to see why            See which
+//   messages in review  "Connected. Your reminders are being approved."
+//                     and three steps, the middle one counting the
+//                     approvals. It can't be closed while it's true.
+//   all approved      "You're all set", once: when the last approval
+//                     comes in while they're here, or on their next visit.
+//                     Closed, it doesn't come back.
 //
-// Messages' "See all", and a rejected message's "See which", go to the
-// Templates tab (onSeeAll). Side panels (Drawer): Get verified (Coming
-// soon), and a new display name. Disconnect asks first
+// The coach never wrote these messages: we submitted our defaults for
+// them as they connected. So until every one is approved, a box on the
+// right says what they are, why Meta checks them, and that there's
+// nothing to do, with the way to Templates. It doesn't count them or name
+// calls and webinars they may not have made yet. Once all are approved it
+// goes; the Messages row stays as the way to Templates.
+//
+// Messages' "See all", a rejected message's "See which", and the box's
+// button go to the Templates tab (onSeeAll). Side panels (Drawer): Get
+// verified (Coming soon), and a new display name. Disconnect asks first
 // (ConfirmDialog); it's also how to change number: disconnect, then
 // connect the new one.
 //
@@ -65,20 +79,28 @@ export default function WhatsAppConnected({ connection, onSeeAll }) {
   const [disconnecting, setDisconnecting] = useState(false);
   const lost = connection.status === 'lost';
   const problem = problemOf(connection);
+  const { approved, total, inReview } = approvalsOf(connection);
 
-  // "You're all set": on the first visit after setup. It's marked seen as it
-  // shows, and stays for this visit until closed, so it never comes back.
-  const [welcomeOpen, setWelcomeOpen] = useState(connection.welcomed === false);
+  // "You're all set": once every message is approved, shown once. Either
+  // the last approval comes in while they're here, or it had come in by
+  // their next visit (welcomed still false). It's marked seen as it shows,
+  // and stays for this visit until closed.
+  const [welcomeOpen, setWelcomeOpen] = useState(connection.welcomed === false && !inReview);
+  const wasInReview = useRef(inReview);
   useEffect(() => {
-    if (connection.welcomed !== false) return;
-    setWelcomeOpen(true);
-    markWelcomed();
-  }, [connection.welcomed]);
+    if (wasInReview.current && !inReview) setWelcomeOpen(true);
+    wasInReview.current = inReview;
+  }, [inReview]);
+  useEffect(() => {
+    if (welcomeOpen && connection.welcomed === false) markWelcomed();
+  }, [welcomeOpen, connection.welcomed]);
   // A problem ends it: once fixed, the screen doesn't go back to "all set"
   useEffect(() => {
     if (problem) setWelcomeOpen(false);
   }, [problem?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const welcome = welcomeOpen && !problem;
+  const welcome = welcomeOpen && !problem && !inReview;
+  // The box on the right: until every message is approved
+  const explain = approved < total;
 
   return (
     <>
@@ -90,62 +112,68 @@ export default function WhatsAppConnected({ connection, onSeeAll }) {
         <p className="oh__panel-sub">Used for every webinar and 1:1 call.</p>
       </div>
 
-      <div className="settings__body wcn">
-        {problem ? (
-          <Problem problem={problem} connection={connection} onOpen={setPanel} onSeeAll={onSeeAll} />
-        ) : welcome ? (
-          <Welcome inReview={anyInReview(connection)} onClose={() => setWelcomeOpen(false)} />
-        ) : null}
+      <div className="settings__body settings__body--split">
+        <div className="wcn">
+          {problem ? (
+            <Problem problem={problem} connection={connection} onOpen={setPanel} onSeeAll={onSeeAll} />
+          ) : inReview ? (
+            <Approving approved={approved} total={total} />
+          ) : welcome ? (
+            <Welcome onClose={() => setWelcomeOpen(false)} />
+          ) : null}
 
-        <dl className="wcn-facts">
-          <div className="wcn-facts__row">
-            <dt>Number</dt>
-            <dd className="wcn-facts__number">{connection.number}</dd>
-          </div>
-          <div className="wcn-facts__row">
-            <dt>Display name</dt>
-            <dd>
-              {connection.name}
-              {connection.nameStatus !== 'approved' && <Badge status={connection.nameStatus} />}
-            </dd>
-          </div>
-          <div className="wcn-facts__row">
-            <dt>Daily limit</dt>
-            <dd>
-              <span className="wcn-facts__with-tip">
-                {fmt(dailyLimit(connection))} students
-                <InfoTip
-                  label="Daily limit"
-                  text={
-                    connection.verified
-                      ? 'Different students you can message each day, not messages.'
-                      : `Different students you can message each day, not messages. Verified businesses can reach ${fmt(DAILY_LIMIT.verified)}.`
-                  }
-                />
-              </span>
-              {connection.verified ? (
-                <span className="wa-badge wcn-badge--good">Verified</span>
-              ) : (
-                <button type="button" className="wcn-link" onClick={() => setPanel('verify')}>
-                  Get verified to raise it
+          <dl className="wcn-facts">
+            <div className="wcn-facts__row">
+              <dt>Number</dt>
+              <dd className="wcn-facts__number">{connection.number}</dd>
+            </div>
+            <div className="wcn-facts__row">
+              <dt>Display name</dt>
+              <dd>
+                {connection.name}
+                {connection.nameStatus !== 'approved' && <Badge status={connection.nameStatus} />}
+              </dd>
+            </div>
+            <div className="wcn-facts__row">
+              <dt>Daily limit</dt>
+              <dd>
+                <span className="wcn-facts__with-tip">
+                  {fmt(dailyLimit(connection))} students
+                  <InfoTip
+                    label="Daily limit"
+                    text={
+                      connection.verified
+                        ? 'Different students you can message each day, not messages.'
+                        : `Different students you can message each day, not messages. Verified businesses can reach ${fmt(DAILY_LIMIT.verified)}.`
+                    }
+                  />
+                </span>
+                {connection.verified ? (
+                  <span className="wa-badge wcn-badge--good">Verified</span>
+                ) : (
+                  <button type="button" className="wcn-link" onClick={() => setPanel('verify')}>
+                    Get verified to raise it
+                  </button>
+                )}
+              </dd>
+            </div>
+            <div className="wcn-facts__row">
+              <dt>Messages</dt>
+              <dd>
+                {messagesSummary(connection)}
+                <button type="button" className="wcn-link" onClick={onSeeAll}>
+                  See all
                 </button>
-              )}
-            </dd>
-          </div>
-          <div className="wcn-facts__row">
-            <dt>Messages</dt>
-            <dd>
-              {messagesSummary(connection)}
-              <button type="button" className="wcn-link" onClick={onSeeAll}>
-                See all
-              </button>
-            </dd>
-          </div>
-        </dl>
+              </dd>
+            </div>
+          </dl>
 
-        <button type="button" className="wcn-disconnect" onClick={() => setDisconnecting(true)}>
-          Disconnect WhatsApp
-        </button>
+          <button type="button" className="wcn-disconnect" onClick={() => setDisconnecting(true)}>
+            Disconnect WhatsApp
+          </button>
+        </div>
+
+        {explain && <DefaultsHelp onSeeAll={onSeeAll} />}
       </div>
 
       {panel === 'verify' && <VerifyPanel onClose={() => setPanel(null)} />}
@@ -219,22 +247,82 @@ function Problem({ problem, connection, onOpen, onSeeAll }) {
   );
 }
 
-// ---------- First visit ----------
-function Welcome({ inReview, onClose }) {
+// How Meta's review of our default messages stands
+function approvalsOf(c) {
+  const statuses = SHOWN_MESSAGE_IDS.map((id) => messageStatus(c, id));
+  return {
+    approved: statuses.filter((s) => s === 'approved').length,
+    total: statuses.length,
+    inReview: statuses.includes('review'),
+  };
+}
+
+// ---------- Messages in review: where it stands ----------
+// Not closable: it stays while it's true
+function Approving({ approved, total }) {
+  const steps = [
+    { id: 'connected', label: 'Connected', state: 'done' },
+    { id: 'approving', label: `Meta approving · ${approved} of ${total}`, state: 'now' },
+    { id: 'live', label: 'Reminders live', state: 'next' },
+  ];
+  return (
+    <div className="wcn-note wcn-note--wait" role="status">
+      <div className="wcn-note__words">
+        <h3 className="wcn-note__title">Connected. Your reminders are being approved.</h3>
+        <p className="wcn-note__text">It usually takes a few minutes, and up to 24 hours.</p>
+        <ol className="wcn-steps">
+          {steps.map((step) => (
+            <li key={step.id} className={`wcn-step wcn-step--${step.state}`}>
+              <span className="wcn-step__mark" aria-hidden="true">
+                {step.state === 'done' && <Check size={12} strokeWidth={3.5} />}
+              </span>
+              {step.label}
+              <span className="oh__sr-only">
+                {step.state === 'done' ? ', done' : step.state === 'now' ? ', in progress' : ', next'}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Every message approved, shown once ----------
+function Welcome({ onClose }) {
   return (
     <div className="wcn-note wcn-note--done" role="status">
       <div className="wcn-note__words">
         <h3 className="wcn-note__title">You’re all set</h3>
-        <p className="wcn-note__text">
-          {inReview
-            ? 'Meta is reviewing your reminder messages. It usually takes a few minutes, and up to 24 hours.'
-            : 'Your reminder messages are approved and ready to go.'}
-        </p>
+        <p className="wcn-note__text">Your reminders are approved and ready to go.</p>
       </div>
       <button type="button" className="wcn-note__close" onClick={onClose} aria-label="Close">
         <X size={18} aria-hidden="true" />
       </button>
     </div>
+  );
+}
+
+// ---------- The box on the right, until every message is approved ----------
+// What these messages are (they never wrote them), why Meta checks them,
+// and that there's nothing to do. No count, and no calls or webinars they
+// may not have made yet.
+function DefaultsHelp({ onSeeAll }) {
+  return (
+    <aside className="settings__help wcn-help" aria-labelledby="wcn-help-title">
+      <h3 className="settings__help-title" id="wcn-help-title">
+        Default reminders, ready to use
+      </h3>
+      <p>
+        We’ve submitted commonly used reminder messages for 1:1 calls and webinars to Meta, so they’re ready whenever
+        you need them.
+      </p>
+      <p>WhatsApp only sends business messages it has approved in advance. These are called templates.</p>
+      <p>Nothing to do. Once approved, they go out automatically, alongside your emails.</p>
+      <button type="button" className="es__btn es__btn--quiet wcn-help__btn" onClick={onSeeAll}>
+        See default messages
+      </button>
+    </aside>
   );
 }
 
