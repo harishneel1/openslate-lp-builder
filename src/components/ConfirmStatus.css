@@ -1,0 +1,87 @@
+/* ------------------------------------------------------------
+   Whether a student said they're coming (ConfirmStatus.jsx). The chip
+   takes its shape from the booking chips (.bk-call__chip, BookingsPage.css)
+   and the line from the calendar invite's (.bkd-invite, BookingDrawer.css),
+   so it reads as one more fact about the booking, not a new kind of thing.
+   Two classes on each kind, so they win over .bk-call__chip wherever
+   that stylesheet loads.
+   ------------------------------------------------------------ */
+
+.cf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+
+.cf-chip.cf-chip--confirmed {
+  color: #17663a;
+  background: #e7f6ec;
+}
+
+/* Waiting: the chip's own grey, as calm as "Ended" */
+
+.cf-chip.cf-chip--none {
+  color: #7a4f0f;
+  background: #fff3dc;
+}
+
+/* On the next-call card: under the name, left-aligned, like its other flag */
+.cf-chip.cf-chip--flag {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+
+/* ---------- The line in the booking's side panel ---------- */
+.cf-line--confirmed > svg {
+  color: #1f8a4c;
+}
+
+.cf-line--waiting > svg {
+  color: var(--bk-ink-3);
+}
+
+/* No reply: in a box like a declined invite's, but amber: the booking
+   is on, it's worth a check, nothing went wrong */
+.cf-line--none {
+  padding: 12px 14px;
+  color: #6b4a12;
+  background: #fff8ea;
+  border: 1px solid #f1dcb0;
+  border-radius: var(--radius-sm);
+}
+
+.cf-line--none > svg {
+  color: #b7791f;
+}
+
+.cf-line--none .bkd-invite__text {
+  font-weight: 600;
+}
+
+.cf-line--none .bkd-invite__more {
+  color: #6b4a12;
+}
+
+.cf-line--none .bkd-invite__action {
+  color: #6b4a12;
+}
+
+.cf-line--none .bkd-invite__action:focus-visible {
+  outline-color: #b7791f;
+}
+
+/* ---------- Prototype controls, at the foot of the side panel ---------- */
+.bkd__demo {
+  margin-top: 24px;
+}
+
+.bkd__demo-note {
+  margin: 8px 0 0;
+}
+
+.bkd__demo .wa-demo__buttons button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

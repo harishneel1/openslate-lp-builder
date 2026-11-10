@@ -10,7 +10,7 @@ import { money } from './checkoutRules';
 // from the saved bookings, so older bookings have their lines too.
 //
 //   Today
-//   ✉  24-hour reminder sent to Priya                    Automatic   3:20 pm
+//   ✉  24-hour email sent to Priya                       Automatic   3:20 pm
 //   ↻  Rohan rescheduled                                  By Rohan   11:02 am
 //      From Sat 31 Oct, 12:20 pm to Sat 31 Oct, 2:20 pm
 //   Yesterday
@@ -21,6 +21,8 @@ import { money } from './checkoutRules';
 //
 // Lines, newest first, each { key, kind, at (ms), title, detail, by, byName, open }:
 //   kind    'booked' | 'moved' | 'cancelled' | 'reminder' | 'declined' | 'ended'
+//           | 'whatsapp' (the 2-hour WhatsApp message went) | 'confirmed'
+//           (they tapped Yes) | 'noreply' (the call started without it)
 //   by      'auto' (the system), 'you' (the creator) or 'guest'
 //   byName  the guest's first name, when by is 'guest'
 //   open    the booking's id: a click opens it in the side panel
@@ -33,6 +35,8 @@ import { money } from './checkoutRules';
 //     (callReminders.js). The real product reads its log of sent emails.
 // Of the replies to the calendar invite, only a decline is a line: the
 // one worth acting on, as on the Bookings page.
+// Of the WhatsApp messages, only the 2-hour one is a line for now, with
+// its answer (whatsappConfirm.js, the same as the booking's History).
 // ------------------------------------------------------------
 
 const first = (name) =>
@@ -113,10 +117,40 @@ export function callActivity(bookings, switches, zone, now = Date.now()) {
       line(`reminder-${step.id}`, {
         kind: 'reminder',
         at: step.at,
-        title: `${callReminderById(step.id).short} reminder sent to ${name}`,
+        // 'email', so it reads apart from the WhatsApp message at the same time
+        title: `${callReminderById(step.id).short} email sent to ${name}`,
         detail: `For ${at(Date.parse(b.start))}`,
         by: 'auto',
       });
+    }
+
+    // The 2-hour WhatsApp message, and whether they said they're coming
+    if (b.confirm) {
+      line('wa-asked', {
+        kind: 'whatsapp',
+        at: Date.parse(b.confirm.askedAt),
+        title: `2-hour WhatsApp sent to ${name}`,
+        detail: `For ${at(Date.parse(b.start))} · Asked them to confirm`,
+        by: 'auto',
+      });
+      if (b.confirm.status === 'confirmed') {
+        line('wa-confirmed', {
+          kind: 'confirmed',
+          at: Date.parse(b.confirm.repliedAt),
+          title: `${name} confirmed on WhatsApp`,
+          detail: 'Tapped “Yes, I’ll be there”',
+          ...guestDid,
+        });
+      }
+      if (b.confirm.status === 'none') {
+        line('wa-none', {
+          kind: 'noreply',
+          at: Date.parse(b.confirm.closedAt),
+          title: `No reply from ${name} on WhatsApp`,
+          detail: 'The booking is still on',
+          by: 'auto',
+        });
+      }
     }
 
     // The call's time came and went

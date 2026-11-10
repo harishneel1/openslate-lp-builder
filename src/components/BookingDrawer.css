@@ -382,105 +382,148 @@
   color: var(--bk-ink-3);
 }
 
-/* History: a timeline, oldest at the top. A dot per step on one
-   connecting line, so the order reads at a glance. The latest step's
-   dot is filled. */
+/* History: a timeline, oldest at the top, ending at the call itself.
+   A small dot per step, coloured by where it stands, and nothing more:
+     done       green, filled: it happened
+     good       green, filled: a yes (invite accepted, confirmed)
+     warn       amber, filled: a maybe, or no reply
+     bad        red, filled: declined, cancelled
+     upcoming   a hollow grey ring, and quieter words: still to come
+   The call, last, is the one step with an icon: the destination.
+     call       still to come: an orange ring
+     live       happening now: filled orange
+   The line between steps is solid green through what's happened and
+   dashed grey from "Now" on (bkd__line--done / --ahead, set per step). */
 .bkd__timeline {
   padding: 0;
   list-style: none;
 }
 
-.bkd__event {
+.bkd__event,
+.bkd__now {
   position: relative;
-  padding: 0 0 16px 22px;
+  padding: 0 0 14px 32px;
 }
 
-.bkd__event:last-child {
+.bkd__event:last-child,
+.bkd__now:last-child {
   padding-bottom: 0;
 }
 
-/* The dot */
-.bkd__event::before {
-  content: '';
+/* The dot, centred on the rail (11px in) */
+.bkd__event-dot {
   position: absolute;
   top: 6px;
-  left: 0;
-  width: 9px;
-  height: 9px;
-  background: var(--color-surface);
-  border: 2px solid #c9c9ce;
+  left: 6px;
+  width: 10px;
+  height: 10px;
+  background: #2f9e5b;
+  border: 2px solid #2f9e5b;
   border-radius: 50%;
 }
 
-/* The line down to the next dot */
-.bkd__event:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: 19px;
-  bottom: 2px;
-  left: 5.5px;
-  width: 2px;
-  background: var(--bk-line);
+.bkd__event--warn .bkd__event-dot {
+  background: #d08a1e;
+  border-color: #d08a1e;
 }
 
-.bkd__event:last-child::before {
-  background: var(--bk-ink-3);
-  border-color: var(--bk-ink-3);
-}
-
-.bkd__event--cancelled:last-child::before {
+.bkd__event--bad .bkd__event-dot {
   background: #c43c3c;
   border-color: #c43c3c;
 }
 
-/* Their reply to the invite: a green, amber or red dot */
-.bkd__event--invite-accepted::before {
-  border-color: #1f8a4c;
-}
-
-.bkd__event--invite-tentative::before {
-  border-color: #b7791f;
-}
-
-.bkd__event--invite-declined::before {
-  border-color: #c43c3c;
-}
-
-.bkd__event--invite-accepted:last-child::before {
-  background: #1f8a4c;
-}
-
-.bkd__event--invite-tentative:last-child::before {
-  background: #b7791f;
-}
-
-.bkd__event--invite-declined:last-child::before {
-  background: #c43c3c;
-}
-
-/* Still to come (a reminder that hasn't gone out): a hollow, dashed dot,
-   a dashed line to it, and quieter words */
-.bkd__event--upcoming::before,
-.bkd__event--upcoming:last-child::before {
+.bkd__event--upcoming .bkd__event-dot {
   background: var(--color-surface);
-  border-color: #c9c9ce;
-  border-style: dashed;
-}
-
-.bkd__event--upcoming:not(:last-child)::after,
-.bkd__event:has(+ .bkd__event--upcoming)::after {
-  background: repeating-linear-gradient(to bottom, var(--bk-line) 0 4px, transparent 4px 7px);
+  border-color: #c2c2c8;
 }
 
 .bkd__event--upcoming .bkd__event-what {
+  font-weight: 400;
   color: var(--bk-ink-2);
 }
 
-/* The step just before the first one to come is where things stand
-   now: filled, as the last step is when nothing is still to come */
-.bkd__event:not(.bkd__event--upcoming):has(+ .bkd__event--upcoming)::before {
+/* The call: where it's all heading, the one icon */
+.bkd__event-icon {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #17663a;
+  background: #e7f6ec;
+  border: 1.5px solid #e7f6ec;
+  border-radius: 50%;
+}
+
+.bkd__event-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.bkd__event--call .bkd__event-icon {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+.bkd__event--live .bkd__event-icon {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.bkd__event--call .bkd__event-what,
+.bkd__event--live .bkd__event-what {
+  font-weight: 600;
+  color: var(--bk-ink);
+}
+
+/* The line down to the next step */
+.bkd__line--done::after,
+.bkd__line--ahead::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  bottom: 2px;
+  left: 10px;
+  width: 2px;
+}
+
+.bkd__line--done::after {
+  background: #a8dcb9;
+}
+
+.bkd__line--ahead::after {
+  background: repeating-linear-gradient(to bottom, #d0d0d5 0 3px, transparent 3px 7px);
+}
+
+/* Now: just words on the rail, between what's happened and what's to come */
+.bkd__now {
+  padding-bottom: 12px;
+}
+
+.bkd__now.bkd__line--ahead::after {
+  top: 18px;
+}
+
+.bkd__now::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  width: 6px;
+  height: 6px;
   background: var(--bk-ink-3);
-  border-color: var(--bk-ink-3);
+  border-radius: 50%;
+}
+
+.bkd__now-label {
+  font-size: 12.5px;
+  color: var(--bk-ink-3);
+  font-variant-numeric: tabular-nums;
 }
 
 .bkd__event-line {

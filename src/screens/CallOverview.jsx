@@ -18,6 +18,8 @@ import ReminderChannels from '../components/ReminderChannels';
 import { ActivityList } from '../components/ActivityPanel';
 import CallReminderEditor from './CallReminderEditor';
 import GuestInitials from '../components/GuestInitials';
+import { ConfirmChip } from '../components/ConfirmStatus';
+import { onConfirmInputsChange } from '../data/whatsappConfirm';
 import HoursTip from '../components/HoursTip';
 import { useCalendar } from '../components/CalendarConnect';
 import { useCopy } from './OfferingsHome';
@@ -57,6 +59,7 @@ import './CallOverview.css';
 //   ┃ (PS) Next call, in 3 hr
 //   ┃      Today, 4:00 pm                                      [Join call]
 //   ┃      Priya Sharma
+//   ┃      [✓ Confirmed]          (her answer on WhatsApp, once asked)
 //
 //   ┌ Bookings 4 | Reminders | Activity       [Upcoming 3] [Past 12] [Cancelled 1] ┐
 //   │ Times in India (Kolkata), GMT+5:30                                        │
@@ -155,6 +158,9 @@ export default function CallOverview({
 
   // Keep up with new bookings (checkout in another tab) and the clock
   useEffect(() => onBookingsChange(() => setBookings(loadBookings())), []);
+  // A WhatsApp setting changed (the 2-hour message switched off, say):
+  // work the WhatsApp statuses out again now, not at the next tick
+  useEffect(() => onConfirmInputsChange(() => setNow(Date.now())), []);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(id);
@@ -540,6 +546,8 @@ function NextBooking({ booking, today, now, onOpen }) {
               <XCircle size={14} aria-hidden="true" /> Declined the calendar invite
             </span>
           )}
+          {/* Whether they said on WhatsApp they're coming, once asked */}
+          <ConfirmChip confirm={booking.confirm} name={firstName(name)} className="cf-chip--flag" />
         </span>
       </button>
       <JoinAction booking={booking} />
@@ -623,6 +631,8 @@ function BookingRow({ booking: b, zone, now, onOpen }) {
           {!cancelled && movedFrom && (
             <span className="bk-call__chip bk-call__chip--moved">Moved from {movedFrom}</span>
           )}
+          {/* Their answer to the 2-hour WhatsApp message, until the call is over */}
+          {b.state !== 'ended' && <ConfirmChip confirm={b.confirm} name={firstName(name)} />}
           {!cancelled && b.invite?.status === 'declined' && (
             <span className="bk-call__chip bk-call__chip--declined">
               <XCircle size={12} aria-hidden="true" /> Declined invite

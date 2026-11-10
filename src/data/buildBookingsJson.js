@@ -4,6 +4,7 @@ import { loadCallHours, loadDaysOff } from './availabilityStore';
 import { getMyProfile, MY_CALL_ID } from './myProfile';
 import { DEFAULT_MEETING_LINK, isActive } from './bookingsStore';
 import { inviteOf } from './inviteStatus';
+import { confirmOf } from './whatsappConfirm';
 import { zoneOptions } from './timeZones';
 
 // ------------------------------------------------------------
@@ -145,6 +146,9 @@ export function describeBooking(booking, zone, now) {
     cancelledBy: isActive(booking) ? null : (booking.cancelledBy ?? 'creator'),
     // The guest's reply to the Google Calendar invite (inviteStatus.js), or null
     invite: inviteOf(booking, now),
+    // Whether they said on WhatsApp they're coming (whatsappConfirm.js), or
+    // null when the 2-hour message never asked them
+    confirm: confirmOf(booking, now),
   };
 }
 

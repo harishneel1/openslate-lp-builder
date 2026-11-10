@@ -24,6 +24,10 @@
 //     status: 'booked' | 'cancelled',
 //     cancelledAt, cancelMessage, cancelledBy   once cancelled
 //     rescheduledAt, previousStart, rescheduledBy once moved
+//     whatsappConfirm: { forStart, askedAt, repliedAt, closedAt }
+//       the 2-hour WhatsApp message's answer (whatsappConfirm.js). Only
+//       counts for the start it was asked about (forStart), so moving the
+//       call asks again. Missing on most bookings: the mock works it out.
 //       (…By: 'creator' | 'guest'. cancelMessage is the creator's note
 //        to the guest, or the guest's reason when they cancelled.
 //        Bookings saved before …By existed were changed by the creator.)
@@ -159,6 +163,13 @@ export function rescheduleBooking(id, start, { by = 'creator' } = {}) {
     rescheduledAt: new Date().toISOString(),
     rescheduledBy: by,
   }));
+}
+
+// Saves what the 2-hour WhatsApp message got back (whatsappConfirm.js),
+// or clears it (null). The real product saves this when our WhatsApp
+// partner tells us the message went, and when the student taps Yes.
+export function setWhatsAppConfirm(id, record) {
+  return updateBooking(id, () => ({ whatsappConfirm: record ?? undefined }));
 }
 
 // Clear them all (for testing)

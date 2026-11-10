@@ -3,7 +3,10 @@ import {
   CalendarClock,
   CalendarPlus,
   CalendarX,
+  CheckCircle2,
+  HelpCircle,
   Mail,
+  MessageCircle,
   Plus,
   RotateCcw,
   Trash2,
@@ -54,6 +57,10 @@ const ICONS = {
   // A 1:1 call's lines (data/callActivity.js)
   booked: CalendarPlus,
   declined: XCircle,
+  // The 2-hour WhatsApp message and its answer (whatsappConfirm.js)
+  whatsapp: MessageCircle,
+  confirmed: CheckCircle2,
+  noreply: HelpCircle,
 };
 
 export default function ActivityPanel({ run, people = [], now, onOpen }) {

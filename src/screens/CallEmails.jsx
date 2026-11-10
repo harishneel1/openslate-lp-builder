@@ -1,5 +1,5 @@
 import { Pencil } from 'lucide-react';
-import { CALL_REMINDERS, emailTextOf, reminderReport, remindersOf } from '../data/callReminders';
+import { CALL_REMINDERS, emailTextOf, oldWording, reminderReport, remindersOf } from '../data/callReminders';
 import './WebinarReminders.css'; // the same rows, switch and pencil as a webinar's Emails tab
 import '../components/HoursDrawer.css'; // the grey Example box, as the booking rules have it
 import './CallEmails.css';
@@ -11,11 +11,11 @@ import './CallEmails.css';
 //   Reminder emails
 //   People who book get a reminder before their call, so they don't forget.
 //   ┌ Example: If Rohan books a call for 4:00 PM on Thursday, he gets  ┐
-//   └ reminders at 4:00 PM on Wednesday, and 3:00 PM and 3:55 PM on Thursday. ┘
+//   └ reminders at 4:00 PM on Wednesday, and 2:00 PM and 3:55 PM on Thursday. ┘
 //
 //   Email                                              On    Edit
 //   24 hours before · Edited                          [●━]    ✎
-//   1 hour before                                     [━○]    ✎
+//   2 hours before                                    [━○]    ✎
 //   5 minutes before                                  [●━]    ✎
 //   3 upcoming calls won’t get it
 //
@@ -47,7 +47,7 @@ export default function CallEmails({ bookings, callAnswers, now, onToggle, onEdi
         <p className="hd-rule__example cem__example">
           <span className="hd-rule__example-tag">Example:</span> If Rohan books a call for{' '}
           <strong>4:00 PM on Thursday</strong>, he gets reminders at <strong>4:00 PM on Wednesday</strong>, and{' '}
-          <strong>3:00 PM</strong> and <strong>3:55 PM on Thursday</strong>.
+          <strong>2:00 PM</strong> and <strong>3:55 PM on Thursday</strong>.
         </p>
       </div>
 
@@ -70,6 +70,10 @@ export default function CallEmails({ bookings, callAnswers, now, onToggle, onEdi
                   <span id={`cem-name-${r.id}`}>{r.name}</span>
                   {edited && <span className="rm__edited"> · Edited</span>}
                   {missing > 0 && <span className="cem__warn">{calls(missing)} won’t get it</span>}
+                  {/* Their own words, written when this email went 1 hour before */}
+                  {oldWording(callAnswers, r.id) && (
+                    <span className="cem__warn">Your words mention 1 hour. This email now goes 2 hours before.</span>
+                  )}
                 </span>
 
                 <span className="rm__col">

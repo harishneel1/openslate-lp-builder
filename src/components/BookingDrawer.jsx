@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, CheckCircle2, Clock, Copy, HelpCircle, Info, Mail, Phone, Video, Wallet, XCircle } from 'lucide-react';
+import {
+  Check,
+  CheckCircle2,
+  Clock,
+  Copy,
+  HelpCircle,
+  Info,
+  Mail,
+  Phone,
+  Video,
+  Wallet,
+  XCircle,
+} from 'lucide-react';
 import Drawer from './Drawer';
 import GuestInitials from './GuestInitials';
 import { cancelBooking, rescheduleBooking } from '../data/bookingsStore';
@@ -12,6 +24,9 @@ import { callReminderById, reminderSteps, remindersOf } from '../data/callRemind
 import { mockAccount } from '../data/myPage';
 import { whatsappHref } from '../utils/whatsapp';
 import { exactDay, lengthLabel, longDay, onDay, shortDay, startsIn, zoneLabel } from '../data/buildBookingsJson';
+import { WHY_NOT_ASKED, askPlan, askTimeOf, confirmDemo } from '../data/whatsappConfirm';
+import { ConfirmLine } from './ConfirmStatus';
+import './WhatsAppTab.css'; // the Prototype controls' look (wa-demo)
 import './BookingDrawer.css';
 
 // ------------------------------------------------------------
@@ -20,10 +35,16 @@ import './BookingDrawer.css';
 //   details     read top to bottom, in the order the creator asks:
 //               who is this (head: initials, name, WhatsApp, email, phone)
 //               what did they book (the call: name, when, format, their
-//               reply to the calendar invite, join)
+//               reply to the calendar invite, whether they confirmed on
+//               WhatsApp (ConfirmStatus.jsx), join)
 //               about them (contact, then their answers to the questions)
-//               history (booked, rescheduled, cancelled, and the reminder
-//               emails: sent, still to come, or skipped)
+//               history (booked, rescheduled, cancelled, the reminder
+//               emails: sent, still to come, or skipped, and the 2-hour
+//               WhatsApp message and its answer), ending at the call
+//               itself, with a "Now" line between what's happened and
+//               what's still to come: one short line each (see History)
+//               Prototype controls, last: answer the WhatsApp message as
+//               the student (whatsappConfirm.js)
 //   reschedule  pick a new time from the call's own open times
 //   cancel      confirm, with an optional note to the guest
 // Ended and cancelled calls only show details.
@@ -55,6 +76,12 @@ function declinedMessage(booking, zone, guestName) {
   const ms = Date.parse(booking.start);
   const when = `${exactDay(zoned(ms, clock).date)} at ${formatTime(ms, clock)}`;
   return `Hi ${guestName}, this is ${me}. I saw you declined the calendar invite for our ${booking.title} on ${when}. Is that time still okay for you?`;
+}
+
+// No answer to the 2-hour WhatsApp message by the start: a friendly check
+function noReplyMessage(booking, guestName) {
+  const me = firstName(getMyProfile().creator.name || mockAccount.name);
+  return `Hi ${guestName}, this is ${me}. Our ${booking.title} is starting now. Are you still able to join?`;
 }
 
 // A WhatsApp message ready to send, written for where the call is.
@@ -136,6 +163,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
   const moveDay = openDays.find((d) => d.date === moveDate) ?? openDays[0] ?? null;
 
   const name = firstName(booking.guest?.name);
+  const isPhoneCall = booking.format === 'phone';
   const open = booking.state !== 'ended' && booking.state !== 'cancelled';
   const theirTime = guestTime(booking, zone, today);
   const soon = startsIn(Date.parse(booking.start), now);
@@ -230,34 +258,81 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     booking.guest?.phone && ['Phone', <a href={telHref(booking.guest.phone)}>{booking.guest.phone}</a>],
   ].filter(Boolean);
 
-  // The reminder emails (callReminders.js), with the call's own switches.
-  // A deleted call's bookings stay, so their reminders do too (both on).
-  const reminders = reminderSteps(booking, remindersOf(callAnswersOf(loadAnswers(), booking.serviceId)), now).map((r) => {
-    const label = `${callReminderById(r.id).short} reminder`; // '24-hour reminder'
-    return {
-      key: r.key,
-      upcoming: r.kind === 'scheduled',
-      what: {
-        sent: `${label} sent to ${name}`,
-        scheduled: `${label} will go to ${name}`,
-        skipped: `${label} skipped`,
-      }[r.kind],
-      // 'Booked less than 24 hours before the call', 'Moved to less than 1 hour away'
-      detail:
-        r.kind !== 'skipped'
-          ? null
-          : r.moved
-            ? `Moved to less than ${r.span} away`
-            : `Booked less than ${r.span} before the call`,
-      when: r.when,
-    };
-  });
-
-  // What happened to the booking, as a timeline read top to bottom, oldest
-  // first: each step says who did what, and when they did it. Reminders
-  // still to come sit at the end, drawn as upcoming.
+  // ---------- History ----------
+  // What happened to the booking, oldest first, ending at the call: one
+  // short line per thing that happened or is still to come, and nothing
+  // the call card above already says.
+  //
+  //   ●  Harish booked                1:40 pm
+  //   │  24-hour reminder skipped (booked late)
+  //   ┊  Now, 1:59 pm
+  //   ○  2-hour email and WhatsApp    5:30 pm
+  //   ○  5-minute email               7:25 pm
+  //   ◉  Call                         7:30 pm
+  //
+  // A dot per step, coloured by where it stands (done, a yes, a maybe or no
+  // reply, declined or cancelled, still to come); the call has its icon.
+  // What the student did starts with their name ("Harish confirmed on
+  // WhatsApp"); what goes out to them doesn't ("24-hour email"), and
+  // "will go" is what a hollow dot means. Times show the date only
+  // when it changes from the line above. Reminders that never had a chance
+  // aren't steps: one line under Booked (or Rescheduled) says which.
   // Only the latest reschedule is saved (previousStart), so a call moved
   // twice shows one move, from the time before the latest one.
+
+  // The reminder emails (callReminders.js), with the call's own switches.
+  // A deleted call's bookings stay, so their reminders do too (both on).
+  const emailSteps = reminderSteps(booking, remindersOf(callAnswersOf(loadAnswers(), booking.serviceId)), now);
+  // What never had a chance, by when it would have gone: ['24-hour', '2-hour']
+  const skipped = emailSteps.filter((r) => r.kind === 'skipped').map((r) => callReminderById(r.id).short);
+  let reminders = emailSteps
+    .filter((r) => r.kind !== 'skipped')
+    .map((r) => ({
+      key: r.key,
+      tone: r.kind === 'sent' ? 'done' : 'upcoming',
+      upcoming: r.kind === 'scheduled',
+      what: `${callReminderById(r.id).short} email`, // '24-hour email'
+      when: r.when,
+    }));
+
+  // The 2-hour WhatsApp message (whatsappConfirm.js) and its answer. (Its
+  // other WhatsApp messages aren't listed yet.)
+  const confirm = booking.confirm;
+  const plan = open ? askPlan(booking) : { will: false };
+  const askAt = askTimeOf(booking);
+  if (!confirm && plan.reason === 'late' && !skipped.includes('2-hour')) skipped.push('2-hour');
+  const whatsAppSteps = [
+    confirm && { key: 'wa-asked', tone: 'done', what: '2-hour WhatsApp', when: confirm.askedAt },
+    confirm?.status === 'confirmed' && { key: 'wa-confirmed', tone: 'good', what: `${name} confirmed on WhatsApp`, when: confirm.repliedAt },
+    confirm?.status === 'none' && { key: 'wa-none', tone: 'warn', what: 'No reply on WhatsApp', when: confirm.closedAt },
+    !confirm &&
+      plan.will &&
+      askAt > now && {
+        key: 'wa-asked',
+        tone: 'upcoming',
+        upcoming: true,
+        what: '2-hour WhatsApp',
+        when: new Date(askAt).toISOString(),
+      },
+  ].filter(Boolean);
+
+  // The 2-hour email and 2-hour WhatsApp go at the same moment: one line
+  // for both, when they do (sent together, or both still to come)
+  const twoEmail = reminders.find((r) => r.key === 'reminder-hourBefore');
+  const twoWhatsApp = whatsAppSteps.find((step) => step.key === 'wa-asked');
+  if (twoEmail && twoWhatsApp && twoEmail.tone === twoWhatsApp.tone && Date.parse(twoEmail.when) === Date.parse(twoWhatsApp.when)) {
+    twoWhatsApp.what = '2-hour email and WhatsApp';
+    reminders = reminders.filter((r) => r !== twoEmail);
+  }
+  // '24-hour and 2-hour reminders skipped (booked late)': booked or moved
+  // too close to the call for them. Said by time, since the email and
+  // WhatsApp go at the same times
+  const list = (items) =>
+    items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+  const skippedLine = skipped.length
+    ? `${list(skipped)} reminder${skipped.length > 1 ? 's' : ''} skipped (${booking.rescheduledAt ? 'moved' : 'booked'} late)`
+    : null;
+
   const who = (by) => (by === 'guest' ? name : 'You');
   const at = (iso) => `${dayOf(iso, zone)}, ${formatTime(Date.parse(iso), zone)}`;
   // 'From 11:00 am to 9:15 am on Wed 21 Oct' when the day stayed the same,
@@ -266,22 +341,40 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
     dayOf(from, zone) === dayOf(to, zone)
       ? `From ${formatTime(Date.parse(from), zone)} to ${formatTime(Date.parse(to), zone)} on ${dayOf(to, zone)}`
       : `From ${at(from)} to ${at(to)}`;
-  const history = [
+  const lines = (...parts) => parts.filter(Boolean).join('\n') || null;
+
+  // The call itself, last: still to come, on now, or over
+  const callName = isPhoneCall ? 'Phone call' : 'Call';
+  const callStep = {
+    key: 'call',
+    icon: isPhoneCall ? Phone : Video,
+    ...(booking.state === 'ended'
+      ? { tone: 'done', what: `${callName} ended`, when: booking.end }
+      : booking.state === 'live'
+        ? { tone: 'live', what: `${callName} happening now`, when: booking.start }
+        : { tone: 'call', upcoming: true, what: callName, when: booking.start }),
+  };
+
+  const steps = [
     {
       key: 'booked',
+      tone: 'done',
       what: `${name} booked`,
-      detail: `For ${at(booking.previousStart ?? booking.start)}`,
+      // The time they first picked, only when it has since moved (the card shows the time now)
+      detail: lines(booking.previousStart && `For ${at(booking.previousStart)}`, !booking.previousStart && skippedLine),
       when: booking.createdAt,
     },
     booking.previousStart && {
       key: 'rescheduled',
+      tone: 'done',
       what: `${who(booking.moved?.by)} rescheduled`,
-      detail: movedLine(booking.previousStart, booking.start),
+      detail: lines(movedLine(booking.previousStart, booking.start), skippedLine),
       when: booking.rescheduledAt,
     },
     // Their reply to the calendar invite, once they've replied
     booking.invite?.repliedAt && {
       key: `invite-${booking.invite.status}`,
+      tone: { accepted: 'good', tentative: 'warn', declined: 'bad' }[booking.invite.status],
       what: {
         accepted: `${name} accepted the calendar invite`,
         tentative: `${name} replied maybe to the calendar invite`,
@@ -289,8 +382,10 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
       }[booking.invite.status],
       when: booking.invite.repliedAt,
     },
+    ...whatsAppSteps,
     booking.state === 'cancelled' && {
       key: 'cancelled',
+      tone: 'bad',
       what: `${who(booking.cancelledBy)} cancelled`,
       // The creator's note goes with their cancel; a guest's reason is shown
       // up with their answers, since it's something to read, not a record
@@ -298,11 +393,33 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
       when: booking.cancelledAt,
     },
     ...reminders,
+    // A cancelled call ends at its cancellation instead
+    booking.state !== 'cancelled' && callStep,
   ]
     .filter(Boolean)
     // Older bookings may be missing a time; those keep the order above
     .map((step, i) => ({ ...step, order: Date.parse(step.when) || 0, i }))
     .sort((x, y) => (x.order && y.order ? x.order - y.order : x.i - y.i));
+
+  // "Now", between what's happened and what's still to come. None when
+  // nothing is still to come (the call is on, over or cancelled).
+  const firstAhead = steps.findIndex((step) => step.upcoming);
+  const history = (
+    firstAhead < 0
+      ? steps
+      : [...steps.slice(0, firstAhead), { key: 'now', now: true, when: new Date(now).toISOString() }, ...steps.slice(firstAhead)]
+  ).map((step, i, all) => {
+    // Its time, with the date only when the day differs from the line above
+    // (the first line's from today)
+    const day = step.when ? zoned(Date.parse(step.when), zone).date : null;
+    const before = all.slice(0, i).reverse().find((x) => x.when);
+    const prevDay = before ? zoned(Date.parse(before.when), zone).date : today;
+    const time = step.when ? formatTime(Date.parse(step.when), zone) : null;
+    return { ...step, shown: time && day !== prevDay ? `${dayOf(step.when, zone)}, ${time}` : time };
+  });
+  // The line from each step down to the next: solid through what's
+  // happened, dashed from "Now" on
+  const lineAfter = (step) => (step.upcoming || step.now ? 'ahead' : 'done');
 
   const status = {
     live: 'Happening now',
@@ -411,6 +528,16 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
               />
             )}
 
+            {/* Whether they said they're coming, once the 2-hour WhatsApp message has asked */}
+            {booking.state !== 'cancelled' && confirm && (
+              <ConfirmLine
+                confirm={confirm}
+                name={name}
+                asked={formatTime(Date.parse(confirm.askedAt), zone)}
+                whatsapp={whatsappHref(booking.guest?.phone, noReplyMessage(booking, name))}
+              />
+            )}
+
             {/* Join: the one big action, while the call is on */}
             {open &&
               (isPhone ? (
@@ -482,20 +609,40 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
           <section className="bkd__section bkd__history">
             <h3 className="bkd__heading">History</h3>
             <ol className="bkd__timeline">
-              {history.map((step) => (
-                <li
-                  key={step.key}
-                  className={`bkd__event bkd__event--${step.key} ${step.upcoming ? 'bkd__event--upcoming' : ''}`}
-                >
-                  <div className="bkd__event-line">
-                    <span className="bkd__event-what">{step.what}</span>
-                    {step.when && <time dateTime={step.when}>{at(step.when)}</time>}
-                  </div>
-                  {step.detail && <p className="bkd__event-detail">{step.detail}</p>}
-                </li>
-              ))}
+              {history.map((step, i) => {
+                const line = i < history.length - 1 ? lineAfter(step) : null;
+                if (step.now) {
+                  return (
+                    <li key="now" className={`bkd__now bkd__line--${line}`}>
+                      <span className="bkd__now-label">Now, {step.shown}</span>
+                    </li>
+                  );
+                }
+                const Icon = step.icon;
+                return (
+                  <li
+                    key={step.key}
+                    className={`bkd__event bkd__event--${step.tone ?? 'done'} ${line ? `bkd__line--${line}` : ''}`}
+                  >
+                    {Icon ? (
+                      <span className="bkd__event-icon" aria-hidden="true">
+                        <Icon size={13} />
+                      </span>
+                    ) : (
+                      <span className="bkd__event-dot" aria-hidden="true" />
+                    )}
+                    <div className="bkd__event-line">
+                      <span className="bkd__event-what">{step.what}</span>
+                      {step.shown && <time dateTime={step.when}>{step.shown}</time>}
+                    </div>
+                    {step.detail && <p className="bkd__event-detail">{step.detail}</p>}
+                  </li>
+                );
+              })}
             </ol>
           </section>
+
+          {booking.state !== 'cancelled' && <ConfirmDemo booking={booking} name={name} plan={plan} open={open} />}
         </div>
       )}
 
@@ -652,5 +799,41 @@ function InviteStatus({ invite, name, whatsapp }) {
         </span>
       )}
     </p>
+  );
+}
+
+// ------------------------------------------------------------
+// Prototype only: answer the 2-hour WhatsApp message as the student, so
+// each state can be seen without waiting (whatsappConfirm.js). Saved on
+// the booking, for its current time: rescheduling starts it over.
+// ------------------------------------------------------------
+function ConfirmDemo({ booking, name, plan, open }) {
+  const confirm = booking.confirm;
+  const saved = confirmDemo.hasSaved(booking);
+  const why = !confirm && !plan.will && plan.reason ? WHY_NOT_ASKED[plan.reason] : null;
+
+  return (
+    <details className="wa-demo bkd__demo">
+      <summary>Prototype controls</summary>
+      {why && <p className="bkd__demo-note">Not asked on WhatsApp: {why}</p>}
+      <div className="wa-demo__buttons">
+        <button type="button" onClick={() => confirmDemo.askNow(booking)} disabled={!open || Boolean(confirm) || !plan.will}>
+          Send the 2-hour message now
+        </button>
+        <button
+          type="button"
+          onClick={() => confirmDemo.tapYes(booking, confirm)}
+          disabled={!confirm || confirm.status === 'confirmed'}
+        >
+          {name} taps “Yes, I’ll be there”
+        </button>
+        <button type="button" onClick={() => confirmDemo.noReply(booking, confirm)} disabled={confirm?.status !== 'waiting'}>
+          Call starts with no reply
+        </button>
+        <button type="button" onClick={() => confirmDemo.clear(booking)} disabled={!saved}>
+          Clear what’s set here
+        </button>
+      </div>
+    </details>
   );
 }

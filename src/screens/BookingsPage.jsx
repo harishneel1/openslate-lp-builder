@@ -3,6 +3,8 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Phone, Video, XCircle } from 
 import BookingDrawer from '../components/BookingDrawer';
 import GuestInitials from '../components/GuestInitials';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
+import { ConfirmChip } from '../components/ConfirmStatus';
+import { onConfirmInputsChange } from '../data/whatsappConfirm';
 import { loadAnswers, myCallIds } from '../data/myProfile';
 import {
   buildBookingsJson,
@@ -20,6 +22,9 @@ import {
   startsIn,
 } from '../data/buildBookingsJson';
 import { addDays } from '../utils/slots';
+
+// 'Priya Sharma' → 'Priya', for the WhatsApp chip's hint
+const firstOf = (name) => String(name ?? '').trim().split(/\s+/)[0] || 'Your guest';
 import './BookingsPage.css';
 
 // ------------------------------------------------------------
@@ -81,6 +86,9 @@ export default function BookingsPage({ onNavigate, openRequest = null }) {
 
   // Keep up with new bookings (checkout in another tab) and the clock
   useEffect(() => onBookingsChange(() => setBookings(loadBookings())), []);
+  // A WhatsApp setting changed (the 2-hour message switched off, say):
+  // work the WhatsApp statuses out again now, not at the next tick
+  useEffect(() => onConfirmInputsChange(() => setNow(Date.now())), []);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(id);
@@ -292,6 +300,8 @@ function NextCall({ booking, today, now, onOpen }) {
               <XCircle size={14} aria-hidden="true" /> Declined the calendar invite
             </span>
           )}
+          {/* Whether they said on WhatsApp they're coming, once asked */}
+          <ConfirmChip confirm={booking.confirm} name={firstOf(name)} className="cf-chip--flag" />
         </span>
       </button>
       {action}
@@ -510,6 +520,8 @@ function HourGrid({ day, onOpen }) {
                   </span>
                 </span>
               )}
+              {/* Their answer to the 2-hour WhatsApp message, until the call is over */}
+              {b.state !== 'ended' && <ConfirmChip confirm={b.confirm} name={firstOf(name)} />}
               {/* A declined calendar invite, until the call is over: open it to see more */}
               {b.state !== 'ended' && b.invite?.status === 'declined' && (
                 <span className="bk-call__chip bk-call__chip--declined" data-tip={`${name} declined the calendar invite. The booking is still on.`} data-tip-align="end">

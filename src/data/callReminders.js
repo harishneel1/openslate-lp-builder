@@ -7,14 +7,17 @@ import { DEFAULT_MEETING_LINK } from './bookingsStore';
 // A 1:1 call's reminder emails: three of them, to the person who booked.
 //
 //   24 hours before   "Your call with Harish is tomorrow at 4:00 pm"
-//   1 hour before     "Starting in an hour", with the Join button
+//   2 hours before    "Starting in 2 hours", with the Join button
+//                     (at the same moment as the 2-hour WhatsApp message,
+//                     whatsappMessages.js, so both go at 24 hours, 2 hours
+//                     and 5 minutes)
 //   5 minutes before  "Starting in 5 minutes", with the Join button
 //
 // The coach doesn't set anything up: all three are on for every call. Each
 // call can turn either off, and change either email's words (the call
 // editor's Edit email, CallReminderEditor.jsx). Saved on the call's
 // answers, in two keys so a switch and the words never overwrite each other:
-//   callReminders:      { dayBefore: true | false, hourBefore: true | false }
+//   callReminders:      { dayBefore, hourBefore, fiveBefore: true | false }
 //                       A missing key means on, so calls made before
 //                       reminders existed remind people too.
 //   callReminderEmails: { dayBefore: { subject, body } }
@@ -31,7 +34,7 @@ import { DEFAULT_MEETING_LINK } from './bookingsStore';
 //   - a rescheduled booking's reminders follow its new time
 //   - a cancelled booking's reminders stop
 //   - one whose time had already passed when they booked (or moved it)
-//     is skipped; so is a 24-hour or 1-hour one that would land right
+//     is skipped; so is a 24-hour or 2-hour one that would land right
 //     after, since the confirmation they just got says the same thing.
 //     The 5-minute one always goes if its time is still ahead: it's the
 //     nudge to join, which the confirmation can't be.
@@ -51,7 +54,7 @@ export const MIN_GAP_MINS = 30;
 
 // Each reminder:
 //   name     what the editor and preview call it
-//   short    for the booking's history ("24-hour reminder sent to Priya")
+//   short    for the booking's history and Activity ("24-hour email sent to Priya")
 //   example  what the editor's grey Example box says, as segments: even
 //            ones plain, odd ones bold (as bookingRules.js examples)
 //   manage   has the fixed reschedule-or-cancel line under the Join button
@@ -74,15 +77,17 @@ export const CALL_REMINDERS = [
       '<p>Talk soon,<br>{{your_name}}</p>',
   },
   {
+    // Its id from when it went 1 hour before, so saved switches and the
+    // coach's own words carry on (oldWording flags words written for then)
     id: 'hourBefore',
-    name: '1 hour before',
-    short: '1-hour',
-    example: ['If Rohan’s call with you is at 4:00 PM on Thursday, he gets this email at ', '3:00 PM on Thursday', '.'],
-    offsetMins: 60,
-    subject: 'Starting in 1 hour: {{call_title}} with {{your_name}}',
+    name: '2 hours before',
+    short: '2-hour',
+    example: ['If Rohan’s call with you is at 4:00 PM on Thursday, he gets this email at ', '2:00 PM on Thursday', '.'],
+    offsetMins: 120,
+    subject: 'Starting in 2 hours: {{call_title}} with {{your_name}}',
     body:
       '<p>Hi {{first_name}},</p>' +
-      '<p>Your <b>{{call_title}}</b> with {{your_name}} starts in an hour, at <b>{{time}}</b>.</p>' +
+      '<p>Your <b>{{call_title}}</b> with {{your_name}} starts in 2 hours, at <b>{{time}}</b>.</p>' +
       '<p>Join with the button below. It’s the same link as in your calendar invite.</p>' +
       '<p>Talk soon,<br>{{your_name}}</p>',
   },
@@ -135,6 +140,15 @@ export function withEmailText(emails = {}, id, { subject, body }) {
   return next;
 }
 
+// The coach's own words for the 2-hour email still talk about 1 hour
+// (written when it went 1 hour before): worth a look. A guess from the
+// words, since edits weren't dated.
+export function oldWording(callAnswers, id) {
+  if (id !== 'hourBefore') return false;
+  const { subject, body, edited } = emailTextOf(callAnswers, id);
+  return edited && /\b(1|one|an)\s+hour\b/i.test(`${subject} ${body}`.replace(/<[^>]+>/g, ' '));
+}
+
 // The same words in every email
 export const sameEmailTexts = (a, b) =>
   CALL_REMINDERS.every((r) => {
@@ -159,7 +173,7 @@ export function withReminderOn(callAnswers, id, on) {
 // The same switches, on and off alike
 export const sameReminders = (a, b) => CALL_REMINDERS.every((r) => remindersOf({ callReminders: a })[r.id] === remindersOf({ callReminders: b })[r.id]);
 
-// "Emails 24 hours, 1 hour and 5 minutes before", "Email 1 hour before", "Off"
+// "Emails 24 hours, 2 hours and 5 minutes before", "Email 2 hours before", "Off"
 export function remindersSummary(callAnswers) {
   const on = CALL_REMINDERS.filter((r) => remindersOf(callAnswers)[r.id]).map((r) => r.name);
   if (on.length === 0) return 'Off';
@@ -214,7 +228,7 @@ export function reminderTimeline(booking, switches, now = Date.now()) {
 //   kind 'scheduled'  goes out at `when` (still to come)
 //   kind 'skipped'    never had a chance: `when` is when they booked or
 //                     moved it, so it sits right after that step
-//   span: '24 hours' or '1 hour', for the words around it
+//   span: '24 hours' or '2 hours', for the words around it
 // Left out: ones that are off (the coach chose that) and ones a
 // cancellation stopped (the history's "cancelled" step says so).
 export function reminderSteps(booking, switches, now = Date.now()) {
