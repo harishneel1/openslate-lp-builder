@@ -9,6 +9,8 @@ import {
   FileText,
   FlaskConical,
   Image as ImageIcon,
+  LayoutGrid,
+  List,
   Play,
   PlayCircle,
   Search,
@@ -119,6 +121,34 @@ import './CloudStoragePage.css';
 // The prototype stores each file's name, type and size, not the file,
 // and the upload's speed is made up (UPLOAD_BYTES_PER_SEC).
 //
+// Two ways to see it, switched beside the sort (ViewSwitch) and remembered
+// in this browser:
+//   List  (the default) one row each, as above. Sizes line up on the
+//         right, which is what "Largest first" is for.
+//   Grid  a card each, in columns that fill the width:
+//
+//     ┌──────────┐ ┌──────────┐ ┌──────────┐
+//     │☐       ⋯ │ │          │ │          │   its kind's colour, with
+//     │    ▶     │ │    ▤     │ │    🖼    │   the icon over the format
+//     │   MP4    │ │   PDF    │ │   JPG    │
+//     ├──────────┤ ├──────────┤ ├──────────┤
+//     │Course in…│ │Vasthu ho…│ │Cover pho…│   the name, on one line
+//     │2.3 GB ·… │ │2.4 MB ·… │ │1.2 MB ·… │   size, then date or "Recording"
+//     └──────────┘ └──────────┘ └──────────┘
+//
+//         Every card is the same size: a fixed width, and always two lines
+//         under the colour. A name too long for its line ends in "…" and
+//         shows in full in a tooltip on hover or focus. Download's note and
+//         an upload's progress take the second line instead of adding one.
+//         The checkbox (top left) and ⋯ (top right) show on hover or focus,
+//         and stay once anything is selected; on a touch screen they always
+//         show. Download moves into ⋯, beside Open session and Delete, so
+//         the cards stay clean. A recording's name opens its session, as
+//         in the list. Files uploading are the first cards, with their
+//         progress and Cancel.
+// Everything else is the same in both: the filters, search, sort,
+// selecting, deleting and uploading.
+//
 // At the bottom, Prototype controls (as on a batch's page): Pretend
 // storage used, to see those states without filling 20 GB.
 //
@@ -132,6 +162,23 @@ const SORTS = [
 ];
 
 const ICONS = { video: Play, document: FileText, image: ImageIcon };
+
+// List or grid, remembered in this browser (list until they pick)
+const VIEW_KEY = 'pagebuilder:storage-view';
+function loadView() {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'list';
+  } catch {
+    return 'list';
+  }
+}
+function saveView(view) {
+  try {
+    localStorage.setItem(VIEW_KEY, view);
+  } catch {
+    // fine: it just won't be remembered
+  }
+}
 
 // Made-up upload speed, so progress can be seen: about 60 MB a second,
 // and never under 1.5 seconds or over 8 for one file
@@ -173,6 +220,13 @@ export default function CloudStoragePage({ webinars = [], onOpenRecording }) {
 
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('largest');
+  const [view, setView] = useState(loadView); // 'list' | 'grid'
+  const changeView = (next) => {
+    setView(next);
+    saveView(next);
+    setMenuFor(null);
+    setNoteFor(null);
+  };
   const [menuFor, setMenuFor] = useState(null); // the row whose ⋯ is open
   const [noteFor, setNoteFor] = useState(null); // the row whose Download was pressed
   const [deleting, setDeleting] = useState(null); // the asset being asked about
@@ -438,6 +492,7 @@ export default function CloudStoragePage({ webinars = [], onOpenRecording }) {
                   ))}
                 </select>
               </label>
+              <ViewSwitch view={view} onView={changeView} />
               </div>
             )}
           </div>
@@ -497,6 +552,30 @@ export default function CloudStoragePage({ webinars = [], onOpenRecording }) {
               onDelete={() => setDeletingMany(picked)}
             />
           )}
+          {view === 'grid' ? (
+            <ul className={`cs__grid ${picked.length > 0 ? 'cs__grid--selecting' : ''}`}>
+              {uploads.map((u) => (
+                <UploadCard key={u.id} upload={u} onCancel={() => cancelUpload(u.id)} />
+              ))}
+              {shown.map((a) => (
+                <AssetCard
+                  key={a.id}
+                  asset={a}
+                  selected={selected.has(a.id)}
+                  onSelect={() => toggle(a.id)}
+                  menuOpen={menuFor === a.id}
+                  onMenu={(open) => setMenuFor(open ? a.id : null)}
+                  noteOpen={noteFor === a.id}
+                  onDownload={() => setNoteFor(a.id)}
+                  onOpen={a.kind === 'recording' ? () => onOpenRecording?.(a.webinarId) : null}
+                  onDelete={() => {
+                    setMenuFor(null);
+                    setDeleting(a);
+                  }}
+                />
+              ))}
+            </ul>
+          ) : (
           <ul className="cs__list">
             {uploads.map((u) => (
               <UploadRow key={u.id} upload={u} onCancel={() => cancelUpload(u.id)} />
@@ -519,6 +598,7 @@ export default function CloudStoragePage({ webinars = [], onOpenRecording }) {
               />
             ))}
           </ul>
+          )}
           </>
         )}
       </section>
@@ -682,6 +762,144 @@ function AssetRow({ asset, selected, onSelect, menuOpen, onMenu, noteOpen, onDow
       <p className="cs-row__note" aria-live="polite">
         {noteOpen && 'There’s no real file in the prototype yet, so nothing downloads.'}
       </p>
+    </li>
+  );
+}
+
+// ---------- List or grid ----------
+// Two icon buttons, joined, beside the sort
+function ViewSwitch({ view, onView }) {
+  const options = [
+    { id: 'list', label: 'List view', icon: List },
+    { id: 'grid', label: 'Grid view', icon: LayoutGrid },
+  ];
+  return (
+    <div className="cs-view" role="group" aria-label="View">
+      {options.map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          className="cs-view__btn"
+          aria-pressed={view === id}
+          aria-label={label}
+          data-tip={label}
+          onClick={() => onView(id)}
+        >
+          <Icon size={17} aria-hidden="true" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Whether a one-line name is cut short, checked when it's hovered or
+// focused, so only cut names get the tooltip
+function useCut() {
+  const ref = useRef(null);
+  const [cut, setCut] = useState(false);
+  const check = () => {
+    const el = ref.current;
+    setCut(Boolean(el) && el.scrollWidth > el.clientWidth + 1);
+  };
+  return [ref, cut, check];
+}
+
+// ---------- One thing stored, as a card (grid view) ----------
+// Its kind's colour on top, with the icon over the format; its name (two
+// lines) and size under it. The checkbox and ⋯ sit over the top corners
+// (see the top for when they show). Download is in ⋯ here.
+function AssetCard({ asset, selected, onSelect, menuOpen, onMenu, noteOpen, onDownload, onOpen, onDelete }) {
+  const Icon = ICONS[asset.type] ?? FileText;
+  const isRecording = asset.kind === 'recording';
+  const detail = [formatBytes(asset.bytes), isRecording ? 'Recording' : asset.day].join(' · ');
+  const [nameRef, cut, checkCut] = useCut();
+  const close = (then) => () => {
+    onMenu(false);
+    then();
+  };
+
+  const items = [
+    ...(onOpen ? [{ label: 'Open session', icon: PlayCircle, onSelect: close(onOpen) }] : []),
+    { label: 'Download', icon: Download, onSelect: close(onDownload) },
+    { label: 'Delete', icon: Trash2, danger: true, onSelect: onDelete },
+  ];
+
+  return (
+    <li className={['cs-card', menuOpen && 'cs-card--menu', selected && 'cs-card--selected'].filter(Boolean).join(' ')}>
+      <div className={`cs-card__preview cs-tile--${asset.type}`} aria-hidden="true">
+        <Icon size={30} strokeWidth={2} fill={asset.type === 'video' ? 'currentColor' : 'none'} />
+        {asset.ext && <span className="cs-card__ext">{asset.ext}</span>}
+      </div>
+
+      {/* The tooltip hangs from the body: the name's own line clips what overflows it */}
+      <div
+        className="cs-card__body"
+        data-tip={cut ? asset.name : undefined}
+        data-tip-align="start"
+        onMouseEnter={checkCut}
+        onFocus={checkCut}
+      >
+        <h3 className="cs-card__name">
+          {onOpen ? (
+            <button type="button" className="cs-card__open cs-card__line" ref={nameRef} onClick={onOpen}>
+              {asset.name}
+            </button>
+          ) : (
+            <span className="cs-card__line" ref={nameRef}>
+              {asset.name}
+            </span>
+          )}
+        </h3>
+        {/* Download's note takes the detail's place, so the card keeps its height */}
+        <p className="cs-card__detail" aria-live="polite">
+          {noteOpen ? 'Nothing to download yet' : detail}
+        </p>
+      </div>
+
+      <span className="cs-card__check">
+        <Checkbox checked={selected} onChange={onSelect} label={`Select ${asset.name}`} />
+      </span>
+      <span className="cs-card__menu">
+        <RowMenu title={asset.name} open={menuOpen} onOpenChange={onMenu} items={items} />
+      </span>
+    </li>
+  );
+}
+
+// A file uploading, as a card: how far along, and Cancel
+function UploadCard({ upload, onCancel }) {
+  const Icon = ICONS[upload.type] ?? FileText;
+  const pct = Math.floor((upload.sent / Math.max(1, upload.bytes)) * 100);
+  return (
+    <li className="cs-card cs-card--uploading">
+      <div className={`cs-card__preview cs-tile--${upload.type}`} aria-hidden="true">
+        <Icon size={30} strokeWidth={2} fill={upload.type === 'video' ? 'currentColor' : 'none'} />
+        <span className="cs-card__ext">{upload.ext}</span>
+      </div>
+      {/* Its progress runs along the colour's bottom edge */}
+      <div
+        className="cs-card__progress"
+        role="progressbar"
+        aria-label={`Uploading ${upload.name}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+      >
+        <span className={`cs-kind--${upload.type}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="cs-card__body">
+        <h3 className="cs-card__name">
+          <span className="cs-card__line" title={upload.name}>
+            {upload.name}
+          </span>
+        </h3>
+        <p className="cs-card__detail cs-card__detail--split">
+          <span>Uploading · {pct}%</span>
+          <button type="button" className="cs-card__cancel" onClick={onCancel} aria-label={`Cancel uploading ${upload.name}`}>
+            Cancel
+          </button>
+        </p>
+      </div>
     </li>
   );
 }

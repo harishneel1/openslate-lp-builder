@@ -818,3 +818,265 @@
     transition: none;
   }
 }
+
+/* ---------- List or grid: two joined icon buttons, beside the sort ---------- */
+.cs-view {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.cs-view__btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 32px;
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cs-view__btn:hover {
+  color: var(--color-text);
+}
+
+.cs-view__btn[aria-pressed='true'] {
+  color: var(--color-text);
+  background: var(--cs-track);
+}
+
+.cs-view__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ---------- Grid view: a card each ---------- */
+.cs__grid {
+  display: grid;
+  /* A regular width: columns of 160–184px, never stretched wider */
+  grid-template-columns: repeat(auto-fill, minmax(160px, 184px));
+  gap: 16px;
+  margin: 0;
+  padding: 20px 24px 24px;
+  list-style: none;
+}
+
+.cs-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cs-card:hover {
+  border-color: #d6d6d9;
+  box-shadow: 0 2px 8px rgba(17, 17, 17, 0.06);
+}
+
+.cs-card--selected,
+.cs-card--selected:hover {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 1px var(--color-text);
+}
+
+/* Its open menu sits above the cards around it */
+.cs-card--menu {
+  z-index: var(--z-dropdown);
+}
+
+/* The top: its kind's colour (cs-tile--video …), the icon over the format */
+.cs-card__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 96px;
+  border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+}
+
+.cs-card__ext {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cs-card__body {
+  min-width: 0;
+  padding: 10px 12px 12px;
+}
+
+/* The tooltip with a cut name hangs from here (see the component) */
+.cs-card__body[data-tip]::after {
+  max-width: 260px;
+}
+
+/* The name, on one line: a long one ends in "…", whole in the tooltip */
+.cs-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cs-card__line {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A recording's name opens its session */
+.cs-card__open {
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cs-card__open:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cs-card__open:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.cs-card__detail {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+}
+
+/* An upload's line: how far along on the left, Cancel on the right */
+.cs-card__detail--split {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* The checkbox and ⋯, over the top corners, on a white backing so they
+   read on any colour */
+.cs-card__check,
+.cs-card__menu {
+  position: absolute;
+  top: 8px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cs-card__check {
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+}
+
+.cs-card__menu {
+  right: 8px;
+}
+
+.cs-card__menu .row-menu__button {
+  width: 32px;
+  height: 32px;
+}
+
+/* Shown on hover or focus, once selected, while anything's selected, or
+   with its menu open */
+.cs-card:hover .cs-card__check,
+.cs-card:focus-within .cs-card__check,
+.cs-card--selected .cs-card__check,
+.cs__grid--selecting .cs-card__check,
+.cs-card:hover .cs-card__menu,
+.cs-card:focus-within .cs-card__menu,
+.cs-card--menu .cs-card__menu {
+  opacity: 1;
+}
+
+/* A touch screen has no hover: always shown */
+@media (hover: none) {
+  .cs-card__check,
+  .cs-card__menu {
+    opacity: 1;
+  }
+}
+
+/* Uploading: its progress along the colour's bottom edge, over it, so
+   the card keeps the same height as the rest */
+.cs-card__progress {
+  position: absolute;
+  top: 92px;
+  right: 0;
+  left: 0;
+  height: 4px;
+  overflow: hidden;
+  background: var(--cs-track);
+}
+
+.cs-card__progress span {
+  display: block;
+  height: 100%;
+  transition: width 0.15s linear;
+}
+
+.cs-card__cancel {
+  flex-shrink: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cs-card__cancel:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (max-width: 720px) {
+  /* Search gets its own line, with the sort and the switch under it */
+  .cs__search {
+    flex-basis: 100%;
+  }
+
+  .cs__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px 18px 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-view__btn,
+  .cs-card__progress span,
+  .cs-card,
+  .cs-card__check,
+  .cs-card__menu {
+    transition: none;
+  }
+}
