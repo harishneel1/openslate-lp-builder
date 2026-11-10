@@ -1,7 +1,9 @@
-import { ChevronDown, FlaskConical, Landmark, MessageCircle } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, FlaskConical, Landmark, Lock, MessageCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import PaymentDetails, { PayoutControlRows } from './PayoutSetup';
 import WhatsAppSettings, { WhatsAppControlRows } from './WhatsAppSettings';
+import { useWhatsApp } from '../components/WhatsAppTab';
+import { hasNumber } from '../data/whatsappConnection';
 import './OfferingsHome.css'; // the page frame and panels
 import '../components/PrototypeControls.css';
 import './SettingsPage.css';
@@ -34,6 +36,12 @@ import './SettingsPage.css';
 //   'whatsapp-connection' or 'whatsapp-templates'; Payment details if left out
 // startCreate: { product, moment } to open Templates on a new template for
 //   that message (a reminder's "Create a new template")
+//
+// Until a number is connected, WhatsApp shows a red dot in the menu (on
+// its Connection pill, on a phone), and Templates is locked: greyed, with
+// a lock, saying "Connect WhatsApp first" on hover or focus, and for a
+// moment on a tap (phones have no hover). Asked to open Templates then,
+// Connection opens instead; disconnecting while on Templates goes there too.
 // ------------------------------------------------------------
 
 const PAGES = [
@@ -57,7 +65,10 @@ const openable = (id) => {
 };
 
 export default function SettingsPage({ onWithdraw, startOn = 'payments', startCreate = null }) {
-  const [page, setPage] = useState(() => openable(startOn));
+  const [chosen, setPage] = useState(() => openable(startOn));
+  const connected = hasNumber(useWhatsApp());
+  // Templates is locked until a number is connected: Connection instead
+  const page = !connected && chosen === 'whatsapp-templates' ? 'whatsapp-connection' : chosen;
   const onWhatsApp = page.startsWith('whatsapp');
 
   return (
@@ -65,7 +76,7 @@ export default function SettingsPage({ onWithdraw, startOn = 'payments', startCr
       <h1 className="oh__title">Settings</h1>
 
       <div className="settings__layout">
-        <SettingsMenu page={page} onPage={setPage} />
+        <SettingsMenu page={page} onPage={setPage} connected={connected} />
 
         <section className="oh__panel settings__panel" aria-label={OPENABLE.find((p) => p.id === page)?.short ?? 'Payment details'}>
           {onWhatsApp ? (
@@ -97,7 +108,15 @@ export default function SettingsPage({ onWithdraw, startOn = 'payments', startCr
 // ---------- The menu on the left ----------
 // A page with pages of its own (WhatsApp) is a heading for them: a click
 // on it opens its first page. Its icon lights up while one of them is open.
-function SettingsMenu({ page, onPage }) {
+// connected: a WhatsApp number is connected. Until it is, WhatsApp has a red
+//   dot and Templates is locked (LOCKED).
+const LOCKED = { 'whatsapp-templates': 'Connect WhatsApp first' };
+const NEEDS_DOT = 'whatsapp'; // the section with the dot, and its first page on a phone
+
+function SettingsMenu({ page, onPage, connected }) {
+  const dot = (
+    <span className="smenu__dot" aria-hidden="true" />
+  );
   return (
     <nav className="smenu" aria-label="Settings">
       <ul className="smenu__list">
@@ -112,11 +131,20 @@ function SettingsMenu({ page, onPage }) {
                 onClick={() => onPage(children ? children[0].id : id)}
               >
                 <Icon size={18} className="smenu__icon" aria-hidden="true" />
-                <span className="smenu__label">{label}</span>
+                <span className="smenu__label">
+                  {label}
+                  {!connected && id === NEEDS_DOT && <span className="oh__sr-only">, not connected</span>}
+                </span>
+                {!connected && id === NEEDS_DOT && dot}
               </button>
               {children && (
                 <ul className="smenu__sub">
-                  {children.map((c) => (
+                  {children.map((c, i) =>
+                    !connected && LOCKED[c.id] ? (
+                      <li key={c.id}>
+                        <LockedItem label={c.label} short={c.short} reason={LOCKED[c.id]} />
+                      </li>
+                    ) : (
                     <li key={c.id}>
                       <button
                         type="button"
@@ -129,9 +157,14 @@ function SettingsMenu({ page, onPage }) {
                         <span className="smenu__short" aria-hidden="true">
                           {c.short}
                         </span>
+                        {/* On a phone the section's heading is hidden: its dot moves to its first pill */}
+                        {!connected && id === NEEDS_DOT && i === 0 && (
+                          <span className="smenu__dot smenu__dot--pill" aria-hidden="true" />
+                        )}
                       </button>
                     </li>
-                  ))}
+                    ),
+                  )}
                 </ul>
               )}
             </li>
@@ -139,6 +172,38 @@ function SettingsMenu({ page, onPage }) {
         })}
       </ul>
     </nav>
+  );
+}
+
+// A page that can't open yet: greyed, with a lock. Hover or focus says why
+// (the app's tooltip); a tap shows it for a moment too, since phones have
+// no hover. It stays focusable, so keyboards and screen readers hear why.
+function LockedItem({ label, short, reason }) {
+  const [shown, setShown] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const show = () => {
+    setShown(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setShown(false), 2500);
+  };
+
+  return (
+    <button
+      type="button"
+      className={`smenu__subitem smenu__subitem--locked ${shown ? 'smenu__subitem--tip' : ''}`}
+      aria-disabled="true"
+      aria-label={`${label}. ${reason}`}
+      data-tip={reason}
+      data-tip-align="start"
+      onClick={show}
+    >
+      <span className="smenu__label">{label}</span>
+      <span className="smenu__short" aria-hidden="true">
+        {short}
+      </span>
+      <Lock size={14} className="smenu__lock" aria-hidden="true" />
+    </button>
   );
 }
 

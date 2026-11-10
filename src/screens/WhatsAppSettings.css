@@ -1,90 +1,197 @@
 /* Settings → WhatsApp (WhatsAppSettings.jsx). Product tokens, and the
    amber Settings already uses for "needs your attention" (SettingsPage.css). */
 
-/* ---------- The checklist ---------- */
-.wac {
-  max-width: 560px;
-  margin: 0;
-  padding: 0;
-  border: 0;
+/* ---------- Not connected: the red tag beside the title ----------
+   The connected screen's tag (WhatsAppConnected.css), in its other state.
+   Red, as the 1:1 calls page's calendar is when it's not connected. */
+.wcn-state--off {
+  color: #b42318;
+  background: #fef3f2;
 }
 
-.wac__legend {
-  margin-bottom: 8px;
-  padding: 0;
-  font-size: 15px;
+/* ---------- One box: the questions, then Connect ---------- */
+.wac-card {
+  min-width: 0;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.wac-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.wac-card__title {
+  font-size: 16px;
   font-weight: 700;
 }
 
+/* How long it takes: a small grey tag, out of the way */
+.wac-card__time {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: 999px;
+}
+
+/* ---------- The questions ---------- */
 .wac__list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  /* The rows' padding sits outside, so the boxes line up with the heading */
-  margin: 0 -12px;
+  gap: 10px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* The whole row ticks the box, not just the box */
-.wac__row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px 12px;
+/* One question, in a box that shows its answer */
+.wac__q {
+  padding: 12px 14px;
   font-size: 15px;
   line-height: 1.45;
+  background: var(--color-surface);
+  border: 1px solid #dedee2;
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.wac__row:hover {
-  background: var(--color-bg);
+.wac__q--yes {
+  background: var(--color-success-tint);
+  border-color: #9fd6b4;
 }
 
-.wac__row:has(.wac__box:focus-visible) {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-.wac__box {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  margin: 1px 0 0;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-}
-
-/* The (i) sits on the line, right after the words */
-.wac__tip {
-  display: inline-flex;
-  margin-left: 4px;
-  vertical-align: -6px;
-}
-
-/* The one line coaches miss: set apart in amber, as Settings' fixes are */
-.wac__row--warn {
-  margin-top: 8px;
-  font-weight: 600;
-  color: var(--po-amber-ink);
+.wac__q--no {
   background: var(--po-amber-tint);
-  box-shadow: inset 3px 0 0 #d97706;
+  border-color: #e9b46a;
 }
 
-.wac__row--warn:hover {
-  background: #fdefd6;
+.wac__q-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.wac__text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Yes and No: two real-looking buttons on every row, so each question
+   reads as its own thing to answer */
+.wac__seg {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.wac__choice {
+  position: relative;
+  cursor: pointer;
+}
+
+/* The real radio, kept for keyboards and screen readers, under its button */
+.wac__radio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.wac__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 72px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid #c9c9cf;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.08);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.wac__choice:hover .wac__pill {
+  background: var(--color-bg);
+  border-color: #a9a9b0;
+}
+
+.wac__radio:focus-visible + .wac__pill {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.wac__choice--yes .wac__radio:checked + .wac__pill {
+  color: #fff;
+  background: var(--color-success);
+  border-color: var(--color-success);
+  box-shadow: none;
+}
+
+.wac__choice--no .wac__radio:checked + .wac__pill {
+  color: #fff;
+  background: #d97706;
+  border-color: #d97706;
+  box-shadow: none;
+}
+
+/* The other button, once one is picked: still there to change the answer */
+.wac__q--yes .wac__choice--no .wac__pill,
+.wac__q--no .wac__choice--yes .wac__pill {
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+/* Under a No: the short fix, and the way to the full one */
+.wac__hint {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--po-amber-ink);
+}
+
+.wac__hint-link {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.wac__hint-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* ---------- Connect ---------- */
+/* Under the questions, in the same box */
 .wac__go {
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 /* Left Meta's window early: calm, not a warning (no colour, no icon) */
 .wac__left {
-  max-width: 560px;
   margin-bottom: 14px;
   padding: 12px 14px;
   font-size: 14px;
@@ -93,43 +200,129 @@
   border-radius: var(--radius-sm);
 }
 
+.wac__go-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
 .wac__connect:disabled {
   color: var(--color-text-disabled);
-  background: var(--color-bg);
+  background: #ebebee;
   cursor: not-allowed;
 }
 
-.wac__note {
-  margin-top: 8px;
-  font-size: 13px;
+/* How close the answers are to turning Connect on, right beside it */
+.wac__progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
   color: var(--color-text-muted);
 }
 
+.wac__progress--ready {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+/* What connecting does to the number: a plain disclaimer, low key */
+.wac__warn {
+  max-width: 560px;
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.wac__warn-label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ---------- The box on the right ---------- */
+/* Its slot keeps the column, so the questions keep their width */
+.wac-help-slot {
+  min-width: 0;
+}
+
+/* Amber, like the question it explains. Two classes, so it wins over
+   Settings' grey help box (SettingsPage.css loads after this file). */
+.settings__help.wac-help {
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  box-shadow: inset 0 0 0 1px #f0d3a6;
+}
+
+.wac-help__title {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--po-amber-ink);
+}
+
+.wac-help__title svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.wac-help__item {
+  border-radius: var(--radius-sm);
+}
+
+.wac-help__item:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+.wac-help__item + .wac-help__item {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f0d3a6;
+}
+
+.wac-help__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wac-help__link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 @media (max-width: 640px) {
+  .wac-card {
+    padding: 16px;
+  }
+
   .wac__connect {
     width: 100%;
   }
 
-  /* The (i) can land anywhere on a wrapped line: its bubble hangs from the
-     whole row instead, the row's width, so it never runs off the screen */
-  .wac__row {
-    position: relative;
-  }
-
-  .wac__tip .info-tip {
-    position: static;
-  }
-
-  .wac__tip .info-tip__tip {
-    top: calc(100% - 4px);
-    right: 12px;
-    left: 12px;
-    min-width: 0;
+  /* Yes / No go under the words */
+  .wac__q-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wac__row {
+  .wac__q,
+  .wac__pill {
     transition: none;
   }
 }

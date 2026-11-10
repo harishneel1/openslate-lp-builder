@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
-import InfoTip from '../components/InfoTip';
+import { AlertCircle, AlertTriangle, Check, Clock, ExternalLink, Loader2 } from 'lucide-react';
 import { useWhatsApp } from '../components/WhatsAppTab';
 import WhatsAppConnected from './WhatsAppConnected';
 import WhatsAppTemplates from './WhatsAppTemplates';
@@ -26,25 +25,41 @@ import './WhatsAppSettings.css';
 // Settings → WhatsApp: where the coach connects the one WhatsApp number
 // every webinar and 1:1 call sends reminders from.
 //
-// Not connected: a short checklist. Connect WhatsApp only turns on once
-// every line is ticked, because Meta's sign-up fails most often when a
-// coach arrives with the wrong kind of number. The ticks aren't saved:
-// coming back, they confirm again.
+// Not connected: three yes/no questions. Connect WhatsApp only turns on
+// once all three are Yes, because Meta's sign-up fails most often when a
+// coach arrives with the wrong kind of number. Each is worded so Yes is
+// the answer we need. The answers aren't saved: coming back, they answer
+// again.
 //
-//   Send reminders from your WhatsApp number
-//   Students get reminders from a number they know.
-//   ─────────────────────────────────────────────────
-//   Before you start, tick each one
-//   ☐ I have a Facebook account
-//   ☐ I have a phone number with a SIM card (not a virtual number)
-//   ☐ This number isn't on WhatsApp right now  ⓘ
-//   ┃☐ I understand this number will stop working in the WhatsApp app
+//   Automatic WhatsApp reminders from your number   [● Not connected]
+//   ─────────────────────────────────────────────────────────────────────
+//   ┌ Before you connect          ⏱ About 10 min ┐  ┌ ⚠ Number already on ──┐
+//   │ ┌ Do you have a Facebook…   [✓ Yes] [No] ┐ │  │   WhatsApp            │
+//   │ ┌ Do you have a phone…      [✓ Yes] [No] ┐ │  │ Use a spare number, … │
+//   │ ┌ Is this a spare number…   [Yes] [No]   ┐ │  └───────────────────────┘
+//   │ │ Use a spare number, or a new SIM. See how to fix
+//   │                                            │
+//   │ [ Connect WhatsApp ]  2 of 3 done          │
+//   │ Disclaimer: This number will stop working in the WhatsApp app once it's connected.
+//   └────────────────────────────────────────────┘
 //
-//   [ Connect WhatsApp ]
-//   Takes about 10 minutes
+// One box, top to bottom: the questions only exist to unlock Connect, so
+// they sit together. Each question is a box of its own with two plain
+// buttons, Yes and No, that look like buttons, side by side on every row,
+// so it's clear every question takes its own answer. Nothing else on the
+// row looks clickable. The answer shows on the row: green with a tick on
+// Yes, amber on No, with a short hint inside and "See how to fix", which
+// moves to that fix in the box on the right.
+// Beside Connect, a line that follows the answers, so each Yes visibly
+// brings the button closer (PROGRESS): "Answer Yes to all three to
+// connect", then "2 of 3 done", then "You're ready" as the button turns on.
 //
-// The (i) explains the third line on hover (InfoTip). The last line is
-// the one coaches miss and regret, so it's the only one set apart.
+// The box on the right only shows once an answer is No: one fix for each
+// No, in amber, titled with the problem (in the place and look of Payment
+// details' "How payouts work"). Until then, and once they're all Yes
+// again, that space is empty, so the questions never change width.
+// The line under Connect is the one coaches miss and regret, so it's set
+// apart in amber. Clicking Connect is agreeing to it: no box to tick.
 //
 // Connect WhatsApp opens Meta's signup in a popup (the mock: metaSignup.js,
 // MetaSignupMock.jsx). Around it, this page goes:
@@ -58,7 +73,7 @@ import './WhatsAppSettings.css';
 //
 // When it doesn't finish:
 //   closed early   Meta says they left (or the window just closes): back
-//                  to the checklist, ticks kept, with one calm note above
+//                  to the questions, answers kept, with one calm note above
 //                  Connect, the same whichever screen they left. It stays
 //                  until they click Connect again.
 //   blocked        the browser stopped the window opening: the dimmed page
@@ -84,15 +99,39 @@ import './WhatsAppSettings.css';
 // as our server takes to save the number and send the templates for review.
 const FINISHING_MS = 3500;
 
-const CHECKS = [
-  { id: 'facebook', text: 'I have a Facebook account' },
-  { id: 'sim', text: 'I have a phone number with a SIM card (not a virtual number)' },
+// The questions, each worded so Yes is the answer setup needs.
+//   no: what a No means and what to do about it: hint, the short line in
+//       the question's own box; title and text (and a link), its fix in
+//       the box on the right
+const QUESTIONS = [
+  {
+    id: 'facebook',
+    text: 'Do you have a Facebook account?',
+    no: {
+      hint: 'You’ll need one to connect.',
+      title: 'No Facebook account',
+      text: 'Meta, which owns WhatsApp, connects numbers through Facebook. Create a free account, then come back and answer Yes.',
+      link: { href: 'https://www.facebook.com/r.php', label: 'Create a Facebook account' },
+    },
+  },
+  {
+    id: 'sim',
+    text: 'Do you have a phone number with a SIM card (not a virtual number)?',
+    no: {
+      hint: 'Virtual and landline numbers can’t be used.',
+      title: 'No number with a SIM card',
+      text: 'WhatsApp only accepts regular mobile numbers with a SIM card. Virtual and landline numbers don’t work. A new prepaid SIM is enough.',
+    },
+  },
   {
     id: 'fresh',
-    text: 'This number isn’t on WhatsApp right now',
-    tip: 'Use a spare number that isn’t on WhatsApp, or get a new SIM for this.',
+    text: 'Is this a spare number, not on WhatsApp or WhatsApp Business?',
+    no: {
+      hint: 'Numbers on WhatsApp or WhatsApp Business can’t be used.',
+      title: 'Already on WhatsApp or WhatsApp Business?',
+      text: 'Then it can’t be used here. Automated reminders run on WhatsApp Business API, which needs a number that isn’t on either app. Use a spare number, or get a new SIM.',
+    },
   },
-  { id: 'app', text: 'I understand this number will stop working in the WhatsApp app', warn: true },
 ];
 
 // Two pages, each with its own place in Settings' menu (SettingsPage.jsx):
@@ -278,71 +317,192 @@ function Waiting({ phase, onShow }) {
   );
 }
 
-function Head({ title, sub }) {
+// tag: something beside the title (the red "Not connected"), or null
+function Head({ title, sub = null, tag = null }) {
   return (
     <div className="oh__panel-head">
-      <h2 className="oh__panel-title">{title}</h2>
-      <p className="oh__panel-sub">{sub}</p>
+      <h2 className={`oh__panel-title ${tag ? 'wcn__title' : ''}`}>
+        {title}
+        {tag}
+      </h2>
+      {sub && <p className="oh__panel-sub">{sub}</p>}
     </div>
   );
 }
 
-// ---------- Not connected: the checklist ----------
-// onConnect(): Connect WhatsApp, once everything's ticked
+// ---------- Not connected: the questions ----------
+// onConnect(): Connect WhatsApp, once every answer is Yes
 // cancelled: they left Meta's window early last time: a note above Connect
 // error: what stopped it last time: shown in place of Connect, with Try again
 function NotConnected({ onConnect, cancelled, error }) {
-  const [ticked, setTicked] = useState({});
-  const ready = CHECKS.every((c) => ticked[c.id]);
+  const [answers, setAnswers] = useState({}); // { facebook: 'yes' | 'no', ... }; none picked at first
+  const yeses = QUESTIONS.filter((q) => answers[q.id] === 'yes').length;
+  const ready = yeses === QUESTIONS.length;
+  const noes = QUESTIONS.filter((q) => answers[q.id] === 'no');
+
+  // "See how to fix": to that fix in the box on the right (below, on a narrow screen)
+  const showFix = (id) => {
+    const item = document.getElementById(`wac-fix-${id}`);
+    item?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'nearest' });
+    item?.focus({ preventScroll: true });
+  };
 
   return (
     <>
-      <Head title="Send reminders from your WhatsApp number" sub="Students get reminders from a number they know." />
-      <div className="settings__body">
-        <fieldset className="wac">
-          <legend className="wac__legend">Before you start, tick each one</legend>
-          <ul className="wac__list">
-            {CHECKS.map((c) => (
-              <li key={c.id}>
-                <label className={`wac__row ${c.warn ? 'wac__row--warn' : ''}`}>
-                  <input
-                    type="checkbox"
-                    className="wac__box"
-                    checked={Boolean(ticked[c.id])}
-                    onChange={(e) => setTicked((t) => ({ ...t, [c.id]: e.target.checked }))}
-                  />
-                  <span className="wac__text">
-                    {c.text}
-                    {c.tip && (
-                      // A click on the (i) or its bubble mustn't tick the box
-                      <span className="wac__tip" onClick={(e) => e.preventDefault()}>
-                        <InfoTip label="a number that isn’t on WhatsApp" text={c.tip} />
-                      </span>
-                    )}
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
-
-        {error ? (
-          <SetupError id={error} onRetry={onConnect} />
-        ) : (
-          <div className="wac__go">
-            {cancelled && (
-              <p className="wac__left" role="status">
-                Setup wasn’t completed. You can pick up where you left off anytime.
-              </p>
-            )}
-            <button type="button" className="oh__add wac__connect" disabled={!ready} onClick={onConnect}>
-              Connect WhatsApp
-            </button>
-            <p className="wac__note">Takes about 10 minutes</p>
+      {/* The connected screen's Connected tag, in its other state, in the same place */}
+      <Head
+        title="Automatic WhatsApp reminders from your number"
+        tag={<span className="wcn-state wcn-state--off">Not connected</span>}
+      />
+      <div className="settings__body settings__body--split">
+        <section className="wac-card" aria-labelledby="wac-title">
+          <div className="wac-card__head">
+            <h3 className="wac-card__title" id="wac-title">
+              Before you connect
+            </h3>
+            {/* The time it takes, seen before they start */}
+            <span className="wac-card__time">
+              <Clock size={14} aria-hidden="true" /> About 10 min
+            </span>
           </div>
-        )}
+
+          <ul className="wac__list">
+            {QUESTIONS.map((q) => {
+              const answer = answers[q.id] ?? 'none';
+              return (
+                <li key={q.id} className={`wac__q wac__q--${answer}`}>
+                  <div className="wac__q-row">
+                    <span className="wac__text" id={`wac-q-${q.id}`}>
+                      {q.text}
+                    </span>
+                    <span className="wac__seg" role="radiogroup" aria-labelledby={`wac-q-${q.id}`}>
+                      {['yes', 'no'].map((value) => (
+                        <label key={value} className={`wac__choice wac__choice--${value}`}>
+                          <input
+                            type="radio"
+                            name={`wac-${q.id}`}
+                            value={value}
+                            className="wac__radio"
+                            checked={answers[q.id] === value}
+                            onChange={() => setAnswers((a) => ({ ...a, [q.id]: value }))}
+                          />
+                          <span className="wac__pill">
+                            {value === 'yes' && answers[q.id] === 'yes' && (
+                              <Check size={15} strokeWidth={3} aria-hidden="true" />
+                            )}
+                            {value === 'yes' ? 'Yes' : 'No'}
+                          </span>
+                        </label>
+                      ))}
+                    </span>
+                  </div>
+                  {answer === 'no' && (
+                    <p className="wac__hint">
+                      {q.no.hint}{' '}
+                      <button type="button" className="wac__hint-link" onClick={() => showFix(q.id)}>
+                        See how to fix
+                      </button>
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          {error ? (
+            <div className="wac__go">
+              <SetupError id={error} onRetry={onConnect} />
+              <Disclaimer />
+            </div>
+          ) : (
+            <div className="wac__go">
+              {cancelled && (
+                <p className="wac__left" role="status">
+                  Setup wasn’t completed. You can pick up where you left off anytime.
+                </p>
+              )}
+              <div className="wac__go-row">
+                <button
+                  type="button"
+                  className="oh__add wac__connect"
+                  disabled={!ready}
+                  onClick={onConnect}
+                  aria-describedby="wac-progress wac-warn"
+                >
+                  Connect WhatsApp
+                </button>
+                <Progress yeses={yeses} total={QUESTIONS.length} />
+              </div>
+              <Disclaimer />
+            </div>
+          )}
+        </section>
+
+        <Help noes={noes} />
       </div>
     </>
+  );
+}
+
+// Beside Connect: how close the answers are to turning it on
+function Progress({ yeses, total }) {
+  const ready = yeses === total;
+  return (
+    <span className={`wac__progress ${ready ? 'wac__progress--ready' : ''}`} id="wac-progress" aria-live="polite">
+      {ready ? (
+        <>
+          <Check size={16} strokeWidth={3} aria-hidden="true" /> You’re ready
+        </>
+      ) : yeses === 0 ? (
+        'Answer Yes to all three to connect'
+      ) : (
+        `${yeses} of ${total} done`
+      )}
+    </span>
+  );
+}
+
+const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Under Connect: what connecting does to the number, as a plain
+// disclaimer. Connect is agreeing to it.
+function Disclaimer() {
+  return (
+    <p className="wac__warn" id="wac-warn">
+      <span className="wac__warn-label">Disclaimer:</span> This number will stop working in the WhatsApp app once it’s
+      connected.
+    </p>
+  );
+}
+
+// ---------- The box on the right ----------
+// Only once an answer is No: one fix for each, in the questions' order,
+// titled with the problem. The live region stays, so the fix is read out
+// as it appears. Each fix can take focus, for "See how to fix".
+// noes: the questions answered No
+function Help({ noes }) {
+  return (
+    <div className="wac-help-slot" aria-live="polite">
+      {noes.length > 0 && (
+        <aside className="settings__help wac-help" aria-label="How to fix">
+          {noes.map((q) => (
+            <div key={q.id} className="wac-help__item" id={`wac-fix-${q.id}`} tabIndex={-1}>
+              <h3 className="wac-help__title">
+                <AlertTriangle size={17} aria-hidden="true" />
+                {q.no.title}
+              </h3>
+              <p>{q.no.text}</p>
+              {q.no.link && (
+                <a className="wac-help__link" href={q.no.link.href} target="_blank" rel="noreferrer">
+                  {q.no.link.label}
+                  <ExternalLink size={13} aria-hidden="true" />
+                </a>
+              )}
+            </div>
+          ))}
+        </aside>
+      )}
+    </div>
   );
 }
 

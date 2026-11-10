@@ -133,6 +133,51 @@
   display: none;
 }
 
+/* WhatsApp not connected: a red dot, as an app badge. On a wide screen
+   it's on the section's name; on a phone, on its first pill (below). */
+.smenu__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  background: #d92d20;
+  border-radius: 50%;
+}
+
+.smenu__dot--pill {
+  display: none;
+}
+
+/* A page that can't open yet: greyed, with a lock */
+.smenu__subitem--locked,
+.smenu__subitem--locked:hover {
+  color: var(--color-text-disabled);
+  background: none;
+  cursor: not-allowed;
+}
+
+.smenu__lock {
+  flex-shrink: 0;
+}
+
+/* A tap shows its reason for a moment (phones have no hover) */
+.smenu__subitem--tip[data-tip]::after {
+  opacity: 1;
+  transform: none;
+}
+
+/* On a wide screen its reason sits to the right, not over the page above it */
+@media (min-width: 861px) {
+  .smenu__subitem--locked[data-tip]::after,
+  .smenu__subitem--locked[data-tip]:hover::after,
+  .smenu__subitem--locked[data-tip]:focus-within::after,
+  .smenu__subitem--tip[data-tip]::after {
+    top: 50%;
+    bottom: auto;
+    left: calc(100% + 8px);
+    transform: translateY(-50%);
+  }
+}
+
 .smenu__item:focus-visible,
 .smenu__subitem:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -204,6 +249,21 @@
 
   .smenu__short {
     display: inline;
+  }
+
+  .smenu__dot--pill {
+    display: inline-block;
+  }
+
+  .smenu__subitem--locked,
+  .smenu__subitem--locked:hover {
+    background: var(--color-bg);
+  }
+
+  /* Its reason shows under the pill, not over the pills above it */
+  .smenu__subitem--locked[data-tip]::after {
+    top: calc(100% + 8px);
+    bottom: auto;
   }
 }
 
