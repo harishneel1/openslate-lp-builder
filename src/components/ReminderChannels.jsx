@@ -8,33 +8,30 @@ import './ReminderChannels.css';
 // ------------------------------------------------------------
 // The top of the Reminders tab, on a webinar's page (WebinarDetails.jsx)
 // and a 1:1 call's page (CallOverview.jsx): which reminders show below,
-// the emails or WhatsApp. A two-way switch, the same kind as the Bookings
-// tab's Upcoming | Past | Cancelled (.cov__filters, CallOverview.css): a
-// light grey track, with a black block under the chosen half (white words
-// on it, as the Cloud Storage page's chosen filter) that slides across
-// when the other half is clicked. Each half has the channel's logo and a
-// short count, so it's plain these are two views.
+// the emails or WhatsApp. A toggle in the iPhone's way (a segmented
+// control): compact, a light grey track, and a white thumb under the
+// chosen side that slides across when the other is tapped. Just the two
+// names, centred, each with its channel's logo.
 //
-//   ┌────────────────────────┬────────────────────────┐
-//   │█[✉] Email          3/3█│ [●] WhatsApp       4/4 │
-//   └────────────────────────┴────────────────────────┘
-//   ──────────────────────────────────────────────────────
+//   ╭──────────────────────────────╮
+//   │ ╭────────────╮               │
+//   │ │ ✉  Email   │  ◉ WhatsApp ● │
+//   │ ╰────────────╯               │
+//   ╰──────────────────────────────╯
 //
-// The count says how many of its reminders are on, so a creator looking
-// at one channel still sees when the other needs them:
-//   Email     "3/3", "Off"
-//   WhatsApp  "Not set up" (it's set up in Settings), "4/4",
-//             "4/4 · 1 in review", and in red "Paused",
-//             "Needs a new name", "1 not approved"
+// No counts: the list below already shows every switch. When a channel
+// needs fixing (WhatsApp paused, its name or a message not approved), a
+// small red dot sits after its name, as an app badge does; the reason is
+// in that channel's half.
 //
 // Tabs to screen readers (tablist), with left and right arrows to move.
-// Email is the default. The page keeps which half is chosen in its own
+// Email is the default. The page keeps which side is chosen in its own
 // tab state ('whatsapp', beside the email tab's id).
 //
 // channel: 'email' | 'whatsapp'; onChannel(channel)
 // kind: 'call' | 'webinar'
 // offering: whose WhatsApp switches ('call:<id>' or 'webinar:<id>')
-// emailOn, emailTotal: how many of the page's emails are switched on
+// (emailOn and emailTotal, which the pages still pass, aren't shown now)
 // ------------------------------------------------------------
 
 const CHANNELS = [
@@ -42,13 +39,11 @@ const CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
 ];
 
-export default function ReminderChannels({ channel, onChannel, kind, offering, emailOn, emailTotal }) {
+export default function ReminderChannels({ channel, onChannel, kind, offering }) {
   const connection = useWhatsApp();
   const switches = useSwitches(offering, kind);
-  const summaries = {
-    email: emailOn === 0 ? { text: 'Off' } : { text: `${emailOn}/${emailTotal}` },
-    whatsapp: whatsAppSummary(connection, kind, switches),
-  };
+  // Only WhatsApp can need fixing; email always works
+  const problems = { email: null, whatsapp: whatsAppSummary(connection, kind, switches) };
 
   const onKey = (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -60,11 +55,11 @@ export default function ReminderChannels({ channel, onChannel, kind, offering, e
   return (
     <div className="rc">
       <div className={`rc__track rc__track--${channel}`} role="tablist" aria-label="Reminders sent by" onKeyDown={onKey}>
-        {/* The black block under the chosen half; it slides between them */}
+        {/* The white thumb under the chosen side; it slides between them */}
         <span className="rc__thumb" aria-hidden="true" />
         {CHANNELS.map((c) => {
           const chosen = channel === c.id;
-          const summary = summaries[c.id];
+          const problem = problems[c.id]?.warn ? problems[c.id].text : null;
           const Icon = c.icon;
           return (
             <button
@@ -76,12 +71,16 @@ export default function ReminderChannels({ channel, onChannel, kind, offering, e
               tabIndex={chosen ? 0 : -1}
               className="rc__tab"
               onClick={() => onChannel(c.id)}
+              data-tip={problem ?? undefined}
             >
-              <span className={`rc__logo rc__logo--${c.id}`} aria-hidden="true">
-                <Icon size={14} strokeWidth={2.25} />
-              </span>
-              <span className="rc__label">{c.label}</span>
-              <span className={`rc__count ${summary.warn ? 'rc__count--warn' : ''}`}>{summary.text}</span>
+              <Icon size={15} strokeWidth={2.25} className={`rc__icon rc__icon--${c.id}`} aria-hidden="true" />
+              {c.label}
+              {problem && (
+                <>
+                  <span className="rc__badge" aria-hidden="true" />
+                  <span className="rc__sr">, needs attention: {problem}</span>
+                </>
+              )}
             </button>
           );
         })}
@@ -90,7 +89,7 @@ export default function ReminderChannels({ channel, onChannel, kind, offering, e
   );
 }
 
-// What the WhatsApp half's count says
+// How WhatsApp stands, in a few words; warn: it needs fixing (the red dot)
 function whatsAppSummary(connection, kind, switches) {
   if (!hasNumber(connection)) return { text: 'Not set up' };
   if (connection.status === 'lost') return { text: 'Paused', warn: true };

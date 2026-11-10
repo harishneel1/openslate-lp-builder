@@ -129,7 +129,7 @@ export default function CallEmails({ bookings, callAnswers, now, onToggle, onEdi
         </ul>
       </div>
 
-      <p className="cem__foot">People always get an email when a call is moved or cancelled.</p>
+      <p className="cem__foot">People always get a confirmation email they book, and when a call is rescheduled or cancelled.</p>
     </div>
   );
 }

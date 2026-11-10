@@ -1,10 +1,9 @@
-/* The Reminders tab's two-way switch (ReminderChannels.jsx): Email or
-   WhatsApp. Shaped like the Bookings tab's Upcoming | Past | Cancelled
-   switch (.cov__filters, CallOverview.css), a little larger: a light grey
-   track, and a black block under the chosen half, with white words on it
-   (the Cloud Storage page's chosen filter). The block slides across when
-   the other half is clicked, so it reads as a toggle. A plain line under
-   it separates it from the reminders it shows. */
+/* The Reminders tab's toggle (ReminderChannels.jsx): Email or WhatsApp,
+   drawn as an iPhone segmented control. A compact light grey track with
+   round corners, and a white thumb with a soft shadow under the chosen
+   side, sliding across when the other is chosen. Both names stay dark;
+   the chosen one is a touch bolder. A plain line under it separates it
+   from the reminders it shows. */
 .rc {
   padding: 16px 24px;
   border-bottom: 1px solid var(--color-border);
@@ -12,26 +11,29 @@
 
 .rc__track {
   position: relative;
-  display: grid;
+  display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  max-width: 540px;
-  padding: 3px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  width: 320px;
+  max-width: 100%;
+  padding: 2px;
+  background: #ebebef;
+  border-radius: 10px;
 }
 
-/* The black block: half the track, under the chosen half */
+/* The white thumb: half the track, under the chosen side */
 .rc__thumb {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc(50% - 3px);
-  background: var(--color-text);
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  background: #ffffff;
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.12),
+    0 3px 1px rgba(0, 0, 0, 0.04);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .rc__track--whatsapp .rc__thumb {
@@ -39,30 +41,26 @@
 }
 
 .rc__tab {
-  position: relative; /* above the block */
+  position: relative; /* above the thumb */
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 7px;
   min-width: 0;
-  min-height: 40px;
-  padding: 6px 12px 6px 8px;
+  height: 34px;
+  padding: 0 12px;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
   background: none;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: color 0.15s;
 }
 
-.rc__tab:hover {
-  color: var(--color-text);
-}
-
-.rc__tab[aria-selected='true'],
-.rc__tab[aria-selected='true']:hover {
-  color: #ffffff;
+.rc__tab[aria-selected='true'] {
+  font-weight: 600;
 }
 
 .rc__tab:focus-visible {
@@ -70,69 +68,39 @@
   outline-offset: 2px;
 }
 
-/* The channel's logo: Gmail's red for email, WhatsApp's green. Softer on
-   the half that isn't chosen, so the chosen one leads. */
-.rc__logo {
-  display: grid;
+/* Each channel's logo, small, in its own colour */
+.rc__icon {
   flex: none;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  transition: opacity 0.15s;
 }
 
-.rc__logo--email {
+.rc__icon--email {
   color: #c5221f;
-  background: #fdecea;
 }
 
-.rc__logo--whatsapp {
-  color: #ffffff;
-  background: #25d366;
+.rc__icon--whatsapp {
+  color: #1faa59;
+}
+
+/* Something to fix on this channel: a red dot after its name */
+.rc__badge {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  background: #e5484d;
   border-radius: 50%;
 }
 
-.rc__tab[aria-selected='false'] .rc__logo {
-  opacity: 0.55;
-}
-
-.rc__label {
-  white-space: nowrap;
-}
-
-/* The count, at the half's far end */
-.rc__count {
-  margin-left: auto;
+.rc__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--bk-ink-3, var(--color-text-muted));
+  clip: rect(0 0 0 0);
   white-space: nowrap;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
-}
-
-/* On the black block: lighter, so they read on it */
-.rc__tab[aria-selected='true'] .rc__count {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Something to fix (paused, a name or message not approved): red, and a
-   softer red on the black block */
-.rc__count--warn {
-  font-weight: 600;
-  color: #b42318;
-}
-
-.rc__tab[aria-selected='true'] .rc__count--warn {
-  color: #ffb4ab;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc__thumb,
-  .rc__tab,
-  .rc__logo {
+  .rc__thumb {
     transition: none;
   }
 }
@@ -140,9 +108,5 @@
 @media (max-width: 720px) {
   .rc {
     padding: 14px 16px;
-  }
-
-  .rc__track {
-    max-width: none;
   }
 }
