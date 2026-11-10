@@ -641,9 +641,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px 10px;
-  font-size: 14px;
+  gap: 4px;
+  /* Tight enough that a 25-character label (WhatsApp's most) fits one line */
+  padding: 9px 6px;
+  font-size: 13.5px;
   font-weight: 500;
   color: #027eb5;
   text-decoration: none;
@@ -662,6 +663,50 @@
 .wamp__btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+/* A quick reply ("Yes, I’ll be there"): a button, not a link, but drawn
+   the same, as WhatsApp does */
+.wamp__btn--reply {
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  background: none;
+  border: 0;
+  border-top: 1px solid #e9edef;
+  cursor: pointer;
+}
+
+/* What the student sent back by tapping a quick reply: their own bubble,
+   on the right, in WhatsApp's sent-message green */
+.wamp__out {
+  position: relative;
+  width: fit-content;
+  max-width: 80%;
+  margin: 10px 0 0 auto;
+  padding: 7px 10px 20px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #111b21;
+  background: #d9fdd3;
+  border-radius: 8px 0 8px 8px;
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+  animation: wamp-out 0.18s ease-out;
+}
+
+@keyframes wamp-out {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wamp__out {
+    animation: none;
+  }
 }
 
 /* WhatsApp's own "type a message" bar, where replies start */

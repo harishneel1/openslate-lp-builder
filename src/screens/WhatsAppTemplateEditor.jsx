@@ -59,13 +59,13 @@ import './WhatsAppTemplateEditor.css';
 //    reminder emails are edited (CallReminderEditor.jsx):
 //
 //   ← New template
-//     1:1 call · 1 hour before  Change
+//     1:1 call · 2 hours before  Change
 //   ┌──────────────────────────────────────────┬──────────────┐
-//   │ Name [call_1h_reminder_1]                 │ the message  │
+//   │ Name [call_2h_reminder_1]                 │ the message  │
 //   │ Message   B I S          + Insert detail ▾│ on a phone,  │
 //   │ Hi [First name], your *[Call name]* …     │ filled in    │
 //   │ Buttons                                   │ for Priya    │
-//   │ 🔒 Join call   🔒 Manage booking           │              │
+//   │ 🔒 Yes, I’ll be there  🔒 Can’t make it?…  │              │
 //   │ [Save as draft]  [Submit for review]      │              │
 //   └──────────────────────────────────────────┴──────────────┘
 //
@@ -78,7 +78,7 @@ import './WhatsAppTemplateEditor.css';
 //
 // The name is what Meta gets: lowercase letters, numbers and _ only,
 // made so as they type. It's suggested from the message, numbered after
-// ours (call_1h_reminder_1), and must be unique across theirs and ours:
+// ours (call_2h_reminder_1), and must be unique across theirs and ours:
 // a taken one says whose it is, with the next free name one click away.
 // Messages are in English only, for now.
 //
@@ -98,11 +98,17 @@ import './WhatsAppTemplateEditor.css';
 
 const PRODUCT_ICON = { call: Users, webinar: MonitorPlay };
 
-// What the buttons are for, in a sentence, by the moment's buttons
+// What the buttons are for, in a sentence, by the moment's buttons. A
+// message that asks for an answer (a quick reply among its buttons) says
+// so, since its words should ask for it too.
 const BUTTONS_WHY = {
   call: 'Added to every reminder for a call, so students can always join or change their booking.',
   webinar: 'Added to every webinar message, so people can always find the details and join.',
 };
+const ASKS_WHY =
+  'This message asks students to confirm they’re coming, so its buttons stay as they are. Ask for their answer in your words too.';
+const buttonsWhy = (product, buttons) =>
+  buttons.some((b) => b.type === 'reply') ? ASKS_WHY : BUTTONS_WHY[product];
 
 // A template being written: its name and words (details as {key})
 function startFrom(initial, taken) {
@@ -454,7 +460,7 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
               <h3 id="wte-buttons" className="wte__title">
                 Buttons
               </h3>
-              <p className="wte__text">{BUTTONS_WHY[t.product]}</p>
+              <p className="wte__text">{buttonsWhy(t.product, buttons)}</p>
               <ul className="wte__locked">
                 {buttons.map((b) => (
                   <li key={b.key} className="wte__lock">

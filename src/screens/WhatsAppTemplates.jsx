@@ -18,6 +18,7 @@ import {
   duplicateName,
   CHOICES_CHANGED_EVENT,
   isLegacy,
+  isRetired,
   rejectionOf,
   usesOf,
   momentById,
@@ -81,10 +82,12 @@ const READY_MADE = Object.entries(MESSAGES)
     })),
   );
 
-// What one of theirs is for, in words, or null (made with the first editor)
+// What one of theirs is for, in words, or null (made with the first editor).
+// One for a message we no longer send says so.
 const aboutOf = (t) => {
   const m = momentById(t.moment);
-  return m ? `${KIND_NAME[t.product]} · ${m.name}` : null;
+  if (!m) return null;
+  return `${KIND_NAME[t.product]} · ${m.name}${m.retired ? ' (no longer sent)' : ''}`;
 };
 
 
@@ -130,9 +133,10 @@ const fmtWhen = (iso) =>
   });
 
 // What can be duplicated: theirs (not ones made with the first editor:
-// they have no message to copy), and our 1:1 call and webinar messages
+// they have no message to copy; nor ones for a message we no longer send),
+// and our 1:1 call and webinar messages
 const canDuplicate = (row) =>
-  row.own ? !isLegacy(row.template) : ['call', 'webinar'].includes(row.readyMade?.kind);
+  row.own ? !isLegacy(row.template) && !isRetired(row.template) : ['call', 'webinar'].includes(row.readyMade?.kind);
 
 // A copy, ready for the editor: everything as it was (which message it's
 // for, the wording with its details), named <original>_duplicate. Nothing
@@ -407,8 +411,10 @@ function TemplateDialog({ row, sender, onClose, onEdit, onDuplicate, onDelete })
   const decided = row.own ? t.decidedAt : row.dates?.decided;
   const why = row.own ? rejectionOf(t) : MOCK_MESSAGE_REJECTION;
   const legacy = row.own && isLegacy(t);
-  const canEdit = row.own && !legacy && (status === 'draft' || status === 'rejected');
-  // What it's for, in a line: "1:1 call · 1 hour before", and when it goes
+  // One for a message we no longer send can't be changed: there's nothing to send it for
+  const canEdit = row.own && !legacy && !isRetired(t) && (status === 'draft' || status === 'rejected');
+  // What it's for, in a line: "1:1 call · 2 hours before", and when it goes
+  // (for one we no longer send: what replaced it)
   const when = row.own ? momentById(t.moment)?.when : row.readyMade.message.when;
   const about = legacy
     ? 'Made with the old editor'

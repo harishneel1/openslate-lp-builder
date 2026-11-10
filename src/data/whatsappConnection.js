@@ -33,7 +33,7 @@ import { MESSAGE_IDS } from './whatsappMessages';
 //     verified: false,                Meta has verified their business,
 //                                     which raises the daily limit (DAILY_LIMIT)
 //     messages: {                     our default messages (whatsappMessages.js),
-//       'call-1h': {                  sent to Meta for review on this number
+//       'call-2h': {                  sent to Meta for review on this number
 //         status: 'review' | 'approved' | 'rejected',
 //         reviewEndsAt: ISO string,   stand-in, as for the name
 //         sentAt: ISO string,         sent to Meta (Templates' journey)

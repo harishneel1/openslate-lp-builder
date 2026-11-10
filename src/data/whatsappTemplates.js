@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BUTTONS, MESSAGES } from './whatsappMessages';
+import { BUTTONS, MESSAGES, RETIRED } from './whatsappMessages';
 
 // ------------------------------------------------------------
 // The coach's own WhatsApp templates, made in Settings → WhatsApp →
@@ -7,7 +7,7 @@ import { BUTTONS, MESSAGES } from './whatsappMessages';
 // ones live in whatsappMessages.js; these sit beside them in the same list.
 //
 // Each one is the coach's own wording for one of our reminders (a
-// "moment": a 1:1 call's 1 hour before, a webinar's confirmation …). The
+// "moment": a 1:1 call's 2 hours before, a webinar's confirmation …). The
 // moment decides everything a coach shouldn't have to: the category
 // (always Utility: reminders about something they booked), the buttons
 // (the moment's own, as on our ready-made message), and which details can
@@ -16,11 +16,13 @@ import { BUTTONS, MESSAGES } from './whatsappMessages';
 // Kept in this browser (the stand-in):
 //   [{
 //     id,
-//     name: 'call_1h_reminder_1',  lowercase letters, numbers and _ only
+//     name: 'call_2h_reminder_1',  lowercase letters, numbers and _ only
 //                               (Meta's rule), unique across theirs and
 //                               ours (READY_MADE_NAMES)
 //     product: 'call' | 'webinar',
-//     moment: 'call-1h',        one of MESSAGES[product] (whatsappMessages.js)
+//     moment: 'call-2h',        one of MESSAGES[product] (whatsappMessages.js),
+//                               or, for an older one, a message we no
+//                               longer send (RETIRED: see isRetired)
 //     language: 'English',     only English, for now
 //     category: 'UTILITY',
 //     body: 'Hi {first_name}, …',  WhatsApp's formatting (*bold*, _italic_,
@@ -47,11 +49,20 @@ export const PRODUCTS = [
 ];
 export const productById = (id) => PRODUCTS.find((p) => p.id === id);
 
-// The moments of a product: our ready-made messages (whatsappMessages.js)
+// The moments of a product: our ready-made messages (whatsappMessages.js).
+// Only the ones we send: a new template can't be made for a retired one.
 export const momentsOf = (product) => MESSAGES[product] ?? [];
-export const momentById = (id) => [...MESSAGES.call, ...MESSAGES.webinar].find((m) => m.id === id) ?? null;
+// Any moment, retired ones too, so an older template still says what it was for
+export const momentById = (id) =>
+  [...MESSAGES.call, ...MESSAGES.webinar, ...RETIRED.call, ...RETIRED.webinar].find((m) => m.id === id) ?? null;
 
-// The buttons a moment's message always has: [{ key, label, hint }]
+// Made for a message we no longer send (a 1:1 call's 1 hour before): it
+// still shows in Templates and can be deleted, but it can't be picked,
+// edited or duplicated. Its row says what replaced it.
+export const isRetired = (t) => Boolean(t?.moment && momentById(t.moment)?.retired);
+
+// The buttons a moment's message always has: [{ key, label, hint, type }]
+// (type 'reply' for a quick reply; none for a link)
 export const buttonsOf = (product, momentId) =>
   (momentById(momentId)?.buttons ?? []).map((key) => ({ key, ...BUTTONS[product][key] }));
 
@@ -274,7 +285,7 @@ export function toMeta(t, sender = '') {
     body,
     samples: Object.fromEntries(order.map((key, i) => [i + 1, values[key] ?? ''])),
     footer: '',
-    buttons: buttonsOf(t.product, t.moment).map((b) => ({ type: 'url', text: b.label })),
+    buttons: buttonsOf(t.product, t.moment).map((b) => ({ type: b.type === 'reply' ? 'reply' : 'url', text: b.label })),
   };
 }
 
@@ -485,11 +496,26 @@ function saveChoices(all) {
   return true;
 }
 
-// One webinar session's or call's choices: { picks, fellBack }
+// One webinar session's or call's choices: { picks, fellBack, retired }
+//   retired: { 'call-2h': { name: 'call_1h_reminder_1', was: '1 hour before' } }
+//     a template of theirs picked for a message we no longer send: ours
+//     goes for the message that replaced it, and the row says so until
+//     they pick one for it (worked out, not saved)
 export function choicesOf(offering) {
   const c = loadChoices()[offering] ?? {};
-  return { picks: c.picks ?? {}, fellBack: c.fellBack ?? {} };
+  const picks = c.picks ?? {};
+  const retired = {};
+  for (const old of [...RETIRED.call, ...RETIRED.webinar]) {
+    if (!picks[old.id] || picks[old.replacedBy]) continue;
+    const t = loadTemplates().find((x) => x.id === picks[old.id]);
+    if (t) retired[old.replacedBy] = { name: t.name, was: old.name };
+  }
+  return { picks, fellBack: c.fellBack ?? {}, retired };
 }
+
+// The retired message a message took over from, if any ('call-2h' → 'call-1h')
+const retiredFor = (momentId) =>
+  [...RETIRED.call, ...RETIRED.webinar].find((old) => old.replacedBy === momentId)?.id ?? null;
 
 // Pick a template for one message (templateId null: our default). Clears
 // the "went back to our default" note for it.
@@ -501,14 +527,19 @@ export function setChoice(offering, offeringName, momentId, templateId) {
   if (templateId) picks[momentId] = templateId;
   else delete picks[momentId];
   delete fellBack[momentId];
+  // Chosen now for the message that replaced a retired one: the old pick goes
+  const old = retiredFor(momentId);
+  if (old) delete picks[old];
   all[offering] = { name: offeringName ?? c.name, picks, fellBack };
   return saveChoices(all);
 }
 
 // Where a template is picked: ['Discovery call', 'Coaching session']
+// (not picks for a message we no longer send: nothing sends those)
 export function usesOf(templateId) {
+  const live = (momentId) => !momentById(momentId)?.retired;
   return Object.values(loadChoices())
-    .filter((c) => Object.values(c.picks ?? {}).includes(templateId))
+    .filter((c) => Object.entries(c.picks ?? {}).some(([momentId, id]) => id === templateId && live(momentId)))
     .map((c) => c.name ?? 'A call');
 }
 

@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink, Eye, MessageCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Eye, MessageCircle, Reply } from 'lucide-react';
 import Drawer from './Drawer';
 import { MOCK_MESSAGE_REJECTION, messageStatus } from '../data/whatsappConnection';
-import { BUTTONS, MESSAGES, WHATSAPP_SWITCHES_EVENT, setSwitch, switchesOf } from '../data/whatsappMessages';
+import { BUTTONS, MESSAGES, WHATSAPP_SWITCHES_EVENT, isReply, setSwitch, switchesOf } from '../data/whatsappMessages';
 import { messageFor, setChoice, useChoices, useTemplates } from '../data/whatsappTemplates';
 import WhatsAppTemplatePicker from './WhatsAppTemplatePicker';
 import { initials } from '../utils/initials';
@@ -29,7 +29,9 @@ import './WhatsAppTab.css';
 // Under each name, the template it sends, and Change: our default, or
 // any of the coach's approved templates for this product, picked for this
 // webinar session or call (WhatsAppTemplatePicker.jsx). If a picked one is
-// deleted, ours goes again and the row says so until they pick again.
+// deleted, ours goes again and the row says so until they pick again. The
+// same when one was picked for a message we no longer send (a call's
+// 1 hour before, now 2 hours before): ours goes, and the row says why.
 //
 //   24 hours before                                 [●━]     👁
 //   Sends discovery_call_24h_reminder · Change
@@ -47,7 +49,7 @@ import './WhatsAppTab.css';
 export default function WhatsAppMessages({ connection, kind, offering, offeringName, links }) {
   const switches = useSwitches(offering, kind);
   const own = useTemplates();
-  const { picks, fellBack } = useChoices(offering);
+  const { picks, fellBack, retired } = useChoices(offering);
   const [viewing, setViewing] = useState(null); // the message open in its preview: its id ('call-24h')
   const [changing, setChanging] = useState(null); // the message whose template is being picked
   const lost = connection.status === 'lost';
@@ -94,6 +96,12 @@ export default function WhatsAppMessages({ connection, kind, offering, offeringN
                 {fellBack[m.id] && !sends.own && (
                   <span className="wam__status">
                     {fellBack[m.id]} was deleted, so our default goes instead.
+                  </span>
+                )}
+                {!fellBack[m.id] && retired[m.id] && !sends.own && (
+                  <span className="wam__status">
+                    {retired[m.id].name} was made for {retired[m.id].was.toLowerCase()}, which we no longer send, so our
+                    default goes instead.
                   </span>
                 )}
               </span>
@@ -211,7 +219,8 @@ function StateBadge({ on, lost, status }) {
 //   ┌──────────────────┐
 //   │ ● Harish Neel    │
 //   │ Hi [Priya], …    │──── Filled in for each booking
-//   │  Manage booking ↗│──── Tap to try it
+//   │  Manage your     │──── Tap to try it
+//   │  booking ↗       │
 //   │ [ Message      ] │──── Replies come to your WhatsApp
 //   └──────────────────┘
 //    What your customers receive
@@ -219,9 +228,11 @@ function StateBadge({ on, lost, status }) {
 //   ‹ 24 hours before                     5 minutes before ›
 //
 // The buttons work: each opens where it really goes, in a new tab. Manage
-// booking opens the booking page in sample mode (ManageBookingPage.jsx),
+// your booking opens the booking page in sample mode (ManageBookingPage.jsx),
 // so trying Cancel there can't touch a real booking. A hover hint says
-// where each goes, for anyone who'd rather not click.
+// where each goes, for anyone who'd rather not click. A quick reply
+// ("Yes, I'll be there") has no link: tapping it does what WhatsApp
+// does, and sends its words into the chat as the student's reply.
 //
 // Too narrow for pills beside the phone (a phone's own screen), the pills
 // become a short list under it, with matching numbered dots on the phone.
@@ -318,6 +329,10 @@ export const sampleValuesFor = (kind, connection, offeringName) => ({
 //   values   the blanks' sample values ({ first_name, call, … })
 //   links    where the buttons go (see hrefFor), or null: they show but go nowhere
 export function PhoneMessage({ message, kind, sender, values, links }) {
+  // A quick reply tapped in the preview: its words, as the student's reply
+  const [replied, setReplied] = useState(null);
+  useEffect(() => setReplied(null), [message.id]);
+
   return (
     <figure className="wamp__phone" aria-label={`The message on WhatsApp, from ${sender}`}>
       <div className="wamp__screen">
@@ -338,8 +353,30 @@ export function PhoneMessage({ message, kind, sender, values, links }) {
               <Filled body={message.body} values={values} />
               <span className="wa-chat__time">{message.sentAt}</span>
             </p>
-            {message.buttons.map((b) =>
-              links ? (
+            {message.buttons.map((b) => {
+              const button = BUTTONS[kind][b];
+              // A quick reply: no link. In a live preview, tapping it answers
+              if (isReply(kind, b)) {
+                return links ? (
+                  <button
+                    key={b}
+                    type="button"
+                    className="wamp__btn wamp__btn--reply"
+                    title={button.hint}
+                    aria-pressed={replied === button.label}
+                    onClick={() => setReplied(button.label)}
+                  >
+                    {button.label}
+                    <Reply size={13} aria-hidden="true" />
+                  </button>
+                ) : (
+                  <span key={b} className="wamp__btn" title={button.hint}>
+                    {button.label}
+                    <Reply size={13} aria-hidden="true" />
+                  </span>
+                );
+              }
+              return links ? (
                 <a
                   key={b}
                   className="wamp__btn"
@@ -347,19 +384,26 @@ export function PhoneMessage({ message, kind, sender, values, links }) {
                   target="_blank"
                   rel="noreferrer"
                   // The browser's own hint: the phone's rounded screen would clip ours
-                  title={BUTTONS[kind][b].hint}
+                  title={button.hint}
                 >
-                  {BUTTONS[kind][b].label}
+                  {button.label}
                   <ExternalLink size={13} aria-hidden="true" />
                 </a>
               ) : (
                 // A sample: shows where it'd go, goes nowhere
-                <span key={b} className="wamp__btn" title={BUTTONS[kind][b].hint}>
-                  {BUTTONS[kind][b].label}
+                <span key={b} className="wamp__btn" title={button.hint}>
+                  {button.label}
                 </span>
-              ),
-            )}
+              );
+            })}
           </div>
+
+          {replied && (
+            <p className="wamp__out" aria-live="polite">
+              {replied}
+              <span className="wa-chat__time">{message.sentAt}</span>
+            </p>
+          )}
         </div>
 
         <div className="wamp__reply" aria-hidden="true">
@@ -374,7 +418,7 @@ export function PhoneMessage({ message, kind, sender, values, links }) {
 }
 
 // Where a button really goes, for the coach to open:
-//   manage   the booking page, in sample mode (never a real booking)
+//   manage, change   the booking page, in sample mode (never a real booking)
 //   join     a call's meeting link, or a webinar's room
 //   details  a webinar's thank-you page
 //   links: { meetingLink, callId } for a call, { webinarId } for a webinar

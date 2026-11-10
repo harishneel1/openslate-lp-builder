@@ -6,7 +6,8 @@
 // and lands among someone's personal chats, so WhatsApp gets only the
 // ones that get people to turn up:
 //
-//   1:1 calls   confirmation, 24 hours before, 1 hour before, 5 minutes before
+//   1:1 calls   confirmation, 24 hours before, 2 hours before (asks them
+//               to confirm they're coming), 5 minutes before
 //   Webinars    confirmation, 24 hours before, 1 hour before, 5 minutes before
 //   Batches     a class cancelled (Live classes: sent once, when the
 //               coach cancels it, BatchAnnounce.jsx; no switches)
@@ -25,7 +26,7 @@
 // Which messages are on is kept per webinar session and per call, like
 // the emails' switches. All are on until switched off. The stand-in
 // keeps them in this browser:
-//   { 'call:<id>': { 'call-1h': false }, 'webinar:<id>': { ... } }
+//   { 'call:<id>': { 'call-2h': false }, 'webinar:<id>': { ... } }
 // ------------------------------------------------------------
 
 const KEY = 'pagebuilder:mock-whatsapp-switches';
@@ -42,13 +43,20 @@ export const WHATSAPP_SWITCHES_EVENT = 'whatsapp-switches-changed';
 //            exactly what your student Priya gets on WhatsApp, …"
 //   body     WhatsApp's own formatting: *bold*, new lines as \n. The
 //            {blanks} are filled in for each person.
-//   buttons  up to two, from BUTTONS below (WhatsApp allows two links)
+//   buttons  from BUTTONS below, in the order WhatsApp shows them. At
+//            most two links, and three buttons in all: WhatsApp folds a
+//            fourth behind "See all options".
 //   sentAt   when it arrives, in the example (a call at 4:00 pm on
 //            Thursday, a webinar at 7:00 pm on Thu 12 Nov, someone
 //            registering at 10:12 am)
+//   replaces the id of the message this one took over from, so its saved
+//            switches carry on (RETIRED below)
 //
-// The 1-hour call message has both Join and Manage booking: it's the last
-// useful moment to say "I can't make it", as the email's reschedule line.
+// The 2-hour call message asks the student to confirm they're coming:
+// "Yes, I'll be there" is a quick reply (their answer comes back to us),
+// and "Can't make it? Change it" opens their booking page to reschedule
+// or cancel. It took over from the 1-hour message, which had Join call and
+// Manage booking: Join is still on the 5-minute one.
 export const MESSAGES = {
   call: [
     {
@@ -72,14 +80,15 @@ export const MESSAGES = {
       sentAt: '4:00 pm',
     },
     {
-      id: 'call-1h',
-      template: 'call_1h_reminder',
-      name: '1 hour before',
-      when: 'Goes out 1 hour before the call.',
-      example: '1 hour before her call at 4:00 pm on Thursday',
-      body: 'Hi {first_name}, your *{call}* with {host} starts in 1 hour, at {time}.\n\nTap below to join when it’s time.',
-      buttons: ['join', 'manage'],
-      sentAt: '3:00 pm',
+      id: 'call-2h',
+      template: 'call_2h_reminder',
+      name: '2 hours before',
+      when: 'Goes out 2 hours before the call, and asks them to confirm they’re coming.',
+      example: '2 hours before her call at 4:00 pm on Thursday',
+      body: 'Hi {first_name}, your {call} with {host} starts in 2 hours, at {time}.\n\n{host} has kept this time just for you and we need your reply to go ahead.\n\nSo please tap Yes or No below.',
+      buttons: ['yes', 'change'],
+      sentAt: '2:00 pm',
+      replaces: 'call-1h',
     },
     {
       id: 'call-5m',
@@ -158,11 +167,19 @@ export const MESSAGES = {
 // in one part that changes per person.
 //   manage   the student's own booking page (ManageBookingPage.jsx), the
 //            same as the 24-hour email's "Pick another time or cancel"
+//   change   the same page, worded as the answer to "Will you be there?"
+//   yes      a quick reply (type 'reply'): no link. Tapping it sends its
+//            words back to the coach's number, which is how we hear the
+//            student is coming.
 //   join     a call: the coach's meeting link. A webinar: its room.
 //   details  a webinar's thank-you page, with the date, time and how to join
+// Labels are at most 25 characters (WhatsApp's limit). A button with no
+// type is a link.
 export const BUTTONS = {
   call: {
-    manage: { label: 'Manage booking', hint: 'Their booking page, to reschedule or cancel' },
+    manage: { label: 'Manage your booking', hint: 'Their booking page, to reschedule or cancel' },
+    yes: { label: 'Yes, I’ll be there', hint: 'Sends their answer back to you', type: 'reply' },
+    change: { label: 'Can’t make it? Change it', hint: 'Their booking page, to reschedule or cancel' },
     join: { label: 'Join call', hint: 'Your meeting link' },
   },
   webinar: {
@@ -170,6 +187,31 @@ export const BUTTONS = {
     join: { label: 'Join webinar', hint: 'The webinar room' },
   },
   batch: {},
+};
+
+// A button that sends a reply rather than opening a link
+export const isReply = (kind, key) => BUTTONS[kind]?.[key]?.type === 'reply';
+
+// Messages we no longer send, kept so things saved for them still make
+// sense: the coach's own templates made for one (shown, but not offered
+// to send), and the switches the message that replaced it carries on.
+//   replacedBy  the message now sent in its place
+export const RETIRED = {
+  call: [
+    {
+      id: 'call-1h',
+      template: 'call_1h_reminder',
+      name: '1 hour before',
+      when: '1:1 calls now remind people 2 hours before instead.',
+      example: '1 hour before her call at 4:00 pm on Thursday',
+      body: 'Hi {first_name}, your *{call}* with {host} starts in 1 hour, at {time}.\n\nTap below to join when it’s time.',
+      buttons: ['join', 'manage'],
+      sentAt: '3:00 pm',
+      retired: true,
+      replacedBy: 'call-2h',
+    },
+  ],
+  webinar: [],
 };
 
 export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.batch].map((m) => m.id);
@@ -197,10 +239,14 @@ function loadAll() {
   }
 }
 
-// { 'call-1h': true, ... } for one webinar session or call ('call:<id>', 'webinar:<id>')
+// { 'call-2h': true, ... } for one webinar session or call ('call:<id>', 'webinar:<id>').
+// A message that replaced another (replaces) starts from the old one's
+// switch, so a reminder switched off stays off.
 export function switchesOf(offering, kind) {
   const saved = loadAll()[offering] ?? {};
-  return Object.fromEntries(MESSAGES[kind].map((m) => [m.id, saved[m.id] !== false]));
+  return Object.fromEntries(
+    MESSAGES[kind].map((m) => [m.id, (saved[m.id] ?? (m.replaces ? saved[m.replaces] : undefined)) !== false]),
+  );
 }
 
 export function setSwitch(offering, id, on) {
