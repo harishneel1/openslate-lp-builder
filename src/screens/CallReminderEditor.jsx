@@ -41,7 +41,7 @@ import './CallReminderEditor.css';
 // 24-hour and 2-hour emails the reschedule-or-cancel line (a student's
 // only way to move their booking).
 //
-// reminderId: 'dayBefore' | 'hourBefore'
+// reminderId: 'booked' (the confirmation) | 'dayBefore' | 'hourBefore' | 'fiveBefore'
 // value: the words to start from: { subject, body } (the call's draft)
 // call: { title, durationMins, timeZone, meetingLink } as in the draft,
 //       for the preview
@@ -114,7 +114,7 @@ export default function CallReminderEditor({
       <header className="re__head">
         <div className="re__intro">
           <h1 className="re__title">{reminder.name}</h1>
-          <p className="re__status">Goes out {reminder.name} each call.</p>
+          <p className="re__status">{reminder.goes ?? `Goes out ${reminder.name} each call.`}</p>
         </div>
         <div className="re__actions">
           {!isTemplate && (
@@ -136,7 +136,7 @@ export default function CallReminderEditor({
         </div>
       </header>
 
-      {note && <p className="re__note">{note}</p>}
+      {(reminder.editNote ?? note) && <p className="re__note">{reminder.editNote ?? note}</p>}
 
       {tester.bar}
 

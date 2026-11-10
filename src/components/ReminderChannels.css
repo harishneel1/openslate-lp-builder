@@ -1,81 +1,87 @@
-/* The two channel cards at the top of the Reminders tab
-   (ReminderChannels.jsx). Each channel has its own colour: our orange
-   for Email, WhatsApp's green for WhatsApp. The chosen card wears it,
-   points down, and the line under the cards repeats it, so the page
-   below reads as belonging to that card. */
+/* The Reminders tab's two-way switch (ReminderChannels.jsx): Email or
+   WhatsApp. Shaped like the Bookings tab's Upcoming | Past | Cancelled
+   switch (.cov__filters, CallOverview.css), a little larger: a light grey
+   track, and a black block under the chosen half, with white words on it
+   (the Cloud Storage page's chosen filter). The block slides across when
+   the other half is clicked, so it reads as a toggle. A plain line under
+   it separates it from the reminders it shows. */
 .rc {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 260px));
-  gap: 12px;
-  padding: 20px 24px 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.rc__card {
-  --rc-color: var(--color-primary);
-  --rc-tint: var(--color-primary-tint);
+.rc__track {
   position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 540px;
+  padding: 3px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* The black block: half the track, under the chosen half */
+.rc__thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  background: var(--color-text);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rc__track--whatsapp .rc__thumb {
+  transform: translateX(100%);
+}
+
+.rc__tab {
+  position: relative; /* above the block */
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  padding: 12px 14px;
-  text-align: left;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
+  min-height: 40px;
+  padding: 6px 12px 6px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: 6px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: color 0.15s;
 }
 
-.rc__card--whatsapp {
-  --rc-color: #25d366;
-  --rc-tint: #eafaf0;
+.rc__tab:hover {
+  color: var(--color-text);
 }
 
-.rc__card:hover:not([aria-pressed='true']) {
-  border-color: #d6d6da;
-  box-shadow: var(--shadow-hover);
+.rc__tab[aria-selected='true'],
+.rc__tab[aria-selected='true']:hover {
+  color: #ffffff;
 }
 
-.rc__card[aria-pressed='true'] {
-  background: var(--rc-tint);
-  border-color: var(--rc-color);
+.rc__tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
-/* The chosen card points down at what it shows */
-.rc__card[aria-pressed='true']::after {
-  content: '';
-  position: absolute;
-  bottom: -7.5px;
-  left: 30px;
-  width: 12px;
-  height: 12px;
-  background: var(--rc-tint);
-  border-right: 1.5px solid var(--rc-color);
-  border-bottom: 1.5px solid var(--rc-color);
-  transform: rotate(45deg);
-}
-
-.rc__card:focus-visible {
-  outline: 2px solid var(--rc-color);
-  outline-offset: 3px;
-}
-
-/* ---------- Logo ---------- */
+/* The channel's logo: Gmail's red for email, WhatsApp's green. Softer on
+   the half that isn't chosen, so the chosen one leads. */
 .rc__logo {
   display: grid;
   flex: none;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  transition: opacity 0.15s;
 }
 
-.rc__logo--img {
-  object-fit: contain;
-}
-
-/* Stand-ins until the real logos are in (LOGOS in ReminderChannels.jsx) */
 .rc__logo--email {
   color: #c5221f;
   background: #fdecea;
@@ -87,86 +93,56 @@
   border-radius: 50%;
 }
 
-/* ---------- Words ---------- */
-.rc__text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.rc__tab[aria-selected='false'] .rc__logo {
+  opacity: 0.55;
 }
 
 .rc__label {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text);
+  white-space: nowrap;
 }
 
-.rc__summary {
+/* The count, at the half's far end */
+.rc__count {
+  margin-left: auto;
+  overflow: hidden;
   font-size: 13px;
-  line-height: 1.4;
-  color: var(--color-text-muted);
+  font-weight: 500;
+  color: var(--bk-ink-3, var(--color-text-muted));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
-.rc__summary--warn {
+/* On the black block: lighter, so they read on it */
+.rc__tab[aria-selected='true'] .rc__count {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Something to fix (paused, a name or message not approved): red, and a
+   softer red on the black block */
+.rc__count--warn {
   font-weight: 600;
   color: #b42318;
 }
 
-/* ---------- The line under the cards, in the chosen colour ---------- */
-.rc__rule {
-  height: 3px;
-  margin-top: 16px;
-  background: var(--color-primary);
-}
-
-.rc__rule--whatsapp {
-  background: #25d366;
-}
-
-/* What's below fades in when the cards swap it */
-.rc__rule + * {
-  animation: rc-in 0.22s ease-out;
-}
-
-@keyframes rc-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+.rc__tab[aria-selected='true'] .rc__count--warn {
+  color: #ffb4ab;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc__card {
+  .rc__thumb,
+  .rc__tab,
+  .rc__logo {
     transition: none;
-  }
-
-  .rc__rule + * {
-    animation: none;
   }
 }
 
 @media (max-width: 720px) {
   .rc {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    padding: 16px 16px 0;
+    padding: 14px 16px;
   }
 
-  .rc__card {
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 12px;
-  }
-
-  .rc__logo {
-    width: 30px;
-    height: 30px;
-  }
-}
-
-/* Phones: the logo above the words, so the summary gets the card's width */
-@media (max-width: 480px) {
-  .rc__card {
-    flex-direction: column;
-    gap: 8px;
+  .rc__track {
+    max-width: none;
   }
 }

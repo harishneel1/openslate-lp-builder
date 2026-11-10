@@ -1,19 +1,16 @@
-import { Pencil } from 'lucide-react';
-import { CALL_REMINDERS, emailTextOf, oldWording, reminderReport, remindersOf } from '../data/callReminders';
+import { Lock, Pencil } from 'lucide-react';
+import { CALL_CONFIRMATION, CALL_REMINDERS, emailTextOf, oldWording, reminderReport, remindersOf } from '../data/callReminders';
 import './WebinarReminders.css'; // the same rows, switch and pencil as a webinar's Emails tab
 import '../components/HoursDrawer.css'; // the grey Example box, as the booking rules have it
 import './CallEmails.css';
 
 // ------------------------------------------------------------
-// The Emails tab of a 1:1 call's page (CallOverview.jsx): its two
-// reminder emails as plain settings, laid out like a webinar's Emails tab:
+// The Email half of a 1:1 call's Reminders tab (CallOverview.jsx): its
+// emails as plain settings, laid out like the WhatsApp half's list:
 //
 //   Reminder emails
-//   People who book get a reminder before their call, so they don't forget.
-//   ┌ Example: If Rohan books a call for 4:00 PM on Thursday, he gets  ┐
-//   └ reminders at 4:00 PM on Wednesday, and 2:00 PM and 3:55 PM on Thursday. ┘
-//
 //   Email                                              On    Edit
+//   Confirmation after booking                   🔒 Always on   ✎
 //   24 hours before · Edited                          [●━]    ✎
 //   2 hours before                                    [━○]    ✎
 //   5 minutes before                                  [●━]    ✎
@@ -24,6 +21,8 @@ import './CallEmails.css';
 // what's ahead: a reminder switched off stops for calls already booked, so
 // an off reminder says how many upcoming calls that affects.
 //
+// The confirmation always goes (it's how people get their booking's
+// details): no switch, but its words can be changed like the rest.
 // A switch saves straight away, as on a webinar's Emails tab. The pencil
 // opens the email editor (CallReminderEditor.jsx, in CallOverview).
 //
@@ -43,12 +42,6 @@ export default function CallEmails({ bookings, callAnswers, now, onToggle, onEdi
     <div className="cem">
       <div className="rm__group-head">
         <h3 className="rm__group-title">Reminder emails</h3>
-        <p className="rm__group-text">People who book get a reminder before their call, so they don’t forget.</p>
-        <p className="hd-rule__example cem__example">
-          <span className="hd-rule__example-tag">Example:</span> If Rohan books a call for{' '}
-          <strong>4:00 PM on Thursday</strong>, he gets reminders at <strong>4:00 PM on Wednesday</strong>, and{' '}
-          <strong>2:00 PM</strong> and <strong>3:55 PM on Thursday</strong>.
-        </p>
       </div>
 
       <div className="rm cem__table">
@@ -59,6 +52,35 @@ export default function CallEmails({ bookings, callAnswers, now, onToggle, onEdi
         </div>
 
         <ul className="cem__list">
+          {/* The confirmation: always on, its words editable */}
+          <li className="rm__row">
+            <span className="rm__name">
+              <span id="cem-name-booked">{CALL_CONFIRMATION.name}</span>
+              {emailTextOf(callAnswers, CALL_CONFIRMATION.id).edited && <span className="rm__edited"> · Edited</span>}
+            </span>
+            <span className="rm__col">
+              <span
+                className="cem__always"
+                tabIndex={0}
+                data-tip="Always goes: it’s how people get their booking’s details."
+                data-tip-align="end"
+              >
+                <Lock size={13} aria-hidden="true" /> Always on
+              </span>
+            </span>
+            <span className="rm__col">
+              <button
+                type="button"
+                className="rm__icon"
+                onClick={() => onEdit(CALL_CONFIRMATION.id)}
+                aria-label="Edit the confirmation email"
+                data-tip="Edit email"
+                data-tip-align="end"
+              >
+                <Pencil size={16} aria-hidden="true" />
+              </button>
+            </span>
+          </li>
           {CALL_REMINDERS.map((r) => {
             const row = report.find((x) => x.id === r.id);
             const edited = emailTextOf(callAnswers, r.id).edited;
@@ -107,7 +129,7 @@ export default function CallEmails({ bookings, callAnswers, now, onToggle, onEdi
         </ul>
       </div>
 
-      <p className="cem__foot">People always get a confirmation email when they book, and when a call is moved or cancelled.</p>
+      <p className="cem__foot">People always get an email when a call is moved or cancelled.</p>
     </div>
   );
 }

@@ -394,8 +394,9 @@ export default function CallOverview({
               channel={tab === 'whatsapp' ? 'whatsapp' : 'email'}
               kind="call"
               offering={`call:${call.id}`}
-              emailOn={CALL_REMINDERS.filter((r) => switches[r.id]).length}
-              emailTotal={CALL_REMINDERS.length}
+              // The confirmation email counts too: it's always on
+              emailOn={CALL_REMINDERS.filter((r) => switches[r.id]).length + 1}
+              emailTotal={CALL_REMINDERS.length + 1}
               onChannel={(c) => onTab(c === 'whatsapp' ? 'whatsapp' : 'emails')}
             />
             {tab === 'whatsapp' ? (

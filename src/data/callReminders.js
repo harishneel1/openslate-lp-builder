@@ -109,7 +109,29 @@ export const CALL_REMINDERS = [
   },
 ];
 
-export const callReminderById = (id) => CALL_REMINDERS.find((r) => r.id === id) ?? null;
+// The confirmation email, sent as soon as someone books. Always on (it's
+// how people get their booking's details), so it has no switch and isn't
+// one of the timed reminders above: nothing about "skipped" or "still to
+// come" applies to it. Its words can be changed like the reminders', and
+// are saved the same way (callReminderEmails.booked).
+//   goes      the editor's line under its title
+//   editNote  the editor's note: only bookings made after a change get it
+export const CALL_CONFIRMATION = {
+  id: 'booked',
+  name: 'Confirmation after booking',
+  goes: 'Goes out as soon as someone books. It’s always on.',
+  editNote: 'New bookings get the new words. People who’ve already booked got theirs.',
+  manage: true,
+  subject: 'Booked: {{call_title}} with {{your_name}} on {{date}}',
+  body:
+    '<p>Hi {{first_name}},</p>' +
+    '<p>Your <b>{{call_title}}</b> with {{your_name}} is booked for <b>{{date}} at {{time}}</b>.</p>' +
+    '<p>Join with the button below when it’s time. It’s also in your calendar invite.</p>' +
+    '<p>Talk soon,<br>{{your_name}}</p>',
+};
+
+export const callReminderById = (id) =>
+  id === CALL_CONFIRMATION.id ? CALL_CONFIRMATION : (CALL_REMINDERS.find((r) => r.id === id) ?? null);
 
 // The fill-in fields the email editor's "+ Insert detail" offers
 //   hint: what it fills in with, for the hover hint

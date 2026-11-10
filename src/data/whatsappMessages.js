@@ -87,7 +87,7 @@ export const MESSAGES = {
       name: '2 hours before',
       when: 'Goes out 2 hours before the call, and asks them to confirm they’re coming.',
       example: '2 hours before her call at 4:00 pm on Thursday',
-      body: 'Hi {first_name}, your {call} with {host} starts in 2 hours, at {time}.\n\n{host} has kept this time just for you and we need your reply to go ahead.\n\nSo please tap Yes or No below.',
+      body: 'Hi {first_name}, your *{call}* with {host} starts in 2 hours, at {time}.\n\n{host} has kept this time just for you and we need your reply to go ahead.\n\nSo please tap Yes or No below.',
       buttons: ['yes', 'change', 'join'],
       sentAt: '2:00 pm',
       replaces: 'call-1h',

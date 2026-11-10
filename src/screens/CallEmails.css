@@ -2,12 +2,6 @@
    from WebinarReminders.css, so both Emails tabs look the same; only the
    example and the "won't get it" note are new here. */
 
-/* The worked example under the title (.hd-rule__example, HoursDrawer.css) */
-.cem__example {
-  max-width: 64ch;
-  margin-top: 10px;
-}
-
 .cem__table {
   border-top: 1px solid var(--color-border);
 }
@@ -16,6 +10,23 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* The confirmation's On: locked, always on */
+.cem__always {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.cem__always:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 /* An off reminder with calls still to come: the one thing worth noticing */

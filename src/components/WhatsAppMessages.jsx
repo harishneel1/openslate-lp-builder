@@ -15,7 +15,6 @@ import './WhatsAppTab.css';
 // Meta's review under each name while it matters:
 //
 //   WhatsApp reminders
-//   Sent from your number as well as the emails…
 //
 //   Message                                          On    View
 //   24 hours before                                [●━]     👁
@@ -54,16 +53,11 @@ export default function WhatsAppMessages({ connection, kind, offering, offeringN
   const [changing, setChanging] = useState(null); // the message whose template is being picked
   const lost = connection.status === 'lost';
   const messages = MESSAGES[kind];
-  const who = kind === 'call' ? 'people who book' : 'people who register';
 
   return (
     <div className="wam">
       <div className="wam__head">
         <h3 className="wa-head__title">WhatsApp reminders</h3>
-        <p className="wa-head__text">
-          Sent from your number as well as the emails, to {who}. Kept to the ones that matter most, so no one gets too
-          many messages.
-        </p>
       </div>
 
       <div className="rm wam__table" role="table" aria-label="WhatsApp reminders">
