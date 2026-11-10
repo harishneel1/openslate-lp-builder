@@ -1,5 +1,5 @@
 import { isActive, loadBookings, setWhatsAppConfirm } from './bookingsStore';
-import { WHATSAPP_CHANGED_EVENT, isConnected, loadWhatsApp, messageStatus } from './whatsappConnection';
+import { WHATSAPP_CHANGED_EVENT, hasNumber, isConnected, loadWhatsApp, messageStatus } from './whatsappConnection';
 import { WHATSAPP_SWITCHES_EVENT, switchesOf } from './whatsappMessages';
 import { CHOICES_CHANGED_EVENT, TEMPLATES_CHANGED_EVENT, choicesOf, loadTemplates, messageFor } from './whatsappTemplates';
 import { whatsappNumber } from '../utils/whatsapp';
@@ -75,6 +75,29 @@ export function askPlan(booking, connection = loadWhatsApp()) {
   if (!whatsappNumber(booking.guest?.phone)) return { will: false, reason: 'phone' };
   const since = Date.parse(booking.rescheduledAt ?? booking.createdAt) || 0;
   if (askTimeOf(booking) < since + GAP_MINS * MIN) return { will: false, reason: 'late' };
+  return { will: true };
+}
+
+// Whether any of a 1:1 call's WhatsApp messages would go for this booking
+// ('call-confirm', 'call-24h', 'call-2h', 'call-5m'), leaving its timing
+// to the caller (the emails' rules, callReminders.js): the booking's
+// History says what went by email and WhatsApp (BookingDrawer.jsx).
+//   { will: true } or { will: false, reason }
+//   reason 'unused'    no number connected: they don't use WhatsApp
+//          'paused'    connected, but WhatsApp paused the number
+//          'off'       the coach switched this message off for the call
+//          'approval'  Meta hasn't approved the message it would send
+//          'phone'     the student's number can't be used on WhatsApp
+// Worked out from the settings as they are now, as everything here is;
+// the real product reads what our WhatsApp partner says went.
+export function messagePlan(booking, messageId, connection = loadWhatsApp()) {
+  if (!hasNumber(connection)) return { will: false, reason: 'unused' };
+  if (!isConnected(connection)) return { will: false, reason: 'paused' };
+  const offering = `call:${booking.serviceId}`;
+  if (!switchesOf(offering, 'call')[messageId]) return { will: false, reason: 'off' };
+  const sends = messageFor(messageId, choicesOf(offering).picks, loadTemplates());
+  if (!sends.own && messageStatus(connection, messageId) !== 'approved') return { will: false, reason: 'approval' };
+  if (!whatsappNumber(booking.guest?.phone)) return { will: false, reason: 'phone' };
   return { will: true };
 }
 

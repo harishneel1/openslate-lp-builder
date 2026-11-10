@@ -20,11 +20,11 @@ import { money } from '../data/checkoutRules';
 import { findSlots, formatTime, zoned } from '../utils/slots';
 import { matchZone } from '../data/timeZones';
 import { callAnswersOf, getMyProfile, loadAnswers } from '../data/myProfile';
-import { callReminderById, reminderSteps, remindersOf } from '../data/callReminders';
+import { callReminderById, reminderTimeline, remindersOf } from '../data/callReminders';
 import { mockAccount } from '../data/myPage';
 import { whatsappHref } from '../utils/whatsapp';
 import { exactDay, lengthLabel, longDay, onDay, shortDay, startsIn, zoneLabel } from '../data/buildBookingsJson';
-import { WHY_NOT_ASKED, askPlan, askTimeOf, confirmDemo } from '../data/whatsappConfirm';
+import { WHY_NOT_ASKED, askPlan, confirmDemo, messagePlan } from '../data/whatsappConfirm';
 import { ConfirmLine } from './ConfirmStatus';
 import './WhatsAppTab.css'; // the Prototype controls' look (wa-demo)
 import './BookingDrawer.css';
@@ -38,9 +38,10 @@ import './BookingDrawer.css';
 //               reply to the calendar invite, whether they confirmed on
 //               WhatsApp (ConfirmStatus.jsx), join)
 //               about them (contact, then their answers to the questions)
-//               history (booked, rescheduled, cancelled, the reminder
-//               emails: sent, still to come, or skipped, and the 2-hour
-//               WhatsApp message and its answer), ending at the call
+//               history (booked, rescheduled, cancelled, the booking
+//               confirmation and each reminder, by email and WhatsApp:
+//               sent, still to come, or skipped, and the answer to the
+//               2-hour WhatsApp message), ending at the call
 //               itself, with a "Now" line between what's happened and
 //               what's still to come: one short line each (see History)
 //               Prototype controls, last: answer the WhatsApp message as
@@ -263,67 +264,95 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
   // short line per thing that happened or is still to come, and nothing
   // the call card above already says.
   //
-  //   ●  Harish booked                1:40 pm
+  //   ●  Harish booked                                   1:40 pm
+  //   ●  Booking confirmation sent · email and WhatsApp  1:40 pm
   //   │  24-hour reminder skipped (booked late)
-  //   ┊  Now, 1:59 pm
-  //   ○  2-hour email and WhatsApp    5:30 pm
-  //   ○  5-minute email               7:25 pm
-  //   ◉  Call                         7:30 pm
+  //   ●  2-hour reminder sent · email and WhatsApp       5:30 pm
+  //   ●  Harish confirmed on WhatsApp                    5:42 pm
+  //   ┊  Now, 7:20 pm
+  //   ○  5-minute reminder scheduled · email and WhatsApp 7:25 pm
+  //   ◉  Call                                            7:30 pm
   //
   // A dot per step, coloured by where it stands (done, a yes, a maybe or no
   // reply, declined or cancelled, still to come); the call has its icon.
   // What the student did starts with their name ("Harish confirmed on
-  // WhatsApp"); what goes out to them doesn't ("24-hour email"), and
-  // "will go" is what a hollow dot means. Times show the date only
-  // when it changes from the line above. Reminders that never had a chance
-  // aren't steps: one line under Booked (or Rescheduled) says which.
+  // WhatsApp"). What goes out to them says it in words, "sent" or
+  // "scheduled", so no one has to read the dot, with the ways it goes:
+  // the email and WhatsApp for a moment go together, so they share a line.
+  // A WhatsApp message that should go but can't says why on a second line
+  // ("WhatsApp not sent: Meta hasn't approved the message yet"); one the
+  // coach switched off, or WhatsApp not used at all, just isn't named.
+  // Times show the date only when it changes from the line above.
+  // Reminders that never had a chance aren't steps: one line under the
+  // confirmation (or Rescheduled) says which.
   // Only the latest reschedule is saved (previousStart), so a call moved
   // twice shows one move, from the time before the latest one.
+  // Like the rest of the prototype, what went is worked out from the
+  // settings as they are now; the real product reads what was sent.
 
-  // The reminder emails (callReminders.js), with the call's own switches.
-  // A deleted call's bookings stay, so their reminders do too (both on).
-  const emailSteps = reminderSteps(booking, remindersOf(callAnswersOf(loadAnswers(), booking.serviceId)), now);
-  // What never had a chance, by when it would have gone: ['24-hour', '2-hour']
-  const skipped = emailSteps.filter((r) => r.kind === 'skipped').map((r) => callReminderById(r.id).short);
-  let reminders = emailSteps
-    .filter((r) => r.kind !== 'skipped')
-    .map((r) => ({
-      key: r.key,
-      tone: r.kind === 'sent' ? 'done' : 'upcoming',
-      upcoming: r.kind === 'scheduled',
-      what: `${callReminderById(r.id).short} email`, // '24-hour email'
-      when: r.when,
-    }));
-
-  // The 2-hour WhatsApp message (whatsappConfirm.js) and its answer. (Its
-  // other WhatsApp messages aren't listed yet.)
+  // The call's email switches (callReminders.js). A deleted call's bookings
+  // stay, so their reminders do too (all on).
+  const emailOn = remindersOf(callAnswersOf(loadAnswers(), booking.serviceId));
   const confirm = booking.confirm;
+  // Each reminder's time and fate, with every switch on: the email's
+  // switch and WhatsApp's are each checked below
+  const timeline = reminderTimeline(booking, { dayBefore: true, hourBefore: true, fiveBefore: true }, now);
+  const WHATSAPP_OF = { dayBefore: 'call-24h', hourBefore: 'call-2h', fiveBefore: 'call-5m' };
+  // Why a WhatsApp message that should go can't, by messagePlan's reason
+  const WHATSAPP_WHY = {
+    paused: 'your number is paused',
+    approval: 'Meta hasn’t approved the message yet',
+    phone: 'their number isn’t on WhatsApp',
+  };
+  // The ways one moment goes out: { ways: ['email', 'WhatsApp'], blocked }
+  //   blocked: why its WhatsApp message can't go, or null
+  const waysOf = (email, messageId, went = false) => {
+    const plan = messagePlan(booking, messageId);
+    const whatsapp = went || plan.will;
+    return {
+      ways: [email && 'email', whatsapp && 'WhatsApp'].filter(Boolean),
+      blocked: !whatsapp ? WHATSAPP_WHY[plan.reason] ?? null : null,
+    };
+  };
+  const waysText = (ways) => (ways.length ? ` · ${ways.join(' and ')}` : '');
+
+  // What never had a chance, by when it would have gone: ['24-hour', '2-hour']
+  const skipped = [];
+  const reminders = [];
+  for (const row of timeline) {
+    if (row.state === 'stopped') continue; // the cancellation stopped it: "cancelled" says so
+    const short = callReminderById(row.id).short;
+    // The 2-hour WhatsApp counts as gone once it was asked (a saved answer too)
+    const { ways, blocked } = waysOf(emailOn[row.id], WHATSAPP_OF[row.id], row.id === 'hourBefore' && Boolean(confirm));
+    if (row.state === 'skipped') {
+      if (ways.length || blocked) skipped.push(short);
+      continue;
+    }
+    if (!ways.length && !blocked) continue; // both switched off, or WhatsApp unused: nothing to say
+    const sent = row.at <= now;
+    reminders.push({
+      key: `reminder-${row.id}`,
+      tone: !ways.length ? 'warn' : sent ? 'done' : 'upcoming',
+      upcoming: !sent,
+      what: ways.length
+        ? `${short} reminder ${sent ? 'sent' : 'scheduled'}${waysText(ways)}`
+        : `${short} WhatsApp reminder ${sent ? 'not sent' : 'won’t go'}`,
+      detail: blocked ? (ways.length ? `WhatsApp ${sent ? 'not sent' : 'won’t go'}: ${blocked}` : `Because ${blocked}`) : null,
+      when: new Date(row.at).toISOString(),
+    });
+  }
+
+  // The booking confirmation: its email always goes, as they book
+  const booked = waysOf(true, 'call-confirm');
+
+  // The answer to the 2-hour WhatsApp message (whatsappConfirm.js); the
+  // message itself is on the 2-hour reminder's line
   const plan = open ? askPlan(booking) : { will: false };
-  const askAt = askTimeOf(booking);
-  if (!confirm && plan.reason === 'late' && !skipped.includes('2-hour')) skipped.push('2-hour');
   const whatsAppSteps = [
-    confirm && { key: 'wa-asked', tone: 'done', what: '2-hour WhatsApp', when: confirm.askedAt },
     confirm?.status === 'confirmed' && { key: 'wa-confirmed', tone: 'good', what: `${name} confirmed on WhatsApp`, when: confirm.repliedAt },
     confirm?.status === 'none' && { key: 'wa-none', tone: 'warn', what: 'No reply on WhatsApp', when: confirm.closedAt },
-    !confirm &&
-      plan.will &&
-      askAt > now && {
-        key: 'wa-asked',
-        tone: 'upcoming',
-        upcoming: true,
-        what: '2-hour WhatsApp',
-        when: new Date(askAt).toISOString(),
-      },
   ].filter(Boolean);
 
-  // The 2-hour email and 2-hour WhatsApp go at the same moment: one line
-  // for both, when they do (sent together, or both still to come)
-  const twoEmail = reminders.find((r) => r.key === 'reminder-hourBefore');
-  const twoWhatsApp = whatsAppSteps.find((step) => step.key === 'wa-asked');
-  if (twoEmail && twoWhatsApp && twoEmail.tone === twoWhatsApp.tone && Date.parse(twoEmail.when) === Date.parse(twoWhatsApp.when)) {
-    twoWhatsApp.what = '2-hour email and WhatsApp';
-    reminders = reminders.filter((r) => r !== twoEmail);
-  }
   // '24-hour and 2-hour reminders skipped (booked late)': booked or moved
   // too close to the call for them. Said by time, since the email and
   // WhatsApp go at the same times
@@ -361,7 +390,15 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
       tone: 'done',
       what: `${name} booked`,
       // The time they first picked, only when it has since moved (the card shows the time now)
-      detail: lines(booking.previousStart && `For ${at(booking.previousStart)}`, !booking.previousStart && skippedLine),
+      detail: lines(booking.previousStart && `For ${at(booking.previousStart)}`),
+      when: booking.createdAt,
+    },
+    // Right after they booked (same time, so it keeps this place)
+    {
+      key: 'confirmation',
+      tone: 'done',
+      what: `Booking confirmation sent${waysText(booked.ways)}`,
+      detail: lines(booked.blocked && `WhatsApp not sent: ${booked.blocked}`, !booking.previousStart && skippedLine),
       when: booking.createdAt,
     },
     booking.previousStart && {
