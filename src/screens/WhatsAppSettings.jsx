@@ -40,7 +40,7 @@ import './WhatsAppSettings.css';
 //   │ │ Use a spare number, or a new SIM. See how to fix
 //   │                                            │
 //   │ [ Connect WhatsApp ]  2 of 3 done          │
-//   │ Important: Once connected, this number can't be used to create a WhatsApp account…
+//   │ Important: Once connected, this becomes your no-reply number. It can't be used to create…
 //   └────────────────────────────────────────────┘
 //
 // One box, top to bottom: the questions only exist to unlock Connect, so
@@ -474,8 +474,9 @@ const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)
 function Disclaimer() {
   return (
     <p className="wac__warn" id="wac-warn">
-      <span className="wac__warn-label">Important:</span> Once connected, this number can’t be used to create a WhatsApp
-      personal or business account. It will only be used for automatic reminders. Calls and SMS will work as usual.
+      <span className="wac__warn-label">Important:</span> Once connected, this becomes your no-reply number. It can’t be
+      used to create a WhatsApp personal or business account, and will only be used for automatic reminders. Calls and
+      SMS will work as usual.
     </p>
   );
 }
@@ -708,6 +709,17 @@ function ConnectedControlRows({ connection }) {
           </Btn>
           <Btn onClick={() => demo.rejectMessage(toReject)} disabled={!toReject}>
             Reject one more
+          </Btn>
+        </div>
+      </div>
+      <div className="proto__row">
+        <span className="proto__label">Contact number</span>
+        <div className="proto__controls">
+          <Btn pressed={!connection.contactNumber} onClick={demo.removeContactNumber}>
+            Not added
+          </Btn>
+          <Btn pressed={Boolean(connection.contactNumber)} onClick={demo.addContactNumber}>
+            Added
           </Btn>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import PaymentDetails, { PayoutControlRows } from './PayoutSetup';
 import WhatsAppSettings, { WhatsAppControlRows } from './WhatsAppSettings';
 import { useWhatsApp } from '../components/WhatsAppTab';
-import { hasNumber } from '../data/whatsappConnection';
+import { hasNumber, needsContactNumber } from '../data/whatsappConnection';
 import './OfferingsHome.css'; // the page frame and panels
 import '../components/PrototypeControls.css';
 import './SettingsPage.css';
@@ -37,8 +37,9 @@ import './SettingsPage.css';
 // startCreate: { product, moment } to open Templates on a new template for
 //   that message (a reminder's "Create a new template")
 //
-// Until a number is connected, WhatsApp shows a red dot in the menu (on
-// its Connection pill, on a phone), and Templates is locked: greyed, with
+// Until a number is connected, and again while it has no contact number,
+// WhatsApp shows a red dot in the menu (on its Connection pill, on a
+// phone). Until a number is connected, Templates is locked: greyed, with
 // a lock, saying "Connect WhatsApp first" on hover or focus, and for a
 // moment on a tap (phones have no hover). Asked to open Templates then,
 // Connection opens instead; disconnecting while on Templates goes there too.
@@ -66,7 +67,10 @@ const openable = (id) => {
 
 export default function SettingsPage({ onWithdraw, startOn = 'payments', startCreate = null }) {
   const [chosen, setPage] = useState(() => openable(startOn));
-  const connected = hasNumber(useWhatsApp());
+  const connection = useWhatsApp();
+  const connected = hasNumber(connection);
+  // WhatsApp's red dot: not connected, or connected without a contact number
+  const attention = !connected ? 'not connected' : needsContactNumber(connection) ? 'contact number needed' : null;
   // Templates is locked until a number is connected: Connection instead
   const page = !connected && chosen === 'whatsapp-templates' ? 'whatsapp-connection' : chosen;
   const onWhatsApp = page.startsWith('whatsapp');
@@ -76,7 +80,7 @@ export default function SettingsPage({ onWithdraw, startOn = 'payments', startCr
       <h1 className="oh__title">Settings</h1>
 
       <div className="settings__layout">
-        <SettingsMenu page={page} onPage={setPage} connected={connected} />
+        <SettingsMenu page={page} onPage={setPage} connected={connected} attention={attention} />
 
         <section className="oh__panel settings__panel" aria-label={OPENABLE.find((p) => p.id === page)?.short ?? 'Payment details'}>
           {onWhatsApp ? (
@@ -108,12 +112,15 @@ export default function SettingsPage({ onWithdraw, startOn = 'payments', startCr
 // ---------- The menu on the left ----------
 // A page with pages of its own (WhatsApp) is a heading for them: a click
 // on it opens its first page. Its icon lights up while one of them is open.
-// connected: a WhatsApp number is connected. Until it is, WhatsApp has a red
-//   dot and Templates is locked (LOCKED).
+// connected: a WhatsApp number is connected. Until it is, Templates is
+//   locked (LOCKED).
+// attention: why WhatsApp needs a look, or null: 'not connected', or
+//   'contact number needed'. While there's one, WhatsApp has a red dot,
+//   and screen readers hear why.
 const LOCKED = { 'whatsapp-templates': 'Connect WhatsApp first' };
 const NEEDS_DOT = 'whatsapp'; // the section with the dot, and its first page on a phone
 
-function SettingsMenu({ page, onPage, connected }) {
+function SettingsMenu({ page, onPage, connected, attention }) {
   const dot = (
     <span className="smenu__dot" aria-hidden="true" />
   );
@@ -133,9 +140,9 @@ function SettingsMenu({ page, onPage, connected }) {
                 <Icon size={18} className="smenu__icon" aria-hidden="true" />
                 <span className="smenu__label">
                   {label}
-                  {!connected && id === NEEDS_DOT && <span className="oh__sr-only">, not connected</span>}
+                  {attention && id === NEEDS_DOT && <span className="oh__sr-only">, {attention}</span>}
                 </span>
-                {!connected && id === NEEDS_DOT && dot}
+                {attention && id === NEEDS_DOT && dot}
               </button>
               {children && (
                 <ul className="smenu__sub">
@@ -158,7 +165,7 @@ function SettingsMenu({ page, onPage, connected }) {
                           {c.short}
                         </span>
                         {/* On a phone the section's heading is hidden: its dot moves to its first pill */}
-                        {!connected && id === NEEDS_DOT && i === 0 && (
+                        {attention && id === NEEDS_DOT && i === 0 && (
                           <span className="smenu__dot smenu__dot--pill" aria-hidden="true" />
                         )}
                       </button>

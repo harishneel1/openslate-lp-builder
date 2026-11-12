@@ -3,15 +3,21 @@ import { Check, X } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Drawer from '../components/Drawer';
 import InfoTip from '../components/InfoTip';
+import TemplateDialog, { autoReplyRow } from './TemplateDialog';
 import {
+  CONTACT_COUNTRIES,
   DAILY_LIMIT,
   MOCK_REJECTION,
   dailyLimit,
   disconnectWhatsApp,
   markWelcomed,
   messageStatus,
+  needsContactNumber,
+  readContactNumber,
   reconnectWhatsApp,
   renameWhatsApp,
+  setContactNumber,
+  splitContactNumber,
 } from '../data/whatsappConnection';
 import { SHOWN_MESSAGE_IDS } from '../data/whatsappMessages';
 import './EditFrame.css'; // es__btn, for the side panels' buttons
@@ -27,8 +33,11 @@ import './WhatsAppConnected.css';
 //   ┃ Connected. Your reminders are being approved.  ┃  ┌ Default reminders, ┐
 //   ┃ It usually takes a few minutes, and up to 24 h. ┃  │ ready to use       │
 //   ┃ ✓ Connected → ◷ Meta approving · 5 of 8 → ○ Reminders live │ We've submitted … │
-//                                                       │ [See default messages]
-//   Number          +91 98765 43210                     └────────────────────┘
+//   ┃ Where should students message you? …  [Add number] ┃  │ [See default messages]
+//                                                       └────────────────────┘
+//   No-reply number ⓘ  +91 98765 43210
+//   Contact number ⓘ   +91 91234 56789   Change   View message
+//                      (or: Not added   Add number   View message)
 //   Display name    Harish Neel  [In review]
 //   Daily limit     250 students ⓘ   Get verified to raise it
 //   Messages        8 reminders: 7 approved, 1 in review   See all
@@ -48,6 +57,18 @@ import './WhatsAppConnected.css';
 //                     comes in while they're here, or on their next visit.
 //                     Closed, it doesn't come back.
 //
+// Two numbers, each with an ⓘ saying what it's for:
+//   No-reply number   the connected one: sends reminders, can't be chatted
+//                     on (it's not in the WhatsApp app any more)
+//   Contact number    the WhatsApp number they chat on. Students who message
+//                     the no-reply number get an automatic reply pointing them
+//                     to it. Asked for after connecting, and needed: until
+//                     it's added, a note under the one above asks for it
+//                     (and Settings' menu shows a red dot). Added and changed
+//                     in a side panel (ContactPanel). "View message" opens
+//                     the automatic reply in Templates' pop-up
+//                     (TemplateDialog.jsx), in its conversation.
+//
 // The coach never wrote these messages: we submitted our defaults for
 // them as they connected. So until every one is approved, a box on the
 // right says what they are, why Meta checks them, and that there's
@@ -57,7 +78,7 @@ import './WhatsAppConnected.css';
 //
 // Messages' "See all", a rejected message's "See which", and the box's
 // button go to the Templates tab (onSeeAll). Side panels (Drawer): Get
-// verified (Coming soon), and a new display name. Disconnect asks first
+// verified (Coming soon), a new display name, and the contact number. Disconnect asks first
 // (ConfirmDialog); it's also how to change number: disconnect, then
 // connect the new one.
 //
@@ -74,12 +95,20 @@ const STATUS = {
 
 const fmt = (n) => n.toLocaleString('en-IN');
 
+// The two numbers' ⓘ
+const NO_REPLY_TIP =
+  'Sends your reminders. Students can’t chat with you here. If they message it, they get an automatic reply with your contact number.';
+const CONTACT_TIP =
+  'Your WhatsApp number for chatting with students. We share it in the automatic reply, so they know where to reach you.';
+
 export default function WhatsAppConnected({ connection, onSeeAll }) {
-  const [panel, setPanel] = useState(null); // 'verify' | 'rename'
+  const [panel, setPanel] = useState(null); // 'verify' | 'rename' | 'contact'
+  const [viewing, setViewing] = useState(false); // the automatic reply's pop-up
   const [disconnecting, setDisconnecting] = useState(false);
   const lost = connection.status === 'lost';
   const problem = problemOf(connection);
   const { approved, total, inReview } = approvalsOf(connection);
+  const needsContact = needsContactNumber(connection);
 
   // "You're all set": once every message is approved, shown once. Either
   // the last approval comes in while they're here, or it had come in by
@@ -91,14 +120,15 @@ export default function WhatsAppConnected({ connection, onSeeAll }) {
     if (wasInReview.current && !inReview) setWelcomeOpen(true);
     wasInReview.current = inReview;
   }, [inReview]);
+  // "You're all set" waits for the contact number: it isn't, until then
+  const welcome = welcomeOpen && !problem && !inReview && !needsContact;
   useEffect(() => {
-    if (welcomeOpen && connection.welcomed === false) markWelcomed();
-  }, [welcomeOpen, connection.welcomed]);
+    if (welcome && connection.welcomed === false) markWelcomed();
+  }, [welcome, connection.welcomed]);
   // A problem ends it: once fixed, the screen doesn't go back to "all set"
   useEffect(() => {
     if (problem) setWelcomeOpen(false);
   }, [problem?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const welcome = welcomeOpen && !problem && !inReview;
   // The box on the right: until every message is approved
   const explain = approved < total;
 
@@ -121,11 +151,48 @@ export default function WhatsAppConnected({ connection, onSeeAll }) {
           ) : welcome ? (
             <Welcome onClose={() => setWelcomeOpen(false)} />
           ) : null}
+          {needsContact && <ContactNeeded onAdd={() => setPanel('contact')} />}
 
           <dl className="wcn-facts">
             <div className="wcn-facts__row">
-              <dt>Number</dt>
+              <dt>
+                <span className="wcn-facts__with-tip">
+                  No-reply number
+                  <InfoTip label="What is a no-reply number?" text={NO_REPLY_TIP} />
+                </span>
+              </dt>
               <dd className="wcn-facts__number">{connection.number}</dd>
+            </div>
+            <div className="wcn-facts__row">
+              <dt>
+                <span className="wcn-facts__with-tip">
+                  Contact number
+                  <InfoTip label="What is the contact number?" text={CONTACT_TIP} />
+                </span>
+              </dt>
+              <dd>
+                {connection.contactNumber ? (
+                  <>
+                    <span className="wcn-facts__number">{connection.contactNumber}</span>
+                    <button type="button" className="wcn-link" onClick={() => setPanel('contact')}>
+                      Change
+                    </button>
+                    <button type="button" className="wcn-link" onClick={() => setViewing(true)}>
+                      View message
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="wcn-facts__missing">Not added</span>
+                    <button type="button" className="wcn-link" onClick={() => setPanel('contact')}>
+                      Add number
+                    </button>
+                    <button type="button" className="wcn-link" onClick={() => setViewing(true)}>
+                      View message
+                    </button>
+                  </>
+                )}
+              </dd>
             </div>
             <div className="wcn-facts__row">
               <dt>Display name</dt>
@@ -178,6 +245,17 @@ export default function WhatsAppConnected({ connection, onSeeAll }) {
 
       {panel === 'verify' && <VerifyPanel onClose={() => setPanel(null)} />}
       {panel === 'rename' && <RenamePanel current={connection.name} onClose={() => setPanel(null)} />}
+      {viewing && (
+        <TemplateDialog
+          row={autoReplyRow(connection)}
+          sender={connection.name}
+          contactNumber={connection.contactNumber ?? null}
+          onClose={() => setViewing(false)}
+        />
+      )}
+      {panel === 'contact' && (
+        <ContactPanel current={connection.contactNumber} noReplyNumber={connection.number} onClose={() => setPanel(null)} />
+      )}
 
       {disconnecting && (
         <ConfirmDialog
@@ -307,6 +385,26 @@ function Welcome({ onClose }) {
 // TODO: the video or FAQ on templates, once it has a link
 const TEMPLATES_HELP_URL = '#';
 
+// ---------- No contact number yet: ask for it ----------
+// Stays until it's added. Amber, like a problem: it's needed, but nothing
+// is broken, so it's a status, not an alert.
+function ContactNeeded({ onAdd }) {
+  return (
+    <div className="wcn-note wcn-note--problem" role="status">
+      <div className="wcn-note__words">
+        <h3 className="wcn-note__title">Where should students message you?</h3>
+        <p className="wcn-note__text">
+          You won’t see your students’ replies to your WhatsApp reminders. So we’ll tell them to message you on your
+          own WhatsApp number instead.
+        </p>
+      </div>
+      <button type="button" className="oh__add" onClick={onAdd}>
+        Add number
+      </button>
+    </div>
+  );
+}
+
 // ---------- The box on the right, until every message is approved ----------
 // What these messages are (they never wrote them), why Meta checks them,
 // and that there's nothing to do. No count, and no calls or webinars they
@@ -429,6 +527,92 @@ function RenamePanel({ current, onClose }) {
         />
         <p id="wcn-rename-hint" className={error ? 'wcn-rename__error' : 'wcn-rename__hint'}>
           {error ?? 'Your own name or your brand’s works best. Meta checks it again.'}
+        </p>
+      </form>
+    </Drawer>
+  );
+}
+
+// The contact number: added the first time, changed after. A country
+// dropdown (India only for now: CONTACT_COUNTRIES) and the number. Saved
+// once it reads as a mobile number (readContactNumber), and not the
+// no-reply number itself.
+function ContactPanel({ current, noReplyNumber, onClose }) {
+  const saved = splitContactNumber(current);
+  const [country, setCountry] = useState(saved.country);
+  const [text, setText] = useState(saved.local);
+  const [error, setError] = useState(null);
+  const submit = () => {
+    const read = readContactNumber(text, noReplyNumber, country);
+    if (read.error) return setError(read.error);
+    if (setContactNumber(read.number)) onClose();
+    else setError('Couldn’t save it. Try again.');
+  };
+
+  return (
+    <Drawer
+      title={current ? 'Change contact number' : 'Add contact number'}
+      sub="The WhatsApp number students can reach you on."
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="es__btn es__btn--quiet" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="es__btn es__btn--primary" onClick={submit}>
+            Save
+          </button>
+        </>
+      }
+    >
+      <form
+        className="wcn-rename"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        noValidate
+      >
+        <p className="wcn-contact__about">
+          You won’t see your students’ replies to your WhatsApp reminders. So when a student replies, we’ll send them
+          an automatic message asking them to contact you on this number instead.
+        </p>
+        <label className="wcn-rename__label" htmlFor="wcn-contact-input">
+          Your WhatsApp number
+        </label>
+        <div className="wcn-contact__fields">
+          <select
+            className="wcn-rename__input wcn-contact__country"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            aria-label="Country"
+          >
+            {CONTACT_COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <input
+            id="wcn-contact-input"
+            className="wcn-rename__input"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            placeholder="98765 43210"
+            value={text}
+            maxLength={16}
+            onChange={(e) => {
+              setText(e.target.value);
+              setError(null);
+            }}
+            aria-invalid={Boolean(error)}
+            aria-describedby="wcn-contact-hint"
+            autoFocus
+          />
+        </div>
+        <p id="wcn-contact-hint" className={error ? 'wcn-rename__error' : 'wcn-rename__hint'}>
+          {error ?? 'Your personal or business WhatsApp number.'}
         </p>
       </form>
     </Drawer>

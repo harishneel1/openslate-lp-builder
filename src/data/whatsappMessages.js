@@ -216,7 +216,38 @@ export const RETIRED = {
   webinar: [],
 };
 
-export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.batch].map((m) => m.id);
+// ---------- The automatic reply ----------
+// The connected number is a no-reply number: it can't be opened in the
+// WhatsApp app, so the coach never sees what students send to it. When a
+// student messages it, they get this reply, pointing them to the coach's
+// contact number (contactNumber in whatsappConnection.js). Fixed wording:
+// only the student's name and the contact number change. It can't be
+// edited or duplicated, and it isn't tied to a webinar or call, so it has
+// no switches.
+//
+// At most once a day to each student, so five messages in a row don't get
+// five replies. Like the reminders, it goes to Meta for review as the
+// number connects (it's in MESSAGE_IDS), but it isn't a reminder, so it's
+// not counted with them (SHOWN_MESSAGE_IDS).
+//   example   the conversation its preview shows: a reminder, the
+//             student's message back, and this reply (AutoReplyPhone)
+export const AUTO_REPLY = {
+  id: 'auto-reply',
+  template: 'no_reply_auto_reply',
+  name: 'Automatic reply',
+  when: 'Goes out when a student messages your no-reply number, at most once a day to each student.',
+  body: 'Hi {first_name}, this number only sends reminders. To reach me, message me on WhatsApp at {contact_number}.',
+  buttons: [],
+  sentAt: '4:21 pm',
+  example: {
+    reminder: { kind: 'call', id: 'call-24h' },
+    studentMessage: 'Hi, can I move this to Friday?',
+    studentSentAt: '4:20 pm',
+  },
+};
+
+// Every message we send Meta for review: the reminders, and the automatic reply
+export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.batch, AUTO_REPLY].map((m) => m.id);
 
 // Live classes are left out of the sidebar for now (AppLayout.jsx, its
 // item's `hidden`). While they are, Settings doesn't count or list their

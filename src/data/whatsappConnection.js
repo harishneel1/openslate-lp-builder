@@ -19,7 +19,13 @@ import { MESSAGE_IDS } from './whatsappMessages';
 //
 //   {
 //     status: 'connected' | 'lost',
-//     number: '+91 98765 43210',
+//     number: '+91 98765 43210',      the no-reply number: sends reminders,
+//                                     can't be chatted on
+//     contactNumber: '+91 91234 56789',  the WhatsApp number the coach chats
+//                                     on. The automatic reply points students
+//                                     who message the no-reply number to it.
+//                                     Asked for after connecting; missing
+//                                     until added (needsContactNumber).
 //     name: 'Harish Neel',            the name people see on each message
 //     nameStatus: 'review' | 'approved' | 'rejected',
 //     reviewEndsAt: ISO string,       stand-in for Meta's review: the name
@@ -68,6 +74,8 @@ const REVIEW_MS = 20 * 1000;
 
 // The number and name the stand-in connects (Prototype controls' Connected)
 export const MOCK_NUMBER = '+91 98765 43210';
+// The contact number Prototype controls add
+export const MOCK_CONTACT_NUMBER = '+91 91234 56789';
 export const DEFAULT_NAME = mockAccount.name;
 
 // Why the stand-in rejects a name: the kind of reason Meta gives
@@ -177,6 +185,46 @@ export function connectWhatsApp({ number, name, business, sharedChats }) {
   return saveWhatsApp(connection) ? connection : null;
 }
 
+// ---------- The contact number ----------
+
+// Connected, but no contact number yet: Settings asks for it
+export const needsContactNumber = (connection) => hasNumber(connection) && !connection.contactNumber;
+
+const digitsOf = (text) => String(text ?? '').replace(/\D/g, '');
+
+// The countries a contact number can be from: India only for now. More
+// can be added here; the side panel's dropdown lists them.
+export const CONTACT_COUNTRIES = [{ code: '+91', label: 'India (+91)' }];
+
+// The number they typed (without the country code), as a number to save,
+// or { error } in plain words. An Indian mobile number: 10 digits,
+// starting 6 to 9. A pasted +91 or leading 0 is fine. It can't be the
+// no-reply number itself.
+//   "98765 43210" → '+91 98765 43210'
+export function readContactNumber(text, noReplyNumber, country = '+91') {
+  let digits = digitsOf(text);
+  if (!digits) return { error: 'Enter your WhatsApp number.' };
+  if (digits.startsWith('91') && digits.length === 12) digits = digits.slice(2);
+  else if (digits.startsWith('0') && digits.length === 11) digits = digits.slice(1);
+  if (digits.length !== 10) return { error: 'Enter a 10-digit mobile number.' };
+  if (!/^[6-9]/.test(digits)) return { error: 'Enter a mobile number. Landline numbers don’t work on WhatsApp.' };
+  const number = `${country} ${digits.slice(0, 5)} ${digits.slice(5)}`;
+  if (digitsOf(number) === digitsOf(noReplyNumber)) {
+    return { error: 'This is your no-reply number. Enter the number you chat with students on.' };
+  }
+  return { number };
+}
+
+// A saved contact number, split for the side panel's two fields:
+//   '+91 91234 56789' → { country: '+91', local: '91234 56789' }
+export function splitContactNumber(number) {
+  const match = String(number ?? '').match(/^(\+\d+)\s+(.*)$/);
+  return match ? { country: match[1], local: match[2] } : { country: CONTACT_COUNTRIES[0].code, local: '' };
+}
+
+// Saves the contact number (already read with readContactNumber)
+export const setContactNumber = (contactNumber) => update({ contactNumber });
+
 // "You're all set" seen: not shown again
 export const markWelcomed = () => update({ welcomed: true });
 
@@ -276,6 +324,8 @@ export const demo = {
   reset: () => saveWhatsApp(null),
   // Settings' connected screen
   setVerified: (verified) => update({ verified }),
+  addContactNumber: () => update({ contactNumber: MOCK_CONTACT_NUMBER }),
+  removeContactNumber: () => update({ contactNumber: null }),
   replayWelcome: () => update({ welcomed: false, templatesIntro: false }),
   // Back in review, as just after connecting (the stand-in approves them again shortly)
   reconnect: () => update({ status: 'connected' }),

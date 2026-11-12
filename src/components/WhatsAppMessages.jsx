@@ -2,7 +2,15 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, Eye, MessageCircle, Reply } from 'lucide-react';
 import Drawer from './Drawer';
 import { MOCK_MESSAGE_REJECTION, messageStatus } from '../data/whatsappConnection';
-import { BUTTONS, MESSAGES, WHATSAPP_SWITCHES_EVENT, isReply, setSwitch, switchesOf } from '../data/whatsappMessages';
+import {
+  AUTO_REPLY,
+  BUTTONS,
+  MESSAGES,
+  WHATSAPP_SWITCHES_EVENT,
+  isReply,
+  setSwitch,
+  switchesOf,
+} from '../data/whatsappMessages';
 import { messageFor, setChoice, useChoices, useTemplates } from '../data/whatsappTemplates';
 import WhatsAppTemplatePicker from './WhatsAppTemplatePicker';
 import { initials } from '../utils/initials';
@@ -328,7 +336,73 @@ export function PhoneMessage({ message, kind, sender, values, links }) {
   useEffect(() => setReplied(null), [message.id]);
 
   return (
-    <figure className="wamp__phone" aria-label={`The message on WhatsApp, from ${sender}`}>
+    <PhoneFrame sender={sender} label={`The message on WhatsApp, from ${sender}`}>
+      <div className="wamp__bubble">
+        <p className="wam__text">
+          <Filled body={message.body} values={values} />
+          <span className="wa-chat__time">{message.sentAt}</span>
+        </p>
+        {message.buttons.map((b) => {
+          const button = BUTTONS[kind][b];
+          // A quick reply: no link. In a live preview, tapping it answers
+          if (isReply(kind, b)) {
+            return links ? (
+              <button
+                key={b}
+                type="button"
+                className="wamp__btn wamp__btn--reply"
+                title={button.hint}
+                aria-pressed={replied === button.label}
+                onClick={() => setReplied(button.label)}
+              >
+                {button.label}
+                <Reply size={13} aria-hidden="true" />
+              </button>
+            ) : (
+              <span key={b} className="wamp__btn" title={button.hint}>
+                {button.label}
+                <Reply size={13} aria-hidden="true" />
+              </span>
+            );
+          }
+          return links ? (
+            <a
+              key={b}
+              className="wamp__btn"
+              href={hrefFor(kind, b, links)}
+              target="_blank"
+              rel="noreferrer"
+              // The browser's own hint: the phone's rounded screen would clip ours
+              title={button.hint}
+            >
+              {button.label}
+              <ExternalLink size={13} aria-hidden="true" />
+            </a>
+          ) : (
+            // A sample: shows where it'd go, goes nowhere
+            <span key={b} className="wamp__btn" title={button.hint}>
+              {button.label}
+            </span>
+          );
+        })}
+      </div>
+
+      {replied && (
+        <p className="wamp__out" aria-live="polite">
+          {replied}
+          <span className="wa-chat__time">{message.sentAt}</span>
+        </p>
+      )}
+    </PhoneFrame>
+  );
+}
+
+// The phone itself: the chat's top bar with the business, the chat, and
+// WhatsApp's "Message" bar. children: what's in the chat.
+//   label   what the phone shows, for screen readers
+function PhoneFrame({ sender, label, children }) {
+  return (
+    <figure className="wamp__phone" aria-label={label}>
       <div className="wamp__screen">
         <div className="wamp__top">
           <ChevronLeft size={18} aria-hidden="true" />
@@ -341,64 +415,7 @@ export function PhoneMessage({ message, kind, sender, values, links }) {
           </span>
         </div>
 
-        <div className="wamp__chat">
-          <div className="wamp__bubble">
-            <p className="wam__text">
-              <Filled body={message.body} values={values} />
-              <span className="wa-chat__time">{message.sentAt}</span>
-            </p>
-            {message.buttons.map((b) => {
-              const button = BUTTONS[kind][b];
-              // A quick reply: no link. In a live preview, tapping it answers
-              if (isReply(kind, b)) {
-                return links ? (
-                  <button
-                    key={b}
-                    type="button"
-                    className="wamp__btn wamp__btn--reply"
-                    title={button.hint}
-                    aria-pressed={replied === button.label}
-                    onClick={() => setReplied(button.label)}
-                  >
-                    {button.label}
-                    <Reply size={13} aria-hidden="true" />
-                  </button>
-                ) : (
-                  <span key={b} className="wamp__btn" title={button.hint}>
-                    {button.label}
-                    <Reply size={13} aria-hidden="true" />
-                  </span>
-                );
-              }
-              return links ? (
-                <a
-                  key={b}
-                  className="wamp__btn"
-                  href={hrefFor(kind, b, links)}
-                  target="_blank"
-                  rel="noreferrer"
-                  // The browser's own hint: the phone's rounded screen would clip ours
-                  title={button.hint}
-                >
-                  {button.label}
-                  <ExternalLink size={13} aria-hidden="true" />
-                </a>
-              ) : (
-                // A sample: shows where it'd go, goes nowhere
-                <span key={b} className="wamp__btn" title={button.hint}>
-                  {button.label}
-                </span>
-              );
-            })}
-          </div>
-
-          {replied && (
-            <p className="wamp__out" aria-live="polite">
-              {replied}
-              <span className="wa-chat__time">{message.sentAt}</span>
-            </p>
-          )}
-        </div>
+        <div className="wamp__chat">{children}</div>
 
         <div className="wamp__reply" aria-hidden="true">
           <span className="wamp__reply-box">Message</span>
@@ -408,6 +425,53 @@ export function PhoneMessage({ message, kind, sender, values, links }) {
         </div>
       </div>
     </figure>
+  );
+}
+
+// The phone, showing the automatic reply in its conversation, so the coach
+// sees when it goes out: one of their reminders, the student messaging
+// back, and the automatic reply under a small "Automatic reply" label.
+// (Settings → WhatsApp: Connection's "View message", and Templates.)
+//   values         the sample booking ({ first_name, call, … }), for the reminder
+//   contactNumber  the coach's contact number, or null (not added yet):
+//                  the reply then says "your contact number" in its place
+export function AutoReplyPhone({ sender, values, contactNumber }) {
+  const { reminder: which, studentMessage, studentSentAt } = AUTO_REPLY.example;
+  const reminder = MESSAGES[which.kind].find((m) => m.id === which.id);
+  // The number kept on one line (non-breaking spaces): "+91" alone at a line's end reads badly
+  const replyValues = {
+    first_name: values.first_name,
+    contact_number: contactNumber ? contactNumber.replace(/ /g, '\u00a0') : 'your contact number',
+  };
+
+  return (
+    <PhoneFrame sender={sender} label={`A student messaging ${sender}, and the automatic reply they get`}>
+      {/* The reminder: context only, so its blanks aren't highlighted */}
+      <div className="wamp__bubble">
+        <p className="wam__text">
+          <Filled body={reminder.body} values={values} plain />
+          <span className="wa-chat__time">{reminder.sentAt}</span>
+        </p>
+        {reminder.buttons.map((b) => (
+          <span key={b} className="wamp__btn">
+            {BUTTONS[which.kind][b].label}
+          </span>
+        ))}
+      </div>
+
+      <p className="wamp__out">
+        {studentMessage}
+        <span className="wa-chat__time">{studentSentAt}</span>
+      </p>
+
+      <p className="wamp__label">Automatic reply</p>
+      <div className="wamp__bubble">
+        <p className="wam__text">
+          <Filled body={AUTO_REPLY.body} values={replyValues} />
+          <span className="wa-chat__time">{AUTO_REPLY.sentAt}</span>
+        </p>
+      </div>
+    </PhoneFrame>
   );
 }
 
@@ -503,7 +567,8 @@ function Annotated({ notes, watch, caption, children }) {
 
 // The message with its blanks filled in and highlighted, in WhatsApp's
 // own formatting: *bold* (which can wrap a blank), and new lines
-function Filled({ body, values }) {
+// plain: blanks filled in without the highlight (a message shown only for context)
+function Filled({ body, values, plain = false }) {
   const out = [];
   let bold = false;
   body.split(/(\*|\{\w+\}|\n)/g).forEach((part, i) => {
@@ -517,7 +582,9 @@ function Filled({ body, values }) {
       return;
     }
     const blank = part.match(/^\{(\w+)\}$/);
-    let node = blank ? (
+    let node = blank && plain ? (
+      <Fragment key={i}>{values[blank[1]] ?? part}</Fragment>
+    ) : blank ? (
       <mark key={i} className="wam__fill">
         {values[blank[1]] ?? part}
       </mark>

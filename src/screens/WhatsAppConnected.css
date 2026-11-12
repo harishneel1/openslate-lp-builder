@@ -190,7 +190,8 @@
 
 .wcn-facts__row {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  /* Wide enough for the longest label and its ⓘ on one line ("No-reply number") */
+  grid-template-columns: 180px minmax(0, 1fr);
   gap: 16px;
   padding: 14px 0;
   font-size: 15px;
@@ -218,6 +219,12 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  white-space: nowrap;
+}
+
+/* Contact number, until it's added */
+.wcn-facts__missing {
+  color: var(--color-text-muted);
 }
 
 /* A quiet action at the end of a row: See all, Get verified */
@@ -288,6 +295,38 @@
   gap: 12px;
   font-size: 15px;
   line-height: 1.55;
+}
+
+/* ---------- Side panel: the contact number ---------- */
+/* What the number is for, above its field (the field's styles are the
+   name's, below) */
+.wcn-contact__about {
+  margin-bottom: 20px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* The country dropdown, then the number, side by side. Both fields use
+   the name's input style (.wcn-rename__input, below), which sets width:
+   100%. Scoped under .wcn-contact__fields so these widths win wherever
+   that rule sits: the dropdown as wide as its text, the number the rest. */
+.wcn-contact__fields {
+  display: flex;
+  gap: 8px;
+}
+
+.wcn-contact__fields .wcn-contact__country {
+  flex: 0 0 auto;
+  width: auto;
+  padding-right: 10px;
+  cursor: pointer;
+}
+
+.wcn-contact__fields input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
 }
 
 /* ---------- Side panel: another name ---------- */

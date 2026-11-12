@@ -1,18 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Clock, Copy, FileText, Pencil, Plus, Send, Trash2, X, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Copy, Plus, Trash2, X } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RowMenu from '../components/RowMenu';
-import { PhoneMessage } from '../components/WhatsAppMessages';
-import TemplatePhone from './TemplatePhone';
+import TemplateDialog, { STATUS, listOf, readyMadeRow } from './TemplateDialog';
 import WhatsAppTemplateEditor from './WhatsAppTemplateEditor';
-import {
-  DEFAULT_NAME,
-  MOCK_MESSAGE_REJECTION,
-  hasNumber,
-  messageDates,
-  messageStatus,
-  markTemplatesIntroSeen,
-} from '../data/whatsappConnection';
+import { DEFAULT_NAME, hasNumber, markTemplatesIntroSeen } from '../data/whatsappConnection';
 import { LIVE_CLASSES_SHOWN, MESSAGES } from '../data/whatsappMessages';
 import {
   deleteTemplate,
@@ -20,11 +12,8 @@ import {
   CHOICES_CHANGED_EVENT,
   isLegacy,
   isRetired,
-  rejectionOf,
   usesOf,
   momentById,
-  sampleValues,
-  toMeta,
   useTemplates,
 } from '../data/whatsappTemplates';
 import './WhatsAppTemplates.css';
@@ -53,7 +42,8 @@ import './WhatsAppTemplates.css';
 //   ready-made   ours (whatsappMessages.js): can't be edited or deleted,
 //                only duplicated, so they're always there as the fallback
 //
-// A click on a row opens the template: its journey with Meta on the left,
+// A click on a row opens the template (TemplateDialog.jsx, shared with
+// Connection): its journey with Meta on the left,
 // the message on a phone on the right, and what can be done with it
 // (Edit for a draft or one Meta rejected, Duplicate, Delete for theirs).
 // Each row's ⋯ menu: Duplicate, and Delete for theirs. Duplicate opens
@@ -97,13 +87,6 @@ const aboutOf = (t) => {
 };
 
 
-const STATUS = {
-  draft: { label: 'Draft', badge: 'draft' },
-  review: { label: 'In review', badge: 'wait' },
-  approved: { label: 'Approved', badge: 'good' },
-  rejected: { label: 'Not approved', badge: 'bad' },
-};
-
 const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'draft', label: 'Draft' },
@@ -128,15 +111,6 @@ const EMPTY = {
 
 const fmtDay = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-const fmtWhen = (iso) =>
-  new Date(iso).toLocaleString('en-IN', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 
 // What can be duplicated: theirs (not ones made with the first editor:
 // they have no message to copy; nor ones for a message we no longer send),
@@ -196,21 +170,7 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
       status: t.status,
       updated: t.decidedAt ?? t.sentAt ?? t.createdAt,
     })),
-    ...READY_MADE.map((r) => {
-      const dates = connected ? messageDates(connection, r.id) : {};
-      return {
-        key: r.id,
-        own: false,
-        readyMade: r,
-        product: r.kind,
-        name: r.name,
-        about: r.about,
-        category: 'UTILITY',
-        status: connected ? messageStatus(connection, r.id) : 'draft',
-        dates,
-        updated: dates.decided ?? dates.sent,
-      };
-    }),
+    ...READY_MADE.map((r) => readyMadeRow(r, connection)),
   ];
   // Every name in use, and whose it is in words (for the editor's
   // "already used by …"): ours, then theirs. The one being edited isn't
@@ -433,148 +393,6 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
     </>
   );
 }
-
-// ---------- One template: its journey with Meta, and the message ----------
-// The browser's own <dialog>: dims the page, keeps the keyboard inside,
-// closes on Escape, ✕ or a click outside.
-function TemplateDialog({ row, sender, onClose, onEdit, onDuplicate, onDelete }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => dialog?.open && dialog.close();
-  }, []);
-
-  const t = row.template;
-  const status = row.status;
-  const sent = row.own ? t.sentAt : row.dates?.sent;
-  const decided = row.own ? t.decidedAt : row.dates?.decided;
-  const why = row.own ? rejectionOf(t) : MOCK_MESSAGE_REJECTION;
-  const legacy = row.own && isLegacy(t);
-  // One for a message we no longer send can't be changed: there's nothing to send it for
-  const canEdit = row.own && !legacy && !isRetired(t) && (status === 'draft' || status === 'rejected');
-  // What it's for, in a line: "1:1 call · 2 hours before", and when it goes
-  // (for one we no longer send: what replaced it)
-  const when = row.own ? momentById(t.moment)?.when : row.readyMade.message.when;
-  const about = legacy
-    ? 'Made with the old editor'
-    : `${row.own ? '' : 'Ready-made · '}${row.about}${when ? ` · ${when}` : ''}`;
-
-  return (
-    <dialog
-      ref={ref}
-      className="wtp-dialog"
-      aria-labelledby="wtp-dialog-title"
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-      onMouseDown={(e) => e.target === ref.current && onClose()}
-    >
-      <div className="wtp-dialog__head">
-        <h2 id="wtp-dialog-title" className="wtp-dialog__title">
-          {row.name}
-        </h2>
-        <span className={`wa-badge wtp-badge--${STATUS[status].badge}`}>{STATUS[status].label}</span>
-        <button type="button" className="wtp-dialog__close" onClick={onClose} aria-label="Close">
-          <X size={20} aria-hidden="true" />
-        </button>
-      </div>
-
-      <div className="wtp-dialog__body">
-        <section className="wtp-journey" aria-labelledby="wtp-journey-title">
-          <h3 id="wtp-journey-title" className="wtp-journey__title">
-            Template journey
-          </h3>
-          <p className="wtp-journey__when">{about}</p>
-          {row.own && usesOf(t.id).length > 0 && (
-            <p className="wtp-journey__when wtp-used">Used on {listOf(usesOf(t.id))}</p>
-          )}
-          <ol className="wtp-steps">
-            {row.own && <Step icon={FileText} tone="done" title="Created" text={fmtWhen(t.createdAt)} />}
-            {status === 'draft' && (
-              <Step
-                icon={FileText}
-                tone="draft"
-                title="Draft"
-                text={row.own ? 'Not sent to Meta yet.' : 'Goes to Meta once your number is connected.'}
-              />
-            )}
-            {status !== 'draft' && sent && <Step icon={Send} tone="done" title="Sent to Meta" text={fmtWhen(sent)} />}
-            {status === 'review' && (
-              <Step
-                icon={Clock}
-                tone="wait"
-                title="In review"
-                text="Meta is checking it. Usually a few minutes, up to 24 hours."
-              />
-            )}
-            {status === 'approved' && (
-              <Step icon={CheckCircle2} tone="good" title="Approved" text={decided && fmtWhen(decided)} />
-            )}
-            {status === 'rejected' && (
-              <Step icon={XCircle} tone="bad" title="Not approved" text={decided && fmtWhen(decided)} why={why} />
-            )}
-          </ol>
-
-          <div className="wtp-dialog__actions">
-            {canEdit && (
-              <button type="button" className="oh__add" onClick={onEdit}>
-                <Pencil size={16} aria-hidden="true" />
-                {status === 'rejected' ? 'Edit and resubmit' : 'Edit'}
-              </button>
-            )}
-            {onDuplicate && (
-              <button type="button" className="es__btn es__btn--quiet" onClick={onDuplicate}>
-                <Copy size={16} aria-hidden="true" />
-                Duplicate
-              </button>
-            )}
-            {row.own && (
-              <button type="button" className="wtp-delete" onClick={onDelete}>
-                <Trash2 size={16} aria-hidden="true" />
-                Delete
-              </button>
-            )}
-          </div>
-        </section>
-
-        <div className="wtp-dialog__phone">
-          {row.own ? (
-            <TemplatePhone template={toMeta(t, sender)} sender={sender} />
-          ) : (
-            <PhoneMessage
-              message={row.readyMade.message}
-              kind={row.readyMade.kind}
-              sender={sender}
-              values={sampleValues(row.readyMade.kind, sender)}
-              links={null}
-            />
-          )}
-        </div>
-      </div>
-    </dialog>
-  );
-}
-
-function Step({ icon: Icon, tone, title, text, why }) {
-  return (
-    <li className={`wtp-step wtp-step--${tone}`}>
-      <span className="wtp-step__icon" aria-hidden="true">
-        <Icon size={18} />
-      </span>
-      <div className="wtp-step__words">
-        <span className="wtp-step__title">{title}</span>
-        {text && <span className="wtp-step__text">{text}</span>}
-        {why && <span className="wtp-step__why">{why}</span>}
-      </div>
-    </li>
-  );
-}
-
-// "Discovery call, Coaching session and Yoga basics"
-const listOf = (names) =>
-  names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 
 // Where one of theirs is sent from: "Used on Discovery call", or nothing
 function UsedOn({ id }) {
