@@ -5,7 +5,7 @@ import RowMenu from '../components/RowMenu';
 import TemplateDialog, { STATUS, listOf, readyMadeRow } from './TemplateDialog';
 import WhatsAppTemplateEditor from './WhatsAppTemplateEditor';
 import { DEFAULT_NAME, hasNumber, markTemplatesIntroSeen } from '../data/whatsappConnection';
-import { LIVE_CLASSES_SHOWN, MESSAGES } from '../data/whatsappMessages';
+import { AUTO_REPLY, LIVE_CLASSES_SHOWN, MESSAGES } from '../data/whatsappMessages';
 import {
   deleteTemplate,
   duplicateName,
@@ -32,6 +32,9 @@ import './WhatsAppTemplates.css';
 //   Default templates
 //   1:1 call · 24 hours before Utility   Approved   8 Nov 2026   ⧉
 //   …
+//
+// Our ready-made ones include the automatic reply (AUTO_REPLY), last: it
+// can't be edited, duplicated or deleted, so its row has no ⋯ menu.
 //
 // Two kinds in the one list, each under its own heading row (GROUPS), so
 // it's clear which ones we submitted and which they made. A heading only
@@ -64,7 +67,7 @@ import './WhatsAppTemplates.css';
 
 // Our ready-made templates, each with its template name (call_24h_reminder)
 // and what it's for, in words (1:1 call · 24 hours before)
-const KIND_NAME = { call: '1:1 call', webinar: 'Webinar', batch: 'Live class' };
+const KIND_NAME = { call: '1:1 call', webinar: 'Webinar', batch: 'Live class', reply: 'Automatic reply' };
 // (Live classes' only while they're in the sidebar: LIVE_CLASSES_SHOWN)
 const READY_MADE = Object.entries(MESSAGES)
   .filter(([kind]) => kind !== 'batch' || LIVE_CLASSES_SHOWN)
@@ -76,7 +79,10 @@ const READY_MADE = Object.entries(MESSAGES)
       name: message.template,
       about: `${KIND_NAME[kind]} · ${message.name}`,
     })),
-  );
+  )
+  // Last, the automatic reply to students who message the no-reply number.
+  // For neither 1:1 calls nor webinars, so those filters leave it out.
+  .concat({ id: AUTO_REPLY.id, kind: 'reply', message: AUTO_REPLY, name: AUTO_REPLY.template, about: KIND_NAME.reply });
 
 // What one of theirs is for, in words, or null (made with the first editor).
 // One for a message we no longer send says so.
@@ -138,7 +144,9 @@ const GROUPS = [
 
 // startCreate: { product, moment } to open straight on a new template for
 //   that message (a reminder's "Create a new template")
-export default function WhatsAppTemplates({ connection, onConnect, startCreate = null }) {
+// onAddContact(): go to Connection with its contact number panel open
+//   (the automatic reply's pop-up, while there's no contact number)
+export default function WhatsAppTemplates({ connection, onConnect, onAddContact, startCreate = null }) {
   useChoicesVersion(); // "Used on …" follows reminders' picks
   const own = useTemplates();
   const [filter, setFilter] = useState('all');
@@ -192,6 +200,24 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
   });
   const shown = ofProduct.filter((r) => filter === 'all' || r.status === filter);
   const opened = rows.find((r) => r.key === open);
+
+  // A row's ⋯ menu: Duplicate, where it can be, and Delete for theirs
+  const menuItems = (r) => [
+    ...(canDuplicate(r) ? [{ label: 'Duplicate', icon: Copy, onSelect: () => duplicate(r) }] : []),
+    ...(r.own
+      ? [
+          {
+            label: 'Delete',
+            icon: Trash2,
+            danger: true,
+            onSelect: () => {
+              setMenu(null);
+              setRemoving(r.template);
+            },
+          },
+        ]
+      : []),
+  ];
 
   const duplicate = (row) => {
     setOpen(null);
@@ -324,27 +350,15 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
                         <td className="wtp-muted wtp-date">{fmtDay(r.updated)}</td>
                         {/* The row's own buttons: a click here doesn't open the template */}
                         <td className="wtp-actions" onClick={(e) => e.stopPropagation()}>
-                          <RowMenu
-                            title={r.name}
-                            open={menu === r.key}
-                            onOpenChange={(o) => setMenu(o ? r.key : null)}
-                            items={[
-                              ...(canDuplicate(r) ? [{ label: 'Duplicate', icon: Copy, onSelect: () => duplicate(r) }] : []),
-                              ...(r.own
-                                ? [
-                                    {
-                                      label: 'Delete',
-                                      icon: Trash2,
-                                      danger: true,
-                                      onSelect: () => {
-                                        setMenu(null);
-                                        setRemoving(r.template);
-                                      },
-                                    },
-                                  ]
-                                : []),
-                            ]}
-                          />
+                          {/* Only when there's something in it: the automatic reply has nothing */}
+                          {menuItems(r).length > 0 && (
+                            <RowMenu
+                              title={r.name}
+                              open={menu === r.key}
+                              onOpenChange={(o) => setMenu(o ? r.key : null)}
+                              items={menuItems(r)}
+                            />
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -360,6 +374,9 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
         <TemplateDialog
           row={opened}
           sender={sender}
+          contactNumber={connection?.contactNumber ?? null}
+          // Only once connected: the contact number is added on the connected screen
+          onAddContact={connected ? onAddContact : null}
           onClose={() => setOpen(null)}
           onEdit={() => {
             setOpen(null);

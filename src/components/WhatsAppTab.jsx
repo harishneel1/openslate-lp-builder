@@ -123,7 +123,7 @@ function Connected({ connection, kind, offering, offeringName, links }) {
         </span>
         <div className="wa-from__text">
           <p className="wa-from__line">
-            Sending from <strong>{connection.number}</strong>
+            Sending from your no-reply number <strong>{connection.number}</strong>
           </p>
           <p className="wa-from__sub">as {connection.name}</p>
         </div>

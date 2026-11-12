@@ -132,7 +132,7 @@ const QUESTIONS = [
       text: 'Automated reminders run on WhatsApp Business API, which needs a number that isn’t on either app. Use a spare number, or get a new SIM.',
       // The other way, kept quieter: free up this number by deleting its account
       alt: {
-        text: 'Want to use this number anyway? First delete the WhatsApp account on this number. All its chats and groups will also be deleted, so take a backup first if you need them.',
+        text: 'Want to use this number anyway? First delete the WhatsApp account on this number. All its chats, groups and backups will also be deleted, so export any important chats first.',
         link: { href: 'https://whatsapp.com/faq/en/iphone/21325453', label: 'How to delete a WhatsApp account' },
       },
     },
@@ -146,23 +146,48 @@ const QUESTIONS = [
 // view: 'connection' | 'templates'; onView(view) moves between them (the
 //   connected screen's "See all", Templates' "Connect WhatsApp")
 // startCreate: { product, moment } to open Templates' editor on a new one
+// Templates' "Add number" (the automatic reply's pop-up) comes back to
+// Connection with its contact number panel open (askContact).
 export default function WhatsAppSettings({ view = 'connection', onView, startCreate = null }) {
   const connection = useWhatsApp();
+  const [askContact, setAskContact] = useState(false);
   return view === 'templates' ? (
-    <WhatsAppTemplates connection={connection} onConnect={() => onView('connection')} startCreate={startCreate} />
+    <WhatsAppTemplates
+      connection={connection}
+      onConnect={() => onView('connection')}
+      onAddContact={() => {
+        setAskContact(true);
+        onView('connection');
+      }}
+      startCreate={startCreate}
+    />
   ) : (
-    <Connection connection={connection} onSeeAll={() => onView('templates')} />
+    <Connection
+      connection={connection}
+      onSeeAll={() => onView('templates')}
+      askContact={askContact}
+      onAsked={() => setAskContact(false)}
+    />
   );
 }
 
 // ---------- Connection: connecting, and what's connected ----------
 // onSeeAll(): go to Templates (from the connected screen's Messages row)
-function Connection({ connection, onSeeAll }) {
+// askContact: open the connected screen on its contact number panel;
+//   onAsked() once it has
+function Connection({ connection, onSeeAll, askContact, onAsked }) {
   const signup = useSignup();
 
   // While finishing, the checklist stays under the dimmed page until it's done
   if (hasNumber(connection) && signup.phase === 'idle')
-    return <WhatsAppConnected connection={connection} onSeeAll={onSeeAll} />;
+    return (
+      <WhatsAppConnected
+        connection={connection}
+        onSeeAll={onSeeAll}
+        startPanel={askContact ? 'contact' : null}
+        onStarted={onAsked}
+      />
+    );
 
   return (
     <>

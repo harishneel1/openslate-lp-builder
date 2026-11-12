@@ -17,6 +17,18 @@
   border-radius: var(--radius-sm);
 }
 
+/* In the automatic reply's pop-up: no contact number yet. Amber, like
+   Connection's note asking for it */
+.wtp-note--ask {
+  margin: 20px 0 0;
+  color: var(--po-amber-ink, #8a4b08);
+  background: var(--po-amber-tint, #fef6e7);
+}
+
+.wtp-note--ask .wtp-link {
+  color: inherit;
+}
+
 .wtp-link {
   font-size: 14px;
   font-weight: 600;
@@ -357,6 +369,22 @@
 
 .wtp-dialog__phone {
   justify-self: center;
+}
+
+/* The automatic reply, while there's no contact number to send */
+.wtp-dialog__missing {
+  margin-top: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--po-amber-ink, #8a4b0b);
+  background: var(--po-amber-tint, #fef6e7);
+  border-radius: var(--radius-sm);
+}
+
+.wtp-dialog__missing .wtp-link {
+  margin-top: 6px;
+  color: inherit;
 }
 
 /* The journey: a short timeline, joined by a dotted line */

@@ -77,12 +77,16 @@ export const autoReplyRow = (connection) =>
 //   sender          the business name on the phone
 //   contactNumber   the coach's contact number, for the automatic reply's
 //                   preview (null: not added yet)
+//   onAddContact    for the automatic reply while there's no contact number:
+//                   where to add it (Templates' list; Connection has its
+//                   own way, right on the page). null: no prompt
 //   onEdit, onDuplicate, onDelete   what can be done with it (Templates'
 //                   list); null where it can't
 export default function TemplateDialog({
   row,
   sender,
   contactNumber = null,
+  onAddContact = null,
   onClose,
   onEdit,
   onDuplicate,
@@ -167,6 +171,23 @@ export default function TemplateDialog({
               <Step icon={XCircle} tone="bad" title="Not approved" text={decided && fmtWhen(decided)} why={why} />
             )}
           </ol>
+
+          {/* The automatic reply needs the contact number it points students to */}
+          {autoReply && !contactNumber && onAddContact && (
+            <div className="wtp-note wtp-note--ask">
+              <p>Add your contact number so students know where to reach you.</p>
+              <button
+                type="button"
+                className="wtp-link"
+                onClick={() => {
+                  onClose();
+                  onAddContact();
+                }}
+              >
+                Add number
+              </button>
+            </div>
+          )}
 
           <div className="wtp-dialog__actions">
             {canEdit && (

@@ -101,8 +101,13 @@ const NO_REPLY_TIP =
 const CONTACT_TIP =
   'Your WhatsApp number for chatting with students. We share it in the automatic reply, so they know where to reach you.';
 
-export default function WhatsAppConnected({ connection, onSeeAll }) {
-  const [panel, setPanel] = useState(null); // 'verify' | 'rename' | 'contact'
+// startPanel: a side panel to open on ('contact', from Templates' "Add
+//   number"), or null; onStarted() once it's open, so it opens only once
+export default function WhatsAppConnected({ connection, onSeeAll, startPanel = null, onStarted }) {
+  const [panel, setPanel] = useState(startPanel); // 'verify' | 'rename' | 'contact'
+  useEffect(() => {
+    if (startPanel) onStarted?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [viewing, setViewing] = useState(false); // the automatic reply's pop-up
   const [disconnecting, setDisconnecting] = useState(false);
   const lost = connection.status === 'lost';
