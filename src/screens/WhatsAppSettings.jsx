@@ -40,7 +40,7 @@ import './WhatsAppSettings.css';
 //   │ │ Use a spare number, or a new SIM. See how to fix
 //   │                                            │
 //   │ [ Connect WhatsApp ]  2 of 3 done          │
-//   │ Disclaimer: This number will stop working in the WhatsApp app once it's connected.
+//   │ Important: Once connected, this number can't be used to create a WhatsApp account…
 //   └────────────────────────────────────────────┘
 //
 // One box, top to bottom: the questions only exist to unlock Connect, so
@@ -129,7 +129,12 @@ const QUESTIONS = [
     no: {
       hint: 'Numbers on WhatsApp or WhatsApp Business can’t be used.',
       title: 'Already on WhatsApp or WhatsApp Business?',
-      text: 'Then it can’t be used here. Automated reminders run on WhatsApp Business API, which needs a number that isn’t on either app. Use a spare number, or get a new SIM.',
+      text: 'Automated reminders run on WhatsApp Business API, which needs a number that isn’t on either app. Use a spare number, or get a new SIM.',
+      // The other way, kept quieter: free up this number by deleting its account
+      alt: {
+        text: 'Want to use this number anyway? First delete the WhatsApp account on this number. All its chats and groups will also be deleted, so take a backup first if you need them.',
+        link: { href: 'https://whatsapp.com/faq/en/iphone/21325453', label: 'How to delete a WhatsApp account' },
+      },
     },
   },
 ];
@@ -469,8 +474,8 @@ const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)
 function Disclaimer() {
   return (
     <p className="wac__warn" id="wac-warn">
-      <span className="wac__warn-label">Disclaimer:</span> This number will stop working in the WhatsApp app once it’s
-      connected.
+      <span className="wac__warn-label">Important:</span> Once connected, this number can’t be used to create a WhatsApp
+      personal or business account. It will only be used for automatic reminders. Calls and SMS will work as usual.
     </p>
   );
 }
@@ -497,6 +502,15 @@ function Help({ noes }) {
                   {q.no.link.label}
                   <ExternalLink size={13} aria-hidden="true" />
                 </a>
+              )}
+              {q.no.alt && (
+                <div className="wac-help__alt">
+                  <p>{q.no.alt.text}</p>
+                  <a className="wac-help__link" href={q.no.alt.link.href} target="_blank" rel="noreferrer">
+                    {q.no.alt.link.label}
+                    <ExternalLink size={13} aria-hidden="true" />
+                  </a>
+                </div>
               )}
             </div>
           ))}

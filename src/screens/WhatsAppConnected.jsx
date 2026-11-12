@@ -303,6 +303,10 @@ function Welcome({ onClose }) {
   );
 }
 
+// What templates are, for the link in the box on the right.
+// TODO: the video or FAQ on templates, once it has a link
+const TEMPLATES_HELP_URL = '#';
+
 // ---------- The box on the right, until every message is approved ----------
 // What these messages are (they never wrote them), why Meta checks them,
 // and that there's nothing to do. No count, and no calls or webinars they
@@ -317,7 +321,13 @@ function DefaultsHelp({ onSeeAll }) {
         We’ve submitted commonly used reminder messages for 1:1 calls and webinars to Meta, so they’re ready whenever
         you need them.
       </p>
-      <p>WhatsApp only sends business messages it has approved in advance. These are called templates.</p>
+      <p>
+        WhatsApp only allows sending messages that it has approved in advance. These are called{' '}
+        <a className="wcn-help__link" href={TEMPLATES_HELP_URL} target="_blank" rel="noreferrer">
+          templates
+        </a>
+        .
+      </p>
       <p>Nothing to do. Once approved, they go out automatically, alongside your emails.</p>
       <button type="button" className="es__btn es__btn--quiet wcn-help__btn" onClick={onSeeAll}>
         See default messages

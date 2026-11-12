@@ -286,6 +286,16 @@
   border-top: 1px solid #f0d3a6;
 }
 
+/* The other way to fix it: below a divider, smaller and softer, so the
+   main advice (a spare number) still reads first */
+.wac-help__alt {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0d3a6;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
 .wac-help__link {
   display: inline-flex;
   align-items: center;
