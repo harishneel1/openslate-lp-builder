@@ -8,6 +8,7 @@ import {
   WHATSAPP_CHANGED_EVENT,
   hasNumber,
   loadWhatsApp,
+  needsContactNumber,
   messageStatus,
   settleReview,
 } from '../data/whatsappConnection';
@@ -100,7 +101,8 @@ export default function BatchAnnounce({ batch, change, members, hostName, now, g
   const sample = members[0] ?? null;
   const values = useMemo(() => noticeValues(batch, change, sample, hostName), [batch, change, sample, hostName]);
   const message = noticeWhatsApp();
-  const wa = !hasNumber(connection)
+  // Nothing goes on WhatsApp until there's a contact number
+  const wa = !hasNumber(connection) || needsContactNumber(connection)
     ? 'off'
     : connection.status === 'lost'
       ? 'lost'

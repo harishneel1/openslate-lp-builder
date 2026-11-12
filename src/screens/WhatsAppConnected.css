@@ -30,7 +30,8 @@
   border-radius: 50%;
 }
 
-.wcn-state--paused {
+.wcn-state--paused,
+.wcn-state--pending {
   color: var(--po-amber-ink);
   background: var(--po-amber-tint);
 }
@@ -129,6 +130,58 @@
 .wcn-step--now {
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* The step to do now, under the steps: its name, why, and its button.
+   Amber with a bar on the left, like the step's orange ring. */
+.wcn-ask {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 3px 0 0 #d97706;
+}
+
+.wcn-ask__words {
+  flex: 1;
+  min-width: 0;
+}
+
+.wcn-ask__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wcn-ask__text {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wcn-ask .oh__add {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .wcn-ask {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* A step that's theirs to do now (Add contact number): an orange ring,
+   still, in their own colour, not the spinning "in progress" one */
+.wcn-step--todo {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wcn-step--todo .wcn-step__mark {
+  border-color: var(--color-primary);
 }
 
 /* The step under way: a ring with its live part in orange */

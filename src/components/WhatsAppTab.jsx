@@ -6,7 +6,7 @@ import {
   anyInReview,
   demo,
   goToWhatsAppSettings,
-  hasNumber,
+  isSetUp,
   loadWhatsApp,
   messageStatus,
   settleReview,
@@ -81,9 +81,11 @@ export function useWhatsApp() {
 export default function WhatsAppTab({ kind, offering, offeringName, links }) {
   const connection = useWhatsApp();
 
+  // Until setup is finished (contact number added, Meta done reviewing), the
+  // same card as before connecting: what's left is shown in Settings
   return (
     <div className="wa">
-      {hasNumber(connection) ? (
+      {isSetUp(connection) ? (
         <Connected connection={connection} kind={kind} offering={offering} offeringName={offeringName} links={links} />
       ) : (
         <NotConnected />

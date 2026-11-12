@@ -10,6 +10,7 @@ import {
   MOCK_REJECTION,
   dailyLimit,
   disconnectWhatsApp,
+  isSetUp,
   markWelcomed,
   messageStatus,
   needsContactNumber,
@@ -50,10 +51,15 @@ import './WhatsAppConnected.css';
 //     the number dropped by WhatsApp   paused, emails still go     Reconnect
 //     the display name rejected        Meta's reason               Choose another name
 //     a message rejected               where to see why            See which
-//   messages in review  "Connected. Your reminders are being approved."
-//                     and three steps, the middle one counting the
-//                     approvals. It can't be closed while it's true.
-//   all approved      "You're all set", once: when the last approval
+//   setup not finished  until Meta has approved the reminders and the
+//                     contact number is added (isSetUp): four steps,
+//                     Connected → Meta approving · 5 of 8 (or Meta approved)
+//                     → Add contact number → Reminders live, each marked on
+//                     its own. It can't be closed while it's true, and the
+//                     pill at the top says "Not live yet" instead of
+//                     "Connected". Meanwhile webinars' and calls' Reminders
+//                     tabs show the same card as before connecting.
+//   all done          "You're all set", once: when the last of it
 //                     comes in while they're here, or on their next visit.
 //                     Closed, it doesn't come back.
 //
@@ -95,6 +101,11 @@ const STATUS = {
 
 const fmt = (n) => n.toLocaleString('en-IN');
 
+// Why the contact number's needed: under its setup step (SetupSteps), or
+// in its own note while a problem's note shows instead (ContactNeeded)
+const CONTACT_WHY =
+  'You won’t see your students’ replies to your WhatsApp reminders. So we’ll tell them to message you on your own WhatsApp number instead.';
+
 // The two numbers' ⓘ
 const NO_REPLY_TIP =
   'Sends your reminders. Students can’t chat with you here. If they message it, they get an automatic reply with your contact number.';
@@ -114,6 +125,8 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
   const problem = problemOf(connection);
   const { approved, total, inReview } = approvalsOf(connection);
   const needsContact = needsContactNumber(connection);
+  // Setup finished: contact number added, Meta done reviewing (isSetUp)
+  const setUp = isSetUp(connection);
 
   // "You're all set": once every message is approved, shown once. Either
   // the last approval comes in while they're here, or it had come in by
@@ -142,7 +155,9 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
       <div className="oh__panel-head">
         <h2 className="oh__panel-title wcn__title">
           WhatsApp
-          <span className={`wcn-state ${lost ? 'wcn-state--paused' : ''}`}>{lost ? 'Paused' : 'Connected'}</span>
+          <span className={`wcn-state ${lost ? 'wcn-state--paused' : setUp ? '' : 'wcn-state--pending'}`}>
+            {lost ? 'Paused' : setUp ? 'Connected' : 'Not live yet'}
+          </span>
         </h2>
         <p className="oh__panel-sub">Used for every webinar and 1:1 call.</p>
       </div>
@@ -151,12 +166,20 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
         <div className="wcn">
           {problem ? (
             <Problem problem={problem} connection={connection} onOpen={setPanel} onSeeAll={onSeeAll} />
-          ) : inReview ? (
-            <Approving approved={approved} total={total} />
+          ) : !setUp ? (
+            <SetupSteps
+              approved={approved}
+              total={total}
+              inReview={inReview}
+              hasContact={!needsContact}
+              onAddContact={() => setPanel('contact')}
+            />
           ) : welcome ? (
             <Welcome onClose={() => setWelcomeOpen(false)} />
           ) : null}
-          {needsContact && <ContactNeeded onAdd={() => setPanel('contact')} />}
+          {/* Normally asked for inside the setup steps. While a problem's note
+              takes their place, asked for in a note of its own. */}
+          {needsContact && problem && <ContactNeeded onAdd={() => setPanel('contact')} />}
 
           <dl className="wcn-facts">
             <div className="wcn-facts__row">
@@ -245,7 +268,7 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
           </button>
         </div>
 
-        {explain && <DefaultsHelp onSeeAll={onSeeAll} />}
+        {explain && <DefaultsHelp onSeeAll={onSeeAll} needsContact={needsContact} />}
       </div>
 
       {panel === 'verify' && <VerifyPanel onClose={() => setPanel(null)} />}
@@ -340,19 +363,39 @@ function approvalsOf(c) {
   };
 }
 
-// ---------- Messages in review: where it stands ----------
-// Not closable: it stays while it's true
-function Approving({ approved, total }) {
+// ---------- Setup not finished: where it stands ----------
+// Until Meta has approved the reminders and the contact number is added.
+// Not closable: it stays while it's true. Each step is marked on its own:
+// the contact number can be added while Meta is still reviewing.
+//   done  ✓        now  in progress (Meta reviewing)
+//   todo  theirs to do now (the contact number: its note below has the button)
+//   next  waits for the others (Reminders live)
+const STEP_SR = { done: ', done', now: ', in progress', todo: ', to do', next: ', next' };
+
+// onAddContact(): open the contact number panel (the step's own action,
+//   right under the steps while it's still to do)
+function SetupSteps({ approved, total, inReview, hasContact, onAddContact }) {
   const steps = [
     { id: 'connected', label: 'Connected', state: 'done' },
-    { id: 'approving', label: `Meta approving · ${approved} of ${total}`, state: 'now' },
+    inReview
+      ? { id: 'meta', label: `Meta approving · ${approved} of ${total}`, state: 'now' }
+      : { id: 'meta', label: 'Meta approved', state: 'done' },
+    hasContact
+      ? { id: 'contact', label: 'Contact number added', state: 'done' }
+      : { id: 'contact', label: 'Add contact number', state: 'todo' },
     { id: 'live', label: 'Reminders live', state: 'next' },
   ];
   return (
     <div className="wcn-note wcn-note--wait" role="status">
       <div className="wcn-note__words">
-        <h3 className="wcn-note__title">Connected. Your reminders are being approved.</h3>
-        <p className="wcn-note__text">It usually takes a few minutes, and up to 24 hours.</p>
+        <h3 className="wcn-note__title">
+          {inReview ? 'Connected. Your reminders are being approved.' : 'Your reminders are approved.'}
+        </h3>
+        <p className="wcn-note__text">
+          {inReview
+            ? 'It usually takes a few minutes, and up to 24 hours.'
+            : 'Add your contact number to start sending them.'}
+        </p>
         <ol className="wcn-steps">
           {steps.map((step) => (
             <li key={step.id} className={`wcn-step wcn-step--${step.state}`}>
@@ -360,12 +403,23 @@ function Approving({ approved, total }) {
                 {step.state === 'done' && <Check size={12} strokeWidth={3.5} />}
               </span>
               {step.label}
-              <span className="oh__sr-only">
-                {step.state === 'done' ? ', done' : step.state === 'now' ? ', in progress' : ', next'}
-              </span>
+              <span className="oh__sr-only">{STEP_SR[step.state]}</span>
             </li>
           ))}
         </ol>
+
+        {/* The step to do now, with its reason and its button, right under it */}
+        {!hasContact && (
+          <div className="wcn-ask">
+            <div className="wcn-ask__words">
+              <h4 className="wcn-ask__title">Add contact number</h4>
+              <p className="wcn-ask__text">{CONTACT_WHY}</p>
+            </div>
+            <button type="button" className="oh__add" onClick={onAddContact}>
+              Add number
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -390,18 +444,16 @@ function Welcome({ onClose }) {
 // TODO: the video or FAQ on templates, once it has a link
 const TEMPLATES_HELP_URL = '#';
 
-// ---------- No contact number yet: ask for it ----------
-// Stays until it's added. Amber, like a problem: it's needed, but nothing
-// is broken, so it's a status, not an alert.
+// ---------- No contact number yet, while a problem's note shows ----------
+// Usually the setup steps ask for it (SetupSteps). When a problem's note
+// replaces them, this asks instead, in the same words. Amber, like a
+// problem: it's needed, but nothing is broken, so a status, not an alert.
 function ContactNeeded({ onAdd }) {
   return (
     <div className="wcn-note wcn-note--problem" role="status">
       <div className="wcn-note__words">
-        <h3 className="wcn-note__title">Where should students message you?</h3>
-        <p className="wcn-note__text">
-          You won’t see your students’ replies to your WhatsApp reminders. So we’ll tell them to message you on your
-          own WhatsApp number instead.
-        </p>
+        <h3 className="wcn-note__title">Add contact number</h3>
+        <p className="wcn-note__text">{CONTACT_WHY}</p>
       </div>
       <button type="button" className="oh__add" onClick={onAdd}>
         Add number
@@ -414,7 +466,8 @@ function ContactNeeded({ onAdd }) {
 // What these messages are (they never wrote them), why Meta checks them,
 // and that there's nothing to do. No count, and no calls or webinars they
 // may not have made yet.
-function DefaultsHelp({ onSeeAll }) {
+// needsContact: no contact number yet, so it's not "nothing to do"
+function DefaultsHelp({ onSeeAll, needsContact }) {
   return (
     <aside className="settings__help wcn-help" aria-labelledby="wcn-help-title">
       <h3 className="settings__help-title" id="wcn-help-title">
@@ -431,7 +484,11 @@ function DefaultsHelp({ onSeeAll }) {
         </a>
         .
       </p>
-      <p>Nothing to do. Once approved, they go out automatically, alongside your emails.</p>
+      <p>
+        {needsContact
+          ? 'Once they’re approved and you’ve added your contact number, they go out automatically, alongside your emails.'
+          : 'Nothing to do. Once approved, they go out automatically, alongside your emails.'}
+      </p>
       <button type="button" className="es__btn es__btn--quiet wcn-help__btn" onClick={onSeeAll}>
         See default messages
       </button>

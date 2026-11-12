@@ -1,5 +1,12 @@
 import { isActive, loadBookings, setWhatsAppConfirm } from './bookingsStore';
-import { WHATSAPP_CHANGED_EVENT, hasNumber, isConnected, loadWhatsApp, messageStatus } from './whatsappConnection';
+import {
+  WHATSAPP_CHANGED_EVENT,
+  hasNumber,
+  isConnected,
+  loadWhatsApp,
+  messageStatus,
+  needsContactNumber,
+} from './whatsappConnection';
 import { WHATSAPP_SWITCHES_EVENT, switchesOf } from './whatsappMessages';
 import { CHOICES_CHANGED_EVENT, TEMPLATES_CHANGED_EVENT, choicesOf, loadTemplates, messageFor } from './whatsappTemplates';
 import { whatsappNumber } from '../utils/whatsapp';
@@ -60,13 +67,13 @@ export const askTimeOf = (booking) => Date.parse(booking.start) - ASK_BEFORE_MIN
 
 // Whether the 2-hour message would go for this booking, and if not, why:
 //   { will: true } or { will: false, reason }
-//   reason 'whatsapp'  no number connected, or WhatsApp paused it
+//   reason 'whatsapp'  no number connected, no contact number yet, or WhatsApp paused it
 //          'off'       the coach switched the 2-hour message off for this call
 //          'approval'  Meta hasn't approved the message it would send
 //          'phone'     the student's number can't be used on WhatsApp
 //          'late'      booked or moved too close to the call for it
 export function askPlan(booking, connection = loadWhatsApp()) {
-  if (!isConnected(connection)) return { will: false, reason: 'whatsapp' };
+  if (!isConnected(connection) || needsContactNumber(connection)) return { will: false, reason: 'whatsapp' };
   const offering = `call:${booking.serviceId}`;
   if (!switchesOf(offering, 'call')[MESSAGE_ID]) return { will: false, reason: 'off' };
   const sends = messageFor(MESSAGE_ID, choicesOf(offering).picks, loadTemplates());
@@ -83,7 +90,7 @@ export function askPlan(booking, connection = loadWhatsApp()) {
 // to the caller (the emails' rules, callReminders.js): the booking's
 // History says what went by email and WhatsApp (BookingDrawer.jsx).
 //   { will: true } or { will: false, reason }
-//   reason 'unused'    no number connected: they don't use WhatsApp
+//   reason 'unused'    no number connected, or no contact number yet: not set up
 //          'paused'    connected, but WhatsApp paused the number
 //          'off'       the coach switched this message off for the call
 //          'approval'  Meta hasn't approved the message it would send
@@ -91,7 +98,7 @@ export function askPlan(booking, connection = loadWhatsApp()) {
 // Worked out from the settings as they are now, as everything here is;
 // the real product reads what our WhatsApp partner says went.
 export function messagePlan(booking, messageId, connection = loadWhatsApp()) {
-  if (!hasNumber(connection)) return { will: false, reason: 'unused' };
+  if (!hasNumber(connection) || needsContactNumber(connection)) return { will: false, reason: 'unused' };
   if (!isConnected(connection)) return { will: false, reason: 'paused' };
   const offering = `call:${booking.serviceId}`;
   if (!switchesOf(offering, 'call')[messageId]) return { will: false, reason: 'off' };
@@ -103,7 +110,7 @@ export function messagePlan(booking, messageId, connection = loadWhatsApp()) {
 
 // What the prototype controls can't do, in words, by askPlan's reason
 export const WHY_NOT_ASKED = {
-  whatsapp: 'WhatsApp isn’t connected, or is paused.',
+  whatsapp: 'WhatsApp isn’t set up yet, or is paused.',
   off: 'The 2-hour WhatsApp message is switched off for this call.',
   approval: 'Meta hasn’t approved the 2-hour message yet.',
   phone: 'Their phone number can’t be used on WhatsApp.',

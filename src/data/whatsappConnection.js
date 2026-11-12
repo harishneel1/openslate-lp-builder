@@ -1,5 +1,5 @@
 import { mockAccount } from './myPage';
-import { MESSAGE_IDS } from './whatsappMessages';
+import { MESSAGE_IDS, SHOWN_MESSAGE_IDS } from './whatsappMessages';
 
 // ------------------------------------------------------------
 // The creator's WhatsApp connection: one for the whole account, used by
@@ -187,8 +187,22 @@ export function connectWhatsApp({ number, name, business, sharedChats }) {
 
 // ---------- The contact number ----------
 
-// Connected, but no contact number yet: Settings asks for it
+// Connected, but no contact number yet: Settings asks for it. Nothing goes
+// out on WhatsApp until it's added (whatsappConfirm.js, BatchAnnounce.jsx).
 export const needsContactNumber = (connection) => hasNumber(connection) && !connection.contactNumber;
+
+// Meta still reviewing any of the reminders
+export const remindersInReview = (connection) =>
+  SHOWN_MESSAGE_IDS.some((id) => messageStatus(connection, id) === 'review');
+
+// Setup finished: a number connected, the contact number added, and Meta
+// done reviewing the reminders. Until then, a webinar's or call's Reminders
+// tab shows the same card as before connecting (WhatsAppTab.jsx), and
+// Settings' connected screen says what's left ("Not live yet", and its
+// steps). A number WhatsApp later dropped ('lost') still counts: that's a
+// problem to fix, shown as one, not setup.
+export const isSetUp = (connection) =>
+  hasNumber(connection) && Boolean(connection.contactNumber) && !remindersInReview(connection);
 
 const digitsOf = (text) => String(text ?? '').replace(/\D/g, '');
 
