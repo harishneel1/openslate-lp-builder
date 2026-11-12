@@ -38,11 +38,16 @@ import './WhatsAppTemplates.css';
 //   Templates                                   [+ Create template]
 //   All 10 · Draft 1 · In review 1 · …      [All | 1:1 calls | Webinars]
 //   Name                                  Status     Updated      Action
+//   Your custom templates
 //   session_reminder_tamil     Utility   Draft      8 Nov 2026   ⧉ 🗑
+//   Default templates
 //   1:1 call · 24 hours before Utility   Approved   8 Nov 2026   ⧉
 //   …
 //
-// Two kinds in the one list:
+// Two kinds in the one list, each under its own heading row (GROUPS), so
+// it's clear which ones we submitted and which they made. A heading only
+// shows when its group has rows (none of theirs yet, or none matching the
+// filters, and it's left out):
 //   theirs       made with Create template (WhatsAppTemplateEditor.jsx),
 //                newest first, kept in whatsappTemplates.js
 //   ready-made   ours (whatsappMessages.js): can't be edited or deleted,
@@ -149,6 +154,13 @@ const copyOf = (row, taken) => {
     : { product: row.readyMade.kind, moment: row.readyMade.id, body: row.readyMade.message.body };
   return { ...from, name: duplicateName(row.name, taken), copiedFrom: row.name };
 };
+
+// The list's two groups, in order: theirs first (what they're working on),
+// then our default ones
+const GROUPS = [
+  { id: 'own', label: 'Your custom templates', has: (r) => r.own },
+  { id: 'default', label: 'Default templates', has: (r) => !r.own },
+];
 
 // startCreate: { product, moment } to open straight on a new template for
 //   that message (a reminder's "Create a new template")
@@ -319,54 +331,66 @@ export default function WhatsAppTemplates({ connection, onConnect, startCreate =
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {shown.map((r) => (
-                  <tr key={r.key} className="wtp-tr" onClick={() => setOpen(r.key)}>
-                    <td>
-                      <button
-                        type="button"
-                        className="wtp-name"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpen(r.key);
-                        }}
-                      >
-                        {r.name}
-                      </button>
-                      {r.about && <span className="wtp-about">{r.about}</span>}
-                      {r.own && <UsedOn id={r.template.id} />}
-                    </td>
-                    <td>
-                      <span className={`wa-badge wtp-badge--${STATUS[r.status].badge}`}>{STATUS[r.status].label}</span>
-                    </td>
-                    <td className="wtp-muted wtp-date">{fmtDay(r.updated)}</td>
-                    {/* The row's own buttons: a click here doesn't open the template */}
-                    <td className="wtp-actions" onClick={(e) => e.stopPropagation()}>
-                      <RowMenu
-                        title={r.name}
-                        open={menu === r.key}
-                        onOpenChange={(o) => setMenu(o ? r.key : null)}
-                        items={[
-                          ...(canDuplicate(r) ? [{ label: 'Duplicate', icon: Copy, onSelect: () => duplicate(r) }] : []),
-                          ...(r.own
-                            ? [
-                                {
-                                  label: 'Delete',
-                                  icon: Trash2,
-                                  danger: true,
-                                  onSelect: () => {
-                                    setMenu(null);
-                                    setRemoving(r.template);
-                                  },
-                                },
-                              ]
-                            : []),
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+              {/* One tbody per group, its heading row first */}
+              {GROUPS.map((g) => {
+                const inGroup = shown.filter(g.has);
+                if (inGroup.length === 0) return null;
+                return (
+                  <tbody key={g.id}>
+                    <tr className="wtp-group">
+                      <th scope="rowgroup" colSpan={4}>
+                        <span className="wtp-group__band">{g.label}</span>
+                      </th>
+                    </tr>
+                    {inGroup.map((r) => (
+                      <tr key={r.key} className="wtp-tr" onClick={() => setOpen(r.key)}>
+                        <td>
+                          <button
+                            type="button"
+                            className="wtp-name"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpen(r.key);
+                            }}
+                          >
+                            {r.name}
+                          </button>
+                          {r.about && <span className="wtp-about">{r.about}</span>}
+                          {r.own && <UsedOn id={r.template.id} />}
+                        </td>
+                        <td>
+                          <span className={`wa-badge wtp-badge--${STATUS[r.status].badge}`}>{STATUS[r.status].label}</span>
+                        </td>
+                        <td className="wtp-muted wtp-date">{fmtDay(r.updated)}</td>
+                        {/* The row's own buttons: a click here doesn't open the template */}
+                        <td className="wtp-actions" onClick={(e) => e.stopPropagation()}>
+                          <RowMenu
+                            title={r.name}
+                            open={menu === r.key}
+                            onOpenChange={(o) => setMenu(o ? r.key : null)}
+                            items={[
+                              ...(canDuplicate(r) ? [{ label: 'Duplicate', icon: Copy, onSelect: () => duplicate(r) }] : []),
+                              ...(r.own
+                                ? [
+                                    {
+                                      label: 'Delete',
+                                      icon: Trash2,
+                                      danger: true,
+                                      onSelect: () => {
+                                        setMenu(null);
+                                        setRemoving(r.template);
+                                      },
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                );
+              })}
             </table>
           </div>
         )}

@@ -171,7 +171,7 @@ function MomentPicker({ product, onProduct, onPick, onBack }) {
         </button>
         <div>
           <h2 className="oh__panel-title">New template</h2>
-          <p className="oh__panel-sub">Pick a message, and we’ll start you off with our wording.</p>
+          <p className="oh__panel-sub">Pick a message, and we’ll start you off with a default message.</p>
         </div>
       </div>
 
@@ -242,7 +242,7 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
   const [resetting, setResetting] = useState(false);
   const first = useRef(JSON.stringify(start));
   const box = useRef(null); // the message: wrap(), insertDetail()
-  const [boxKey, setBoxKey] = useState(0); // a new one fills the box again (Use our wording again)
+  const [boxKey, setBoxKey] = useState(0); // a new one fills the box again (Reset to default message)
 
   const moment = momentById(t.moment);
   const product = productById(t.product);
@@ -388,7 +388,7 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
           <Field
             id="wte-body"
             title="Message"
-            text="Change our wording or write your own. Add details with + Insert detail: they’re filled in for each student."
+            text="Change the default message or write your own. Add details with + Insert detail: they’re filled in for each student."
           >
             {/* Pressing these keeps the cursor in the message (as any editor's toolbar) */}
             <div
@@ -434,7 +434,7 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
               {t.body !== ours ? (
                 <button type="button" className="wte__link wte__reset" onClick={() => setResetting(true)}>
                   <RotateCcw size={14} aria-hidden="true" />
-                  Use our wording again
+                  Reset to default message
                 </button>
               ) : (
                 <span />
@@ -508,8 +508,8 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
 
       {resetting && (
         <ConfirmDialog
-          title="Use our wording again?"
-          confirmLabel="Use our wording"
+          title="Reset to default message?"
+          confirmLabel="Reset"
           onCancel={() => setResetting(false)}
           onConfirm={() => {
             set('body', ours);
@@ -517,7 +517,7 @@ function Writer({ start, fresh, editing, copiedFrom, rejected, connected, sender
             setResetting(false);
           }}
         >
-          <p>Your changes to the message will be replaced with our wording for {moment.name.toLowerCase()}.</p>
+          <p>Your changes will be replaced with the default message for {moment.name.toLowerCase()}.</p>
         </ConfirmDialog>
       )}
     </>

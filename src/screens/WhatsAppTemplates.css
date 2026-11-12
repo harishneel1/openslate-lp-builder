@@ -197,6 +197,35 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+/* A group's heading row: Your custom templates, Default templates. A soft band
+   in the brand's light tint, across the table, marks where each group
+   starts. Normal weight: the color does the work, not the text. The cell
+   only spaces it; the band inside it holds the color, so it can have room
+   above it and rounded ends. */
+.wtp-table .wtp-group th {
+  padding: 24px 0 8px;
+  font-size: 14px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--color-text);
+  background: none;
+  border-radius: 0;
+}
+
+/* The first group sits right under the column headings */
+.wtp-table tbody:first-of-type .wtp-group th {
+  padding-top: 12px;
+}
+
+.wtp-group__band {
+  display: block;
+  padding: 8px 12px;
+  line-height: 1.5;
+  font-weight: 500;
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-sm);
+}
+
 /* The whole row opens the template */
 .wtp-tr {
   cursor: pointer;
