@@ -71,15 +71,15 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
   return (
     <dialog
       ref={ref}
-      className="crs-dialog cpk"
-      aria-labelledby="cpk-title"
+      className="crs-dialog cldp"
+      aria-labelledby="cldp-title"
       onCancel={(e) => {
         e.preventDefault();
         onCancel();
       }}
     >
       <div className="crs-dialog__top">
-        <h2 className="crs-dialog__title" id="cpk-title">
+        <h2 className="crs-dialog__title" id="cldp-title">
           {only === 'image' ? 'Pick a cover from Cloud Storage' : only === 'any' ? 'Pick a resource from Cloud Storage' : 'Pick from Cloud Storage'}
         </h2>
         <button type="button" className="crs-dialog__close" onClick={onCancel} aria-label="Close">
@@ -87,18 +87,18 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
         </button>
       </div>
 
-      <div className="crs-dialog__body cpk__body">
+      <div className="crs-dialog__body cldp__body">
         {files.length === 0 ? (
-          <div className="cpk__empty">
+          <div className="cldp__empty">
             <Cloud size={24} aria-hidden="true" />
-            <p className="cpk__empty-title">
+            <p className="cldp__empty-title">
               {only === 'image'
                 ? 'No images in your Cloud Storage yet'
                 : only === 'any'
                   ? 'Nothing in your Cloud Storage yet'
                   : 'No videos or PDFs in your Cloud Storage yet'}
             </p>
-            <p className="cpk__empty-text">
+            <p className="cldp__empty-text">
               {only === 'image'
                 ? 'You can upload one with Upload image.'
                 : only === 'any'
@@ -108,7 +108,7 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
           </div>
         ) : (
           <>
-            <label className="cpk__search">
+            <label className="cldp__search">
               <Search size={16} aria-hidden="true" />
               <span className="sr-only">Search files</span>
               <input
@@ -121,35 +121,35 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
             </label>
 
             {types.length > 1 && (
-              <div className="cpk__filters" role="group" aria-label="Show">
-                <button type="button" className="cpk__chip" aria-pressed={type === 'all'} onClick={() => setType('all')}>
-                  All <span className="cpk__chip-count">{matching.length}</span>
+              <div className="cldp__filters" role="group" aria-label="Show">
+                <button type="button" className="cldp__chip" aria-pressed={type === 'all'} onClick={() => setType('all')}>
+                  All <span className="cldp__chip-count">{matching.length}</span>
                 </button>
                 {types.map((t) => (
-                  <button key={t.id} type="button" className="cpk__chip" aria-pressed={type === t.id} onClick={() => setType(t.id)}>
-                    {t.label} <span className="cpk__chip-count">{matching.filter((f) => kindOf(f) === t.id).length}</span>
+                  <button key={t.id} type="button" className="cldp__chip" aria-pressed={type === t.id} onClick={() => setType(t.id)}>
+                    {t.label} <span className="cldp__chip-count">{matching.filter((f) => kindOf(f) === t.id).length}</span>
                   </button>
                 ))}
               </div>
             )}
 
             {shown.length === 0 ? (
-              <p className="cpk__none">No files match “{query.trim()}”.</p>
+              <p className="cldp__none">No files match “{query.trim()}”.</p>
             ) : (
-              <ul className="cpk__list" role="radiogroup" aria-label="Files">
+              <ul className="cldp__list" role="radiogroup" aria-label="Files">
                 {shown.map((f) => {
                   const on = chosen === f.id;
                   return (
                     <li key={f.id}>
-                      <label className={`cpk__row ${on ? 'cpk__row--on' : ''}`}>
-                        <input type="radio" name="cpk-file" checked={on} onChange={() => setChosen(f.id)} />
-                        <span className="cpk__radio" aria-hidden="true">
+                      <label className={`cldp__row ${on ? 'cldp__row--on' : ''}`}>
+                        <input type="radio" name="cldp-file" checked={on} onChange={() => setChosen(f.id)} />
+                        <span className="cldp__radio" aria-hidden="true">
                           {on && <Check size={13} strokeWidth={3.5} />}
                         </span>
                         <KindTile kind={tileOf(f)} size="small" />
-                        <span className="cpk__text">
-                          <span className="cpk__name">{f.name}</span>
-                          <span className="cpk__detail">
+                        <span className="cldp__text">
+                          <span className="cldp__name">{f.name}</span>
+                          <span className="cldp__detail">
                             {labelOf(f)} · {formatBytes(f.bytes)} · Added {f.day}
                           </span>
                         </span>

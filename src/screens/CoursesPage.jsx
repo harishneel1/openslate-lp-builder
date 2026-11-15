@@ -10,7 +10,6 @@ import {
   onCoursesChange,
 } from '../data/courses';
 import CourseCard from '../components/CourseCard';
-import ContractPicker from '../components/ContractPicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CoursePage from './CoursePage';
 import './CoursesPage.css';
@@ -37,14 +36,14 @@ import './CoursesPage.css';
 // what matches the search). A course is published from its page.
 //
 // Create course opens "Create new course": a working title (required, up
-// to 100 characters) and the contracts that give access (optional,
-// ContractPicker). Continue makes a draft course and opens its page
+// to 100 characters), nothing else; contracts are linked on the course's
+// Access tab. Continue makes a draft course and opens its page
 // (CoursePage.jsx) here, with "← Courses" back to the list. Edit course
 // opens the same page. ⋯ → Delete asks first; the course goes, and its
 // contracts stay as they are. Deleting a published one says students
 // lose it too.
 //
-// View as student opens the academy's Courses page (/web/courses,
+// View as student opens the academy's Courses page as a preview (/web/courses?preview=1,
 // AcademyCoursesPage.jsx) in a new tab: what students see (published
 // courses only).
 // ------------------------------------------------------------
@@ -139,7 +138,7 @@ export default function CoursesPage() {
             <BookOpen size={28} />
           </span>
           <h2 className="crs__empty-title">Your courses will appear here</h2>
-          <p className="crs__empty-text">Give your first course a working title, and link the contracts that give access to it.</p>
+          <p className="crs__empty-text">Give your first course a working title to get started.</p>
           {createButton}
         </section>
       ) : (
@@ -317,15 +316,13 @@ function CardMenu({ title, open, onOpenChange, onEdit, onDelete }) {
   );
 }
 
-// "Create new course": a working title (required) and the contracts that
-// give access (optional; they can be linked later on the course's page
-// too). The browser's own <dialog>: dims the page, keeps the keyboard
+// "Create new course": just a working title, as TagMango's. Contracts are
+// linked on the course's Access tab (Publish asks for one). The browser's own <dialog>: dims the page, keeps the keyboard
 // inside, Escape closes. A click outside doesn't close it, so nothing
 // typed is lost by a stray click.
 function CreateCourseDialog({ onCancel, onCreated }) {
   const ref = useRef(null);
   const [title, setTitle] = useState('');
-  const [contractIds, setContractIds] = useState([]);
   const [failed, setFailed] = useState(false);
   const ready = title.trim().length > 0;
 
@@ -338,7 +335,7 @@ function CreateCourseDialog({ onCancel, onCreated }) {
   const submit = (e) => {
     e.preventDefault();
     if (!ready) return;
-    const course = createCourse({ title, contractIds });
+    const course = createCourse({ title });
     if (!course) {
       setFailed(true);
       return;
@@ -397,14 +394,6 @@ function CreateCourseDialog({ onCancel, onCreated }) {
               }}
               autoFocus // eslint-disable-line jsx-a11y/no-autofocus
             />
-          </div>
-
-          <div className="crs-field">
-            <span className="crs-field__label">
-              Link contracts to this course <span className="crs-field__optional">· Optional</span>
-            </span>
-            <p className="crs-field__help">People who sign up on any of these get the course.</p>
-            <ContractPicker value={contractIds} onChange={setContractIds} />
           </div>
 
           {failed && (
