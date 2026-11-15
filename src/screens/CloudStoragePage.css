@@ -1080,3 +1080,8 @@
     transition: none;
   }
 }
+
+/* Other files (ZIP, anything else): grey */
+.cs { --cs-other: #8a8a90; --cs-other-tint: #ececef; --cs-other-ink: #55555b; }
+.cs-kind--other { background: var(--cs-other); }
+.cs-tile--other { color: var(--cs-other-ink); background: var(--cs-other-tint); }

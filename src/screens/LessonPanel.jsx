@@ -5,6 +5,7 @@ import { lessonKindOfFile, readLink, readVideoLink, updateLesson, LINK_MAX } fro
 import ConfirmDialog from '../components/ConfirmDialog';
 import TextEditor, { TextView } from '../components/TextEditor';
 import CloudPicker from './CloudPicker';
+import LessonExtras from './LessonExtras';
 import { KIND, KindTile } from './lessonKinds';
 
 // ------------------------------------------------------------
@@ -39,6 +40,8 @@ import { KIND, KindTile } from './lessonKinds';
 //   PDF             the file                       [Replace] [Remove]
 // Replace shows the tiles again (Cancel keeps what's there). Remove asks
 // first; a file stays in Cloud Storage.
+// Under what's in it: the lesson's description and resources
+// (LessonExtras.jsx).
 // The prototype keeps no files, only their names: a file picked from the
 // computer plays for as long as this tab is open (previews, below); after
 // that, or for one picked from Cloud Storage, the preview says so.
@@ -241,12 +244,16 @@ export default function LessonPanel({ course, lesson, onSaved, onDirtyChange }) 
       )}
 
       {mode === 'view' && content && (
-        <Filled
-          content={content}
-          onEdit={() => setMode(content.kind === 'text' ? 'text' : content.kind === 'embed' ? 'embed' : 'pick')}
-          onReplace={() => setMode('pick')}
-          onRemove={() => setRemoving(true)}
-        />
+        <>
+          <Filled
+            content={content}
+            onEdit={() => setMode(content.kind === 'text' ? 'text' : content.kind === 'embed' ? 'embed' : 'pick')}
+            onReplace={() => setMode('pick')}
+            onRemove={() => setRemoving(true)}
+          />
+          {/* Under it: its description and resources, as on TagMango */}
+          <LessonExtras course={course} lesson={lesson} onSaved={onSaved} onDirtyChange={onDirtyChange} />
+        </>
       )}
 
       {cloud && (

@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   LayoutGrid,
   List,
+  Paperclip,
   Play,
   PlayCircle,
   Search,
@@ -161,7 +162,7 @@ const SORTS = [
   { id: 'newest', label: 'Newest first', compare: (a, b) => b.at - a.at },
 ];
 
-const ICONS = { video: Play, document: FileText, image: ImageIcon };
+const ICONS = { video: Play, document: FileText, image: ImageIcon, other: Paperclip };
 
 // List or grid, remembered in this browser (list until they pick)
 const VIEW_KEY = 'pagebuilder:storage-view';

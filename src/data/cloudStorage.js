@@ -13,15 +13,17 @@ import { zoned } from '../utils/slots';
 //   recordings  their webinar sessions' Zoom recordings, once ready
 //               (recordings.js). Counted from the moment one is ready to
 //               watch: until then it's still with Zoom, not with us.
-//   files       what they upload themselves: videos, documents and
-//               images (FORMATS lists what's accepted), on Cloud
+//   files       what they upload themselves: any file. Videos, documents
+//               and images are known by their extension (FORMATS);
+//               anything else (a ZIP, a Figma file…) is an "other" file.
+//               Uploaded on Cloud
 //               Storage or from a course's lesson (a lesson's upload is
 //               stored here too, and counts like any file). Nothing about
 //               storage is specific to webinars or courses.
 //
 // One asset, as the Cloud Storage tab lists it (assetsOf):
 //   { id, kind: 'recording' | 'file' (where it came from),
-//     type: 'video' | 'document' | 'image' (what it is: a
+//     type: 'video' | 'document' | 'image' | 'other' (what it is: a
 //           recording is a video, listed and counted with the videos they
 //           upload),
 //     ext ('PDF', 'MP4'), name, bytes, at (ms, when it was added),
@@ -98,6 +100,7 @@ export const ASSET_TYPES = [
   { id: 'video', label: 'Videos', one: 'Video' },
   { id: 'document', label: 'Documents', one: 'Document' },
   { id: 'image', label: 'Images', one: 'Image' },
+  { id: 'other', label: 'Other files', one: 'File' },
 ];
 
 export const typeOf = (id) => ASSET_TYPES.find((t) => t.id === id) ?? ASSET_TYPES[1];
@@ -107,7 +110,7 @@ export const typeOf = (id) => ASSET_TYPES.find((t) => t.id === id) ?? ASSET_TYPE
 // never the file itself (a browser can't hold gigabytes). In the real
 // product the server keeps the file in storage and this list in the
 // database.
-//   { id, name, type: 'document' | 'image' | 'video', ext, bytes, at (ms) }
+//   { id, name, type: 'document' | 'image' | 'video' | 'other', ext, bytes, at (ms) }
 
 const FILES_KEY = 'pagebuilder:cloud-files';
 const PRETEND_KEY = 'pagebuilder:pretend-storage';
@@ -115,7 +118,7 @@ const SEEDED_KEY = 'pagebuilder:cloud-files-seeded';
 const CHANGED_EVENT = 'cloud-storage-changed';
 
 const isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
-const FILE_TYPES = ['document', 'image', 'video'];
+const FILE_TYPES = ['document', 'image', 'video', 'other'];
 
 function loadFiles() {
   try {
@@ -210,14 +213,14 @@ export const PLANS_HREF = '/?mock=plans';
 // How full their storage is:
 //   { used, free (FREE_BYTES), left, over (bytes past 20 GB, or 0),
 //     share (0–1, of the free space), level: 'ok' | 'almost' | 'full',
-//     byType: { video, document, image } (bytes; recordings are videos),
+//     byType: { video, document, image, other } (bytes; recordings are videos),
 //     pretend: the pretend percent while one is on (Prototype controls),
 //     else null }
 // With a pretend percent, `used` is that share of 20 GB. The extra counts
-// as video (what fills storage in real life), so documents and images
-// keep their real totals and still match the list.
+// as video (what fills storage in real life), so the other kinds keep
+// their real totals and still match the list.
 export function usageOf(assets) {
-  const byType = { video: 0, document: 0, image: 0 };
+  const byType = { video: 0, document: 0, image: 0, other: 0 };
   assets.forEach((a) => {
     byType[a.type] = (byType[a.type] ?? 0) + a.bytes;
   });
@@ -301,8 +304,9 @@ export function onStorageChange(callback) {
 }
 
 // ---------- Uploading ----------
-// What can be uploaded, by extension: its kind, and the label its tile
-// shows. Anything else is refused, by name ("Can't upload .zip files").
+// Any file can be uploaded. These extensions are known kinds (with the
+// label their tile shows); anything else is an 'other' file, its tile
+// labelled with its own extension (ZIP) or FILE when it has none.
 export const FORMATS = {
   mp4: { type: 'video', ext: 'MP4' },
   mov: { type: 'video', ext: 'MOV' },
@@ -320,10 +324,8 @@ export const FORMATS = {
   gif: { type: 'image', ext: 'GIF' },
 };
 
-// For the file picker: every accepted extension, '.mp4,.mov,…'
-export const ACCEPT = Object.keys(FORMATS)
-  .map((e) => `.${e}`)
-  .join(',');
+// For the file picker: anything ('' lets the picker offer every file)
+export const ACCEPT = '';
 
 // 'Notes.PDF' → 'pdf'; 'README' → ''
 export const extensionOf = (name) => {
@@ -331,8 +333,12 @@ export const extensionOf = (name) => {
   return m ? m[1].toLowerCase() : '';
 };
 
-// A file's kind and tile label, or null when it can't be uploaded
-export const formatOf = (name) => FORMATS[extensionOf(name)] ?? null;
+// A file's kind and tile label: a known one, else 'other' with its
+// extension. Never null: any file can be uploaded.
+export function formatOf(name) {
+  const ext = extensionOf(name);
+  return FORMATS[ext] ?? { type: 'other', ext: ext ? ext.toUpperCase().slice(0, 5) : 'FILE' };
+}
 
 // A name nothing stored has yet: 'checklist.pdf', then 'checklist (2).pdf'.
 // taken: names also in use (files still uploading)

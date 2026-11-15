@@ -29,13 +29,21 @@ import { getService } from './mockServices';
 //   { kind: 'link', url }         a link saved before embedded videos
 //                                 (any web page); still shown, not offered
 //
+// Under its main content, a lesson can also have, as on TagMango:
+//   description  html, written in the text editor (not for a Text lesson,
+//                whose content is already text); '' for none
+//   resources    files for students to download, any kind, from their
+//                Cloud Storage (uploaded from the lesson or picked there):
+//                [{ id: 'res-…', fileId, name, ext, type, bytes }]
+//
 // One course:
 //   { id: 'course-…', title, contractIds: [...], status: 'draft',
 //     cover: null | { fileId ('file:f-…'), name, ext, bytes }: an image in
 //            their Cloud Storage, shown on the course's card in the academy
 //            (set in the course's Settings),
 //     sections: [{ id: 'sec-…', title, lessons: [
-//       { id: 'les-…', title, content, createdAt, updatedAt } ] }],
+//       { id: 'les-…', title, content, description, resources,
+//         createdAt, updatedAt } ] }],
 //     createdAt, updatedAt }
 // A new course starts with one empty section, "Untitled". Courses made
 // before sections existed have none; they read as an empty list.
@@ -82,7 +90,10 @@ import { getService } from './mockServices';
 // renameSection(courseId, sectionId, title)   empty keeps the old title
 // deleteSection(courseId, sectionId)          and its lessons
 // addLesson(courseId, sectionId, title) → { course, lesson }   a title is needed
-// updateLesson(courseId, lessonId, { title?, content? })   content null empties it
+// updateLesson(courseId, lessonId, { title?, content?, description? })
+//                                             content null empties it; description '' removes it
+// addResource(courseId, lessonId, asset) → { course, resource }   a Cloud Storage file
+// removeResource(courseId, lessonId, resourceId)                  it stays in Cloud Storage
 // deleteLesson(courseId, lessonId)
 // moveSectionBefore(courseId, sectionId, beforeSectionId | null)
 //                                             dragged: before another, or to the end
@@ -341,10 +352,31 @@ function contentOf(lesson) {
 // What a lesson has, for its icon: a kind above, or null (nothing yet)
 export const lessonKind = (lesson) => lesson?.content?.kind ?? null;
 
-// A lesson as the pages use it: always with `content` (null when empty)
+// A lesson's resources as saved: only whole ones
+function resourcesOf(l) {
+  return (Array.isArray(l?.resources) ? l.resources : [])
+    .filter((r) => r && typeof r.id === 'string' && typeof r.fileId === 'string')
+    .map((r) => ({
+      id: r.id,
+      fileId: r.fileId,
+      name: String(r.name ?? 'File'),
+      ext: typeof r.ext === 'string' ? r.ext : null,
+      type: typeof r.type === 'string' ? r.type : 'other',
+      bytes: Number.isFinite(r.bytes) ? r.bytes : 0,
+    }));
+}
+
+// A lesson as the pages use it: always with `content` (null when empty),
+// `description` ('' when none) and `resources` ([] when none)
 function lessonOf(l) {
   const { text, ...rest } = l; // eslint-disable-line no-unused-vars
-  return { ...rest, title: String(l.title ?? ''), content: contentOf(l) };
+  return {
+    ...rest,
+    title: String(l.title ?? ''),
+    content: contentOf(l),
+    description: typeof l.description === 'string' ? l.description : '',
+    resources: resourcesOf(l),
+  };
 }
 
 // ---------- Content: sections and lessons ----------
@@ -469,7 +501,34 @@ export function updateLesson(courseId, lessonId, edits) {
     } else if (fileContent(c)) next.content = fileContent(c);
     else return null;
   }
+  if ('description' in edits) {
+    const html = String(edits.description ?? '');
+    if (html.length > LESSON_HTML_MAX) return null;
+    next.description = html === '<p></p>' ? '' : html;
+  }
   return changeLesson(courseId, lessonId, (l) => ({ ...l, ...next, updatedAt: now() }));
+}
+
+export function addResource(courseId, lessonId, asset) {
+  if (!asset || typeof asset.id !== 'string') return null;
+  const resource = {
+    id: newId('res'),
+    fileId: asset.id,
+    name: String(asset.name ?? 'File'),
+    ext: asset.ext ?? null,
+    type: asset.type ?? 'other',
+    bytes: Number(asset.bytes) || 0,
+  };
+  const course = changeLesson(courseId, lessonId, (l) => ({ ...l, resources: [...resourcesOf(l), resource], updatedAt: now() }));
+  return course ? { course, resource } : null;
+}
+
+export function removeResource(courseId, lessonId, resourceId) {
+  return changeLesson(courseId, lessonId, (l) => ({
+    ...l,
+    resources: resourcesOf(l).filter((r) => r.id !== resourceId),
+    updatedAt: now(),
+  }));
 }
 
 export function deleteLesson(courseId, lessonId) {

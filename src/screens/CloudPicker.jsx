@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Cloud, Search, X } from 'lucide-react';
-import { assetsOf, formatBytes, onStorageChange } from '../data/cloudStorage';
+import { ASSET_TYPES, assetsOf, formatBytes, onStorageChange, typeOf } from '../data/cloudStorage';
 import { lessonKindOfFile } from '../data/courses';
-import { KindTile } from './lessonKinds';
+import { KindTile, tileKindOf } from './lessonKinds';
 
 // ------------------------------------------------------------
 // "Pick from Cloud Storage", for a lesson or a course's cover.
@@ -11,6 +11,8 @@ import { KindTile } from './lessonKinds';
 //        Images and other documents aren't listed: a lesson can't use them.
 //   only 'image'  (Cover image in a course's Settings, CourseSettings.jsx):
 //        their images.
+//   only 'any'    (Upload resources in a lesson, LessonPanel.jsx): any
+//        file they've uploaded, ZIPs and all, with filters by kind.
 // Newest first.
 //
 //   ┌──────────── Pick from Cloud Storage ──────────── ✕ ┐
@@ -27,7 +29,7 @@ import { KindTile } from './lessonKinds';
 // (lessonKindOfFile). Webinar recordings aren't listed yet: they live
 // with their sessions.
 //
-// only: 'lesson' | 'image'; onPick(asset), onCancel()
+// only: 'lesson' | 'image' | 'any'; onPick(asset), onCancel()
 // ------------------------------------------------------------
 
 const LABEL = { video: 'Video', pdf: 'PDF', image: 'Image' };
@@ -37,7 +39,11 @@ const TYPES = [
 ];
 
 export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
-  const kindOf = (a) => (only === 'image' ? (a.type === 'image' ? 'image' : null) : lessonKindOfFile(a));
+  // What a file counts as here (null: not offered), and its filter
+  const kindOf = (a) => (only === 'any' ? a.type : only === 'image' ? (a.type === 'image' ? 'image' : null) : lessonKindOfFile(a));
+  const chipTypes = only === 'lesson' ? TYPES : only === 'any' ? ASSET_TYPES : [];
+  const tileOf = (a) => (only === 'lesson' ? kindOf(a) : tileKindOf(a));
+  const labelOf = (a) => (only === 'lesson' ? LABEL[kindOf(a)] : a.ext ?? typeOf(a.type).one);
   const ref = useRef(null);
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState('');
@@ -58,7 +64,7 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
   );
   const needle = query.trim().toLowerCase();
   const matching = needle ? files.filter((f) => f.name.toLowerCase().includes(needle)) : files;
-  const types = only === 'lesson' ? TYPES.filter((t) => matching.some((f) => kindOf(f) === t.id)) : [];
+  const types = chipTypes.filter((t) => matching.some((f) => kindOf(f) === t.id));
   const shown = matching.filter((f) => type === 'all' || kindOf(f) === type);
   const picked = files.find((f) => f.id === chosen) ?? null;
 
@@ -74,7 +80,7 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
     >
       <div className="crs-dialog__top">
         <h2 className="crs-dialog__title" id="cpk-title">
-          {only === 'image' ? 'Pick a cover from Cloud Storage' : 'Pick from Cloud Storage'}
+          {only === 'image' ? 'Pick a cover from Cloud Storage' : only === 'any' ? 'Pick a resource from Cloud Storage' : 'Pick from Cloud Storage'}
         </h2>
         <button type="button" className="crs-dialog__close" onClick={onCancel} aria-label="Close">
           <X size={18} aria-hidden="true" />
@@ -86,10 +92,18 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
           <div className="cpk__empty">
             <Cloud size={24} aria-hidden="true" />
             <p className="cpk__empty-title">
-              {only === 'image' ? 'No images in your Cloud Storage yet' : 'No videos or PDFs in your Cloud Storage yet'}
+              {only === 'image'
+                ? 'No images in your Cloud Storage yet'
+                : only === 'any'
+                  ? 'Nothing in your Cloud Storage yet'
+                  : 'No videos or PDFs in your Cloud Storage yet'}
             </p>
             <p className="cpk__empty-text">
-              {only === 'image' ? 'You can upload one with Upload image.' : 'You can upload one with Upload video or PDF in the lesson.'}
+              {only === 'image'
+                ? 'You can upload one with Upload image.'
+                : only === 'any'
+                  ? 'You can upload one from your computer instead.'
+                  : 'You can upload one with Upload video or PDF in the lesson.'}
             </p>
           </div>
         ) : (
@@ -124,7 +138,6 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
             ) : (
               <ul className="cpk__list" role="radiogroup" aria-label="Files">
                 {shown.map((f) => {
-                  const kind = kindOf(f);
                   const on = chosen === f.id;
                   return (
                     <li key={f.id}>
@@ -133,11 +146,11 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
                         <span className="cpk__radio" aria-hidden="true">
                           {on && <Check size={13} strokeWidth={3.5} />}
                         </span>
-                        <KindTile kind={kind} size="small" />
+                        <KindTile kind={tileOf(f)} size="small" />
                         <span className="cpk__text">
                           <span className="cpk__name">{f.name}</span>
                           <span className="cpk__detail">
-                            {LABEL[kind]} · {formatBytes(f.bytes)} · Added {f.day}
+                            {labelOf(f)} · {formatBytes(f.bytes)} · Added {f.day}
                           </span>
                         </span>
                       </label>
