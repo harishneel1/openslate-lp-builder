@@ -1,0 +1,145 @@
+/* ------------------------------------------------------------
+   A contract's checkout (ContractCheckoutPage.jsx) and its success
+   page (ContractDonePage.jsx). Most of the page uses the call
+   checkout's styles (CheckoutPage.css, co__*); these are the parts
+   only a contract has. Colours: styles/storeTheme.css.
+   ------------------------------------------------------------ */
+
+.cc__price .co__price {
+  margin-top: 16px;
+}
+
+.cc__per {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--pf-body);
+}
+
+.cc__price-note {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--pf-muted);
+}
+
+.cc__legal {
+  max-width: 58ch;
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid var(--pf-line);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--pf-muted);
+}
+
+/* ================= After they pay ================= */
+.cc-done {
+  min-height: 100vh;
+}
+
+.cc-done__main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 56px 20px 64px;
+}
+
+.cc-done__top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.cc-done__tick {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  color: #fff;
+  background: var(--color-success);
+  border-radius: 50%;
+}
+
+.cc-done__title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cc-done__sub {
+  line-height: 1.6;
+  color: var(--pf-body);
+}
+
+.cc-done__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px 18px;
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--pf-surface);
+  border: 1px solid var(--pf-line);
+  border-radius: var(--radius-lg);
+}
+
+.cc-done__card dt {
+  font-size: 14px;
+  color: var(--pf-muted);
+}
+
+.cc-done__card dd {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.cc-done__card dd small {
+  font-weight: 400;
+  color: var(--pf-muted);
+}
+
+.cc-done__redirect {
+  margin-top: 20px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--pf-body);
+  background: var(--pf-surface);
+  border: 1px dashed #cfcfd4;
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+
+.cc-done__redirect a {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--pf-accent-ink);
+}
+
+.cc-done__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  background: #141414;
+  border-radius: var(--radius-pill);
+  overflow-wrap: anywhere;
+}
+
+.cc-done__button:hover {
+  background: #2b2b2b;
+}
+
+.cc-done__button:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}

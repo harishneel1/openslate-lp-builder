@@ -1,6 +1,7 @@
 import { loadBookings } from './bookingsStore';
 import { peopleOf } from './webinarSignups';
 import { everJoined } from './batchMembers';
+import { peopleOnContract } from './contractSignupsStore';
 
 // ------------------------------------------------------------
 // Sign-ups: how many people have signed up on a contract. Everyone who
@@ -14,8 +15,9 @@ import { everJoined } from './batchMembers';
 //   a webinar's contract    the people who registered for that webinar
 //                           (webinarSignups.js)
 //   a batch's contract      everyone who joined that batch, removed or not (batchMembers.js)
-//   the sample contracts    a made-up number (signups in mockServices.js)
-//   anything else           0, since course enrolments aren't saved yet
+//   any other contract      the people who signed up on its own checkout page
+//                           (/web/checkout/<id>, contractSignupsStore.js), plus the
+//                           made-up number on the sample contracts (mockServices.js)
 // In the real product the server counts the people on each contract.
 //
 // signupCounts(contracts) → { [contractId]: number }
@@ -49,7 +51,7 @@ export function signupCounts(contracts) {
           ? peopleOf(c.webinarId).length
           : c.batchId
             ? everJoined(c.batchId)
-            : Math.max(0, Math.round(Number(c.signups) || 0)),
+            : Math.max(0, Math.round(Number(c.signups) || 0)) + peopleOnContract(c.id),
     ]),
   );
 }

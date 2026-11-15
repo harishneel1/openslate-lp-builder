@@ -4,6 +4,7 @@ import {
   Copy,
   ExternalLink,
   FileText,
+  Link2,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -17,15 +18,17 @@ import {
   serviceDate,
 } from '../data/mockServices';
 import { lockedWords, ownerOf, tiedTo } from '../data/tiedProducts';
-import { batchPageHref } from '../data/batches';
 import { signupCounts } from '../data/contractSignups';
+import { CONTRACT_SIGNUPS_EVENT } from '../data/contractSignupsStore';
+import { livePageOf } from '../data/contractCheckout';
 import { BOOKINGS_CHANGED_EVENT } from '../data/bookingsStore';
 import { formatMoney } from '../data/contractPricing';
 import ContractEditor from './ContractEditor';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { runHref } from '../utils/publish';
+import { copyText } from '../utils/copyText';
 import { SETUP_CHANGED_EVENT } from '../data/myPage';
 import './ContractsPage.css';
+import './ContractCreated.css';
 
 // ------------------------------------------------------------
 // Contracts: the pages people sign up and pay on. 1:1 calls, webinars and
@@ -40,7 +43,7 @@ import './ContractsPage.css';
 //   │ ┌────────────────────────────────────────────────────┐ │
 //   │ │ [Search by name                    ]  All  Paid  Free │ │
 //   │ │ Contract                 Price     Sign-ups  Start date     │ │
-//   │ │ (▣) Career clarity call  ₹1,500    24        30 Apr 2026 [Edit] [⋯]
+//   │ │ (▣) Career clarity call  ₹1,500    24        30 Apr 2026 [Edit] [↗] [⋯]
 //   │ │                          One-time                           │ │
 //   │ └────────────────────────────────────────────────────┘ │
 //   └────────────────────────────────────────────────────────┘
@@ -49,9 +52,15 @@ import './ContractsPage.css';
 // whether or not it has happened yet (contractSignups.js). "None yet"
 // at zero. On narrow screens it sits under the price, in words.
 //
-// The ↗ button opens the contract's live page in a new tab: a 1:1 call's
-// checkout, or a webinar's sign-up page. A contract with neither has no
-// page of its own yet, so the button is greyed out with a hint saying so.
+// Every contract has a live page (livePageOf in contractCheckout.js):
+//   a 1:1 call's   the call's checkout as a preview (people book the call
+//                  from its booking page, since they pick a time first)
+//   a webinar's    its sign-up page
+//   any other      its own checkout, /web/checkout/<id>, where people pay
+//                  (a course's, or one made here)
+// ↗ opens it in a new tab (a contract's own checkout with the coach's
+// "This is your live page" bar). Copy link in ⋯ copies the link to share.
+// A new contract opens a "Contract created" pop-up with its link.
 //
 // Create new contract, Edit and a click on a row open the contract screen
 // (ContractEditor.jsx) right here, with a back link to this list.
@@ -95,30 +104,6 @@ function typeLabel(c) {
   return more > 0 ? `${type} · +${more} ${more === 1 ? 'currency' : 'currencies'}` : type;
 }
 
-// Copies text, with a fallback where the Clipboard API isn't allowed
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const area = document.createElement('textarea');
-    area.value = text;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    let ok = false;
-    try {
-      ok = document.execCommand('copy');
-    } catch {
-      ok = false;
-    }
-    area.remove();
-    return ok;
-  }
-}
-
 // The contracts, read again whenever they might have changed: back on this
 // tab, a change in another tab, or the offerings setup saving.
 
@@ -133,12 +118,14 @@ function useContracts() {
     window.addEventListener('storage', refresh);
     window.addEventListener(SETUP_CHANGED_EVENT, refresh);
     window.addEventListener(BOOKINGS_CHANGED_EVENT, refresh); // a new booking is a new sign-up
+    window.addEventListener(CONTRACT_SIGNUPS_EVENT, refresh); // so is a payment on a contract's page
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('focus', refresh);
       window.removeEventListener('storage', refresh);
       window.removeEventListener(SETUP_CHANGED_EVENT, refresh);
       window.removeEventListener(BOOKINGS_CHANGED_EVENT, refresh);
+      window.removeEventListener(CONTRACT_SIGNUPS_EVENT, refresh);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -158,6 +145,8 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
   const [editing, setEditing] = useState(null);
   // The "You can't edit this contract" pop-up: { contract, owner } (ownerOf)
   const [owned, setOwned] = useState(null);
+  // The "Contract created" pop-up, with its link: the new contract
+  const [created, setCreated] = useState(null);
 
   // A short note at the bottom of the screen after an action
   const noticeTimer = useRef(null);
@@ -193,6 +182,13 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
     setMenuFor(null);
     const ok = await copyText(contract.id);
     tell(ok ? 'Contract ID copied' : 'We couldn’t copy it. Select the ID and copy it instead.', ok ? 'ok' : 'error');
+  };
+
+  // The link people use to sign up (a call's: its booking page)
+  const copyLink = async (contract) => {
+    setMenuFor(null);
+    const ok = await copyText(livePageOf(contract).share);
+    tell(ok ? 'Link copied' : 'We couldn’t copy it. Open the live page and copy its address instead.', ok ? 'ok' : 'error');
   };
 
   // Edit: the contract screen, or, when a call or webinar owns it (read
@@ -258,7 +254,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
           onOpenBatch={onOpenBatch}
           onCreated={(made) => {
             backToList();
-            tell(`“${made.title}” created`);
+            setCreated(made);
           }}
         />
         <Notice notice={notice} />
@@ -351,6 +347,7 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
                     menuOpen={menuFor === c.id}
                     onMenu={(open) => setMenuFor(open ? c.id : null)}
                     onCopyId={() => copyId(c)}
+                    onCopyLink={() => copyLink(c)}
                     onEdit={() => edit(c)}
                     onDelete={() => askDelete(c)}
                   />
@@ -362,6 +359,18 @@ export default function ContractsPage({ onGoToOfferings, onOpenWebinar, onOpenCa
       )}
 
       {owned && <OwnedDialog owner={owned.owner} onCancel={() => setOwned(null)} onConfirm={openOwner} />}
+
+      {created && (
+        <CreatedDialog
+          contract={created}
+          onClose={() => setCreated(null)}
+          onCopy={async () => {
+            const ok = await copyText(livePageOf(created).share);
+            setCreated(null);
+            tell(ok ? 'Link copied' : 'We couldn’t copy it. Open the live page and copy its address instead.', ok ? 'ok' : 'error');
+          }}
+        />
+      )}
 
       {deleting && (
         <DeleteDialog
@@ -412,6 +421,26 @@ function CreateButton({ onClick }) {
   );
 }
 
+// "Contract created": its link to share, Copy link, and the live page to look at
+function CreatedDialog({ contract, onClose, onCopy }) {
+  const { view, share } = livePageOf(contract);
+  return (
+    <ConfirmDialog title="Contract created" confirmLabel="Copy link" cancelLabel="Done" closeButton onCancel={onClose} onConfirm={onCopy}>
+      <p>
+        <strong>{contract.title}</strong> is live. People can sign up and pay on its page as soon as you share the link.
+      </p>
+      <p className="ct-created__link">
+        <span className="ct-created__url">{share}</span>
+        <a className="ct-created__open" href={view} target="_blank" rel="noopener">
+          Open live page
+          <ExternalLink size={14} aria-hidden="true" />
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </p>
+    </ConfirmDialog>
+  );
+}
+
 // "You can't edit this contract": a contract its call or webinar keeps
 // matching itself. Says which one it's linked to, what to change there,
 // and goes straight there (lockedWords in tiedProducts.js).
@@ -427,29 +456,13 @@ function OwnedDialog({ owner, onCancel, onConfirm }) {
   );
 }
 
-// Where a contract can be seen live, in a new tab, or null when it has no
-// page of its own (only calls' and webinars' contracts do, for now):
-//   a 1:1 call's   its checkout, with no time picked (as "View contract" in the call)
-//   a webinar's    its sign-up page
-//   a batch's      its join page
-function liveLinkOf(contract) {
-  const owner = ownerOf(contract);
-  if (owner?.kind === 'call') {
-    return `${window.location.pathname}?mock=checkout&service=${encodeURIComponent(owner.id)}&preview=1`;
-  }
-  // This run's own sign-up page (its contract is this date's alone)
-  if (owner?.kind === 'webinar') return `${runHref({ id: owner.id })}&page=signup`;
-  if (owner?.kind === 'batch') return batchPageHref(owner.id);
-  return null;
-}
-
 // One contract: name, price, sign-ups, start date, Edit, ↗ and ⋯. Every row
 // looks the same; Edit decides (in the list) whether it opens the contract
 // screen or the pop-up for one a call or webinar owns.
 // signups: how many people have signed up on it
-function ContractRow({ contract, signups = 0, menuOpen, onMenu, onCopyId, onEdit, onDelete }) {
+function ContractRow({ contract, signups = 0, menuOpen, onMenu, onCopyId, onCopyLink, onEdit, onDelete }) {
   const free = isFree(contract);
-  const live = liveLinkOf(contract);
+  const live = livePageOf(contract).view;
 
   return (
     <li className={`ct-row ${menuOpen ? 'ct-row--menu' : ''}`}>
@@ -494,38 +507,23 @@ function ContractRow({ contract, signups = 0, menuOpen, onMenu, onCopyId, onEdit
           Edit
           <span className="sr-only"> {contract.title}</span>
         </button>
-        {live ? (
-          <a
-            className="ct-icon-btn"
-            href={live}
-            target="_blank"
-            rel="noopener"
-            aria-label={`View live page for ${contract.title} (opens in a new tab)`}
-            data-tip="View live page"
-            data-tip-align="end"
-          >
-            <ExternalLink size={16} aria-hidden="true" />
-          </a>
-        ) : (
-          // Not there: looks off and does nothing, with a hint saying why.
-          // aria-disabled (not disabled) so it can still be hovered and focused.
-          <button
-            type="button"
-            className="ct-icon-btn"
-            aria-disabled="true"
-            aria-label={`No live page yet for ${contract.title}`}
-            data-tip="No live page yet. Only 1:1 call and webinar contracts have one for now."
-            data-tip-align="end"
-            onClick={(e) => e.preventDefault()}
-          >
-            <ExternalLink size={16} aria-hidden="true" />
-          </button>
-        )}
+        <a
+          className="ct-icon-btn"
+          href={live}
+          target="_blank"
+          rel="noopener"
+          aria-label={`View live page for ${contract.title} (opens in a new tab)`}
+          data-tip="View live page"
+          data-tip-align="end"
+        >
+          <ExternalLink size={16} aria-hidden="true" />
+        </a>
         <RowMenu
           title={contract.title}
           open={menuOpen}
           onOpenChange={onMenu}
           onEdit={onEdit}
+          onCopyLink={onCopyLink}
           onCopyId={onCopyId}
           onDelete={onDelete}
         />
@@ -537,7 +535,7 @@ function ContractRow({ contract, signups = 0, menuOpen, onMenu, onCopyId, onEdit
 // ⋯ : Edit (as the button does), then the less common actions, in words.
 // Closes on a click outside or Escape.
 // Delete always opens the pop-up, which says if something is holding the contract.
-function RowMenu({ title, open, onOpenChange, onEdit, onCopyId, onDelete }) {
+function RowMenu({ title, open, onOpenChange, onEdit, onCopyLink, onCopyId, onDelete }) {
   const wrap = useRef(null);
   const button = useRef(null);
   const menuId = useRef(`ct-menu-${Math.random().toString(36).slice(2)}`).current;
@@ -593,6 +591,10 @@ function RowMenu({ title, open, onOpenChange, onEdit, onCopyId, onDelete }) {
           <button type="button" role="menuitem" className="ct-menu__item" onClick={onEdit}>
             <Pencil size={16} aria-hidden="true" />
             Edit
+          </button>
+          <button type="button" role="menuitem" className="ct-menu__item" onClick={onCopyLink}>
+            <Link2 size={16} aria-hidden="true" />
+            Copy link
           </button>
           <button type="button" role="menuitem" className="ct-menu__item" onClick={onCopyId}>
             <Copy size={16} aria-hidden="true" />

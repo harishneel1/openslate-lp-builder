@@ -8,13 +8,16 @@ import './CheckoutPage.css';
 import { getMyProfile, isMyCall, myMeetingLink, profileHrefFor } from '../data/myProfile';
 import { createBooking } from '../data/bookingsStore';
 import { ANSWER_MAX, EXAMPLE_QUESTIONS, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
+import LinkedText from '../components/LinkedText';
 
 // ------------------------------------------------------------
 // Mock checkout, laid out like the product's real checkout:
 // what they're buying on the left, their details and the money
 // on the right. For a call, it adds the session (with a hold
 // timer), the time in the order summary, and the call's booking
-// questions (set in Edit service, see callQuestions.js). Courses and other products would show none of those.
+// questions (set in Edit service, see callQuestions.js). Courses and other
+// products use the contract checkout instead (ContractCheckoutPage.jsx),
+// which shares this page's fields (Field, QuestionField, describe) and styles.
 //
 // ?mock=checkout&service=<id>&time=<UTC instant>&tz=<zone>
 //   &taken=1   the time was taken before they got here
@@ -23,13 +26,17 @@ import { ANSWER_MAX, EXAMPLE_QUESTIONS, answersFor, checkAnswers, emptyAnswer } 
 // Paying goes to ?mock=booked (the confirmation page). For the creator's
 // own calls it first checks the time is still free and saves the booking
 // (bookingsStore.js), with the link people use to join their video calls.
+//
+// GST: a call's contract can't be changed on the Contracts page, and the
+// call has no GST setting yet, so a call always adds 18% on top, as it
+// always has. Once the call editor has a GST switch, it's read here.
 // ------------------------------------------------------------
 
 const ICONS = { clock: Clock, phone: Phone, video: Video };
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Each check returns the message to show, or null if the field is fine
-function check(form) {
+export function checkDetails(form) {
   const digits = form.phone.replace(/\D/g, '');
   return {
     name: form.name.trim() ? null : 'Enter your name',
@@ -43,7 +50,7 @@ function check(form) {
 }
 
 // required: a red asterisk after the label; optional: "(optional)" after it
-function Field({ id, label, hint, error, required, optional, children }) {
+export function Field({ id, label, hint, error, required, optional, children }) {
   return (
     <div className={error ? 'co-field co-field--error' : 'co-field'}>
       <label className="co-field__label" htmlFor={id}>
@@ -71,7 +78,7 @@ function Field({ id, label, hint, error, required, optional, children }) {
 }
 
 // aria props that tie an input to its hint and error
-const describe = (id, hasHint, error, required = true) => ({
+export const describe = (id, hasHint, error, required = true) => ({
   'aria-required': required || undefined,
   'aria-invalid': error ? true : undefined,
   'aria-describedby': [hasHint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined,
@@ -85,7 +92,7 @@ const describe = (id, hasHint, error, required = true) => ({
 //   dropdown       a menu, starting on "Choose one"
 //   phone          a country code and a number, like the phone field above
 // The first input's id is co-q-<id>, so a missed one gets the focus on submit.
-function QuestionField({ q, value, error, onChange }) {
+export function QuestionField({ q, value, error, onChange }) {
   const id = `co-q-${q.id}`;
   const aria = describe(id, false, error, q.required);
 
@@ -368,7 +375,7 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
     if (busy || previewing) return;
     // Their details, then the questions, in the order they're on the page
     const answerErrors = Object.fromEntries(Object.entries(checkAnswers(questions, replies)).map(([id, e]) => [`q-${id}`, e]));
-    const found = { ...check(form), ...answerErrors };
+    const found = { ...checkDetails(form), ...answerErrors };
     setErrors(found);
     const first = Object.keys(found).find((k) => found[k]);
     if (first) {
@@ -508,15 +515,21 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
           )}
 
           {service.image && <img className="co__image" src={service.image} alt="" />}
-          {/* The full description, as on the booking page */}
+          {/* The full description, as on the booking page, with its links clickable */}
           {service.about?.length > 0 ? (
             <div className="co__desc">
               {service.about.map((p) => (
-                <p key={p}>{p}</p>
+                <p key={p}>
+                  <LinkedText text={p} />
+                </p>
               ))}
             </div>
           ) : (
-            service.description && <p className="co__desc">{service.description}</p>
+            service.description && (
+              <p className="co__desc">
+                <LinkedText text={service.description} />
+              </p>
+            )
           )}
         </section>
 

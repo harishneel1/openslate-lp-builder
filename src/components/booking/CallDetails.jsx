@@ -1,12 +1,14 @@
 import { ChevronRight, Clock, MessageSquare, Phone, Star, Video } from 'lucide-react';
 import Testimonials from '../profile/Testimonials';
+import LinkedText from '../LinkedText';
 import './CallDetails.css';
 
 // Same icon names as the service cards (see serviceKinds.js)
 const ICONS = { clock: Clock, message: MessageSquare, phone: Phone, video: Video };
 
 // Left side of the booking page: what the call is, who it's with,
-// and what people who had it said.
+// and what people who had it said. Links in the description are
+// clickable (LinkedText).
 export default function CallDetails({ service, creator, profileHref, reviews }) {
   const { title, image, facts, rating, about } = service;
 
@@ -74,7 +76,9 @@ export default function CallDetails({ service, creator, profileHref, reviews }) 
 
       <div className="cd__about">
         {about.map((p) => (
-          <p key={p}>{p}</p>
+          <p key={p}>
+            <LinkedText text={p} />
+          </p>
         ))}
       </div>
 

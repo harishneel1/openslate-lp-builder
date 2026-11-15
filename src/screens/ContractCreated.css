@@ -1,0 +1,70 @@
+/* A new contract's link, shown once it's made: in the "Contract created"
+   pop-up on the Contracts page, and on the contract tab's done screen
+   (ContractEditorTab.jsx). */
+.ct-created__link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--color-bg, #f7f7f8);
+  border: 1px solid var(--color-border, #ececec);
+  border-radius: var(--radius-md, 12px);
+}
+
+.ct-created__url {
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: #141414;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.ct-created__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.ct-created__error {
+  font-size: 13px;
+  color: #b42318;
+}
+
+.ct-created__open {
+  padding: 0;
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b4520c;
+  text-decoration: none;
+}
+
+.ct-created__open:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ct-created__open:focus-visible {
+  outline: 2px solid var(--color-primary, #ef8a3c);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Screen readers only, wherever this shows */
+.ct-created__link .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

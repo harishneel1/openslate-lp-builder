@@ -1,0 +1,21 @@
+/* A link inside a creator's description (LinkedText.jsx). Blue and
+   underlined, as people expect a link in running text to look; long
+   links wrap rather than push the page wider. */
+.linked-text__link {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+a.linked-text__link:hover {
+  color: #1e40af;
+  text-decoration-thickness: 2px;
+}
+
+a.linked-text__link:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+  border-radius: 2px;
+}

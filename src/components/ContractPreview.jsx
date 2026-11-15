@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowUpRight, Check, ChevronDown, ImageIcon } from 'lucide-react';
 import { askedQuestions, hasOptions } from '../data/callQuestions';
 import { mockAccount } from '../data/myPage';
 import { REGIONS, formatMoney, gstOn, payAmount, priceFor } from '../data/contractPricing';
 import { isWebLink, shortLink } from '../utils/links';
+import LinkedText from './LinkedText';
 import './ContractPreview.css';
 
 // ------------------------------------------------------------
@@ -14,17 +15,36 @@ import './ContractPreview.css';
 //   success   after they pay: a tick, the button, and where they go next
 // Nothing here can be filled in or clicked; it's a picture of the page.
 //
+// The phone scrolls, like the real page: the cover, title, the full
+// description and the form scroll; the price and button stay pinned at
+// the bottom. A fade at the bottom shows only while there's more below.
+//
+// It follows the step they're on (focus):
+//   'details'    back to the top
+//   'questions'  down to the form
+//   anything else: left where it is (the price bar is always in view)
+// and on the Checkout form step, a question they add or change is
+// scrolled to and lit up for a moment, so they see which one it is.
+//
+// No price typed yet: a grey "Your price" in its place, not ₹0.
+// Links in the description look like links (LinkedText), as on the live page.
+//
 // draft: the contract being edited (title, cover, description, type, prices,
 //        gstOn, gstIncluded, questions, buttonLabel, buttonUrl, redirectUrl,
 //        redirectDelay), as ContractEditor holds it
 // With prices in more than one currency, "Visitor from" switches between
 // what people in India, Europe and elsewhere see.
 // view: 'checkout' | 'success'. onView(view): a tab picked.
+// focus: the step they're on (see above)
 // ------------------------------------------------------------
 
 const ALWAYS_ASKED = ['Name', 'Email', 'Phone number'];
+const HIGHLIGHT_MS = 1400;
 
-export default function ContractPreview({ draft, view, onView }) {
+const reducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+export default function ContractPreview({ draft, view, onView, focus = null }) {
   const [region, setRegion] = useState('IN');
   const paid = draft.type !== 'free';
   const prices = paid ? draft.prices.map(toPrice) : [];
@@ -75,7 +95,11 @@ export default function ContractPreview({ draft, view, onView }) {
       )}
 
       <div className="cpv__screen" aria-label="Preview of the page people see">
-        {view === 'success' ? <SuccessView draft={draft} shown={shown} /> : <CheckoutView draft={draft} shown={shown} />}
+        {view === 'success' ? (
+          <SuccessView draft={draft} shown={shown} />
+        ) : (
+          <CheckoutView draft={draft} shown={shown} focus={focus} />
+        )}
       </div>
 
       <p className="cpv__note">A preview. People see this on their phone or computer.</p>
@@ -92,10 +116,58 @@ const toPrice = (p) => ({
   discount: p.hasDiscount && Number(p.discount) > 0 && Number(p.discount) < Number(p.price) ? Number(p.discount) : null,
 });
 
+// No price typed yet (paid, but nothing to pay)
+const noPrice = (shown) => !shown.price || !(payAmount(shown.price) > 0);
+
 // What they pay in all: GST on top when it isn't in the price
 const total = ({ price, gst }) => payAmount(price) + (gst && !gst.included ? gst.amount : 0);
 
-function CheckoutView({ draft, shown }) {
+// ---------- Scrolling inside the phone ----------
+
+// Whether there's more to scroll to below, kept up to date as they scroll,
+// as the content changes and as the phone resizes
+function useMoreBelow(ref, deps) {
+  const [more, setMore] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const check = () => setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
+    ro?.observe(el);
+    if (el.firstElementChild) ro?.observe(el.firstElementChild);
+    return () => {
+      el.removeEventListener('scroll', check);
+      ro?.disconnect();
+    };
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  return more;
+}
+
+// Scrolls the phone (only the phone, never the page) so `target` sits near
+// the top, or in the middle with center: true
+function scrollWithin(box, target, { center = false } = {}) {
+  if (!box) return;
+  const behavior = reducedMotion() ? 'auto' : 'smooth';
+  if (!target) {
+    box.scrollTo({ top: 0, behavior });
+    return;
+  }
+  const boxRect = box.getBoundingClientRect();
+  const rect = target.getBoundingClientRect();
+  const offset = rect.top - boxRect.top + box.scrollTop;
+  const top = center ? offset - (box.clientHeight - rect.height) / 2 : offset - 12;
+  box.scrollTo({ top: Math.max(0, top), behavior });
+}
+
+// The question that was just added or changed, by comparing with last time
+function changedQuestion(before, now) {
+  const old = new Map(before.map((q) => [q.id, JSON.stringify(q)]));
+  return now.find((q) => old.get(q.id) !== JSON.stringify(q))?.id ?? null;
+}
+
+function CheckoutView({ draft, shown, focus }) {
   const title = String(draft.title ?? '').trim();
   const paragraphs = String(draft.description ?? '')
     .split(/\n\s*\n/)
@@ -104,42 +176,89 @@ function CheckoutView({ draft, shown }) {
   const questions = askedQuestions(draft.questions ?? []);
   const monthly = draft.type === 'subscription';
 
+  const scroller = useRef(null);
+  const form = useRef(null);
+  const more = useMoreBelow(scroller, [draft.description, draft.cover, title, questions.length]);
+
+  // Follow the step they're on (not on first show: it starts at the top)
+  const firstFocus = useRef(true);
+  useEffect(() => {
+    if (firstFocus.current) {
+      firstFocus.current = false;
+      if (focus !== 'questions') return;
+    }
+    if (focus === 'details') scrollWithin(scroller.current, null);
+    else if (focus === 'questions') scrollWithin(scroller.current, form.current);
+  }, [focus]);
+
+  // A question added or changed on the Checkout form step: scroll to it and light it up
+  const [lit, setLit] = useState(null);
+  const lastQuestions = useRef(questions);
+  useEffect(() => {
+    const id = changedQuestion(lastQuestions.current, questions);
+    lastQuestions.current = questions;
+    if (!id || focus !== 'questions') return undefined;
+    setLit(id);
+    // After it's drawn, so a new one has a place to scroll to
+    const frame = window.requestAnimationFrame(() => {
+      const el = scroller.current?.querySelector(`[data-question="${CSS.escape(id)}"]`);
+      scrollWithin(scroller.current, el, { center: true });
+    });
+    const timer = window.setTimeout(() => setLit(null), HIGHLIGHT_MS);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [questions]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="cpv-page">
-      {draft.cover ? (
-        <img className="cpv-page__cover" src={draft.cover} alt="" />
-      ) : (
-        <div className="cpv-page__cover cpv-page__cover--empty" aria-hidden="true">
-          <ImageIcon size={22} />
-          <span>Your cover</span>
-        </div>
-      )}
-
-      <div className="cpv-page__body">
-        <p className={`cpv-page__title ${title ? '' : 'cpv-page__title--empty'}`}>{title || 'Your contract’s title'}</p>
-        <p className="cpv-page__by">by {mockAccount.name}</p>
-
-        <div className="cpv-page__about">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((p, i) => <p key={i}>{p}</p>)
+      <div ref={scroller} className={`cpv-page__scroll ${more ? 'cpv-page__scroll--more' : ''}`}>
+        <div className="cpv-page__content">
+          {draft.cover ? (
+            <img className="cpv-page__cover" src={draft.cover} alt="" />
           ) : (
-            <p className="cpv-page__placeholder">Your description shows here.</p>
+            <div className="cpv-page__cover cpv-page__cover--empty" aria-hidden="true">
+              <ImageIcon size={22} />
+              <span>Your cover</span>
+            </div>
           )}
-        </div>
 
-        <div className="cpv-form">
-          {ALWAYS_ASKED.map((label) => (
-            <FakeField key={label} label={label} />
-          ))}
-          {questions.map((q) => (
-            <FakeQuestion key={q.id} q={q} />
-          ))}
+          <div className="cpv-page__body">
+            <p className={`cpv-page__title ${title ? '' : 'cpv-page__title--empty'}`}>{title || 'Your contract’s title'}</p>
+            <p className="cpv-page__by">by {mockAccount.name}</p>
+
+            <div className="cpv-page__about">
+              {paragraphs.length > 0 ? (
+                paragraphs.map((p, i) => (
+                  <p key={i}>
+                    <LinkedText text={p} live={false} />
+                  </p>
+                ))
+              ) : (
+                <p className="cpv-page__placeholder">Your description shows here.</p>
+              )}
+            </div>
+
+            <div className="cpv-form" ref={form}>
+              {ALWAYS_ASKED.map((label) => (
+                <FakeField key={label} label={label} />
+              ))}
+              {questions.map((q) => (
+                <FakeQuestion key={q.id} q={q} lit={lit === q.id} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="cpv-page__buy">
         {isFree(draft) ? (
           <span className="cpv-page__price cpv-page__price--free">Free</span>
+        ) : noPrice(shown) ? (
+          <span className="cpv-page__price">
+            <span className="cpv-page__amount cpv-page__amount--empty">Your price</span>
+          </span>
         ) : (
           <span className="cpv-page__price">
             <span className="cpv-page__amount">
@@ -162,9 +281,9 @@ function CheckoutView({ draft, shown }) {
   );
 }
 
-function FakeField({ label, required = true, long = false }) {
+function FakeField({ label, required = true, long = false, lit = false, id }) {
   return (
-    <div className="cpv-field">
+    <div className={`cpv-field ${lit ? 'cpv-field--lit' : ''}`} data-question={id}>
       <span className="cpv-field__label">
         {label}
         {required && <span aria-hidden="true"> *</span>}
@@ -175,13 +294,15 @@ function FakeField({ label, required = true, long = false }) {
 }
 
 // One of their questions, drawn the way checkout asks it
-function FakeQuestion({ q }) {
+function FakeQuestion({ q, lit }) {
   const text = q.text.trim() || 'Your question';
-  if (!hasOptions(q.type)) return <FakeField label={text} required={q.required} long={q.type === 'long'} />;
+  if (!hasOptions(q.type)) {
+    return <FakeField id={q.id} label={text} required={q.required} long={q.type === 'long'} lit={lit} />;
+  }
 
   const options = q.options.map((o, i) => o.trim() || `Choice ${i + 1}`);
   return (
-    <div className="cpv-field">
+    <div className={`cpv-field ${lit ? 'cpv-field--lit' : ''}`} data-question={q.id}>
       <span className="cpv-field__label">
         {text}
         {q.required && <span aria-hidden="true"> *</span>}
@@ -193,13 +314,12 @@ function FakeQuestion({ q }) {
         </span>
       ) : (
         <span className="cpv-field__choices">
-          {options.slice(0, 4).map((o, i) => (
+          {options.map((o, i) => (
             <span key={i} className="cpv-field__choice">
               <span className={q.type === 'multi' ? 'cpv-field__tick' : 'cpv-field__dot'} aria-hidden="true" />
               {o}
             </span>
           ))}
-          {options.length > 4 && <span className="cpv-field__more">+ {options.length - 4} more</span>}
         </span>
       )}
     </div>
@@ -226,10 +346,16 @@ function SuccessView({ draft, shown }) {
         <span className="cpv-done__label">Contract</span>
         <span className="cpv-done__value">{title}</span>
         <span className="cpv-done__label">{isFree(draft) ? 'Price' : 'Paid'}</span>
-        <span className="cpv-done__value">
-          {isFree(draft) ? 'Free' : formatMoney(total(shown), shown.price.currency)}
-          {shown.gst && <small> incl. GST</small>}
-        </span>
+        {isFree(draft) ? (
+          <span className="cpv-done__value">Free</span>
+        ) : noPrice(shown) ? (
+          <span className="cpv-done__value cpv-done__value--empty">Your price</span>
+        ) : (
+          <span className="cpv-done__value">
+            {formatMoney(total(shown), shown.price.currency)}
+            {shown.gst && <small> incl. GST</small>}
+          </span>
+        )}
       </div>
 
       {redirect && (

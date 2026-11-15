@@ -1,5 +1,6 @@
 /* The live preview beside the contract screen (ContractPreview.jsx).
-   A phone-sized picture of the page: nothing in it can be used. */
+   A phone-sized picture of the page: nothing in it can be used, but it
+   scrolls like the real page does. */
 
 .cpv {
   --cpv-ink: #141414;
@@ -112,6 +113,29 @@
   color: var(--cpv-ink-3);
 }
 
+/* A thin scrollbar inside the phone, like a phone's own */
+.cpv-page__scroll,
+.cpv-done {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+}
+
+.cpv-page__scroll::-webkit-scrollbar,
+.cpv-done::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cpv-page__scroll::-webkit-scrollbar-thumb,
+.cpv-done::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 4px;
+}
+
+.cpv-page__scroll::-webkit-scrollbar-track,
+.cpv-done::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* ================= Checkout page ================= */
 .cpv-page {
   position: relative;
@@ -121,8 +145,21 @@
   color: var(--cpv-ink);
 }
 
+/* Everything above the buy bar scrolls: cover, title, description, form.
+   Scrolling stops here, so it never scrolls the page behind it. */
+.cpv-page__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Fades out above the buy bar, only while there's more below */
+.cpv-page__scroll--more {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+}
+
 .cpv-page__cover {
-  flex: none;
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -142,12 +179,7 @@
 }
 
 .cpv-page__body {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding: 16px 16px 0;
-  /* Fades out above the buy bar, as if it scrolls on */
-  mask-image: linear-gradient(to bottom, #000 80%, transparent);
+  padding: 16px 16px 20px;
 }
 
 .cpv-page__title {
@@ -194,6 +226,17 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
+  /* Room for the highlight around a question just changed */
+  margin: -5px -7px;
+  padding: 5px 7px;
+  border-radius: 9px;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+/* The question they just added or changed, lit up for a moment */
+.cpv-field--lit {
+  background: var(--color-primary-tint);
+  box-shadow: 0 0 0 1.5px var(--color-primary);
 }
 
 .cpv-field__label {
@@ -254,11 +297,6 @@
   border-radius: 3px;
 }
 
-.cpv-field__more {
-  font-size: 11px;
-  color: var(--cpv-ink-3);
-}
-
 /* Price and the button, pinned to the bottom like the real page */
 .cpv-page__buy {
   flex: none;
@@ -285,6 +323,13 @@
   font-size: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* No price typed yet */
+.cpv-page__amount--empty {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cpv-ink-3);
 }
 
 .cpv-page__amount s {
@@ -327,11 +372,14 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   color: var(--cpv-ink);
   background: #f6f7f6;
 }
 
 .cpv-done__top {
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -357,6 +405,7 @@
 }
 
 .cpv-done__card {
+  flex: none;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 8px 14px;
@@ -384,7 +433,12 @@
   overflow-wrap: anywhere;
 }
 
+.cpv-done__value--empty {
+  color: var(--cpv-ink-3);
+}
+
 .cpv-done__redirect {
+  flex: none;
   margin: 16px 16px 0;
   padding: 10px 12px;
   font-size: 12px;
@@ -398,6 +452,7 @@
 }
 
 .cpv-done__foot {
+  flex: none;
   margin-top: auto;
   padding: 14px;
 }
@@ -428,7 +483,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cpv__tab {
+  .cpv__tab,
+  .cpv-field {
     transition: none;
   }
 }

@@ -44,6 +44,9 @@ import './ContractEditor.css';
 // the screen on a long step until they scroll down to it.
 // Nothing else: no advanced settings for now.
 //
+// The preview follows the step (ContractPreview's focus): Details scrolls
+// it to the top, Checkout form down to the form.
+//
 // A contract a 1:1 call or a webinar owns isn't changed here: it follows
 // that call or webinar (ownerOf in tiedProducts.js), so this says so and
 // points there instead.
@@ -422,7 +425,7 @@ function ContractForm({ contract, backLabel, onBack, onCreated, onSaved }) {
               </button>
             ) : (
               <button type="button" className="es__btn es__btn--primary" onClick={onBack}>
-                Done
+                Finish
               </button>
             )}
           </>
@@ -446,7 +449,7 @@ function ContractForm({ contract, backLabel, onBack, onCreated, onSaved }) {
       viewHref={null}
       createLabel={isNew ? 'Create contract' : null}
       leaveNew="This contract isn’t created yet."
-      aside={<ContractPreview draft={draft} view={view} onView={setView} />}
+      aside={<ContractPreview draft={draft} view={view} onView={setView} focus={current.id} />}
       bar={false}
     >
       <Steps
@@ -519,7 +522,9 @@ function ContractForm({ contract, backLabel, onBack, onCreated, onSaved }) {
               placeholder="What people get, who it’s for, and what happens after they sign up."
               onChange={(e) => change('description')(e.target.value)}
             />
-            <span className="qinput__example">Leave a blank line between paragraphs.</span>
+            <span className="qinput__example">
+              Leave a blank line between paragraphs. Links starting with https:// become clickable.
+            </span>
           </div>
         </div>
 

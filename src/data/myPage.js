@@ -68,10 +68,12 @@ export function cleanHandle(text) {
 export const suggestedHandle = (name) => cleanHandle(name);
 
 // Stand-in for the real "is this link free?" call to the server.
-// Includes words we keep for our own pages.
+// Includes words we keep for our own pages ("web": contract checkouts
+// live at /web/checkout/<id>, see contractCheckout.js).
 const TAKEN = new Set([
   'meerajoshi', 'priya', 'coach', 'lifecoach', 'yoga', 'fitness',
   'admin', 'help', 'support', 'login', 'signup', 'about', 'pricing', 'dashboard',
+  'web',
 ]);
 
 export const isHandleTaken = (handle) => TAKEN.has(handle);

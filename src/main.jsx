@@ -7,6 +7,8 @@ import ContractEditorTab from './screens/ContractEditorTab.jsx'
 import ProfilePage from './screens/ProfilePage.jsx'
 import BookingPage from './screens/BookingPage.jsx'
 import CheckoutPage from './screens/CheckoutPage.jsx'
+import ContractCheckoutPage from './screens/ContractCheckoutPage.jsx'
+import ContractDonePage from './screens/ContractDonePage.jsx'
 import BookedPage from './screens/BookedPage.jsx'
 import ManageBookingPage from './screens/ManageBookingPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
@@ -21,8 +23,15 @@ import { getMockProfile } from './data/mockProfile'
 import { isMyCall } from './data/myProfile'
 import { seriesBySlug } from './data/webinar'
 import { isBatchId } from './data/batches'
+import { readCheckoutPath } from './data/contractCheckout'
 import { loadSaved } from './utils/storage'
 
+// /web/checkout/<contract id> → that contract's checkout, where people sign up and pay
+//   (ContractCheckoutPage; data/contractCheckout.js). The link a coach shares to sell a
+//   course. Built from the contract's id, so renaming it never breaks the link.
+//   &region=IN, EU or ELSE shows the price someone there sees, &fail=1 fails the first payment.
+//   /web/checkout/<contract id>/done?order=<id> → after they pay (ContractDonePage).
+//   Checked before creator handles: "web" can't be a handle (myPage.js).
 // ?go=<seriesId> → a webinar's shared link: the landing page of whichever of its runs
 //   is current (on now, else the soonest to come, else the latest over; data/webinar.js).
 //   Stays the same when it's run again. Any run's id works here too.
@@ -78,8 +87,21 @@ const mock = params.get('mock')
 const segments = window.location.pathname.split('/').filter(Boolean)
 const handle = segments[0]?.toLowerCase() ?? null
 const offeringId = segments[1] ? decodeURIComponent(segments[1]) : null
+// /web/checkout/<contract id>(/done): a contract's own checkout
+const contractCheckout = readCheckoutPath(window.location.pathname)
 
 function Root() {
+  if (contractCheckout) {
+    return contractCheckout.done ? (
+      <ContractDonePage contractId={contractCheckout.contractId} orderId={params.get('order')} />
+    ) : (
+      <ContractCheckoutPage
+        contractId={contractCheckout.contractId}
+        region={params.get('region')}
+        fail={params.get('fail') === '1'}
+      />
+    )
+  }
   // A creator's page address, unless a ?mock= screen was asked for
   if (handle && !mock && previewId === null && goId === null) {
     // Their account's link: the one picked in setup, or their name until then
