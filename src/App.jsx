@@ -31,6 +31,7 @@ import ExamplePreview from './components/ExamplePreview';
 import MyPageSetup from './screens/MyPageSetup';
 import BookingsPage from './screens/BookingsPage';
 import ContractsPage from './screens/ContractsPage';
+import CoursesPage from './screens/CoursesPage';
 import CallsPage from './screens/CallsPage';
 import LiveClassesPage from './screens/LiveClassesPage';
 import CloudStoragePage from './screens/CloudStoragePage';
@@ -1133,6 +1134,8 @@ function App() {
           onOpenCall={openCall}
           onOpenBatch={openBatch}
         />
+      ) : activeNav === 'courses' ? (
+        <CoursesPage />
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : activeNav === 'sales' ? (

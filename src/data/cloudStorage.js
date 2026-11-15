@@ -13,15 +13,17 @@ import { zoned } from '../utils/slots';
 //   recordings  their webinar sessions' Zoom recordings, once ready
 //               (recordings.js). Counted from the moment one is ready to
 //               watch: until then it's still with Zoom, not with us.
-//   files       what they upload themselves on Cloud Storage: videos,
-//               documents and images (FORMATS lists what's accepted).
-//               Other features (courses, later) will store files here too:
-//               nothing about storage is specific to webinars.
+//   files       what they upload themselves: videos, documents and
+//               images (FORMATS lists what's accepted), on Cloud
+//               Storage or from a course's lesson (a lesson's upload is
+//               stored here too, and counts like any file). Nothing about
+//               storage is specific to webinars or courses.
 //
 // One asset, as the Cloud Storage tab lists it (assetsOf):
 //   { id, kind: 'recording' | 'file' (where it came from),
-//     type: 'video' | 'document' | 'image' (what it is: a recording is
-//           a video, listed and counted with the videos they upload),
+//     type: 'video' | 'document' | 'image' (what it is: a
+//           recording is a video, listed and counted with the videos they
+//           upload),
 //     ext ('PDF', 'MP4'), name, bytes, at (ms, when it was added),
 //     day ('Sat 7 Nov', when it was added),
 //     webinarId, when ('Sat 7 Nov, 7:00 pm IST'), duration (ms)   recordings only }
@@ -35,6 +37,7 @@ import { zoned } from '../utils/slots';
 // Deleting frees the space at once. A deleted recording stays known to
 // its session (recordings.js keeps when it was deleted), so the session's
 // Recording tab can say it was deleted rather than that it never existed.
+// A deleted file that a lesson used: the lesson says so (fileById → null).
 //
 // How full it is (levelOf):
 //   'ok'      under 80%
@@ -150,6 +153,18 @@ const WEBINAR = funnelTypes.find((t) => t.id === 'webinar');
 // 'Sat 7 Nov', on the coach's clock
 const dayOf = (ms, zone) => exactDay(zoned(ms, zone).date);
 
+// A stored file as an asset (as the tab lists it)
+const fileAsset = (f, zone) => ({
+  id: `file:${f.id}`,
+  kind: 'file',
+  type: f.type,
+  name: f.name,
+  ext: f.ext ?? null,
+  bytes: f.bytes,
+  at: f.at,
+  day: dayOf(f.at, zone),
+});
+
 // Every asset, in no particular order (the tab sorts them).
 // webinars: every webinar session (App's funnels of type 'webinar')
 export function assetsOf({ webinars = [], now = Date.now() } = {}) {
@@ -173,18 +188,16 @@ export function assetsOf({ webinars = [], now = Date.now() } = {}) {
       duration: rec.duration,
     }));
 
-  const files = loadFiles().map((f) => ({
-    id: `file:${f.id}`,
-    kind: 'file',
-    type: f.type,
-    name: f.name,
-    ext: f.ext ?? null,
-    bytes: f.bytes,
-    at: f.at,
-    day: dayOf(f.at, zone),
-  }));
+  const files = loadFiles().map((f) => fileAsset(f, zone));
 
   return [...recordings, ...files];
+}
+
+// One uploaded file by its asset id ('file:f-…'), or null if it's gone
+export function fileById(assetId) {
+  const id = String(assetId ?? '').replace(/^file:/, '');
+  const f = loadFiles().find((x) => x.id === id);
+  return f ? fileAsset(f, coachZone()) : null;
 }
 
 // The share at which they're warned
@@ -334,10 +347,11 @@ export function uniqueName(name, taken = []) {
   }
 }
 
-// An upload finished: it's stored. Returns true once saved.
+// An upload finished: it's stored. Returns the stored file as an asset
+// (as fileById gives it), or null if it couldn't be saved.
 export function addFile({ name, bytes }, now = Date.now()) {
   const format = formatOf(name);
-  if (!format) return false;
+  if (!format) return null;
   const file = {
     id: `f-${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     name,
@@ -346,7 +360,7 @@ export function addFile({ name, bytes }, now = Date.now()) {
     bytes: Math.max(0, Math.round(bytes)),
     at: now,
   };
-  return saveFiles([...loadFiles(), file]);
+  return saveFiles([...loadFiles(), file]) ? fileAsset(file, coachZone()) : null;
 }
 
 // ---------- Demo only ----------

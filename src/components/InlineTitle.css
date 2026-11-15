@@ -1,0 +1,161 @@
+/* A title edited in place, with a pencil after its last word, and a bin
+   beside it when it can be deleted (InlineTitle.jsx). The box and a
+   hidden copy of its words share one grid cell, so the box is exactly as
+   wide as the words. */
+
+.ilt {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ilt__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ilt__box {
+  display: inline-grid;
+  grid-template-columns: minmax(0, auto);
+  min-width: 3ch;
+  max-width: 100%;
+}
+
+.ilt__size,
+.ilt__input {
+  grid-area: 1 / 1;
+  min-width: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--crs-ink, #141414);
+  white-space: pre;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.ilt__size {
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.ilt__input {
+  width: 100%;
+  text-overflow: ellipsis;
+  background: transparent;
+}
+
+.ilt__input:hover {
+  background: var(--color-surface);
+  border-color: #d6d6da;
+}
+
+.ilt__input:focus {
+  outline: none;
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* Pencil and bin: quiet grey, darker when pointed at */
+.ilt__tool {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #77777d;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ilt__tool:first-of-type {
+  margin-left: -6px; /* the pencil sits right after the last word */
+}
+
+.ilt:hover .ilt__tool {
+  color: #3d3d42;
+}
+
+.ilt__tool:hover {
+  color: var(--crs-ink, #141414);
+  background: #ececee;
+}
+
+.ilt__tool--delete:hover {
+  color: #c62828;
+  background: #fdecec;
+}
+
+.ilt__tool:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Being edited (the box has the cursor): the orange edge says so; the
+   pencil and bin step away. Only the box: a click on the bin focuses the
+   bin, and it mustn't hide under the pointer. */
+.ilt:has(.ilt__input:focus) .ilt__tool {
+  visibility: hidden;
+}
+
+/* ---------- The course's title ---------- */
+.ilt--page {
+  margin-left: -11px; /* the words line up with the page, not the box's edge */
+  font-size: 30px;
+  line-height: 1.25;
+}
+
+.ilt--page .ilt__input {
+  padding: 4px 10px;
+}
+
+.ilt--page .ilt__size {
+  padding: 4px 12px 4px 10px; /* a little extra, so the last letter never scrolls */
+}
+
+/* ---------- A section's name, a lesson's name ---------- */
+.ilt--section,
+.ilt--lesson {
+  font-size: 15.5px;
+  line-height: 1.4;
+}
+
+.ilt--lesson {
+  font-size: 15px;
+}
+
+.ilt--lesson .ilt__size,
+.ilt--lesson .ilt__input {
+  font-weight: 600;
+}
+
+.ilt--section .ilt__input,
+.ilt--lesson .ilt__input {
+  padding: 5px 8px;
+}
+
+.ilt--section .ilt__size,
+.ilt--lesson .ilt__size {
+  padding: 5px 10px 5px 8px;
+}
+
+.ilt--section .ilt__tool,
+.ilt--lesson .ilt__tool {
+  width: 30px;
+  height: 30px;
+}
+
+@media (max-width: 720px) {
+  .ilt--page {
+    font-size: 24px;
+  }
+}

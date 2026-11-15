@@ -3,7 +3,7 @@ import {
   Search, ChevronDown, ChevronRight, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
-  CalendarCheck, Users, Store, Video, Repeat, Cloud, Settings,
+  CalendarCheck, Users, Store, Video, Repeat, Cloud, Settings,BookOpen
 } from 'lucide-react';
 import { SETUP_CHANGED_EVENT, savedHandle } from '../data/myPage';
 import { loadBookings, onBookingsChange } from '../data/bookingsStore';
@@ -31,6 +31,7 @@ const sidebarItems = [
   // classes still works; remove `hidden` to bring the item back.
   { id: 'live-classes', label: 'Live classes', icon: Repeat, hidden: true },
   { id: 'services', label: 'Contracts', icon: Briefcase },
+    { id: 'courses', label: 'Courses', icon: BookOpen },
   // The coach's money with us: what they can withdraw and the account
   // statement (SalesPage.jsx). ArrowLeftRight, for money in and out.
   { id: 'sales', label: 'Sales', icon: ArrowLeftRight },

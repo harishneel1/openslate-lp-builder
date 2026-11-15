@@ -1,0 +1,235 @@
+/* Picking a course's contracts (ContractPicker.jsx). Fields look like the
+   rest of the app: white, a soft grey edge, orange when focused. */
+.cpk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: #141414;
+}
+
+.cpk .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Picked: one chip each ---------- */
+.cpk__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+}
+
+.cpk__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 5px 6px 5px 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  background: var(--color-primary-tint);
+  border: 1px solid #f6d6b9;
+  border-radius: var(--radius-pill);
+}
+
+.cpk__chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cpk__chip-x {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: #6b4a2e;
+  border-radius: 50%;
+}
+
+.cpk__chip-x:hover {
+  color: #141414;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.cpk__chip-x:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ---------- The button that opens the list ---------- */
+.cpk__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 15px;
+  color: #55555b;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s;
+}
+
+.cpk__toggle:hover {
+  border-color: #b9b9bf;
+}
+
+.cpk__toggle--open {
+  border-color: var(--color-primary);
+}
+
+.cpk__toggle:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.cpk__chevron {
+  flex: none;
+  color: #7a7a80;
+  transition: transform 0.15s;
+}
+
+.cpk__toggle--open .cpk__chevron {
+  transform: rotate(180deg);
+}
+
+/* ---------- The list ---------- */
+.cpk__panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.cpk__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  color: #7a7a80;
+  border-bottom: 1px solid #ececee;
+}
+
+.cpk__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 0;
+  font: inherit;
+  font-size: 14.5px;
+  color: #141414;
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.cpk__search:focus-within {
+  color: var(--color-primary);
+}
+
+.cpk__list {
+  max-height: 248px;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.cpk__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cpk__option:hover {
+  background: #f6f6f8;
+}
+
+.cpk__option--on,
+.cpk__option--on:hover {
+  background: var(--color-primary-tint);
+}
+
+.cpk__option input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.cpk__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.cpk__option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cpk__option-title {
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cpk__option-meta {
+  font-size: 13px;
+  color: #6b6b6b;
+}
+
+.cpk__none {
+  padding: 16px 14px;
+  font-size: 14px;
+  color: #6b6b6b;
+}
+
+.cpk__create {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b4520c;
+  text-decoration: none;
+  border-top: 1px solid #ececee;
+}
+
+.cpk__create:hover {
+  background: #fafafb;
+}
+
+.cpk__create:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cpk__toggle,
+  .cpk__chevron {
+    transition: none;
+  }
+}

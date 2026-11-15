@@ -1,0 +1,181 @@
+/* The academy's Courses page (AcademyCoursesPage.jsx): what students see.
+   Its own top bar, like TagMango's academy: the logo on the left, the tabs
+   in the middle, each an icon over its name in small capitals, the one
+   you're on underlined. */
+.acd {
+  min-height: 100vh;
+  color: #141414;
+  background: var(--color-bg);
+}
+
+.acd .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Top bar ---------- */
+.acd__top {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 76px;
+  padding: 0 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.acd__logo {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  background: #0b0b0c;
+  border-radius: var(--radius-sm);
+}
+
+.acd__nav {
+  display: flex;
+  align-self: stretch;
+}
+
+.acd__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 132px;
+  padding: 3px 20px 0;
+  color: #6b6b72;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.acd__tab:hover {
+  color: #141414;
+}
+
+.acd__tab--on {
+  color: #141414;
+  border-bottom-color: #141414;
+}
+
+.acd__tab-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.acd__tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -4px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- The page ---------- */
+.acd__main {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.acd__title {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.acd__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+  list-style: none;
+}
+
+.acd__grid > li {
+  min-width: 0;
+}
+
+/* ---------- No courses yet ---------- */
+.acd__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 28px;
+  padding: 72px 24px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.acd__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  color: #3d3d42;
+  background: #f0f0f2;
+  border-radius: var(--radius-lg);
+}
+
+.acd__empty-title {
+  margin-top: 20px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.acd__empty-text {
+  margin-top: 6px;
+  font-size: 15px;
+  color: #55555b;
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 720px) {
+  .acd__top {
+    height: 64px;
+    padding: 0 14px;
+  }
+
+  .acd__logo {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .acd__tab {
+    min-width: 0;
+    padding: 2px 14px 0;
+  }
+
+  .acd__main {
+    padding: 28px 16px 48px;
+  }
+
+  .acd__title {
+    font-size: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acd__tab {
+    transition: none;
+  }
+}

@@ -1,0 +1,220 @@
+/* A lesson's text editor and its read-only view (TextEditor.jsx).
+   Boxy, like the rest of the course page: a toolbar strip on top of a
+   bordered box. Its buttons (.crs-btn) and link box (.crs-input) come
+   from CoursesPage.css. */
+
+.tte {
+  display: flex;
+  flex-direction: column;
+}
+
+.tte__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Toolbar ---------- */
+.tte__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: #f6f6f7;
+  border: 1px solid #dcdce0;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+
+.tte__style {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #141414;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b6b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 9px center;
+  border: 1px solid #dcdce0;
+  border-radius: 6px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.tte__style:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.tte__sep {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: #dcdce0;
+}
+
+.tte__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #3d3d42;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tte__btn:hover {
+  color: #141414;
+  background: #fff;
+  border-color: #dcdce0;
+}
+
+.tte__btn--on,
+.tte__btn--on:hover {
+  color: #141414;
+  background: #fff;
+  border-color: #b9b9bf;
+}
+
+.tte__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ---------- Link: a row under the toolbar ---------- */
+.tte__linkbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: #fbfbfc;
+  border: 1px solid #dcdce0;
+  border-bottom: 0;
+}
+
+.tte__link-input {
+  flex: 1;
+  min-width: 200px;
+  min-height: 38px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.tte__link-error {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b42318;
+}
+
+/* ---------- Where the words go ---------- */
+.tte__box {
+  background: #fff;
+  border: 1px solid #dcdce0;
+  border-radius: 0 0 8px 8px;
+}
+
+.tte__box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.tte__content {
+  min-height: 220px;
+  padding: 14px 16px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #141414;
+  outline: none;
+}
+
+/* The same words, read-only: no box of their own */
+.tte__content--view {
+  min-height: 0;
+  padding: 0;
+}
+
+.tte__content > * + * {
+  margin-top: 0.75em;
+}
+
+.tte__content h2 {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.tte__content h3 {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.tte__content * + h2,
+.tte__content * + h3 {
+  margin-top: 1.1em;
+}
+
+.tte__content ul,
+.tte__content ol {
+  padding-left: 1.5em;
+}
+
+.tte__content li + li {
+  margin-top: 0.25em;
+}
+
+.tte__content li p {
+  margin: 0;
+}
+
+.tte__content a {
+  color: #b4520c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tte__content strong {
+  font-weight: 700;
+}
+
+/* "Write this lesson here…" while it's empty */
+.tte__content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: #9a9aa0;
+  pointer-events: none;
+}
+
+/* ---------- Under the box: what's unsaved, Cancel, Save ---------- */
+.tte__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tte__status {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: #55555b;
+}
