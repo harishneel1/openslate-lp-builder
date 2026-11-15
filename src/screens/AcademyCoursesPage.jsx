@@ -1,12 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Search } from 'lucide-react';
-import { coursePlayerPath, isPublished, loadCourses, onCoursesChange, studentLessons, studentSections } from '../data/courses';
+import { BookOpen, Eye, Search } from 'lucide-react';
+import {
+  academyHome,
+  coursePlayerPath,
+  isPublished,
+  loadCourses,
+  onCoursesChange,
+  studentLessons,
+  studentSections,
+} from '../data/courses';
 import { onProgressChange, progressOf } from '../data/courseProgress';
+import { coursesOf, currentStudent, onStudentChange } from '../data/students';
 import { mockAccount } from '../data/myPage';
 import AcademyTop from '../components/AcademyTop';
 import CoverArt from '../components/CoverArt';
 import CoursePlayerPage from './CoursePlayerPage';
+import StudentSignIn from './StudentSignIn';
+import AccountPage from './AccountPage';
+import UpdateContactPage from './UpdateContactPage';
 import './AcademyCoursesPage.css';
+import './CoursePlayerPage.css';
 
 // ------------------------------------------------------------
 // The academy: what students see, laid out as TagMango's, in our colours.
@@ -14,8 +27,11 @@ import './AcademyCoursesPage.css';
 //   /web/courses                         the Courses page (below)
 //   /web/courses/<course>/learn?lesson=  one course in the player
 //                                        (CoursePlayerPage.jsx)
-// Both are opened here, so main.jsx only needs to send /web/courses… to
-// this page. "View as student" (the coach's Courses page) and "Preview as
+//   /web/account                         My account (AccountPage.jsx)
+//   /web/account/change-number-email     Update number/email
+//                                        (UpdateContactPage.jsx)
+// All are opened here, so main.jsx only needs to send /web/courses… and
+// /web/account… to this page. "View as student" (the coach's Courses page) and "Preview as
 // student" (a course's page) open them.
 //
 //   [HN]              [📖 Courses]
@@ -39,10 +55,16 @@ import './AcademyCoursesPage.css';
 // Review course (all done); it opens the player where they left off.
 // A course with no lessons to show yet says "Lessons coming soon" instead.
 // Counts are of what students see: lessons with something in them.
-// Only published courses are here: a draft opens only through the coach's
-// Preview as student (CoursePlayerPage.jsx, &preview=1). With student
-// sign-in (next), a student sees only the published courses their
-// contracts give them.
+// Sign-in: nobody sees the academy without signing in. Signed out, any
+// academy page shows the sign-in (StudentSignIn.jsx) in its place; once
+// they're in, the page they asked for opens.
+// Access: a student sees only the published courses their contracts give
+// them (students.js). Others don't show at all, and opening one's link
+// says the page isn't available.
+// The coach's View as student and Preview as student add ?preview=1: no
+// sign-in, every published course here (and drafts too in the player,
+// from Preview as student), with a strip saying it's a preview.
+// Progress is each student's own (courseProgress.js).
 // The cover (CoverArt.jsx) is the one set in the course's Settings; until
 // there is one, our orange with the course's title on it.
 // ------------------------------------------------------------
@@ -53,10 +75,32 @@ function playerCourseId() {
   return parts[0] === 'web' && parts[1] === 'courses' && parts[2] ? decodeURIComponent(parts[2]) : null;
 }
 
+// /web/account pages: 'account' or 'contact', else null
+function accountPage() {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  if (parts[0] !== 'web' || parts[1] !== 'account') return null;
+  return parts[2] === 'change-number-email' ? 'contact' : 'account';
+}
+
+const previewing = () => new URLSearchParams(window.location.search).get('preview') === '1';
+
 export default function AcademyCoursesPage() {
+  const [preview] = useState(previewing);
+  const [student, setStudent] = useState(currentStudent);
+  useEffect(() => onStudentChange(() => setStudent(currentStudent())), []);
+
+  // The student's own pages: always signed in, never a preview
+  const own = accountPage();
+  if (own) {
+    if (!student) return <StudentSignIn />;
+    return own === 'contact' ? <UpdateContactPage student={student} /> : <AccountPage student={student} />;
+  }
+
+  if (!preview && !student) return <StudentSignIn />;
+  const me = preview ? null : student;
   const courseId = playerCourseId();
-  if (courseId) return <CoursePlayerPage courseId={courseId} />;
-  return <CourseList />;
+  if (courseId) return <CoursePlayerPage key={me?.id ?? 'preview'} courseId={courseId} student={me} preview={preview} />;
+  return <CourseList key={me?.id ?? 'preview'} student={me} preview={preview} />;
 }
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -70,19 +114,28 @@ function stateOf(course, progress) {
   return { lessons, done, state: done > 0 || progress.last ? 'started' : 'new' };
 }
 
-function CourseList() {
-  const published = () => loadCourses().filter(isPublished);
-  const [courses, setCourses] = useState(published);
+function CourseList({ student, preview }) {
+  const visible = () => (preview ? loadCourses().filter(isPublished) : coursesOf(student));
+  const who = preview ? 'preview' : student.id;
+  const [courses, setCourses] = useState(visible);
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState('');
-  useEffect(() => onCoursesChange(() => setCourses(published())), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const again = () => setCourses(visible());
+    const stopCourses = onCoursesChange(again);
+    const stopAccess = onStudentChange(again);
+    return () => {
+      stopCourses();
+      stopAccess();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => onProgressChange(() => setTick((n) => n + 1)), []);
   useEffect(() => {
     document.title = `${mockAccount.name} - Courses`;
   }, []);
 
   const rows = useMemo(
-    () => courses.map((course) => ({ course, ...stateOf(course, progressOf(course.id)) })),
+    () => courses.map((course) => ({ course, ...stateOf(course, progressOf(who, course.id)) })),
     [courses, tick],
   );
   const started = rows.filter((r) => r.state === 'started').length;
@@ -99,7 +152,13 @@ function CourseList() {
 
   return (
     <div className="acd">
-      <AcademyTop />
+      <AcademyTop student={student} home={academyHome(preview)} />
+      {preview && (
+        <p className="cpl__preview" role="status">
+          <Eye size={17} aria-hidden="true" />
+          Preview: every published course is here. Each student sees only the ones their contracts give them.
+        </p>
+      )}
 
       <main className="acd__main">
         <h1 className="acd__title">Courses</h1>
@@ -113,7 +172,11 @@ function CourseList() {
               <BookOpen size={28} />
             </span>
             <h2 className="acd__empty-title">No courses yet</h2>
-            <p className="acd__empty-text">Courses from {mockAccount.name} will show up here.</p>
+            <p className="acd__empty-text">
+              {preview
+                ? 'Published courses will show up here.'
+                : `Courses you sign up for from ${mockAccount.name} will show up here.`}
+            </p>
           </section>
         ) : (
           <>
@@ -140,7 +203,7 @@ function CourseList() {
               <ul className="acd__grid" aria-label="Courses">
                 {shown.map((row) => (
                   <li key={row.course.id}>
-                    <StudentCard {...row} />
+                    <StudentCard {...row} preview={preview} />
                   </li>
                 ))}
               </ul>
@@ -153,7 +216,7 @@ function CourseList() {
 }
 
 // One course: its cover, title, who it's by, its size, and the button
-function StudentCard({ course, lessons, done, state }) {
+function StudentCard({ course, lessons, done, state, preview }) {
   const sections = studentSections(course).length;
   const button = { new: 'Start learning', started: 'Continue', done: 'Review course' }[state];
 
@@ -173,7 +236,7 @@ function StudentCard({ course, lessons, done, state }) {
         {state === 'empty' ? (
           <span className="acd-card__btn acd-card__btn--off">Lessons coming soon</span>
         ) : (
-          <a className="acd-card__btn" href={coursePlayerPath(course.id)}>
+          <a className="acd-card__btn" href={coursePlayerPath(course.id, null, preview)}>
             {button}
             <span className="sr-only">: {course.title}</span>
           </a>

@@ -94,7 +94,7 @@ const offeringId = segments[1] ? decodeURIComponent(segments[1]) : null
 const contractCheckout = readCheckoutPath(window.location.pathname)
 
 function Root() {
-  if (segments[0] === 'web' && segments[1] === 'courses') return <AcademyCoursesPage />
+  if (segments[0] === 'web' && (segments[1] === 'courses' || segments[1] === 'account')) return <AcademyCoursesPage />
   if (contractCheckout) {
     return contractCheckout.done ? (
       <ContractDonePage contractId={contractCheckout.contractId} orderId={params.get('order')} />

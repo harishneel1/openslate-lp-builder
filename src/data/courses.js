@@ -59,7 +59,9 @@ import { getService } from './mockServices';
 // Kept in this browser for the mock; the real product keeps them on the
 // server, which must clean a lesson's html before showing it to anyone.
 //
-// academyCoursesPath / academyCoursesUrl() → the academy's Courses page
+// academyCoursesPath → the academy's Courses page (students sign in first)
+// academyCoursesUrl() → the same, as the coach's View as student (?preview=1)
+// academyHome(preview) → the Courses page, keeping ?preview=1 while previewing
 // coursePlayerPath(courseId, lessonId?, preview?) / coursePlayerUrl(…) → a
 //   course in the student's player: /web/courses/<course>/learn?lesson=<lesson>,
 //   with &preview=1 for the coach's Preview as student (drafts open too)
@@ -121,7 +123,10 @@ export const NEW_SECTION_TITLE = 'Untitled';
 // The academy's Courses page, what students see (AcademyCoursesPage.jsx).
 // "View as student" on the coach's Courses page opens it in a new tab.
 export const academyCoursesPath = '/web/courses';
-export const academyCoursesUrl = () => `${window.location.origin}${academyCoursesPath}`;
+// The coach's View as student: every published course, no sign-in
+export const academyCoursesUrl = () => `${window.location.origin}${academyCoursesPath}?preview=1`;
+// Where the academy's Courses links go: the preview's own, while previewing
+export const academyHome = (preview = false) => (preview ? `${academyCoursesPath}?preview=1` : academyCoursesPath);
 
 // One course in the student's player (CoursePlayerPage.jsx), at a lesson
 // or (without one) where they left off. preview: the coach's Preview as

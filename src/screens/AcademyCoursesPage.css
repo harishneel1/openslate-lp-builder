@@ -88,6 +88,165 @@
   outline-offset: 2px;
 }
 
+/* ---------- The student's picture and menu, top right ----------
+   In Cloud Storage's look: a white panel with a hairline border, rows
+   split by hairlines, a tinted square tile beside each. The picture,
+   until they add one, is their initials on our orange tint, as Cloud
+   Storage's video tiles. */
+.acd__right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.acd-photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #c4560a;
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(196, 86, 10, 0.14);
+}
+
+.acd-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.acd-me {
+  position: relative;
+}
+
+.acd-me__button {
+  display: block;
+  padding: 2px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.acd-me__button:hover,
+.acd-me__button[aria-expanded='true'] {
+  border-color: #c9c9ce;
+}
+
+.acd-me__button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.acd-me__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: 300px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.08);
+  outline: 0;
+}
+
+.acd-me__who,
+.acd-me__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.acd-me__who {
+  padding: 16px;
+}
+
+.acd-me__who > svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.acd-me__who-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.acd-me__name,
+.acd-me__contact {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acd-me__name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.acd-me__contact {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.acd-me__item {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Its tile: as Cloud Storage's, small and grey */
+.acd-me__tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #55555b;
+  background: #f2f2f4;
+  border-radius: 8px;
+}
+
+.acd-me__who:hover,
+.acd-me__item:hover,
+.acd-me__who:focus-visible,
+.acd-me__item:focus-visible {
+  background: #fafafb;
+  outline: 0;
+}
+
+.acd-me__who:focus-visible,
+.acd-me__item:focus-visible {
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.acd-me__item--out {
+  color: #b42318;
+}
+
+.acd-me__item--out .acd-me__tile {
+  color: #b42318;
+  background: #fdecec;
+}
+
 /* ---------- The Courses page ---------- */
 .acd__main {
   max-width: 1160px;
@@ -287,6 +446,15 @@
     width: 38px;
     height: 38px;
     font-size: 14px;
+  }
+
+  .acd-me__button .acd-photo {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .acd-me__menu {
+    width: min(300px, calc(100vw - 28px));
   }
 
   .acd__tab {

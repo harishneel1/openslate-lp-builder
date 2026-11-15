@@ -1,0 +1,538 @@
+/* ============================================================
+   The student's own pages: My account (AccountPage.jsx) and Update
+   number/email (UpdateContactPage.jsx). Cloud Storage's look: white
+   panels with a hairline border, rows split by hairlines, tinted square
+   tiles, small-radius buttons. The top bar is AcademyCoursesPage.css's.
+   ============================================================ */
+
+.acc .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.acc__main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.acc__title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.acc__sub {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.acc__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.acc__back:hover {
+  color: var(--color-text);
+}
+
+/* ---------- Panels, rows and tiles ---------- */
+.acc-panel {
+  margin-top: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.acc-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #c4560a;
+  background: var(--color-primary-tint);
+  border-radius: 10px;
+}
+
+.acc-tile--grey {
+  color: #55555b;
+  background: #f2f2f4;
+}
+
+.acc-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  transition: background 0.12s;
+}
+
+.acc-row:hover {
+  background: #fafafb;
+}
+
+.acc-row__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.acc-row__name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.acc-row__detail {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.acc-row__detail--none {
+  font-style: italic;
+}
+
+.acc-row__go {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Buttons ---------- */
+.acc-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.acc-btn:hover:not(:disabled) {
+  border-color: #c9c9ce;
+}
+
+.acc-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.acc-btn--primary {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.acc-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.acc-btn--quiet {
+  border-color: transparent;
+  background: none;
+}
+
+.acc-btn--quiet:hover:not(:disabled) {
+  background: #f2f2f4;
+  border-color: transparent;
+}
+
+.acc-btn:focus-visible,
+.acc-row:focus-visible,
+.acc__back:focus-visible,
+.acc-logout:focus-visible,
+.acc-photo:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- My account: Hello, and the photo ---------- */
+.acc-hello {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+}
+
+.acc-hello__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.acc-hello__hi {
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.acc-hello__name {
+  overflow: hidden;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acc-hello__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.acc-hello__said {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-success);
+}
+
+.acc-hello__said:not(:empty) {
+  margin-top: 10px;
+}
+
+.acc-hello__said--error {
+  color: #b42318;
+}
+
+/* The photo: a camera over it on hover, as TagMango's */
+.acc-photo {
+  position: relative;
+  flex: none;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.acc-photo .acd-photo {
+  font-size: 38px !important;
+}
+
+.acc-photo__camera {
+  position: absolute;
+  inset: 4px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(17, 17, 17, 0.45);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.acc-photo:hover .acc-photo__camera,
+.acc-photo:focus-visible .acc-photo__camera {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .acc-photo__camera {
+    inset: auto 2px 2px auto;
+    width: 34px;
+    height: 34px;
+    background: var(--color-text);
+    border: 2px solid var(--color-surface);
+    opacity: 1;
+  }
+
+  .acc-photo__camera svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* ---------- Logout: red, on its own under the panels ---------- */
+.acc__out {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.acc-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(100%, 360px);
+  min-height: 46px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: #c4321f;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.acc-logout:hover {
+  background: #a82a1a;
+}
+
+/* ---------- Update number/email ---------- */
+.acc-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 24px;
+}
+
+.acc-contacts {
+  overflow: hidden;
+}
+
+.acc-contact + .acc-contact {
+  border-top: 1px solid var(--color-border);
+}
+
+.acc-contact__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+}
+
+.acc-contact__done {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.acc-contact--open {
+  background: #fcfcfd;
+}
+
+.acc-contact__form {
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px 22px 84px;
+}
+
+.acc-field__label {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.acc-field {
+  display: flex;
+  align-items: center;
+  max-width: 420px;
+  height: 44px;
+  padding: 0 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.acc-field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.acc-field--error,
+.acc-field--error:focus-within {
+  border-color: #d13b3b;
+  box-shadow: none;
+}
+
+.acc-field__prefix {
+  flex: none;
+  padding-right: 10px;
+  margin-right: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  border-right: 1px solid var(--color-border);
+}
+
+.acc-field__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  outline: 0;
+}
+
+.acc-field__input::placeholder {
+  color: #a3a3aa;
+}
+
+.acc-field__note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.acc-field__error {
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #b42318;
+}
+
+.acc-contact__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.acc-contact__sent {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.acc-contact__sent strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.acc-contact__sent .ssi__link,
+.acc-contact__resend .ssi__link {
+  font-size: 14px;
+}
+
+/* The six boxes, smaller than on the sign-in */
+.acc-contact__code {
+  max-width: 360px;
+}
+
+.acc-contact__code .ssi__code {
+  gap: 8px;
+}
+
+.acc-contact__code .ssi__digit {
+  height: 48px;
+  font-size: 19px;
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.acc-contact__resend {
+  margin-left: auto;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+.acc-help {
+  padding: 22px;
+}
+
+.acc-help__title {
+  margin-top: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.acc-help__text {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 760px) {
+  .acc__main {
+    padding: 28px 16px 48px;
+  }
+
+  .acc__title {
+    font-size: 26px;
+  }
+
+  .acc-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .acc-help {
+    order: -1;
+  }
+
+  .acc-hello {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 22px;
+  }
+
+  .acc-hello__name {
+    font-size: 26px;
+    white-space: normal;
+  }
+
+  .acc-row,
+  .acc-contact__head {
+    padding: 16px 18px;
+  }
+
+  .acc-contact__form {
+    padding: 0 18px 20px;
+  }
+
+  .acc-contact__resend {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acc-photo__camera,
+  .acc-row,
+  .acc-btn,
+  .acc-logout {
+    transition: none;
+  }
+}

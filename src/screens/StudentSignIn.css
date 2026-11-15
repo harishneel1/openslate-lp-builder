@@ -1,0 +1,317 @@
+/* ============================================================
+   The academy's sign-in (StudentSignIn.jsx): TagMango's card, in our
+   light theme with the orange.
+   ============================================================ */
+
+.ssi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 48px 20px 32px;
+  font-family: var(--font-sans);
+  color: #141414;
+  background: var(--color-bg);
+}
+
+.ssi__card {
+  width: 100%;
+  max-width: 480px;
+  padding: 44px 44px 40px;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: 28px;
+}
+
+.ssi__logo {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 36px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  background: #0b0b0c;
+  border-radius: 50%;
+}
+
+.ssi__intro {
+  margin: 0 0 28px;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #55555b;
+}
+
+.ssi__sent {
+  margin: -16px 0 28px;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: #55555b;
+}
+
+.ssi__sent strong {
+  font-weight: 600;
+  color: #141414;
+}
+
+.ssi__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.ssi__label {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6b72;
+}
+
+/* The number box: [IN +91 | 98765 43210] */
+.ssi__field {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px;
+  background: var(--color-surface);
+  border: 1px solid #d9d9de;
+  border-radius: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ssi__field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ssi__field--error,
+.ssi__field--error:focus-within {
+  border-color: #d13b3b;
+  box-shadow: none;
+}
+
+.ssi__country {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding-right: 12px;
+  margin-right: 12px;
+  font-size: 17px;
+  font-weight: 500;
+  border-right: 1px solid #e3e3e7;
+}
+
+.ssi__flag {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #55555b;
+}
+
+.ssi__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+  font-size: 17px;
+  color: #141414;
+  background: none;
+  border: 0;
+  outline: 0;
+}
+
+.ssi__input::placeholder {
+  color: #a3a3aa;
+}
+
+.ssi__note {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0 0;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #6b6b72;
+}
+
+.ssi__note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.ssi__error {
+  margin: 12px 0 0;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #c02f2f;
+}
+
+.ssi__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 54px;
+  margin-top: 26px;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ssi__btn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.ssi__btn--outline,
+.ssi__btn--outline:hover {
+  margin-top: 0;
+  color: #141414;
+  background: var(--color-surface);
+  border-color: #d9d9de;
+}
+
+.ssi__btn--outline:hover {
+  border-color: var(--color-primary);
+}
+
+.ssi__btn--outline svg {
+  color: var(--color-primary);
+}
+
+.ssi__btn:focus-visible,
+.ssi__link:focus-visible,
+.ssi__digit:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ssi__or {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 26px 0;
+  font-size: 15px;
+  color: #8a8a90;
+}
+
+.ssi__or::before,
+.ssi__or::after {
+  flex: 1;
+  height: 1px;
+  content: '';
+  background: #e3e3e7;
+}
+
+/* ---------- The code: six boxes ---------- */
+.ssi__code {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.ssi__digit {
+  width: 100%;
+  height: 58px;
+  padding: 0;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  color: #141414;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid #d9d9de;
+  border-radius: 14px;
+  outline: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ssi__digit:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.ssi__digit--error {
+  border-color: #d13b3b;
+}
+
+.ssi__resend {
+  margin: 22px 0 0;
+  font-size: 15px;
+  color: #6b6b72;
+  text-align: center;
+}
+
+.ssi__link {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #b4520c;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ssi__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ssi__foot {
+  margin: 28px 0 0;
+  font-size: 14px;
+  color: #8a8a90;
+}
+
+@media (max-width: 520px) {
+  .ssi {
+    justify-content: flex-start;
+    padding-top: 24px;
+  }
+
+  .ssi__card {
+    padding: 32px 22px 28px;
+    border-radius: 22px;
+  }
+
+  .ssi__logo {
+    margin-bottom: 26px;
+  }
+
+  .ssi__intro {
+    font-size: 17.5px;
+  }
+
+  .ssi__code {
+    gap: 7px;
+  }
+
+  .ssi__digit {
+    height: 52px;
+  }
+}
+
+.ssi .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

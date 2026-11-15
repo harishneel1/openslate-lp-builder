@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Download, ExternalLink, Eye, FileText, Link2, Play, Share2 } from 'lucide-react';
 import {
-  academyCoursesPath,
+  academyHome,
   coursePlayerPath,
   coursePlayerUrl,
   getCourse,
@@ -12,6 +12,7 @@ import {
   studentSections,
 } from '../data/courses';
 import { onProgressChange, progressOf, setDone, setLast } from '../data/courseProgress';
+import { canSee, onStudentChange } from '../data/students';
 import { fileById, formatBytes, onStorageChange } from '../data/cloudStorage';
 import { copyText } from '../utils/copyText';
 import { TextView } from '../components/TextEditor';
@@ -63,21 +64,24 @@ import './CoursePlayerPage.css';
 // Where they are: ?lesson= in the address, so a lesson's link opens it,
 // and Back and Forward move between lessons. With none, the course opens
 // where they left off (the last lesson they opened), else at the first
-// lesson not done. Progress is kept in this browser (courseProgress.js).
+// lesson not done. Progress is each student's own (courseProgress.js).
 //
 // Phones: one column, the lesson first and the course's contents under it.
 //
-// Only a published course opens here, except with &preview=1: the coach's
+// Only a course the student can see opens here (students.js): published,
+// and on a contract they've signed up for. Any other link says the page
+// isn't available, without saying what's there. Except with &preview=1: the coach's
 // Preview as student, which opens drafts too, with a strip on top saying
 // it's a preview (and, for a draft, that students can't see it yet). The
 // preview flag stays in the address as they move between lessons; the
 // links Share copies are students' links, without it.
 //
 // courseId
+// student: who's signed in (null while previewing)
+// preview: the coach's Preview as student
 // ------------------------------------------------------------
 
 const lessonFromAddress = () => new URLSearchParams(window.location.search).get('lesson');
-const previewing = () => new URLSearchParams(window.location.search).get('preview') === '1';
 const two = (n) => String(n).padStart(2, '0');
 const kindLabel = (lesson) => (lesson.content.kind === 'embed' ? 'Video' : KIND[lesson.content.kind]?.label ?? 'Lesson');
 
@@ -87,11 +91,20 @@ function useLive(read, subscribe) {
   return value;
 }
 
-export default function CoursePlayerPage({ courseId }) {
-  const [preview] = useState(previewing);
+export default function CoursePlayerPage({ courseId, student = null, preview = false }) {
+  const who = preview ? 'preview' : student?.id;
+  const home = academyHome(preview);
   const found = useLive(() => getCourse(courseId), onCoursesChange);
-  const course = found && (preview || isPublished(found)) ? found : null;
-  const progress = useLive(() => progressOf(courseId), onProgressChange);
+  const allowed = useLive(() => preview || canSee(student, getCourse(courseId)), (fn) => {
+    const a = onCoursesChange(fn);
+    const b = onStudentChange(fn);
+    return () => {
+      a();
+      b();
+    };
+  });
+  const course = found && allowed ? found : null;
+  const progress = useLive(() => progressOf(who, courseId), onProgressChange);
   const sections = useMemo(() => (course ? studentSections(course) : []), [course]);
   const lessons = useMemo(() => (course ? studentLessons(course) : []), [course]);
 
@@ -120,7 +133,7 @@ export default function CoursePlayerPage({ courseId }) {
   useEffect(() => {
     if (!currentId) return;
     if (lessonFromAddress() !== currentId) window.history.replaceState(null, '', coursePlayerPath(courseId, currentId, preview));
-    setLast(courseId, currentId);
+    setLast(who, courseId, currentId);
     window.scrollTo?.({ top: 0 });
   }, [courseId, currentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -139,15 +152,15 @@ export default function CoursePlayerPage({ courseId }) {
   if (!course || lessons.length === 0) {
     return (
       <div className="acd">
-        <AcademyTop />
+        <AcademyTop student={student} home={home} />
         <main className="acd__main">
-          <a className="cpl__back" href={academyCoursesPath}>
+          <a className="cpl__back" href={home}>
             <ArrowLeft size={16} aria-hidden="true" /> Back to courses
           </a>
           <section className="acd__empty">
-            <h1 className="acd__empty-title">{course ? course.title : 'This course isn’t here'}</h1>
+            <h1 className="acd__empty-title">{course ? course.title : 'This page isn’t available'}</h1>
             <p className="acd__empty-text">
-              {course ? 'There are no lessons in this course yet. Check back soon.' : 'It may have been removed, or isn’t published yet.'}
+              {course ? 'There are no lessons in this course yet. Check back soon.' : 'Check the link, or go back to your courses.'}
             </p>
           </section>
         </main>
@@ -159,7 +172,7 @@ export default function CoursePlayerPage({ courseId }) {
 
   return (
     <div className="acd cpl">
-      <AcademyTop />
+      <AcademyTop student={student} home={home} />
       {preview && (
         <p className={`cpl__preview ${isPublished(course) ? '' : 'cpl__preview--draft'}`} role="status">
           <Eye size={17} aria-hidden="true" />
@@ -184,7 +197,7 @@ export default function CoursePlayerPage({ courseId }) {
                 type="button"
                 className={`cpl__mark ${isDone ? 'cpl__mark--done' : ''}`}
                 aria-pressed={isDone}
-                onClick={() => setDone(courseId, current.lesson.id, !isDone)}
+                onClick={() => setDone(who, courseId, current.lesson.id, !isDone)}
               >
                 <Check size={16} strokeWidth={isDone ? 3 : 2} aria-hidden="true" />
                 {isDone ? 'Completed' : 'Mark as complete'}
@@ -223,7 +236,7 @@ export default function CoursePlayerPage({ courseId }) {
                 href={coursePlayerPath(courseId, next.lesson.id, preview)}
                 onClick={(e) => {
                   e.preventDefault();
-                  setDone(courseId, current.lesson.id, true);
+                  setDone(who, courseId, current.lesson.id, true);
                   go(next.lesson.id);
                 }}
               >
@@ -238,12 +251,12 @@ export default function CoursePlayerPage({ courseId }) {
             ) : doneCount === lessons.length ? (
               <div className="cpl__finished">
                 <span>You’ve finished this course.</span>
-                <a className="cpl__finished-link" href={academyCoursesPath}>
+                <a className="cpl__finished-link" href={home}>
                   Back to courses
                 </a>
               </div>
             ) : (
-              <button type="button" className="cpl__finish" onClick={() => setDone(courseId, current.lesson.id, true)}>
+              <button type="button" className="cpl__finish" onClick={() => setDone(who, courseId, current.lesson.id, true)}>
                 Finish course <Check size={18} strokeWidth={3} aria-hidden="true" />
               </button>
             )}
@@ -296,7 +309,7 @@ function Contents({ courseId, preview, sections, total, doneCount, done, current
 
   return (
     <aside className="cpl__side" aria-label="Course content">
-      <a className="cpl__back" href={academyCoursesPath}>
+      <a className="cpl__back" href={academyHome(preview)}>
         <ArrowLeft size={16} aria-hidden="true" /> Back
       </a>
       <h2 className="cpl__side-title">Course content</h2>

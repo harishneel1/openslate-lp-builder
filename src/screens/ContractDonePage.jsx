@@ -3,6 +3,8 @@ import { ArrowUpRight, Check, FileText } from 'lucide-react';
 import { contractOf, getService } from '../data/mockServices';
 import { checkoutCreator, moneyExact } from '../data/contractCheckout';
 import { getContractSignup } from '../data/contractSignupsStore';
+import { academyCoursesPath } from '../data/courses';
+import { mockAccount } from '../data/myPage';
 import { isWebLink, shortLink, withScheme } from '../utils/links';
 import '../styles/storeTheme.css';
 import './CheckoutPage.css';
@@ -19,7 +21,23 @@ import './ContractCheckoutPage.css';
 //     (0 = straight away), with "Go now" so nobody has to wait
 // In the real product the order id comes back from Razorpay, and the
 // server checks the payment before this page says it went through.
+//
+// Prototype only: the creator's academy address (mockAccount.domain,
+// academy.harishneel.com, which "Login now" starts with) isn't a real
+// site yet, so any link to it opens this app's own academy instead
+// (/web/courses), where students sign in. The real app keeps the link
+// as it is.
 // ------------------------------------------------------------
+
+function openable(url) {
+  const full = withScheme(url);
+  try {
+    if (new URL(full).hostname === mockAccount.domain) return academyCoursesPath;
+  } catch {
+    // Not a link: left as it is
+  }
+  return full;
+}
 
 export default function ContractDonePage({ contractId, orderId }) {
   const creator = checkoutCreator();
@@ -31,7 +49,7 @@ export default function ContractDonePage({ contractId, orderId }) {
   const { buttonLabel, buttonUrl, redirectUrl, redirectDelay } = contract?.success ?? {};
   const label = String(buttonLabel ?? '').trim();
   const showButton = Boolean(label) && isWebLink(buttonUrl);
-  const redirect = isWebLink(redirectUrl) ? withScheme(redirectUrl) : null;
+  const redirect = isWebLink(redirectUrl) ? openable(redirectUrl) : null;
   const delay = Number(redirectDelay) || 0;
 
   useEffect(() => {
@@ -100,14 +118,14 @@ export default function ContractDonePage({ contractId, orderId }) {
         {redirect && (
           <p className="cc-done__redirect" aria-live="polite">
             {left > 0
-              ? `Taking you to ${shortLink(redirect)} in ${left} second${left === 1 ? '' : 's'}…`
-              : `Taking you to ${shortLink(redirect)}…`}
+              ? `Taking you to ${shortLink(redirectUrl)} in ${left} second${left === 1 ? '' : 's'}…`
+              : `Taking you to ${shortLink(redirectUrl)}…`}
             <a href={redirect}>Go now</a>
           </p>
         )}
 
         {showButton && (
-          <a className="cc-done__button" href={withScheme(buttonUrl)}>
+          <a className="cc-done__button" href={openable(buttonUrl)}>
             {label}
             <ArrowUpRight size={17} aria-hidden="true" />
           </a>

@@ -1,23 +1,24 @@
 // ------------------------------------------------------------
-// A student's progress through courses: which lessons they've finished,
+// Each student's progress through courses: which lessons they've finished,
 // and the last one they opened (so a course opens where they left off).
 //
-// Kept in this browser for the prototype, one record per course:
-//   { [courseId]: { done: [lessonId, …], last: lessonId | null } }
-// In the real product it's kept per student, on the server, once students
-// sign in.
+// Kept per student, so two people on one computer don't share ticks. The
+// coach's Preview as student keeps its own, under 'preview'. In the real
+// product it's kept on the server.
+//   { [who]: { [courseId]: { done: [lessonId, …], last: lessonId | null } } }
 //
 // A lesson counts as done when they press Next, or Mark as complete
 // (CoursePlayerPage.jsx). Mark as complete can be undone.
 //
-// progressOf(courseId) → { done: Set of lesson ids, last }
-// setDone(courseId, lessonId, done = true)
-// setLast(courseId, lessonId)
+// who: the student's id (students.js), or 'preview'
+// progressOf(who, courseId) → { done: Set of lesson ids, last }
+// setDone(who, courseId, lessonId, done = true)
+// setLast(who, courseId, lessonId)
 // onProgressChange(fn) → runs fn when progress changes (here or in
 //   another tab); returns the function that stops it
 // ------------------------------------------------------------
 
-const KEY = 'pagebuilder:course-progress';
+const KEY = 'pagebuilder:student-progress';
 const CHANGED = 'course-progress-changed';
 
 function readAll() {
@@ -39,28 +40,30 @@ function writeAll(all) {
   return true;
 }
 
-export function progressOf(courseId) {
-  const one = readAll()[courseId];
+const mine = (all, who) => (all[who] && typeof all[who] === 'object' && !Array.isArray(all[who]) ? all[who] : {});
+
+export function progressOf(who, courseId) {
+  const one = mine(readAll(), who)[courseId];
   const done = Array.isArray(one?.done) ? one.done.filter((id) => typeof id === 'string') : [];
   return { done: new Set(done), last: typeof one?.last === 'string' ? one.last : null };
 }
 
-function change(courseId, fn) {
+function change(who, courseId, fn) {
   const all = readAll();
-  const { done, last } = progressOf(courseId);
+  const { done, last } = progressOf(who, courseId);
   const next = fn({ done: new Set(done), last });
-  all[courseId] = { done: [...next.done], last: next.last };
+  all[who] = { ...mine(all, who), [courseId]: { done: [...next.done], last: next.last } };
   return writeAll(all);
 }
 
-export const setDone = (courseId, lessonId, isDone = true) =>
-  change(courseId, (p) => {
+export const setDone = (who, courseId, lessonId, isDone = true) =>
+  change(who, courseId, (p) => {
     if (isDone) p.done.add(lessonId);
     else p.done.delete(lessonId);
     return p;
   });
 
-export const setLast = (courseId, lessonId) => change(courseId, (p) => ({ ...p, last: lessonId }));
+export const setLast = (who, courseId, lessonId) => change(who, courseId, (p) => ({ ...p, last: lessonId }));
 
 export function onProgressChange(fn) {
   const fromOtherTab = (e) => {
