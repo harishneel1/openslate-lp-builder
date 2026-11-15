@@ -24,6 +24,7 @@
   border-radius: 28px;
 }
 
+/* The coach's logo, as in their own app: a dark square, small rounded corners */
 .ssi__logo {
   display: grid;
   place-items: center;
@@ -31,11 +32,10 @@
   height: 48px;
   margin-bottom: 36px;
   font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
   color: #fff;
-  background: #0b0b0c;
-  border-radius: 50%;
+  background: #111;
+  border-radius: 10px;
 }
 
 .ssi__intro {
