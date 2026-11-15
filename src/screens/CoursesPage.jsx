@@ -5,6 +5,7 @@ import {
   academyCoursesUrl,
   createCourse,
   deleteCourse,
+  isPublished,
   loadCourses,
   onCoursesChange,
 } from '../data/courses';
@@ -21,10 +22,10 @@ import './CoursesPage.css';
 //
 //   Courses                   [View as student ↗] [+ Create course]
 //   Students get a course when they sign up on a contract linked to it.
-//   [🔍 Search courses        ]
+//   [🔍 Search courses        ]  [All 3] [Published 1] [Drafts 2]
 //   ┌────────┐ ┌────────┐ ┌────────┐
 //   │ cover  │ │ cover  │ │ cover  │   CourseCard.jsx
-//   │ DRAFT  │ │        │ │        │
+//   │PUBLISHED│ │ DRAFT  │ │        │
 //   │ Title  │ │        │ │        │
 //   │[Edit course][⋯]    │ │        │
 //   └────────┘ └────────┘ └────────┘
@@ -32,16 +33,27 @@ import './CoursesPage.css';
 // No courses yet: one card in the middle saying "Your courses will appear
 // here", with Create course.
 //
+// All / Published / Drafts narrows the list, with how many of each (of
+// what matches the search). A course is published from its page.
+//
 // Create course opens "Create new course": a working title (required, up
 // to 100 characters) and the contracts that give access (optional,
 // ContractPicker). Continue makes a draft course and opens its page
 // (CoursePage.jsx) here, with "← Courses" back to the list. Edit course
 // opens the same page. ⋯ → Delete asks first; the course goes, and its
-// contracts stay as they are.
+// contracts stay as they are. Deleting a published one says students
+// lose it too.
 //
 // View as student opens the academy's Courses page (/web/courses,
-// AcademyCoursesPage.jsx) in a new tab: what students see.
+// AcademyCoursesPage.jsx) in a new tab: what students see (published
+// courses only).
 // ------------------------------------------------------------
+
+const FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'published', label: 'Published' },
+  { id: 'draft', label: 'Drafts' },
+];
 
 function useCourses() {
   const [list, setList] = useState(loadCourses);
@@ -52,6 +64,7 @@ function useCourses() {
 export default function CoursesPage() {
   const courses = useCourses();
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
   const [creating, setCreating] = useState(false);
   const [openId, setOpenId] = useState(null); // the course whose page is open
   const [menuFor, setMenuFor] = useState(null); // the card whose ⋯ menu is open
@@ -70,10 +83,17 @@ export default function CoursesPage() {
     if (!openId) document.title = 'Courses';
   }, [openId]);
 
-  const shown = useMemo(() => {
+  // What matches the search, then the filter
+  const matching = useMemo(() => {
     const words = query.trim().toLowerCase();
     return words ? courses.filter((c) => c.title.toLowerCase().includes(words)) : courses;
   }, [courses, query]);
+  const counts = {
+    all: matching.length,
+    published: matching.filter(isPublished).length,
+    draft: matching.filter((c) => !isPublished(c)).length,
+  };
+  const shown = matching.filter((c) => filter === 'all' || (filter === 'published') === isPublished(c));
 
   const confirmDelete = () => {
     const course = deleting;
@@ -124,16 +144,42 @@ export default function CoursesPage() {
         </section>
       ) : (
         <>
-          <label className="crs__search">
-            <Search size={18} aria-hidden="true" />
-            <span className="sr-only">Search courses</span>
-            <input type="search" value={query} placeholder="Search courses" onChange={(e) => setQuery(e.target.value)} />
-          </label>
+          <div className="crs__tools">
+            <label className="crs__search">
+              <Search size={18} aria-hidden="true" />
+              <span className="sr-only">Search courses</span>
+              <input type="search" value={query} placeholder="Search courses" onChange={(e) => setQuery(e.target.value)} />
+            </label>
+            <div className="crs__filters" role="group" aria-label="Show">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="crs__chip"
+                  aria-pressed={filter === f.id}
+                  onClick={() => setFilter(f.id)}
+                >
+                  {f.label} <span className="crs__chip-count">{counts[f.id]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {shown.length === 0 ? (
             <section className="crs__panel crs__none">
-              <p>No courses match “{query.trim()}”.</p>
-              <button type="button" className="crs-btn crs-btn--quiet" onClick={() => setQuery('')}>
+              {query.trim() ? (
+                <p>No {filter === 'all' ? '' : `${filter === 'draft' ? 'draft' : 'published'} `}courses match “{query.trim()}”.</p>
+              ) : (
+                <p>{filter === 'published' ? 'No courses published yet. Publish one from its page.' : 'No drafts: every course is published.'}</p>
+              )}
+              <button
+                type="button"
+                className="crs-btn crs-btn--quiet"
+                onClick={() => {
+                  setQuery('');
+                  setFilter('all');
+                }}
+              >
                 Show all courses
               </button>
             </section>
@@ -180,14 +226,16 @@ export default function CoursesPage() {
 
       {deleting && (
         <ConfirmDialog
-          title="Delete this course?"
+          title={isPublished(deleting) ? 'Delete this published course?' : 'Delete this course?'}
           confirmLabel="Delete course"
           danger
           onCancel={() => setDeleting(null)}
           onConfirm={confirmDelete}
         >
           <p>
-            <strong>{deleting.title}</strong> will be deleted. Its contracts stay as they are. This can’t be undone.
+            <strong>{deleting.title}</strong> will be deleted.{' '}
+            {isPublished(deleting) && 'It’s published, so students lose it straight away, and their progress with it. '}
+            Its contracts stay as they are. This can’t be undone.
           </p>
         </ConfirmDialog>
       )}

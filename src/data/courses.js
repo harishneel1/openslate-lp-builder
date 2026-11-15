@@ -31,6 +31,9 @@ import { getService } from './mockServices';
 //
 // One course:
 //   { id: 'course-…', title, contractIds: [...], status: 'draft',
+//     cover: null | { fileId ('file:f-…'), name, ext, bytes }: an image in
+//            their Cloud Storage, shown on the course's card in the academy
+//            (set in the course's Settings),
 //     sections: [{ id: 'sec-…', title, lessons: [
 //       { id: 'les-…', title, content, createdAt, updatedAt } ] }],
 //     createdAt, updatedAt }
@@ -39,16 +42,32 @@ import { getService } from './mockServices';
 // Lessons made before content types kept plain `text`; they read as a
 // text lesson (each blank-line paragraph a <p>), and are saved that way
 // the next time their course changes.
-// Every course is a draft for now; publishing comes later.
+// status: 'draft' (only the coach sees it, and Preview as student) or
+// 'published' (in the academy; publishedAt is when). Publishing needs at
+// least one lesson with something in it and at least one linked contract
+// (publishCheck). Once published, changes go live as they're made: there's
+// no separate draft to publish again.
 //
 // Kept in this browser for the mock; the real product keeps them on the
 // server, which must clean a lesson's html before showing it to anyone.
 //
 // academyCoursesPath / academyCoursesUrl() → the academy's Courses page
+// coursePlayerPath(courseId, lessonId?, preview?) / coursePlayerUrl(…) → a
+//   course in the student's player: /web/courses/<course>/learn?lesson=<lesson>,
+//   with &preview=1 for the coach's Preview as student (drafts open too)
+// isPublished(course)
+// publishCheck(course) → what publishing would do, and what stops it:
+//   { lessons, hidden (empty lessons left out), contracts, cover,
+//     problems: ['lessons' | 'contracts', …] }
+// publishCourse(id) → the published course, or null (checks not met)
+// unpublishCourse(id) → the course, back to a draft, or null
+// studentSections(course) → the course as students see it: only lessons
+//   with something in them, and only sections with such lessons
+// studentLessons(course) → those lessons in order, each with its section
 // loadCourses() → every course, newest first
 // getCourse(id) → one course, or null
 // createCourse({ title, contractIds }) → the new course, or null if it couldn't save
-// updateCourse(id, { title?, contractIds? }) → the changed course, or null
+// updateCourse(id, { title?, contractIds?, cover? }) → the changed course, or null
 // deleteCourse(id) → true if it's gone
 // linkedContracts(course) → its contracts that still exist, in the order linked
 // onCoursesChange(fn) → runs fn when courses change (here or in another tab);
@@ -65,7 +84,12 @@ import { getService } from './mockServices';
 // addLesson(courseId, sectionId, title) → { course, lesson }   a title is needed
 // updateLesson(courseId, lessonId, { title?, content? })   content null empties it
 // deleteLesson(courseId, lessonId)
-// moveSection / moveLesson / moveLessonTo     kept for ordering later (not shown now)
+// moveSectionBefore(courseId, sectionId, beforeSectionId | null)
+//                                             dragged: before another, or to the end
+// moveLessonBefore(courseId, lessonId, toSectionId, beforeLessonId | null)
+//                                             dragged: into a section, before another
+//                                             lesson there, or to its end
+// moveSection / moveLesson / moveLessonTo     one step (kept; not shown now)
 // readLink(text) → the link as a full https address, or null if it isn't one
 // readVideoLink(text) → { provider, id, url, embedUrl } for a YouTube or
 //   Vimeo video link, or null
@@ -87,6 +111,19 @@ export const NEW_SECTION_TITLE = 'Untitled';
 // "View as student" on the coach's Courses page opens it in a new tab.
 export const academyCoursesPath = '/web/courses';
 export const academyCoursesUrl = () => `${window.location.origin}${academyCoursesPath}`;
+
+// One course in the student's player (CoursePlayerPage.jsx), at a lesson
+// or (without one) where they left off. preview: the coach's Preview as
+// student, which opens drafts too.
+export function coursePlayerPath(courseId, lessonId = null, preview = false) {
+  const query = new URLSearchParams();
+  if (lessonId) query.set('lesson', lessonId);
+  if (preview) query.set('preview', '1');
+  const q = query.toString();
+  return `${academyCoursesPath}/${encodeURIComponent(courseId)}/learn${q ? `?${q}` : ''}`;
+}
+export const coursePlayerUrl = (courseId, lessonId = null, preview = false) =>
+  `${window.location.origin}${coursePlayerPath(courseId, lessonId, preview)}`;
 
 function read() {
   try {
@@ -153,6 +190,13 @@ export function updateCourse(id, edits) {
       next.title = name;
     }
     if ('contractIds' in edits) next.contractIds = cleanIds(edits.contractIds);
+    if ('cover' in edits) {
+      const c = edits.cover;
+      if (c === null) next.cover = null;
+      else if (c && typeof c.fileId === 'string' && c.fileId) {
+        next.cover = { fileId: c.fileId, name: String(c.name ?? 'Cover'), ext: c.ext ?? null, bytes: Number(c.bytes) || 0 };
+      } else return null;
+    }
     return next;
   });
 }
@@ -316,6 +360,16 @@ export function sectionsOf(course) {
     }));
 }
 
+// What students see: empty lessons are left out, and so are sections
+// left with none
+export const studentSections = (course) =>
+  sectionsOf(course)
+    .map((s) => ({ ...s, lessons: s.lessons.filter((l) => l.content) }))
+    .filter((s) => s.lessons.length > 0);
+
+export const studentLessons = (course) =>
+  studentSections(course).flatMap((section) => section.lessons.map((lesson) => ({ lesson, section })));
+
 export const lessonCount = (course) => sectionsOf(course).reduce((n, s) => n + s.lessons.length, 0);
 
 export function findLesson(course, lessonId) {
@@ -448,4 +502,57 @@ export function moveLessonTo(courseId, lessonId, sectionId) {
       }),
     };
   });
+}
+
+// Dragging a section: put it before another (or at the end, with null)
+export function moveSectionBefore(courseId, sectionId, beforeSectionId) {
+  if (sectionId === beforeSectionId) return null;
+  return change(courseId, (c) => {
+    const moving = c.sections.find((s) => s.id === sectionId);
+    if (!moving) return null;
+    const rest = c.sections.filter((s) => s.id !== sectionId);
+    const at = beforeSectionId ? rest.findIndex((s) => s.id === beforeSectionId) : rest.length;
+    if (at === -1) return null;
+    return { ...c, sections: [...rest.slice(0, at), moving, ...rest.slice(at)] };
+  });
+}
+
+// Dragging a lesson: into a section, before one of its lessons (or at its
+// end, with null)
+export function moveLessonBefore(courseId, lessonId, toSectionId, beforeLessonId) {
+  if (lessonId === beforeLessonId) return null;
+  return change(courseId, (c) => {
+    const from = findLesson(c, lessonId);
+    if (!from || !c.sections.some((s) => s.id === toSectionId)) return null;
+    const sections = c.sections.map((s) => ({ ...s, lessons: s.lessons.filter((l) => l.id !== lessonId) }));
+    const target = sections.find((s) => s.id === toSectionId);
+    const at = beforeLessonId ? target.lessons.findIndex((l) => l.id === beforeLessonId) : target.lessons.length;
+    if (at === -1) return null;
+    target.lessons = [...target.lessons.slice(0, at), from.lesson, ...target.lessons.slice(at)];
+    return { ...c, sections };
+  });
+}
+
+// ---------- Publishing ----------
+
+export const isPublished = (course) => course?.status === 'published';
+
+export function publishCheck(course) {
+  const all = sectionsOf(course).flatMap((sec) => sec.lessons);
+  const lessons = all.filter((l) => l.content).length;
+  const contracts = linkedContracts(course).length;
+  const problems = [];
+  if (lessons === 0) problems.push('lessons');
+  if (contracts === 0) problems.push('contracts');
+  return { lessons, hidden: all.length - lessons, contracts, cover: Boolean(course?.cover), problems };
+}
+
+export function publishCourse(id) {
+  const course = getCourse(id);
+  if (!course || publishCheck(course).problems.length > 0) return null;
+  return change(id, (c) => ({ ...c, status: 'published', publishedAt: now() }));
+}
+
+export function unpublishCourse(id) {
+  return change(id, (c) => ({ ...c, status: 'draft' }));
 }

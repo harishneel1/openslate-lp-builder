@@ -1,0 +1,38 @@
+/* A course's cover (CoverArt.jsx): the image, or our orange with the title */
+.cvr {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.22) 0 18%, transparent 19%),
+    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.12) 0 30%, transparent 31%),
+    linear-gradient(135deg, #f19a52, #e07a2c);
+}
+
+.cvr--image {
+  padding: 0;
+  background: #f0f0f2;
+}
+
+.cvr__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cvr__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: #fff;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}

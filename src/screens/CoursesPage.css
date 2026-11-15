@@ -238,6 +238,67 @@
   outline: none;
 }
 
+/* Search, then All / Published / Drafts beside it */
+.crs__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 28px;
+}
+
+.crs__tools .crs__search {
+  flex: 1;
+  min-width: 240px;
+  margin-top: 0;
+}
+
+.crs__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crs__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--crs-ink);
+  background: var(--color-surface);
+  border: 1px solid #dcdce0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.crs__chip:hover {
+  border-color: #b9b9bf;
+}
+
+.crs__chip[aria-pressed='true'] {
+  color: #fff;
+  background: var(--crs-ink);
+  border-color: var(--crs-ink);
+}
+
+.crs__chip-count {
+  color: var(--crs-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.crs__chip[aria-pressed='true'] .crs__chip-count {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.crs__chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .crs__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -587,6 +648,22 @@
   outline-offset: 2px;
 }
 
+/* ← Courses on the left, Preview as student on the right */
+.cpg__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+/* Preview as student, then Publish (or Unpublish) */
+.cpg__top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* The Draft badge, then the title under it (as on the course cards) */
 .cpg__head {
   display: flex;
@@ -605,6 +682,11 @@
   color: #55555b;
   background: #e9e9ec;
   border-radius: var(--radius-pill);
+}
+
+.cpg__badge--live {
+  color: #157a43;
+  background: var(--color-success-tint);
 }
 
 .cpg__status {
@@ -712,6 +794,118 @@
   font-size: 14px;
   line-height: 1.5;
   color: var(--crs-ink-2);
+}
+
+/* ================= Settings (CourseSettings.jsx): one part after another ================= */
+.cst__part + .cst__part {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--crs-line);
+}
+
+.cst__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.cst__title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.cst__sub {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--crs-ink-2);
+}
+
+/* Cover image: the cover as the card shows it, its file and buttons beside */
+.cst__cover {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 24px;
+  margin-top: 16px;
+}
+
+.cst__cover-art {
+  flex: none;
+  width: 320px;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-sm);
+}
+
+.cst__cover-art .cvr {
+  padding: 16px;
+}
+
+.cst__cover-art .cvr__title {
+  font-size: 20px;
+}
+
+.cst__cover-art .cvr--image {
+  padding: 0;
+}
+
+.cst__cover-side {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 260px;
+}
+
+.cst__file {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--crs-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.cst__file strong {
+  font-weight: 600;
+  color: var(--crs-ink);
+}
+
+.cst__file--missing {
+  color: #8f1d14;
+}
+
+.cst__file--missing svg {
+  vertical-align: -2px;
+}
+
+.cst__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cst__hint {
+  font-size: 13px;
+  color: var(--crs-ink-3);
+}
+
+.cst__uploading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cst__uploading .lp__bar {
+  width: 100%;
+  margin-top: 0;
+}
+
+.cst__bar-fill {
+  background: var(--color-success);
 }
 
 /* No contracts linked */
@@ -1110,6 +1304,100 @@
   outline-offset: 1px;
 }
 
+/* ---------- Reordering: ⋮⋮, and where a dragged one will land ---------- */
+.cct__grip {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 34px;
+  margin-left: 2px;
+  color: #8a8a90;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.cct__grip:hover {
+  color: var(--crs-ink);
+  background: #e9e9ec;
+}
+
+.cct__grip:active {
+  cursor: grabbing;
+}
+
+.cct__grip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.cct__section-head .cct__grip {
+  margin-left: 8px;
+}
+
+/* What's being dragged stays in place, faded */
+.cct__lesson--dragging,
+.cct__section--dragging {
+  opacity: 0.4;
+}
+
+/* The orange line: above a lesson or section, or at the end of a list */
+.cct__lesson,
+.cct__section {
+  position: relative;
+}
+
+.cct__lesson--drop-before::before,
+.cct__section--drop-before::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.cct__section--drop-before::before {
+  top: -10px;
+}
+
+.cct__drop-end {
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* An empty section: a box to drop into */
+.cct__drop-end--empty {
+  display: grid;
+  place-items: center;
+  height: 52px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b4520c;
+  background: var(--color-primary-tint);
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.cct__section-drop-end {
+  height: 3px;
+  list-style: none;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* While dragging, the bars don't light up under the pointer */
+.cct--dragging .cct__lesson-row {
+  cursor: grabbing;
+}
+
 /* ---------- Add lesson: a new bar with a title box ---------- */
 .cct__new {
   padding: 10px 12px 12px 6px;
@@ -1195,6 +1483,11 @@
 .cct__tile--video {
   color: #c4560a;
   background: var(--color-primary-tint);
+}
+
+.cct__tile--image {
+  color: #177a42;
+  background: #e3f5ea;
 }
 
 .cct__tile--pdf {
@@ -1743,4 +2036,77 @@ a.crs-btn {
   .cct__caret {
     transition: none;
   }
+}
+
+/* ================= Publish pop-up (CoursePage.jsx, PublishDialog) ================= */
+.pub {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+}
+
+.pub__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #141414;
+  border-radius: var(--radius-sm);
+}
+
+.pub__row svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.pub__row--ok {
+  background: #f2faf5;
+}
+
+.pub__row--ok svg {
+  color: var(--color-success);
+}
+
+.pub__row--no {
+  background: #fdecec;
+}
+
+.pub__row--no svg {
+  color: #c62828;
+}
+
+.pub__row--note {
+  color: #55555b;
+  background: #f6f6f7;
+}
+
+.pub__row--note svg {
+  color: #8a8a90;
+}
+
+.pub__note {
+  color: #6b6b72;
+}
+
+.pub__fix {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b4520c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.pub__after {
+  margin-top: 4px;
+  font-size: 14px;
 }

@@ -1,29 +1,31 @@
 import { BookOpen } from 'lucide-react';
 import { mockAccount } from '../data/myPage';
-import { lessonCount } from '../data/courses';
+import { isPublished, lessonCount } from '../data/courses';
 import './CourseCard.css';
 
 // ------------------------------------------------------------
-// One course as a card: a cover, then its title and who it's by. Until
-// courses have cover images, the cover is a dark panel with the title
-// written large on it (as TagMango's own placeholder covers look).
+// One course as a card on the coach's Courses page: a cover, then whether
+// it's live, its title and who it's by. Until courses have cover images
+// here, the cover is a dark panel with the title written large on it (as
+// TagMango's own placeholder covers look).
 //
 //   ┌──────────────────────┐
 //   │  AI ENGINEERING      │  cover
 //   │  ACCELERATOR         │
 //   ├──────────────────────┤
-//   │ DRAFT                │
+//   │ PUBLISHED            │  or DRAFT (grey)
 //   │ AI Engineering Acc…  │  title, two lines at most
 //   │ By Harish Neel       │
 //   │ 3 lessons            │  "No lessons yet" until it has one
 //   │ [actions]            │  children: the coach's buttons, if any
 //   └──────────────────────┘
 //
-// course: { title, status }
+// course: { title, status, sections }
 // children: what goes at the foot (Edit course and ⋯ on the Courses page)
 // ------------------------------------------------------------
 export default function CourseCard({ course, children }) {
   const lessons = lessonCount(course);
+  const live = isPublished(course);
   return (
     <article className="crd">
       <div className="crd__cover" aria-hidden="true">
@@ -31,7 +33,7 @@ export default function CourseCard({ course, children }) {
         <span className="crd__cover-title">{course.title}</span>
       </div>
       <div className="crd__body">
-        {course.status !== 'published' && <span className="crd__badge">Draft</span>}
+        <span className={`crd__badge ${live ? 'crd__badge--live' : ''}`}>{live ? 'Published' : 'Draft'}</span>
         <h3 className="crd__title">{course.title}</h3>
         <p className="crd__by">By {mockAccount.name}</p>
         <p className="crd__meta">

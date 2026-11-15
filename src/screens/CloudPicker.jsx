@@ -5,10 +5,13 @@ import { lessonKindOfFile } from '../data/courses';
 import { KindTile } from './lessonKinds';
 
 // ------------------------------------------------------------
-// "Pick from Cloud Storage": the Cloud Storage tile in a lesson
-// (LessonPanel.jsx). The videos and PDFs they've uploaded, newest first,
-// to use as the lesson's content. Images and other documents aren't
-// listed: a lesson can't use them.
+// "Pick from Cloud Storage", for a lesson or a course's cover.
+//   only 'lesson' (the Cloud Storage tile in a lesson, LessonPanel.jsx):
+//        the videos and PDFs they've uploaded, to use as its content.
+//        Images and other documents aren't listed: a lesson can't use them.
+//   only 'image'  (Cover image in a course's Settings, CourseSettings.jsx):
+//        their images.
+// Newest first.
 //
 //   ┌──────────── Pick from Cloud Storage ──────────── ✕ ┐
 //   │ [🔍 Search files            ]                       │
@@ -24,16 +27,17 @@ import { KindTile } from './lessonKinds';
 // (lessonKindOfFile). Webinar recordings aren't listed yet: they live
 // with their sessions.
 //
-// onPick(asset), onCancel()
+// only: 'lesson' | 'image'; onPick(asset), onCancel()
 // ------------------------------------------------------------
 
-const LABEL = { video: 'Video', pdf: 'PDF' };
+const LABEL = { video: 'Video', pdf: 'PDF', image: 'Image' };
 const TYPES = [
   { id: 'video', label: 'Videos' },
   { id: 'pdf', label: 'PDFs' },
 ];
 
-export default function CloudPicker({ onPick, onCancel }) {
+export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
+  const kindOf = (a) => (only === 'image' ? (a.type === 'image' ? 'image' : null) : lessonKindOfFile(a));
   const ref = useRef(null);
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState('');
@@ -47,15 +51,15 @@ export default function CloudPicker({ onPick, onCancel }) {
   }, []);
   useEffect(() => onStorageChange(() => setTick((n) => n + 1)), []);
 
-  // Uploaded videos and PDFs only (assetsOf without webinars), newest first
+  // Uploaded files of the kinds asked for (assetsOf without webinars), newest first
   const files = useMemo(
-    () => assetsOf().filter((a) => a.kind === 'file' && lessonKindOfFile(a)).sort((a, b) => b.at - a.at),
-    [tick], // eslint-disable-line react-hooks/exhaustive-deps
+    () => assetsOf().filter((a) => a.kind === 'file' && kindOf(a)).sort((a, b) => b.at - a.at),
+    [tick, only], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const needle = query.trim().toLowerCase();
   const matching = needle ? files.filter((f) => f.name.toLowerCase().includes(needle)) : files;
-  const types = TYPES.filter((t) => matching.some((f) => lessonKindOfFile(f) === t.id));
-  const shown = matching.filter((f) => type === 'all' || lessonKindOfFile(f) === type);
+  const types = only === 'lesson' ? TYPES.filter((t) => matching.some((f) => kindOf(f) === t.id)) : [];
+  const shown = matching.filter((f) => type === 'all' || kindOf(f) === type);
   const picked = files.find((f) => f.id === chosen) ?? null;
 
   return (
@@ -70,7 +74,7 @@ export default function CloudPicker({ onPick, onCancel }) {
     >
       <div className="crs-dialog__top">
         <h2 className="crs-dialog__title" id="cpk-title">
-          Pick from Cloud Storage
+          {only === 'image' ? 'Pick a cover from Cloud Storage' : 'Pick from Cloud Storage'}
         </h2>
         <button type="button" className="crs-dialog__close" onClick={onCancel} aria-label="Close">
           <X size={18} aria-hidden="true" />
@@ -81,8 +85,12 @@ export default function CloudPicker({ onPick, onCancel }) {
         {files.length === 0 ? (
           <div className="cpk__empty">
             <Cloud size={24} aria-hidden="true" />
-            <p className="cpk__empty-title">No videos or PDFs in your Cloud Storage yet</p>
-            <p className="cpk__empty-text">You can upload one with Upload video or PDF in the lesson.</p>
+            <p className="cpk__empty-title">
+              {only === 'image' ? 'No images in your Cloud Storage yet' : 'No videos or PDFs in your Cloud Storage yet'}
+            </p>
+            <p className="cpk__empty-text">
+              {only === 'image' ? 'You can upload one with Upload image.' : 'You can upload one with Upload video or PDF in the lesson.'}
+            </p>
           </div>
         ) : (
           <>
@@ -105,7 +113,7 @@ export default function CloudPicker({ onPick, onCancel }) {
                 </button>
                 {types.map((t) => (
                   <button key={t.id} type="button" className="cpk__chip" aria-pressed={type === t.id} onClick={() => setType(t.id)}>
-                    {t.label} <span className="cpk__chip-count">{matching.filter((f) => lessonKindOfFile(f) === t.id).length}</span>
+                    {t.label} <span className="cpk__chip-count">{matching.filter((f) => kindOf(f) === t.id).length}</span>
                   </button>
                 ))}
               </div>
@@ -116,7 +124,7 @@ export default function CloudPicker({ onPick, onCancel }) {
             ) : (
               <ul className="cpk__list" role="radiogroup" aria-label="Files">
                 {shown.map((f) => {
-                  const kind = lessonKindOfFile(f);
+                  const kind = kindOf(f);
                   const on = chosen === f.id;
                   return (
                     <li key={f.id}>

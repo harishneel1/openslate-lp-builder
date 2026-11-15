@@ -1,10 +1,10 @@
-import { AlignLeft, Cloud, FileText, Link2, MonitorPlay, PlayCircle } from 'lucide-react';
+import { AlignLeft, Cloud, FileText, Image, Link2, MonitorPlay, PlayCircle } from 'lucide-react';
 
 // ------------------------------------------------------------
 // What a lesson can have (data/courses.js, a lesson's content), and how
 // each looks: its name, its icon (before the lesson's name in the list),
 // and its tile's colour (CoursesPage.css, .cct__tile--<kind>), the same
-// colours as Cloud Storage's: video orange, documents blue.
+// colours as Cloud Storage's: video orange, documents blue, images green.
 // ------------------------------------------------------------
 
 export const KIND = {
@@ -14,6 +14,7 @@ export const KIND = {
   text: { label: 'Text', icon: AlignLeft },
   link: { label: 'Link', icon: Link2 },
   cloud: { label: 'Cloud Storage', icon: Cloud }, // only a tile, never a lesson's kind
+  image: { label: 'Image', icon: Image }, // only a course's cover, never a lesson's kind
 };
 
 // A kind's tile, in its colour: big in the picker, small in lists

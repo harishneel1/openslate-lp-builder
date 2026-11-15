@@ -1,0 +1,624 @@
+/* One course, as a student takes it (CoursePlayerPage.jsx). Laid out as
+   TagMango's player, in our colours: the course's contents in a card on
+   the left, the lesson on the right. The top bar and page are the
+   academy's (AcademyCoursesPage.css). */
+
+/* Preview as student: a strip under the top bar */
+.cpl__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #157a43;
+  text-align: center;
+  background: var(--color-success-tint);
+  border-bottom: 1px solid #c9ebd6;
+}
+
+.cpl__preview--draft {
+  color: #8a4b0b;
+  background: #fef6e7;
+  border-bottom-color: #fde7c2;
+}
+
+.cpl__layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-areas: 'side main';
+  gap: 32px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 24px 56px;
+}
+
+.cpl__main {
+  grid-area: main;
+  min-width: 0;
+}
+
+.cpl__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin-left: -6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #55555b;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.cpl__back:hover {
+  color: #141414;
+  background: #f0f0f2;
+}
+
+.cpl__back:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Sidebar: the course's contents ---------- */
+.cpl__side {
+  grid-area: side;
+  align-self: start;
+  position: sticky;
+  top: 96px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 18px 16px 16px;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-lg);
+}
+
+.cpl__side-title {
+  margin-top: 18px;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cpl__side-count {
+  margin-top: 6px;
+  padding: 0 4px 16px;
+  font-size: 14.5px;
+  color: #6b6b72;
+  border-bottom: 1px solid #ececee;
+}
+
+.cpl__sections {
+  margin-top: 14px;
+  list-style: none;
+  border: 1px solid #ececee;
+  border-radius: var(--radius-md);
+}
+
+.cpl__section + .cpl__section {
+  border-top: 1px solid #ececee;
+}
+
+/* A section: its name and how many are done, folding open */
+.cpl__section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 14px;
+  font: inherit;
+  color: #141414;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cpl__section-head:hover {
+  background: #fafafb;
+}
+
+.cpl__section-head:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.cpl__section-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cpl__section-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.cpl__section-count {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #6b6b72;
+}
+
+.cpl__chev {
+  flex: none;
+  margin-top: 2px;
+  color: #55555b;
+  transition: transform 0.15s;
+}
+
+.cpl__chev--open {
+  transform: rotate(180deg);
+}
+
+/* Its lessons: a card each */
+.cpl__lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px 12px;
+  list-style: none;
+}
+
+.cpl__lesson {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-md);
+}
+
+.cpl__lesson:hover {
+  background: #f7f7f8;
+}
+
+.cpl__lesson--on,
+.cpl__lesson--on:hover {
+  background: var(--color-primary-tint);
+}
+
+.cpl__lesson-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 6px 10px 10px;
+  color: #141414;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+
+.cpl__lesson-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* A round icon for its kind; a tick once done */
+.cpl__lesson-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: #b4520c;
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+}
+
+.cpl__lesson--on .cpl__lesson-icon {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.cpl__lesson--done .cpl__lesson-icon {
+  color: #fff;
+  background: var(--color-success);
+}
+
+.cpl__lesson-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cpl__lesson-name {
+  overflow: hidden;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cpl__lesson-num {
+  font-weight: 500;
+  color: #8a8a90;
+}
+
+.cpl__lesson-kind {
+  font-size: 13.5px;
+  color: #6b6b72;
+}
+
+.cpl__share {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 6px;
+  color: #77777d;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.cpl__share:hover {
+  color: #141414;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.cpl__share:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ---------- Main: the lesson ---------- */
+.cpl__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 20px;
+}
+
+.cpl__head-text {
+  min-width: 0;
+}
+
+.cpl__eyebrow {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6b72;
+}
+
+.cpl__title {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.cpl__overall {
+  flex: none;
+  padding-bottom: 4px;
+  font-size: 15px;
+  color: #6b6b72;
+}
+
+/* A player: YouTube, Vimeo, or the stand-in for an uploaded video */
+.cpl__frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #111;
+  border-radius: var(--radius-lg);
+}
+
+.cpl__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.cpl__frame--stand-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(160deg, #2a2a2e, #141416);
+}
+
+.cpl__play {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 8px;
+  padding-left: 4px;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+.cpl__stand-in-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.cpl__stand-in-note {
+  max-width: 420px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Text: on a page of its own */
+.cpl__text {
+  padding: 28px 32px;
+  font-size: 16px;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-lg);
+}
+
+.cpl__text .tte__content--view {
+  font-size: 16.5px;
+  line-height: 1.7;
+}
+
+/* A PDF, a link, or a lesson that isn't available */
+.cpl__doc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-lg);
+}
+
+.cpl__doc-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+  color: #55555b;
+  background: #ececef;
+  border-radius: 16px;
+}
+
+.cpl__doc-icon--pdf {
+  color: #2557a8;
+  background: #e8f0fc;
+}
+
+.cpl__doc-name {
+  max-width: 100%;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cpl__doc-note {
+  max-width: 440px;
+  font-size: 14px;
+  color: #6b6b72;
+}
+
+.cpl__doc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  margin: 12px 0 4px;
+  padding: 0 22px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.cpl__doc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Under the lesson: Mark as complete, and NEXT ---------- */
+.cpl__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.cpl__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #141414;
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.cpl__mark:hover {
+  border-color: var(--color-primary);
+}
+
+.cpl__mark--done,
+.cpl__mark--done:hover {
+  color: #157a43;
+  background: var(--color-success-tint);
+  border-color: #b6e2c7;
+}
+
+.cpl__mark:focus-visible,
+.cpl__next:focus-visible,
+.cpl__finish:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* NEXT: the next lesson's name, as a card */
+.cpl__next {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(100%, 440px);
+  padding: 14px 14px 14px 22px;
+  color: #141414;
+  text-decoration: none;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-lg);
+}
+
+.cpl__next:hover {
+  border-color: var(--color-primary);
+}
+
+.cpl__next-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  text-align: right;
+}
+
+.cpl__next-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b6b72;
+}
+
+.cpl__next-title {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cpl__next-arrow {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 50%;
+}
+
+.cpl__finish {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 26px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.cpl__finish:hover {
+  background: var(--color-primary-hover);
+}
+
+.cpl__finished {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #157a43;
+  background: var(--color-success-tint);
+  border-radius: var(--radius-lg);
+}
+
+.cpl__finished-link {
+  color: #141414;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Phones and narrow windows: one column, the lesson first ---------- */
+@media (max-width: 960px) {
+  .cpl__layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'main'
+      'side';
+    gap: 24px;
+    padding: 16px 16px 40px;
+  }
+
+  .cpl__side {
+    position: static;
+    max-height: none;
+  }
+
+  .cpl__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cpl__title {
+    font-size: 23px;
+  }
+
+  .cpl__text {
+    padding: 20px 18px;
+  }
+
+  .cpl__foot {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .cpl__next {
+    width: 100%;
+  }
+
+  .cpl__mark,
+  .cpl__finish {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cpl__chev {
+    transition: none;
+  }
+}

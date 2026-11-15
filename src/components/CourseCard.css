@@ -70,6 +70,12 @@
   border-radius: var(--radius-pill);
 }
 
+/* Published: green, so live courses stand out from drafts */
+.crd__badge--live {
+  color: #157a43;
+  background: var(--color-success-tint);
+}
+
 /* Two lines at most, so cards in a row stay level */
 .crd__title {
   display: -webkit-box;
