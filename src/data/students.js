@@ -1,5 +1,6 @@
 import { contractSignupsOf, CONTRACT_SIGNUPS_EVENT } from './contractSignupsStore';
 import { isPublished, loadCourses } from './courses';
+import { getAllServices } from './mockServices';
 
 // ------------------------------------------------------------
 // Students: who's signed in to the academy, and which courses they can see.
@@ -21,9 +22,13 @@ import { isPublished, loadCourses } from './courses';
 // email: changing their email or number later keeps their courses, since
 // the old ones stay in emails/phones.
 //
-// Signing in with a number or email we know from a sign-up fills in their
-// name and the other contact from it. One we don't know still signs in;
-// they just have no courses.
+// Their name, and the email or number they didn't sign in with, come from
+// what they gave at checkout: their newest sign-up on any contract made
+// with any email or number they've had. Filled in when they sign in, and
+// again whenever they're read (so someone who signs in first and buys
+// later gets their name too). Only what's missing is filled in. Someone
+// we know nothing about still signs in; they just have no courses, and
+// show as their number or email.
 //
 // currentStudent() → the signed-in student, or null
 // signIn({ phone } | { email }) → the student
@@ -86,14 +91,20 @@ export function currentStudent() {
   } catch {
     return null;
   }
-  return id ? load().find((s) => s.id === id) ?? null : null;
+  if (!id) return null;
+  const list = load();
+  const student = list.find((s) => s.id === id);
+  if (!student) return null;
+  if (fillIn(student)) save(list);
+  return student;
 }
 
-// Every sign-up made with this email or number, newest first
+// Every sign-up made with this email or number, on any contract, newest first
 function signupsFor({ emails = [], phones = [] }) {
   const wantEmails = new Set(emails.map(lower).filter(Boolean));
   const wantPhones = new Set(phones.map(digits).filter(Boolean));
-  const ids = new Set(loadCourses().flatMap((c) => c.contractIds ?? []));
+  if (wantEmails.size === 0 && wantPhones.size === 0) return [];
+  const ids = new Set([...getAllServices().map((c) => c.id), ...loadCourses().flatMap((c) => c.contractIds ?? [])]);
   return [...ids]
     .flatMap((id) => contractSignupsOf(id))
     .filter((r) => wantEmails.has(lower(r.email)) || wantPhones.has(digits(r.phone)))
@@ -101,6 +112,22 @@ function signupsFor({ emails = [], phones = [] }) {
 }
 
 const uniq = (list) => [...new Set(list.filter(Boolean))];
+
+// Fills in their name, email and number from their sign-ups, where
+// missing. Returns true when something changed.
+function fillIn(student) {
+  const before = JSON.stringify(student);
+  const found = signupsFor({ emails: student.emails ?? [student.email], phones: student.phones ?? [student.phone] });
+  const named = found.find((r) => String(r.name ?? '').trim());
+  if (!student.name && named) student.name = String(named.name).trim();
+  const withEmail = found.find((r) => lower(r.email));
+  if (!student.email && withEmail) student.email = lower(withEmail.email);
+  const withPhone = found.find((r) => digits(r.phone).length >= 10);
+  if (!student.phone && withPhone) student.phone = fullPhone(digits(withPhone.phone).slice(-10));
+  student.emails = uniq([...(student.emails ?? []), student.email, ...found.map((r) => lower(r.email))]);
+  student.phones = uniq([...(student.phones ?? []), student.phone]);
+  return JSON.stringify(student) !== before;
+}
 
 export function signIn({ phone, email }) {
   const byPhone = phone ? fullPhone(digits(phone).slice(-10)) : '';
@@ -111,19 +138,13 @@ export function signIn({ phone, email }) {
     byPhone ? (s.phones ?? []).some((p) => digits(p) === digits(byPhone)) : (s.emails ?? []).map(lower).includes(byEmail),
   );
 
-  // What their sign-ups know about them: name, and the other contact
-  const found = signupsFor({ emails: byEmail ? [byEmail] : [], phones: byPhone ? [byPhone] : [] });
-  const latest = found[0];
-
-  let student;
-  if (known) {
-    student = known;
-  } else {
+  let student = known;
+  if (!student) {
     student = {
       id: `stu-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-      name: String(latest?.name ?? '').trim(),
-      email: byEmail || lower(latest?.email),
-      phone: byPhone || (latest?.phone ? fullPhone(digits(latest.phone).slice(-10)) : ''),
+      name: '',
+      email: byEmail,
+      phone: byPhone,
       emails: [],
       phones: [],
       photo: null,
@@ -131,8 +152,8 @@ export function signIn({ phone, email }) {
     };
     list.push(student);
   }
-  student.emails = uniq([...(student.emails ?? []), student.email, ...found.map((r) => lower(r.email))]);
-  student.phones = uniq([...(student.phones ?? []), student.phone]);
+  // What they gave at checkout: name, and the other contact
+  fillIn(student);
   save(list);
 
   try {

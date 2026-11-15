@@ -15,7 +15,7 @@ import './AccountPage.css';
 //   Your photo, and the number and email you sign in with.
 //   ┌──────────────────────────────────────────────────────┐
 //   │ Hello,                                    (  photo  ) │
-//   │ Priya Sharma                                 📷 on hover
+//   │ Priya (first name)                           📷 on hover
 //   │ [Change photo] [Remove]                                │
 //   └──────────────────────────────────────────────────────┘
 //   ┌──────────────────────────────────────────────────────┐
@@ -64,6 +64,9 @@ export default function AccountPage({ student }) {
   const [said, setSaid] = useState(null); // { text, error }
   const [busy, setBusy] = useState(false);
   const { name } = whoIs(student);
+  // "Hello, Priya": their first name, as TagMango's; their number or email
+  // when we don't know their name
+  const hello = student.name ? student.name.trim().split(/\s+/)[0] : name;
   const phone = showPhone(student.phone);
 
   useEffect(() => {
@@ -111,7 +114,7 @@ export default function AccountPage({ student }) {
         <section className="acc-panel acc-hello" aria-label="Your profile">
           <div className="acc-hello__text">
             <p className="acc-hello__hi">Hello,</p>
-            <p className="acc-hello__name">{name}</p>
+            <p className="acc-hello__name">{hello}</p>
             <div className="acc-hello__actions">
               <button type="button" className="acc-btn" onClick={pick} disabled={busy}>
                 <Camera size={16} aria-hidden="true" />
