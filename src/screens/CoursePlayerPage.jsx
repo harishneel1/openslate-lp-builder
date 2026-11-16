@@ -25,28 +25,33 @@ import './CoursePlayerPage.css';
 //
 //   ← Back          AI Engineering Accelerator          ▓▓▓▓░░░░ 1 of 4
 //   ─────────────────────────────────────────────────────────────────────
-//   INTRODUCTION                                 │ INTRODUCTION       1/2 ⌃
-//   How servers work                             │ ┌────────────────────────┐
-//   ┌────────────────────────────────────────┐   │ │ ✓  What is MCP?        │
-//   │  the lesson: video, PDF or text        │   │ ├────────────────────────┤
-//   └────────────────────────────────────────┘   │ │ 2  How servers work    │ (lit)
-//   ‹ Previous          [Next: Install the SDK ›] │ └────────────────────────┘
-//                                                │ BUILDING YOUR…     0/3 ⌄
-//   About this lesson  (its description, if any) │
-//   Resources          (its files, if any)       │
+//   INTRODUCTION                                 │ Course content
+//   How servers work                             │ ──────────────────────────
+//   ┌────────────────────────────────────────┐   │ Introduction            ⌃
+//   │  the lesson: video, PDF or text        │   │ 1 of 2 done
+//   └────────────────────────────────────────┘   │ ░ ✓  What is MCP?        ░
+//   ‹ Previous          [Next: Install the SDK ›] │ ░ 2  How servers work    ░ (lit)
+//                                                │ ──────────────────────────
+//   About this lesson  (its description, if any) │ Building your server    ⌄
+//   Resources          (its files, if any)       │ 0 of 3 done
+//
+// Long names (lessons, sections, the course, Next) keep to one line,
+// ending in "…", with the whole name in a tooltip (OverflowTip).
 //
 // The bar: Back (to the academy's Courses page), the course's name, and
 // how much of it is done: a thin bar and "1 of 4". That's the only count
 // on the page.
 //
 // The contents: down the right, the window's full height, scrolling on
-// its own (the lesson scrolls on its own too). Each section's name is a
-// small heading that folds it open or shut, with how many of its lessons
-// are done ("1/2"). Only the section they're in starts open; moving into
-// another section opens that one too. An open section's lessons sit in
-// one white box, a row each, split by thin lines: a small number (a small
-// green tick once done) and the name. Lessons are numbered through the
-// whole course. The open lesson is lit in orange, and kept in view. Students see sections by name
+// its own (the lesson scrolls on its own too). Like TagMango's, in our
+// look: each section a full-width row, a line between sections. Its name
+// in bold, how many of its lessons are done under it ("1 of 2 done"), and
+// an arrow: the whole row folds it open or shut. Only the section they're
+// in starts open; moving into another section opens that one too. An
+// open section's lessons sit on a light grey strip under it, a row each:
+// a small number (a small green tick once done) and the name. Lessons are
+// numbered through the whole course. The open lesson is lit in orange,
+// and kept in view. Students see sections by name
 // only, and only lessons with something in them (studentSections).
 //
 // The lesson: its section and title, then the lesson itself:
@@ -162,6 +167,7 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
     return (
       <div className="acd cpl">
         <Bar home={home} title={course?.title ?? ''} />
+        <OverflowTip />
         <main className="cpl__empty">
           <h1 className="acd__empty-title">{course ? course.title : 'This page isn’t available'}</h1>
           <p className="acd__empty-text">
@@ -184,6 +190,7 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
   return (
     <div className="acd cpl">
       <Bar home={home} title={course.title} done={doneCount} total={lessons.length} />
+      <OverflowTip />
 
       <div className="cpl__layout">
         <main className="cpl__main" ref={mainRef}>
@@ -207,7 +214,7 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
 
               {next ? (
                 <a className="cpl__next" {...link(next.lesson)}>
-                  <span className="cpl__next-text">
+                  <span className="cpl__next-text" data-full={`Next: ${next.lesson.title}`}>
                     Next: <span className="cpl__next-title">{next.lesson.title}</span>
                   </span>
                   <ChevronRight size={18} aria-hidden="true" />
@@ -243,6 +250,66 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
   );
 }
 
+// ---------- Names cut short: the whole name in a tooltip ----------
+// Lesson and section names, the course's name in the bar, and the Next
+// button keep to one line, ending in "…" when there isn't room. Pointing
+// at one that's cut short (or tabbing to it) shows the whole name above
+// it, in our dark tooltip (tooltip.css, .tip). Names that fit show none.
+// The tooltip floats over the page, so the scrolling contents can't clip
+// it; it goes below instead when there's no room above. Screen readers
+// already get the whole name, so it's hidden from them.
+// Each such name carries data-full (the whole name).
+function OverflowTip() {
+  const [tip, setTip] = useState(null); // { text, x, y, below }
+  useEffect(() => {
+    const nameIn = (target) => {
+      if (!(target instanceof Element)) return null;
+      const own = target.closest('[data-full]');
+      if (own) return own;
+      return target.closest('a, button, .cpl__bar-title')?.querySelector('[data-full]') ?? null;
+    };
+    const show = (e) => {
+      const el = nameIn(e.target);
+      if (!el || el.scrollWidth <= el.clientWidth + 1) {
+        setTip(null);
+        return;
+      }
+      const box = el.getBoundingClientRect();
+      const below = box.top < 64;
+      setTip({
+        text: el.dataset.full,
+        x: Math.min(Math.max(box.left + box.width / 2, 150), window.innerWidth - 150),
+        y: below ? box.bottom + 8 : box.top - 8,
+        below,
+      });
+    };
+    const hide = () => setTip(null);
+    document.addEventListener('pointerover', show);
+    document.addEventListener('focusin', show);
+    document.addEventListener('focusout', hide);
+    document.addEventListener('scroll', hide, true);
+    window.addEventListener('blur', hide);
+    return () => {
+      document.removeEventListener('pointerover', show);
+      document.removeEventListener('focusin', show);
+      document.removeEventListener('focusout', hide);
+      document.removeEventListener('scroll', hide, true);
+      window.removeEventListener('blur', hide);
+    };
+  }, []);
+
+  if (!tip) return null;
+  return (
+    <span
+      className={`tip cpl__tip ${tip.below ? 'cpl__tip--below' : ''}`}
+      style={{ left: tip.x, top: tip.y }}
+      aria-hidden="true"
+    >
+      {tip.text}
+    </span>
+  );
+}
+
 // ---------- The bar: Back, the course, how much is done ----------
 function Bar({ home, title, done = 0, total = 0 }) {
   return (
@@ -250,7 +317,9 @@ function Bar({ home, title, done = 0, total = 0 }) {
       <a className="cpl__back" href={home}>
         <ArrowLeft size={17} aria-hidden="true" /> Back
       </a>
-      <p className="cpl__bar-title">{title}</p>
+      <p className="cpl__bar-title" data-full={title}>
+        {title}
+      </p>
       {total > 0 ? (
         <div className="cpl__progress">
           <span
@@ -299,7 +368,10 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
 
   let number = 0; // lessons are numbered through the whole course
   return (
-    <nav className="cpl__side" aria-label="Course content" ref={sideRef}>
+    <nav className="cpl__side" aria-labelledby="cpl-side-title" ref={sideRef}>
+      <h2 className="cpl__side-title" id="cpl-side-title">
+        Course content
+      </h2>
       {sections.map((section) => {
         const isOpen = open.has(section.id);
         const first = number;
@@ -307,7 +379,7 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
         const sectionDone = section.lessons.filter((l) => done.has(l.id)).length;
         return (
           <section key={section.id} className={`cpl__section ${isOpen ? 'cpl__section--open' : ''}`}>
-            <h2 className="cpl__section-head">
+            <h3 className="cpl__section-head">
               <button
                 type="button"
                 className="cpl__section-btn"
@@ -315,14 +387,17 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
                 aria-controls={`cpl-sec-${section.id}`}
                 onClick={() => toggle(section.id)}
               >
-                <span className="cpl__section-title">{section.title}</span>
-                <span className="cpl__section-count">
-                  {sectionDone}/{section.lessons.length}
-                  <span className="sr-only"> lessons done</span>
+                <span className="cpl__section-text">
+                  <span className="cpl__section-title" data-full={section.title}>
+                    {section.title}
+                  </span>
+                  <span className="cpl__section-count">
+                    {sectionDone} of {section.lessons.length} done
+                  </span>
                 </span>
-                <ChevronDown size={16} className="cpl__chev" aria-hidden="true" />
+                <ChevronDown size={20} className="cpl__chev" aria-hidden="true" />
               </button>
-            </h2>
+            </h3>
             {isOpen && (
               <ol className="cpl__lessons" id={`cpl-sec-${section.id}`}>
                 {section.lessons.map((lesson, i) => {
@@ -338,7 +413,9 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
                         <span className="cpl__mark" aria-hidden="true">
                           {isDone ? <Check size={14} strokeWidth={2.75} /> : first + i + 1}
                         </span>
-                        <span className="cpl__lesson-name">{lesson.title}</span>
+                        <span className="cpl__lesson-name" data-full={lesson.title}>
+                          {lesson.title}
+                        </span>
                         {isDone && <span className="sr-only">, done</span>}
                       </a>
                     </li>
