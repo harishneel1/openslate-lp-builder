@@ -51,9 +51,14 @@ const prefersLessMotion = () => window.matchMedia?.('(prefers-reduced-motion: re
 //   dashed box and no dimming, for when the whole page is the point (their
 //   contract, beside the contract screen). noLabel: true leaves out the pill
 //   and arrow too, so the page is just held still.
+//   An annotation without a tip gets no bubble: just the box, the pill
+//   and its arrow.
 // page.tag: a label stuck on the frame's top edge, for the whole page
 //   ("This is your contract page"). Flat and in the frame's colours, so it
 //   reads as a label, not something to click.
+// page.dim: how much the rest of the page is shaded around the boxed part
+//   (0–1); 0.22 when left out. The course guide uses a lighter 0.1, so the
+//   whole landing page still reads (courseAnnotations.js).
 export default function ProfileExample({
   questionId = null,
   answer,
@@ -329,8 +334,14 @@ export default function ProfileExample({
 
         {marks && (
           <>
-            {/* Gently dims the rest of the page; slides between questions */}
-            {!note.noBox && <div className="pex__spot" style={marks.box} />}
+            {/* Gently dims the rest of the page (page.dim, lighter for the
+                course guide); slides between questions */}
+            {!note.noBox && (
+              <div
+                className="pex__spot"
+                style={page?.dim != null ? { ...marks.box, '--pex-dim': page.dim } : marks.box}
+              />
+            )}
 
             {/* Box, arrows and bubbles fade in once the spot has moved */}
             <div className="pex__marks" key={note.target}>

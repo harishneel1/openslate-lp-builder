@@ -26,6 +26,10 @@
   padding-top: 8px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
+  /* It sticks below the main area's 32px top padding (AppLayout.css,
+     .app__main), so the page would scroll through that gap above it: the
+     row paints the gap in the page's colour, so nothing shows above it */
+  box-shadow: 0 -32px 0 var(--color-bg);
 }
 
 /* Only when the app doesn't put the page in focus mode */

@@ -151,12 +151,13 @@
 }
 
 /* Gently dims the rest, so the boxed part stands out
-   but everything around it can still be read */
+   but everything around it can still be read. How much: --pex-dim
+   (page.dim in ProfileExample.jsx), 0.22 unless a page asks for less. */
 .pex__spot {
   --pex-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   position: absolute;
   border-radius: 10px;
-  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.22);
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, var(--pex-dim, 0.22));
   pointer-events: none;
   transition: left 0.5s var(--pex-ease), top 0.5s var(--pex-ease),
     width 0.5s var(--pex-ease), height 0.5s var(--pex-ease);
