@@ -7,22 +7,20 @@ import CoverArt from '../components/CoverArt';
 import CloudPicker from './CloudPicker';
 
 // ------------------------------------------------------------
-// Two of a course's tabs (CoursePage.jsx):
-//   Settings (CourseSettings): the course's settings, one part after
-//     another. Its cover image for now; more parts join here as they're
-//     built.
-//   Access (CourseAccess): who gets the course, the linked contracts.
+// Two parts of a course's page (CoursePage.jsx) that used to be its tabs:
+//   CourseCover (the default): the cover image, on the Landing page step.
+//   CourseAccess: a list of linked contracts, with Link contracts and
+//     Remove, on the Pricing step under "Also give access through other
+//     contracts" (CoursePricing.jsx).
 //
-//   Settings
 //   Cover image
-//   Shown on this course's card in your academy.
+//   Shown on this course's card in your academy, and on its landing page.
 //   ┌──────────────┐  course-cover.jpg · 240 KB
 //   │    cover     │  [☁ Pick from Cloud Storage] [⇪ Upload image] [🗑 Remove]
 //   └──────────────┘  A 16:9 image, like 1280 × 720, looks best.
 //
-//   Access
-//   Who gets this course                          [Link contracts]
-//   People who sign up on any of these contracts get the course…
+//   Also give access through other contracts          [Link contracts]
+//   People who sign up on any of these get the course too…
 //   ▣ AI Engineering Accelerator   ₹2,500 · 12 sign-ups   [Remove]
 //
 // Cover image: an image from their Cloud Storage. Upload image puts the
@@ -34,13 +32,12 @@ import CloudPicker from './CloudPicker';
 // so, here. The prototype keeps a small picture of images uploaded here
 // (imagePreviews.js), so the cover can be seen; others show the orange.
 //
-// Who gets this course: the linked contracts. Link contracts opens the
-// picker (CoursePage.jsx); Remove unlinks one straight away.
-//
-// CourseSettings: course, onSave(change) → true if it saved (CoursePage.jsx's
+// CourseCover: course, onSave(change) → true if it saved (CoursePage.jsx's
 //   save: says "Saved")
-// CourseAccess: contracts (linked, still existing), counts (sign-ups per
-//   contract), onLink(): open Link contracts; onUnlink(contractId)
+// CourseAccess: contracts (to list), counts (sign-ups per contract),
+//   onLink(): open Link contracts; onUnlink(contractId);
+//   title, sub, empty: its heading, the line under it, and what it says
+//   with none
 // ------------------------------------------------------------
 
 const IMAGE_ACCEPT = '.jpg,.jpeg,.png,.webp';
@@ -52,24 +49,24 @@ const TICK_MS = 120;
 
 const plural = (n, word) => `${n.toLocaleString('en-IN')} ${word}${n === 1 ? '' : 's'}`;
 
-export default function CourseSettings({ course, onSave }) {
-  return (
-    <div className="cst">
-      <CoverPart course={course} onSave={onSave} />
-    </div>
-  );
-}
-
-export function CourseAccess({ contracts, counts, onLink, onUnlink }) {
+export function CourseAccess({
+  contracts,
+  counts,
+  onLink,
+  onUnlink,
+  title = 'Who gets this course',
+  sub = 'People who sign up on any of these contracts get the course, including everyone who already has.',
+  empty = 'No contracts linked yet, so no one can get this course.',
+}) {
   return (
     <div className="cst">
       <section className="cst__part" aria-labelledby="cst-access">
         <div className="cst__head">
           <div>
-            <h2 className="cst__title" id="cst-access">
-              Who gets this course
-            </h2>
-            <p className="cst__sub">People who sign up on any of these contracts get the course, including everyone who already has.</p>
+            <h3 className="cst__title" id="cst-access">
+              {title}
+            </h3>
+            <p className="cst__sub">{sub}</p>
           </div>
           <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={onLink}>
             <Link2 size={16} aria-hidden="true" />
@@ -78,7 +75,7 @@ export function CourseAccess({ contracts, counts, onLink, onUnlink }) {
         </div>
 
         {contracts.length === 0 ? (
-          <p className="cpg__nothing">No contracts linked yet, so no one can get this course.</p>
+          <p className="cpg__nothing">{empty}</p>
         ) : (
           <ul className="cpg__contracts">
             {contracts.map((c) => {
@@ -108,7 +105,7 @@ export function CourseAccess({ contracts, counts, onLink, onUnlink }) {
 }
 
 // ---------- Cover image ----------
-function CoverPart({ course, onSave }) {
+export default function CourseCover({ course, onSave }) {
   const cover = course.cover ?? null;
   const [picking, setPicking] = useState(false);
   const [upload, setUpload] = useState(null); // { name, bytes, sent, rate, file }
@@ -165,10 +162,10 @@ function CoverPart({ course, onSave }) {
 
   return (
     <section className="cst__part" aria-labelledby="cst-cover">
-      <h2 className="cst__title" id="cst-cover">
-        Cover image
-      </h2>
-      <p className="cst__sub">Shown on this course’s card in your academy.</p>
+      <h3 className="cst__title" id="cst-cover">
+        Cover image <span className="crs-field__optional">(optional)</span>
+      </h3>
+      <p className="cst__sub">Shown on this course’s card in your academy, and on its landing page.</p>
 
       <div className="cst__cover">
         <div className="cst__cover-art">

@@ -1,0 +1,834 @@
+/* A course's landing page (CourseLandingPage.jsx), laid out as Udemy's:
+   a dark band with the title, the page under it, and the Buy box on the
+   right over the band. The top bar and preview strip come from
+   AcademyCoursesPage.css (.acd__top, .cpl__preview). */
+
+.cld {
+  --cld-ink: #141414;
+  --cld-ink-2: #55555b;
+  --cld-line: #e3e3e7;
+  --cld-band: #17171a;
+  --cld-side: 340px;
+
+  min-height: 100vh;
+  color: var(--cld-ink);
+  background: #fff;
+}
+
+.cld .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.cld__wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ================= The dark band =================
+   Tall enough that the Buy box (pulled up over it, .cld__side) always
+   starts inside it, whatever the title's length. */
+.cld__hero {
+  min-height: 300px;
+  color: #fff;
+  background: var(--cld-band);
+}
+
+.cld__hero-text {
+  max-width: calc(100% - var(--cld-side) - 48px);
+  padding: 48px 0 44px;
+}
+
+/* 4.8 ★★★★★ (126 ratings) 1,240 students */
+.cld__rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 16px;
+  font-size: 14.5px;
+}
+
+.cld__rating-value {
+  font-weight: 700;
+  color: #ffc79c;
+}
+
+.cld__rating .cld__stars {
+  color: #ffb26b;
+}
+
+.cld__rating-link {
+  color: #ffc79c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cld__rating-students {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.cld__by a {
+  font-weight: 600;
+  color: #ffc79c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ★: an outline, filled from the left as far as the rating goes */
+.cld__stars {
+  display: inline-flex;
+  gap: 1px;
+  color: #e07a2c;
+  vertical-align: -2px;
+}
+
+.cld__star {
+  position: relative;
+  display: inline-flex;
+}
+
+.cld__star-empty {
+  opacity: 0.35;
+}
+
+.cld__star-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.cld__star-fill svg {
+  flex: none;
+  fill: currentColor;
+}
+
+/* ================= The slim bar, once the band has scrolled away =================
+   Desktop only: on phones the bar at the foot does this job. */
+.cld__sticky {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: var(--z-sticky);
+  color: #fff;
+  background: var(--cld-band);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+  transform: translateY(-100%);
+  transition: transform 0.2s ease;
+}
+
+.cld__sticky--on {
+  transform: none;
+}
+
+.cld__sticky-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 68px;
+}
+
+.cld__sticky-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cld__sticky-title {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cld__sticky-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cld__sticky-rating strong {
+  color: #ffc79c;
+}
+
+.cld__sticky-rating .cld__stars {
+  color: #ffb26b;
+}
+
+.cld__sticky-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cld__sticky .cld__amount {
+  font-size: 20px;
+}
+
+.cld__sticky .cld__compare {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.cld__sticky .cld__buy {
+  min-height: 44px;
+}
+
+.cld__title {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.cld__subtitle {
+  margin-top: 12px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.cld__by {
+  margin-top: 18px;
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.cld__by strong {
+  font-weight: 600;
+  color: #ffc79c;
+}
+
+/* ================= The page, with the Buy box beside it ================= */
+.cld__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--cld-side);
+  gap: 48px;
+  align-items: start;
+  padding-bottom: 72px;
+}
+
+.cld__main {
+  min-width: 0;
+  padding-top: 32px;
+}
+
+.cld__h2 {
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.cld__part {
+  margin-top: 44px;
+}
+
+.cld__main > :first-child {
+  margin-top: 0;
+}
+
+/* What you'll learn: a bordered box, two columns of ticks */
+.cld__box {
+  padding: 22px 24px 24px;
+  border: 1px solid var(--cld-line);
+  border-radius: var(--radius-sm);
+}
+
+.cld__learn {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 28px;
+  margin-top: 16px;
+  list-style: none;
+}
+
+.cld__learn li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.cld__learn svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--color-success);
+}
+
+/* This course includes */
+.cld__includes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 28px;
+  margin-top: 14px;
+  list-style: none;
+}
+
+.cld__includes li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.cld__includes svg {
+  flex: none;
+  color: var(--cld-ink-2);
+}
+
+/* Course content: "3 sections • 17 lessons", Expand all, then sections */
+.cld__content-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 10px;
+  font-size: 14.5px;
+  color: var(--cld-ink-2);
+}
+
+.cld__link {
+  padding: 0;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #b4520c;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cld__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cld__link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.cld__sections {
+  margin-top: 12px;
+  list-style: none;
+  border: 1px solid var(--cld-line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.cld__section + .cld__section {
+  border-top: 1px solid var(--cld-line);
+}
+
+.cld__section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 18px;
+  font: inherit;
+  text-align: left;
+  color: var(--cld-ink);
+  background: #f6f6f7;
+  border: 0;
+  cursor: pointer;
+}
+
+.cld__section-head:hover {
+  background: #efeff1;
+}
+
+.cld__section-head:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.cld__chev {
+  flex: none;
+  transition: transform 0.15s;
+}
+
+.cld__chev--open {
+  transform: rotate(180deg);
+}
+
+.cld__section-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.cld__section-count {
+  flex: none;
+  font-size: 13.5px;
+  color: var(--cld-ink-2);
+}
+
+.cld__lessons {
+  padding: 8px 18px 14px 48px;
+  list-style: none;
+  border-top: 1px solid var(--cld-line);
+}
+
+.cld__lesson {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+  font-size: 14.5px;
+}
+
+.cld__lesson svg {
+  flex: none;
+  color: var(--cld-ink-2);
+}
+
+/* Requirements, Who this course is for */
+.cld__bullets {
+  margin-top: 12px;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.cld__bullets li + li {
+  margin-top: 4px;
+}
+
+.cld__description {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* Long parts fold, with Show more (the description, the bio) */
+.cld__fold {
+  position: relative;
+  max-height: 11.5em;
+  overflow: hidden;
+}
+
+.cld__fold::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4em;
+  background: linear-gradient(rgba(255, 255, 255, 0), #fff);
+  pointer-events: none;
+}
+
+.cld__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+/* Instructor: name and headline, then the photo with its stats beside it, then the bio */
+.cld__headline {
+  margin-top: 2px;
+  font-size: 15px;
+  color: var(--cld-ink-2);
+}
+
+.cld__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  font-size: 14.5px;
+}
+
+.cld__stats li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cld__stats svg {
+  flex: none;
+  color: var(--cld-ink);
+}
+
+/* Reviews: the summary, then cards in two columns */
+.cld__reviews-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cld__reviews-star {
+  color: #e07a2c;
+  fill: currentColor;
+}
+
+.cld__dot {
+  color: var(--cld-ink-2);
+}
+
+.cld__reviews {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
+  margin-top: 8px;
+  list-style: none;
+}
+
+.cld__review {
+  padding: 20px 0 22px;
+  border-top: 1px solid var(--cld-line);
+}
+
+.cld__review-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cld__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: #2a2a2e;
+  border-radius: 50%;
+}
+
+.cld__review-name {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.cld__review-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cld-ink-2);
+}
+
+.cld__review-text {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.cld__all {
+  margin-top: 8px;
+  padding: 11px 18px;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--cld-ink);
+  background: #fff;
+  border: 1px solid var(--cld-ink);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cld__all:hover {
+  background: #f6f6f7;
+}
+
+.cld__all:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Testimonials: the coach's own, labelled, no stars */
+.cld__testimonial .cld__review-text {
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.cld__quote {
+  color: #e07a2c;
+}
+
+.cld__testimonial-name {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Instructor */
+.cld__instructor {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 14px;
+}
+
+.cld__photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  font-size: 26px;
+  font-weight: 700;
+  color: #b4520c;
+  background: var(--color-primary-tint);
+  border-radius: 50%;
+}
+
+.cld__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cld__name {
+  margin-top: 14px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #b4520c;
+}
+
+.cld__photo {
+  width: 112px;
+  height: 112px;
+}
+
+.cld__bio {
+  max-width: 680px;
+  margin-top: 14px;
+  font-size: 15px;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+
+/* ================= The Buy box ================= */
+.cld__side {
+  position: sticky;
+  top: 92px; /* under the slim bar, once it shows */
+  /* Up over the dark band, as on Udemy: it starts about 40px into it */
+  margin-top: -260px;
+}
+
+.cld__card {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--cld-line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+
+.cld__card .cvr__title {
+  font-size: 22px;
+}
+
+.cld__card-body {
+  padding: 20px 22px 22px;
+}
+
+.cld__price,
+.cld__bar-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.cld__amount {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cld__compare {
+  font-size: 16px;
+  color: var(--cld-ink-2);
+}
+
+.cld__buy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.cld__buy:hover {
+  background: var(--color-primary-hover);
+}
+
+.cld__buy:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.cld__buy--wide {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.cld__buy--off,
+.cld__buy--off:hover {
+  opacity: 0.45;
+  background: var(--color-primary);
+  cursor: not-allowed;
+}
+
+.cld__after {
+  margin-top: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--cld-ink-2);
+}
+
+.cld__closed {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--cld-ink-2);
+}
+
+/* The bar at the foot of the screen: phones only */
+.cld__bar {
+  display: none;
+}
+
+/* ================= Narrower screens ================= */
+@media (max-width: 960px) {
+  .cld__hero {
+    min-height: 0;
+  }
+
+  /* The bar at the foot does the slim bar's job here */
+  .cld__sticky {
+    display: none;
+  }
+
+  .cld__reviews {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cld__hero-text {
+    max-width: none;
+    padding: 32px 0 28px;
+  }
+
+  .cld__title {
+    font-size: 27px;
+  }
+
+  .cld__subtitle {
+    font-size: 16.5px;
+  }
+
+  /* The Buy box comes first, under the band, then the page */
+  .cld__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .cld__side {
+    position: static;
+    order: -1;
+    max-width: 520px;
+    margin-top: 20px;
+  }
+
+  .cld__card {
+    box-shadow: none;
+  }
+
+  .cld__main {
+    padding-top: 28px;
+  }
+
+  .cld__learn,
+  .cld__includes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cld__lessons {
+    padding-left: 18px;
+  }
+
+  /* The price and Buy now, always in reach */
+  .cld--with-bar {
+    padding-bottom: 84px;
+  }
+
+  .cld__bar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-sticky);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid var(--cld-line);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .cld__bar .cld__amount {
+    font-size: 21px;
+  }
+
+  .cld__bar .cld__compare {
+    font-size: 14px;
+  }
+
+  .cld__bar .cld__buy {
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 560px) {
+  .cld__wrap {
+    padding: 0 16px;
+  }
+
+  .cld__box {
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cld__chev,
+  .cld__buy,
+  .cld__sticky {
+    transition: none;
+  }
+}

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, CircleAlert, ExternalLink, Rocket, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Link2, Rocket, Trash2, X } from 'lucide-react';
 import {
-  COURSE_TITLE_MAX,
+  buyContractOf,
+  courseLandingUrl,
   coursePlayerUrl,
+  deleteCourse,
   getCourse,
   isPublished,
   linkedContracts,
@@ -12,74 +14,116 @@ import {
   unpublishCourse,
   updateCourse,
 } from '../data/courses';
+import { STEPS, courseSteps, missingToPublish } from '../data/courseSteps';
 import { signupCounts } from '../data/contractSignups';
+import { servicePrice } from '../data/mockServices';
+import { copyText } from '../utils/copyText';
+import { COURSE_EXAMPLE_PAGE, courseAnnotations } from '../data/courseAnnotations';
 import ContractPicker from '../components/ContractPicker';
-import InlineTitle from '../components/InlineTitle';
-import CourseContent from './CourseContent';
-import CourseSettings, { CourseAccess } from './CourseSettings';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ProfileExample from '../components/ProfileExample';
+import CourseContent from './CourseContent';
+import CourseLanding from './CourseLanding';
+import CoursePricing, { syncContractTitle } from './CoursePricing';
 import './CoursesPage.css';
+import './CoursePage.css';
 
 // ------------------------------------------------------------
 // One course's page: where Create course's Continue and Edit course land.
+// In focus mode, as an open 1:1 call: the app's sidebar and top nav step
+// aside, and its focus bar (AppLayout.jsx) is the way back, with the
+// course's name in the middle and "Saved" on the right. Under it, one row:
+// the three steps, and the course's actions. On each screen, only the next
+// thing to do.
 //
-//   ← Courses                      [Preview as student ↗] [🚀 Publish]
-//   DRAFT                                  (PUBLISHED, and Unpublish, once live)
-//   AI Engineering Accelerator ✎             (InlineTitle.jsx)
-//   ✓ Saved
+// Two modes:
 //
-//   ┌────────────────────────────────────────────────────────────┐
-//   │  Content   Access •   Settings   (• while no contract is linked)│
-//   ├━━━━━━━━━───────────────────────────────────────────────────┤
-//   │ Sections and their lessons, in the order…   [+ Add section] │
-//   │ sections and their lessons (CourseContent.jsx)              │
-//   └────────────────────────────────────────────────────────────┘
+// Setting up (a course never published yet): a guided path, one step at
+// a time, as a new 1:1 call's flow is. Steps ahead are greyed and can't be
+// opened until the ones before them are done; done ones can be opened
+// again. The top row has only the steps and 🗑. Each step ends with one
+// way forward, which works once that step's minimum is done:
+//   ① Curriculum ✓ ─ ② Landing page ─ ③ Pricing                        [🗑]
+//   ┌──────────────────────────────────────────────────────────────────┐
+//   │ the step                                                         │
+//   │──────────────────────────────────────────────────────────────────│
+//   │ [← Back]          Preview landing page ↗   [Continue to Pricing →] │
+//   └──────────────────────────────────────────────────────────────────┘
+//   Curriculum     Continue to Landing page →, once a lesson has
+//                  something in it ("You can keep adding lessons any
+//                  time"); See it as a student ↗ beside it, from then
+//   Landing page   ← Back, Preview landing page ↗, Continue to Pricing →,
+//                  once it has a subtitle and 3 things students will learn
+//   Pricing        ← Back, Publish course, once it has a price (or Free):
+//                  the only Publish while setting up. It asks once.
+// While Continue can't be pressed, a line beside it says what's left.
+// Coming back to a draft opens its first step that isn't done.
 //
-// The title, the Draft badge and "Saved" belong to the whole course, so
-// they sit above the card. The tabs are in the card's head, drawn as on a
-// 1:1 call's page (CallOverview.css, .cov__tabs): grey names, the open
-// one dark with an orange underline on the head's bottom line. Each tab
-// starts with a line saying what it is and its button on the right.
-// Three tabs:
-//   Content (opens first): sections and lessons (CourseContent.jsx).
-//   Access: who gets this course, the linked contracts (CourseAccess, in
-//     CourseSettings.jsx). While none is linked, an orange dot on the tab
-//     says so (no one can get the course yet), so that's never hidden even
-//     on the other tabs.
-//   Settings: the course's settings (CourseSettings.jsx): its cover image
-//     for now.
-// The tabs work with the arrow keys, Home and End, as tabs do.
+// Editing (published, or published before and unpublished since): every
+// step open, any time, as below, with the actions in the top row.
+//   ← All courses          AI Engineering Accelerator              ✓ Saved   (focus bar)
+//   ① Curriculum ✓  ② Landing page ✓  ③ Pricing ✓   [Copy link] [View landing page ↗] [● Published ▾] [🗑]
+//   ┌────────────────────────────────────────────────────────────────────┐
+//   │ the open step                                                      │
+//   └────────────────────────────────────────────────────────────────────┘
 //
-// The title (with a pencil after it) saves when they leave it or press Enter ("Saved" for a
-// moment). Empty, or Escape, puts the saved one back.
-// Link contracts opens the same picker as Create course, with the linked
-// ones ticked; Save keeps the change. Remove unlinks one straight away
-// (the course is a draft, so no student has it yet).
-// A linked contract that's been deleted just doesn't show.
+// The steps (data/courseSteps.js says which are done):
+//   Curriculum     sections and lessons (CourseContent.jsx); while
+//                  editing, "See it as a student ↗" at the top: the
+//                  lessons in the player
+//   Landing page   the title, subtitle, what students will learn, cover,
+//                  and, behind "+ Add", description, requirements, who
+//                  it's for (CourseLanding.jsx)
+//   Pricing        the price, and other contracts that give access
+//                  (CoursePricing.jsx)
+// A done step has a green tick in place of its number. Opens on the first
+// step that isn't done, or Curriculum once they all are. Moving between
+// steps, or leaving, asks first if something isn't saved ("Leave without
+// saving?": an open lesson, the description).
 //
-// Publish: a pop-up first, checking what's needed (publishCheck):
-//   ✓ 4 lessons go live (2 empty ones stay hidden)    ✕ no lesson with content
-//   ✓ Linked to 2 contracts                           ✕ no contract linked
-//   ⚠ No cover image (the card shows the orange)      (a note, not a block)
-// Each ✕ has a button to fix it (Content, or Access), and Publish course
-// waits until there are none. Once published, the badge says PUBLISHED,
-// the course is in the academy, and every change goes live as it's made.
-// Unpublish asks first (students stop seeing it; their progress is kept).
-// A published course always keeps at least one contract: removing the last
-// one asks, and unpublishes it too; Link contracts won't save with none
-// ticked. Removing any other contract asks first, as students on it lose
-// the course.
+// The actions, while editing:
+//   Copy link            once published: the landing page link to share
+//   View landing page ↗  what buyers see (CourseLandingPage.jsx)
+//   Publish              only on a course unpublished since: with something
+//                        missing it doesn't publish: it opens the first
+//                        step that needs work, puts the cursor in the
+//                        field, and says in one line at the top of that
+//                        step what's left there. Else it asks once.
+//   ● Published ▾        once live, in Publish's place: Unpublish (asks
+//                        first; progress is kept)
+//   🗑                    Delete course (asks first), in both modes
+// Changes go live as they're made once it's published.
 //
-// Preview as student opens this course in the student's player
-// (CoursePlayerPage.jsx) in a new tab: what students see, drafts too.
+// The guide: on the Landing page and Pricing steps, the step's fields sit
+// on the left and Meera's example course on the right (ProfileExample.jsx
+// with courseAnnotations.js), in a browser frame that stays in view. The
+// part of the example for the field they're in is boxed, named and
+// explained, and moves as they go from field to field (each field's
+// data-guide). It opens on the title (Landing page) or the price
+// (Pricing). Only on screens wide enough for both columns (1100px and
+// up); narrower, the fields have the width to themselves.
 //
-// Lessons open in place on the Content tab (CourseContent.jsx), never on
-// another page. While an open lesson has unsaved changes, anything that
-// would lose them (another lesson, another tab, ← Courses) asks first:
-// "Leave without saving?" (guard). Closing the browser tab asks too.
+// The title is the Landing page's first field, and renames the course's
+// own contract too (syncContractTitle).
+//
+// The Buy button's contract (Pricing) stays linked: Link contracts and
+// Remove only change the other ones. On a published course, removing one
+// asks first, as students on it lose the course.
 //
 // courseId, onBack()
+// onFocus(focus | null): sets the focus bar (App.jsx → AppLayout's
+//   FocusBar), as 1:1 calls do. Without it (an App that doesn't pass it
+//   yet), the page shows its own "← All courses" instead.
 // ------------------------------------------------------------
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+// Where the cursor goes for each missing field
+const FIELD_TARGET = {
+  subtitle: '#lnd-subtitle-input',
+  outcomes: '.lrn--outcomes .lrn__input',
+  price: '#prc-amount',
+};
 
 function useCourse(id) {
   const [course, setCourse] = useState(() => getCourse(id));
@@ -95,26 +139,87 @@ function useCourse(id) {
   return course;
 }
 
-const TABS = ['content', 'access', 'settings'];
+// Wide enough for the fields and the guide side by side
+const GUIDE_MEDIA = '(min-width: 1100px)';
+function useWide() {
+  const [wide, setWide] = useState(() => window.matchMedia?.(GUIDE_MEDIA).matches ?? false);
+  useEffect(() => {
+    const mq = window.matchMedia?.(GUIDE_MEDIA);
+    if (!mq) return undefined;
+    const on = () => setWide(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
 
-export default function CoursePage({ courseId, onBack }) {
+// Where the guide opens on each step that has it
+const GUIDE_START = { landing: 'title', pricing: 'price' };
+
+const firstStepOf = (course) => {
+  if (!course) return 'curriculum';
+  const steps = courseSteps(course);
+  return STEPS.find(({ id }) => !steps[id].done)?.id ?? 'curriculum';
+};
+
+export default function CoursePage({ courseId, onBack, onFocus }) {
   const course = useCourse(courseId);
   const contracts = useMemo(() => (course ? linkedContracts(course) : []), [course]);
   const counts = useMemo(() => signupCounts(contracts), [contracts]);
-  const [tab, setTab] = useState('content');
+  const [step, setStep] = useState(() => firstStepOf(course));
+  const [needs, setNeeds] = useState(false); // Publish was pressed with something missing
+  const [focusField, setFocusField] = useState(null); // { field, n }: put the cursor there
   const [linking, setLinking] = useState(false);
-  const [dirty, setDirty] = useState(false); // an open lesson has unsaved changes
-  const [pending, setPending] = useState(null); // what to do once they agree to leave them
-  const [status, setStatus] = useState(null); // 'saved' | 'failed' | 'published' | 'unpublished' | null
-  const [publishing, setPublishing] = useState(false); // the Publish pop-up
+  const [dirty, setDirty] = useState(false); // something open isn't saved yet
+  const [pending, setPending] = useState(null); // what to do once they agree to leave it
+  const [saveFailed, setSaveFailed] = useState(false); // the focus bar says "Not saved"
+  const [notice, setNotice] = useState(null); // { text, tone }, at the foot of the screen
+  const [publishing, setPublishing] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [unlinking, setUnlinking] = useState(null); // a contract on a published course, while asking
-  const statusTimer = useRef(null);
-  useEffect(() => () => clearTimeout(statusTimer.current), []);
+  const [deleting, setDeleting] = useState(false);
+  const noticeTimer = useRef(null);
+  const exit = useRef(null); // the focus bar's way back, kept current
+  const wide = useWide();
+  const [guide, setGuide] = useState(() => GUIDE_START[step] ?? null); // the example's highlighted part
+  useEffect(() => () => clearTimeout(noticeTimer.current), []);
+
+  // A new step: its guide starts on its first part
+  useEffect(() => setGuide(GUIDE_START[step] ?? null), [step]);
+
+  // The field they're in (focused or pressed) picks the guide's part
+  const pickGuide = (e) => {
+    const key = e.target.closest?.('[data-guide]')?.dataset.guide;
+    if (key && courseAnnotations[key]) setGuide(key);
+  };
+
+  // Runs fn now, or after "Leave without saving?" when something isn't saved
+  const guard = (fn) => (dirty ? setPending(() => fn) : fn());
+  exit.current = () => guard(onBack);
 
   useEffect(() => {
     if (course) document.title = course.title;
   }, [course]);
+
+  // Focus mode: the focus bar names the course, and its exit comes back here
+  const title = course?.title ?? 'Course';
+  useEffect(() => {
+    onFocus?.({ title, exitLabel: 'All courses', saveFailed, onExit: () => exit.current() });
+  }, [title, saveFailed, onFocus]);
+  useEffect(() => () => onFocus?.(null), [onFocus]);
+
+  // After Publish with something missing: the cursor in the field that needs it
+  useEffect(() => {
+    if (!focusField) return undefined;
+    const id = requestAnimationFrame(() => {
+      const selector = FIELD_TARGET[focusField.field];
+      const fields = selector ? [...document.querySelectorAll(selector)] : [];
+      const target = fields.find((el) => !el.value) ?? fields[0] ?? document.getElementById('ced-step-title');
+      target?.focus();
+      target?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [focusField]);
 
   // Closing the browser tab with unsaved changes: the browser asks first
   useEffect(() => {
@@ -127,15 +232,14 @@ export default function CoursePage({ courseId, onBack }) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  // Runs fn now, or after "Leave without saving?" when there are unsaved changes
-  const guard = (fn) => (dirty ? setPending(() => fn) : fn());
-
   if (!course) {
     return (
       <div className="crs">
-        <button type="button" className="crs__back" onClick={onBack}>
-          <ArrowLeft size={16} aria-hidden="true" /> Courses
-        </button>
+        {!onFocus && (
+          <button type="button" className="crs__back" onClick={onBack}>
+            <ArrowLeft size={16} aria-hidden="true" /> All courses
+          </button>
+        )}
         <section className="crs__panel crs__empty">
           <h1 className="crs__empty-title">This course isn’t here</h1>
           <p className="crs__empty-text">It may have been deleted. Go back to see your courses.</p>
@@ -144,129 +248,241 @@ export default function CoursePage({ courseId, onBack }) {
     );
   }
 
-  // Saves a change; says "Saved" for a moment, or that it didn't work
-  const save = (change) => {
-    const ok = Boolean(updateCourse(course.id, change));
-    setStatus(ok ? 'saved' : 'failed');
-    clearTimeout(statusTimer.current);
-    if (ok) statusTimer.current = setTimeout(() => setStatus(null), 2000);
+  const live = isPublished(course);
+  const steps = courseSteps(course);
+  const missing = missingToPublish(course);
+  const missingHere = missing.filter((m) => m.step === step);
+  // Setting up: never published. A step opens once every step before it is done.
+  const setup = !live && !course.publishedAt;
+  const stepIndex = STEPS.findIndex((s) => s.id === step);
+  const reachable = (i) => !setup || STEPS.slice(0, i).every((s) => steps[s.id].done);
+  const hasLesson = publishCheck(course).lessons > 0;
+
+  // A change: the focus bar says "Not saved" when it didn't work
+  const showSaved = (ok) => {
+    setSaveFailed(!ok);
     return ok;
   };
-  const live = isPublished(course);
-  const say = (what) => {
-    setStatus(what);
-    clearTimeout(statusTimer.current);
-    statusTimer.current = setTimeout(() => setStatus(null), 4000);
+  const save = (change) => showSaved(Boolean(updateCourse(course.id, change)));
+  const saveTitle = (next) => {
+    const ok = save({ title: next });
+    if (ok) syncContractTitle(course, next);
+    return ok;
   };
+
+  const tell = (text, tone = 'ok') => {
+    clearTimeout(noticeTimer.current);
+    setNotice({ text, tone });
+    noticeTimer.current = setTimeout(() => setNotice(null), 3600);
+  };
+
+  const go = (next) => next !== step && guard(() => setStep(next));
+
+  // Publish: what's missing first, else ask once and publish
+  const askPublish = () =>
+    guard(() => {
+      if (missing.length === 0) {
+        setPublishing(true);
+        return;
+      }
+      const first = missing[0];
+      setNeeds(true);
+      setStep(first.step);
+      setFocusField({ field: first.field, n: Date.now() });
+    });
+
   const removeContract = (id) => save({ contractIds: course.contractIds.filter((c) => c !== id) });
   // On a published course, removing a contract asks first
-  const unlink = (id) => (live ? setUnlinking(contracts.find((c) => c.id === id) ?? { id, title: 'this contract' }) : removeContract(id));
+  const unlink = (id) =>
+    live ? setUnlinking(contracts.find((c) => c.id === id) ?? { id, title: 'this contract' }) : removeContract(id);
 
   const publish = () => {
     setPublishing(false);
-    if (publishCourse(course.id)) say('published');
-    else setStatus('failed');
+    if (publishCourse(course.id)) {
+      setNeeds(false);
+      tell('Published. Copy its link to share it.');
+    } else tell('We couldn’t publish it just now. Try again.', 'error');
   };
   const unpublish = () => {
     setUnpublishing(false);
-    if (unpublishCourse(course.id)) say('unpublished');
-    else setStatus('failed');
+    if (unpublishCourse(course.id)) tell('Unpublished. It’s a draft again.');
+    else tell('We couldn’t unpublish it just now. Try again.', 'error');
+  };
+  const remove = () => {
+    setDeleting(false);
+    if (deleteCourse(course.id)) onBack();
+    else tell('We couldn’t delete it just now. Try again.', 'error');
+  };
+  const copyLink = async () => {
+    const ok = await copyText(courseLandingUrl(course.id));
+    if (ok) tell('Link copied. Anyone with it can see the course and buy it.');
+    else tell('We couldn’t copy it. Open View landing page and copy its address instead.', 'error');
   };
 
+  const stepNumber = STEPS.findIndex((s) => s.id === step) + 1;
+  const stepLabel = STEPS.find((s) => s.id === step)?.label;
+  const guided = wide && Boolean(GUIDE_START[step]);
+
+  const landingFields = (
+    <CourseLanding key={course.id} course={course} onSave={save} onSaveTitle={saveTitle} onDirtyChange={setDirty} />
+  );
+  const pricingFields = (
+    <CoursePricing
+      course={course}
+      contracts={contracts}
+      counts={counts}
+      onSave={save}
+      onSaved={showSaved}
+      onLink={() => setLinking(true)}
+      onUnlink={unlink}
+    />
+  );
+
   return (
-    <div className="crs">
-      <div className="cpg__top">
-        <button type="button" className="crs__back" onClick={() => guard(onBack)}>
-          <ArrowLeft size={16} aria-hidden="true" /> Courses
+    <div className={`crs ced ${guided ? 'ced--guided' : ''}`}>
+      {!onFocus && (
+        <button type="button" className="crs__back ced__back" onClick={() => guard(onBack)}>
+          <ArrowLeft size={16} aria-hidden="true" /> All courses
         </button>
-        <div className="cpg__top-actions">
-          <a className="crs-btn crs-btn--quiet crs-btn--small" href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
-            Preview as student
-            <ExternalLink size={15} aria-hidden="true" />
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-          {live ? (
-            <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setUnpublishing(true)}>
-              Unpublish
-            </button>
-          ) : (
-            <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={() => guard(() => setPublishing(true))}>
-              <Rocket size={16} aria-hidden="true" />
-              Publish
+      )}
+
+      {/* ---------- One row: the steps, and the course's actions ---------- */}
+      <header className="ced__bar">
+        <nav className="ced__stepper" aria-label="Course steps">
+          <ol>
+            {STEPS.map((s, i) => {
+              const done = steps[s.id].done;
+              const on = s.id === step;
+              const open = on || reachable(i);
+              return (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className={`ced__step ${on ? 'ced__step--on' : ''} ${open ? '' : 'ced__step--locked'}`}
+                    aria-current={on ? 'step' : undefined}
+                    disabled={!open}
+                    onClick={() => go(s.id)}
+                  >
+                    <span className={`ced__num ${done ? 'ced__num--done' : ''}`} aria-hidden="true">
+                      {done ? <Check size={13} strokeWidth={3} /> : i + 1}
+                    </span>
+                    {s.label}
+                    <span className="sr-only">
+                      {done ? ', done' : open ? ', not done yet' : ', opens once the step before it is done'}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+
+        <div className="ced__actions">
+          {/* Setting up: only 🗑 here; the way forward is at the foot of each step */}
+          {!setup && live && (
+            <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={copyLink}>
+              <Link2 size={16} aria-hidden="true" />
+              Copy link
             </button>
           )}
+          {!setup && (
+            <a
+              className="crs-btn crs-btn--quiet crs-btn--small"
+              href={courseLandingUrl(course.id, true)}
+              target="_blank"
+              rel="noopener"
+            >
+              View landing page
+              <ExternalLink size={15} aria-hidden="true" />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          )}
+          {!setup &&
+            (live ? (
+              <PublishedMenu onUnpublish={() => setUnpublishing(true)} />
+            ) : (
+              <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={askPublish}>
+                <Rocket size={16} aria-hidden="true" />
+                Publish
+              </button>
+            ))}
+          <button
+            type="button"
+            className="crs-icon-btn ced__delete"
+            aria-label="Delete course"
+            data-tip="Delete course"
+            data-tip-align="end"
+            onClick={() => guard(() => setDeleting(true))}
+          >
+            <Trash2 size={17} aria-hidden="true" />
+          </button>
         </div>
-      </div>
-
-      <header className="cpg__head">
-        <span className={`cpg__badge ${live ? 'cpg__badge--live' : ''}`}>{live ? 'Published' : 'Draft'}</span>
-        <InlineTitle
-          id="cpg-title"
-          label="Course title"
-          value={course.title}
-          maxLength={COURSE_TITLE_MAX}
-          onSave={(title) => save({ title })}
-        />
       </header>
-      <p className={`cpg__status ${status === 'failed' ? 'cpg__status--error' : ''}`} aria-live="polite">
-        {status === 'saved' && (
-          <>
-            <Check size={14} strokeWidth={3} aria-hidden="true" /> Saved
-          </>
-        )}
-        {status === 'failed' && (
-          <>
-            <AlertTriangle size={14} aria-hidden="true" /> We couldn’t save that just now. Try again.
-          </>
-        )}
-        {status === 'published' && (
-          <>
-            <Check size={14} strokeWidth={3} aria-hidden="true" /> Published. Students can see it in your academy now.
-          </>
-        )}
-        {status === 'unpublished' && (
-          <>
-            <Check size={14} strokeWidth={3} aria-hidden="true" /> Unpublished. It’s a draft again.
-          </>
-        )}
-      </p>
 
-      <section className="crs__panel cpg__card">
-        <div className="cpg__card-head">
-          <Tabs tab={tab} onChange={(next) => next !== tab && guard(() => setTab(next))} linked={contracts.length} />
+      {/* ---------- The open step ---------- */}
+      <section className="crs__panel ced__panel" aria-labelledby="ced-step-title">
+        <h2 className="sr-only" id="ced-step-title" tabIndex={-1}>
+          Step {stepNumber} of {STEPS.length}: {stepLabel}
+        </h2>
+
+        {needs && !live && missingHere.length > 0 && (
+          <p className="ced__needs" role="status">
+            <AlertTriangle size={16} aria-hidden="true" />
+            <span>Before you publish: {missingHere.map((m) => m.text).join(', and ')}.</span>
+          </p>
+        )}
+
+        <div className="ced__panel-body">
+          {step === 'curriculum' && (
+            <>
+              {!setup && (
+              <p className="ced__step-link">
+                <a href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
+                  See it as a student
+                  <ExternalLink size={14} aria-hidden="true" />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </p>
+              )}
+              <CourseContent course={course} onSaved={showSaved} guard={guard} onDirtyChange={setDirty} />
+            </>
+          )}
+
+          {GUIDE_START[step] &&
+            (guided ? (
+              <div className="ced__guided" onFocusCapture={pickGuide} onPointerDownCapture={pickGuide}>
+                <div className="ced__guided-main">{step === 'landing' ? landingFields : pricingFields}</div>
+                <aside className="ced__guide" aria-label="Example of a finished course page">
+                  <ProfileExample page={COURSE_EXAMPLE_PAGE} questionId={guide} />
+                </aside>
+              </div>
+            ) : step === 'landing' ? (
+              landingFields
+            ) : (
+              pricingFields
+            ))}
         </div>
 
-        {/* ---------- Content: sections and lessons ---------- */}
-        {tab === 'content' && (
-          <div className="cpg__body" role="tabpanel" id="cpg-panel-content" aria-labelledby="cpg-tab-content">
-            <CourseContent
-              course={course}
-              onSaved={(ok) => {
-                setStatus(ok ? 'saved' : 'failed');
-                clearTimeout(statusTimer.current);
-                if (ok) statusTimer.current = setTimeout(() => setStatus(null), 2000);
-              }}
-              guard={guard}
-              onDirtyChange={setDirty}
-            />
-          </div>
-        )}
-
-        {/* ---------- Access: who gets it ---------- */}
-        {tab === 'access' && (
-          <div className="cpg__body" role="tabpanel" id="cpg-panel-access" aria-labelledby="cpg-tab-access">
-            <CourseAccess contracts={contracts} counts={counts} onLink={() => setLinking(true)} onUnlink={unlink} />
-          </div>
-        )}
-
-        {/* ---------- Settings: the cover ---------- */}
-        {tab === 'settings' && (
-          <div className="cpg__body" role="tabpanel" id="cpg-panel-settings" aria-labelledby="cpg-tab-settings">
-            <CourseSettings course={course} onSave={save} />
-          </div>
+        {setup && (
+          <SetupFoot
+            index={stepIndex}
+            done={steps[step].done}
+            missing={missingHere}
+            courseId={course.id}
+            hasLesson={hasLesson}
+            onBack={() => go(STEPS[stepIndex - 1].id)}
+            onNext={() =>
+              guard(() => {
+                setStep(STEPS[stepIndex + 1].id);
+                window.scrollTo?.({ top: 0 });
+              })
+            }
+            onPublish={() => guard(() => setPublishing(true))}
+          />
         )}
       </section>
 
+      {/* ---------- Pop-ups ---------- */}
       {pending && (
         <ConfirmDialog
           title="Leave without saving?"
@@ -281,21 +497,11 @@ export default function CoursePage({ courseId, onBack }) {
             then();
           }}
         >
-          <p>Your changes to this lesson will be lost.</p>
+          <p>What you’ve changed here and not saved will be lost.</p>
         </ConfirmDialog>
       )}
 
-      {publishing && (
-        <PublishDialog
-          course={course}
-          onCancel={() => setPublishing(false)}
-          onPublish={publish}
-          onFix={(where) => {
-            setPublishing(false);
-            setTab(where);
-          }}
-        />
-      )}
+      {publishing && <PublishDialog course={course} onCancel={() => setPublishing(false)} onPublish={publish} />}
 
       {unpublishing && (
         <ConfirmDialog
@@ -306,8 +512,24 @@ export default function CoursePage({ courseId, onBack }) {
           onConfirm={unpublish}
         >
           <p>
-            <strong>{course.title}</strong> goes back to being a draft. Students won’t see it in your academy until you
-            publish it again. Their progress is kept.
+            <strong>{course.title}</strong> goes back to being a draft. Students won’t see it, and its link stops working,
+            until you publish it again. Their progress is kept.
+          </p>
+        </ConfirmDialog>
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          title={live ? 'Delete this published course?' : 'Delete this course?'}
+          confirmLabel="Delete course"
+          danger
+          onCancel={() => setDeleting(false)}
+          onConfirm={remove}
+        >
+          <p>
+            <strong>{course.title}</strong> will be deleted.{' '}
+            {live && 'It’s published, so students lose it straight away, and their progress with it. '}
+            Its contracts stay as they are. This can’t be undone.
           </p>
         </ConfirmDialog>
       )}
@@ -322,16 +544,14 @@ export default function CoursePage({ courseId, onBack }) {
             const last = contracts.length <= 1;
             const id = unlinking.id;
             setUnlinking(null);
-            if (removeContract(id) && last) {
-              if (unpublishCourse(course.id)) say('unpublished');
-            }
+            if (removeContract(id) && last && unpublishCourse(course.id)) tell('Unpublished. It’s a draft again.');
           }}
         >
           <p>
             {contracts.length <= 1 ? (
               <>
                 A published course needs at least one contract, so removing <strong>{unlinking.title}</strong> unpublishes
-                the course too. Students won’t see it until you link a contract and publish again.
+                the course too. Students won’t see it until you set a price and publish again.
               </>
             ) : (
               <>
@@ -345,77 +565,157 @@ export default function CoursePage({ courseId, onBack }) {
 
       {linking && (
         <LinkDialog
-          needOne={live}
-          value={course.contractIds}
+          value={course.contractIds.filter((id) => id !== course.buyContractId)}
           onCancel={() => setLinking(false)}
           onSave={(ids) => {
-            if (save({ contractIds: ids })) setLinking(false);
+            // The Buy button's contract stays linked, first
+            const buy = buyContractOf(course);
+            const next = buy ? [buy.id, ...ids.filter((id) => id !== buy.id)] : ids;
+            if (save({ contractIds: next })) setLinking(false);
           }}
         />
+      )}
+
+      <div className="crs__notice-wrap" aria-live="polite">
+        {notice && (
+          <p className={`crs__notice ${notice.tone === 'error' ? 'crs__notice--error' : ''}`}>
+            {notice.tone === 'error' ? (
+              <X size={16} aria-hidden="true" />
+            ) : (
+              <Check size={16} strokeWidth={3} aria-hidden="true" />
+            )}
+            {notice.text}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// The foot of a step while setting up: ← Back, a preview where there's
+// something to see, and the one way forward (Continue to the next step, or
+// Publish course on the last), which works once this step's minimum is
+// done. Until then, a line beside it says what's left.
+function SetupFoot({ index, done, missing, courseId, hasLesson, onBack, onNext, onPublish }) {
+  const last = index === STEPS.length - 1;
+  const next = STEPS[index + 1];
+  const preview =
+    index === 0
+      ? hasLesson && { href: coursePlayerUrl(courseId, null, true), label: 'See it as a student' }
+      : { href: courseLandingUrl(courseId, true), label: 'Preview landing page' };
+  const note = !done
+    ? `To ${last ? 'publish' : 'continue'}, ${missing.map((m) => m.text).join(' and ')}.`
+    : index === 0
+      ? 'You can keep adding lessons any time.'
+      : null;
+
+  return (
+    <div className="ced__foot">
+      {index > 0 && (
+        <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={onBack}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          Back
+        </button>
+      )}
+      <p className="ced__foot-note" id="ced-foot-note" aria-live="polite">
+        {note}
+      </p>
+      {preview && (
+        <a className="ced__foot-link" href={preview.href} target="_blank" rel="noopener">
+          {preview.label}
+          <ExternalLink size={14} aria-hidden="true" />
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      )}
+      <button
+        type="button"
+        className="crs-btn crs-btn--primary ced__next"
+        aria-disabled={!done || undefined}
+        aria-describedby={note ? 'ced-foot-note' : undefined}
+        onClick={() => done && (last ? onPublish() : onNext())}
+      >
+        {last ? (
+          <>
+            <Rocket size={17} aria-hidden="true" />
+            Publish course
+          </>
+        ) : (
+          <>
+            Continue to {next.label}
+            <ArrowRight size={17} aria-hidden="true" />
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+// ● Published ▾, in Publish's place once it's live: Unpublish. Closes on a
+// click outside or Escape.
+function PublishedMenu({ onUnpublish }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef(null);
+  const button = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (!wrap.current?.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        button.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    wrap.current?.querySelector('[role="menuitem"]')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className={`crs-menu ced__menu ${open ? 'crs-menu--open' : ''}`} ref={wrap}>
+      <button
+        ref={button}
+        type="button"
+        className="ced__live"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="ced__live-dot" aria-hidden="true" />
+        Published
+        <ChevronDown size={15} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="crs-menu__list" role="menu" aria-label="Published">
+          <button
+            type="button"
+            role="menuitem"
+            className="crs-menu__item"
+            onClick={() => {
+              setOpen(false);
+              onUnpublish();
+            }}
+          >
+            Unpublish
+          </button>
+        </div>
       )}
     </div>
   );
 }
 
-// Content | Access | Settings. The one they're on is underlined. Arrow keys move
-// between them (and open the one they land on), Home and End go to the
-// first and last.
-function Tabs({ tab, onChange, linked }) {
-  const refs = useRef({});
-
-  const go = (id) => {
-    onChange(id);
-    refs.current[id]?.focus();
-  };
-
-  const onKeyDown = (e) => {
-    const i = TABS.indexOf(tab);
-    if (e.key === 'ArrowRight') go(TABS[(i + 1) % TABS.length]);
-    else if (e.key === 'ArrowLeft') go(TABS[(i - 1 + TABS.length) % TABS.length]);
-    else if (e.key === 'Home') go(TABS[0]);
-    else if (e.key === 'End') go(TABS[TABS.length - 1]);
-    else return;
-    e.preventDefault();
-  };
-
-  const tabProps = (id) => ({
-    ref: (el) => {
-      refs.current[id] = el;
-    },
-    type: 'button',
-    role: 'tab',
-    id: `cpg-tab-${id}`,
-    'aria-selected': tab === id,
-    'aria-controls': `cpg-panel-${id}`,
-    tabIndex: tab === id ? 0 : -1,
-    className: `cpg__tab ${tab === id ? 'cpg__tab--on' : ''}`,
-    onClick: () => onChange(id),
-  });
-
-  return (
-    <div className="cpg__tabs" role="tablist" aria-label="Course" onKeyDown={onKeyDown}>
-      <button {...tabProps('content')}>Content</button>
-      <button {...tabProps('access')}>
-        Access
-        {linked === 0 && (
-          <span className="cpg__tab-dot">
-            <span className="sr-only">: no contracts linked yet, so no one can get this course</span>
-          </span>
-        )}
-      </button>
-      <button {...tabProps('settings')}>Settings</button>
-    </div>
-  );
-}
-
-// "Link contracts": the same picker as Create course, open, with the
-// linked ones ticked. Save keeps the change; Cancel or Escape doesn't.
-// needOne: the course is published, so at least one has to stay ticked
-function LinkDialog({ value, needOne, onCancel, onSave }) {
+// "Link contracts": the contract picker, open, with the linked ones
+// ticked (not the Buy button's, which always stays). Save keeps the
+// change; Cancel or Escape doesn't.
+function LinkDialog({ value, onCancel, onSave }) {
   const ref = useRef(null);
   const [ids, setIds] = useState(value);
-  const [tried, setTried] = useState(false);
-  const blocked = needOne && ids.length === 0;
 
   useEffect(() => {
     const dialog = ref.current;
@@ -442,26 +742,14 @@ function LinkDialog({ value, needOne, onCancel, onSave }) {
         </button>
       </div>
       <div className="crs-dialog__body">
-        <p className="crs-field__help">People who sign up on any of these get the course.</p>
+        <p className="crs-field__help">People who sign up on any of these get the course too.</p>
         <ContractPicker value={ids} onChange={setIds} startOpen />
-        {blocked && tried && (
-          <p className="crs-dialog__error" role="alert">
-            This course is published, so it needs at least one contract. Tick one, or unpublish the course first.
-          </p>
-        )}
       </div>
       <div className="crs-dialog__foot crs-dialog__foot--row">
         <button type="button" className="crs-btn crs-btn--quiet" onClick={onCancel}>
           Cancel
         </button>
-        <button
-          type="button"
-          className="crs-btn crs-btn--primary"
-          onClick={() => {
-            setTried(true);
-            if (!blocked) onSave(ids);
-          }}
-        >
+        <button type="button" className="crs-btn crs-btn--primary" onClick={() => onSave(ids)}>
           Save
         </button>
       </div>
@@ -469,73 +757,44 @@ function LinkDialog({ value, needOne, onCancel, onSave }) {
   );
 }
 
-// Publish: what goes live, what's missing (each with a button to fix it),
-// and a note if there's no cover. Publish course waits for nothing missing.
-function PublishDialog({ course, onCancel, onPublish, onFix }) {
+// Publish, once nothing's missing: what goes live, and a note if there's
+// no cover
+function PublishDialog({ course, onCancel, onPublish }) {
   const check = publishCheck(course);
-  const blocked = check.problems.length > 0;
-  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-
+  const buy = buyContractOf(course);
+  const others = check.contracts - (buy ? 1 : 0);
   return (
     <ConfirmDialog
       title={`Publish “${course.title}”?`}
       confirmLabel="Publish course"
-      confirmDisabled={blocked}
       onCancel={onCancel}
       onConfirm={onPublish}
     >
       <ul className="pub">
-        {check.lessons > 0 ? (
+        <li className="pub__row pub__row--ok">
+          <Check size={17} strokeWidth={3} aria-hidden="true" />
+          <span>
+            {plural(check.lessons, 'lesson')} will go live
+            {check.hidden > 0 && <span className="pub__note"> ({plural(check.hidden, 'empty lesson')} stay hidden)</span>}
+          </span>
+        </li>
+        {buy && (
           <li className="pub__row pub__row--ok">
             <Check size={17} strokeWidth={3} aria-hidden="true" />
             <span>
-              {plural(check.lessons, 'lesson')} will go live
-              {check.hidden > 0 && <span className="pub__note"> ({plural(check.hidden, 'empty lesson')} stay hidden)</span>}
-            </span>
-          </li>
-        ) : (
-          <li className="pub__row pub__row--no">
-            <X size={17} strokeWidth={3} aria-hidden="true" />
-            <span>
-              No lesson has anything in it yet. Add a video, PDF or text to at least one.
-              <button type="button" className="pub__fix" onClick={() => onFix('content')}>
-                Go to Content
-              </button>
+              {servicePrice(buy) === 'Free' ? 'Free: people sign up to get it' : `Sold for ${servicePrice(buy)}`}
+              {others > 0 && <span className="pub__note"> (and given through {plural(others, 'other contract')})</span>}
             </span>
           </li>
         )}
-
-        {check.contracts > 0 ? (
-          <li className="pub__row pub__row--ok">
-            <Check size={17} strokeWidth={3} aria-hidden="true" />
-            <span>Linked to {plural(check.contracts, 'contract')}, so people who sign up get it</span>
-          </li>
-        ) : (
-          <li className="pub__row pub__row--no">
-            <X size={17} strokeWidth={3} aria-hidden="true" />
-            <span>
-              No contract linked yet, so no one could get it. Link at least one.
-              <button type="button" className="pub__fix" onClick={() => onFix('access')}>
-                Go to Access
-              </button>
-            </span>
-          </li>
-        )}
-
         {!check.cover && (
           <li className="pub__row pub__row--note">
-            <CircleAlert size={17} aria-hidden="true" />
-            <span>
-              No cover image yet: its card shows the title on our orange. You can add one in Settings, now or later.
-            </span>
+            <AlertTriangle size={17} aria-hidden="true" />
+            <span>No cover image yet: its card shows the title on our orange. You can add one on the Landing page.</span>
           </li>
         )}
       </ul>
-      <p className="pub__after">
-        {blocked
-          ? 'Fix what’s marked to publish.'
-          : 'Once it’s published, the changes you make go live straight away. You can unpublish any time.'}
-      </p>
+      <p className="pub__after">Once it’s published, the changes you make go live straight away. You can unpublish any time.</p>
     </ConfirmDialog>
   );
 }

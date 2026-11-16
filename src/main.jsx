@@ -10,6 +10,7 @@ import CheckoutPage from './screens/CheckoutPage.jsx'
 import ContractCheckoutPage from './screens/ContractCheckoutPage.jsx'
 import ContractDonePage from './screens/ContractDonePage.jsx'
 import AcademyCoursesPage from './screens/AcademyCoursesPage.jsx'
+import CourseLandingPage from './screens/CourseLandingPage.jsx'
 import BookedPage from './screens/BookedPage.jsx'
 import ManageBookingPage from './screens/ManageBookingPage.jsx'
 import PageNotFound from './screens/PageNotFound.jsx'
@@ -25,14 +26,22 @@ import { isMyCall } from './data/myProfile'
 import { seriesBySlug } from './data/webinar'
 import { isBatchId } from './data/batches'
 import { readCheckoutPath } from './data/contractCheckout'
+import { readCourseLandingPath } from './data/courses'
 import { loadSaved } from './utils/storage'
 
 // /web/checkout/<contract id> → that contract's checkout, where people sign up and pay
-//   (ContractCheckoutPage; data/contractCheckout.js). The link a coach shares to sell a
-//   course. Built from the contract's id, so renaming it never breaks the link.
+//   (ContractCheckoutPage; data/contractCheckout.js). Built from the contract's id, so
+//   renaming it never breaks the link.
 //   &region=IN, EU or ELSE shows the price someone there sees, &fail=1 fails the first payment.
-//   /web/checkout/<contract id>/done?order=<id> → after they pay (ContractDonePage).
+//   /web/checkout/<contract id>/done?order=<id> → after they pay (ContractDonePage). For a
+//   course's own contract, it has Start learning, which signs them in and opens the course.
 //   Checked before creator handles: "web" can't be a handle (myPage.js).
+// /web/course/<course id> → that course's landing page (CourseLandingPage), the link a coach
+//   shares to sell a course. Public, no sign-in; only published courses show. Buy now goes to
+//   its contract's checkout. ?preview=1 is the coach's Preview (drafts too); &region= as above.
+// ?mock=course-example → the example course's landing page: Meera's sample yoga course
+//   (data/exampleCourse.js), to show what a finished landing page looks like. &embed=1 is
+//   the guide beside the course editor's Landing page and Pricing (courseAnnotations.js).
 // /web/courses → the academy's Courses page, what students see (AcademyCoursesPage).
 //   "View as student" on the Courses page opens it.
 // ?go=<seriesId> → a webinar's shared link: the landing page of whichever of its runs
@@ -92,8 +101,13 @@ const handle = segments[0]?.toLowerCase() ?? null
 const offeringId = segments[1] ? decodeURIComponent(segments[1]) : null
 // /web/checkout/<contract id>(/done): a contract's own checkout
 const contractCheckout = readCheckoutPath(window.location.pathname)
+// /web/course/<course id>: a course's landing page
+const courseLanding = readCourseLandingPath(window.location.pathname)
 
 function Root() {
+  if (courseLanding) {
+    return <CourseLandingPage courseId={courseLanding} preview={params.get('preview') === '1'} region={params.get('region')} />
+  }
   if (segments[0] === 'web' && (segments[1] === 'courses' || segments[1] === 'account')) return <AcademyCoursesPage />
   if (contractCheckout) {
     return contractCheckout.done ? (
@@ -130,6 +144,7 @@ function Root() {
     if (mine && !savedHandle()) return <PageNotFound handle={handle} />
     return mine ? <ProfilePage source="mine" /> : <ProfilePage />
   }
+  if (mock === 'course-example') return <CourseLandingPage example embed={params.get('embed') === '1'} />
   if (mock === 'zoom') return <ZoomMeetingPage webinarId={params.get('webinar')} batchId={params.get('batch')} />
   if (mock === 'batch') return <BatchPage batchId={params.get('batch')} />
   if (mock === 'plans') return <PlansPage />

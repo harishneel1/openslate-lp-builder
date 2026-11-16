@@ -546,6 +546,8 @@ function App() {
   // A 1:1 call open on its page or in its editor: the same focus bar as an
   // open webinar ({ title, exitLabel, onExit, ... }), or null on the list
   const [callFocus, setCallFocus] = useState(null);
+  const [courseFocus, setCourseFocus] = useState(null);
+
   const openCall = (id) => {
     handleNavigate('calls');
     setCallRequest({ id, n: Date.now() });
@@ -1116,7 +1118,9 @@ function App() {
             ? callFocus // a 1:1 call's page or editor, while one is open (CallsPage.jsx)
             : activeNav === 'live-classes'
               ? batchFocus // a batch's page or editor, while one is open (LiveClassesPage.jsx)
-              : null
+              : activeNav === 'courses'
+                ? courseFocus // a course's page, while one is open (CoursePage.jsx)
+                : null
       }
     >
         {activeNav === 'page-builder' ? (
@@ -1135,7 +1139,7 @@ function App() {
           onOpenBatch={openBatch}
         />
       ) : activeNav === 'courses' ? (
-        <CoursesPage />
+        <CoursesPage onFocus={setCourseFocus} />
       ) : activeNav === 'bookings' ? (
         <BookingsPage onNavigate={handleNavigate} openRequest={bookingRequest} />
       ) : activeNav === 'sales' ? (

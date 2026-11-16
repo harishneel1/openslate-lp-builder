@@ -1,17 +1,16 @@
-import { BookOpen } from 'lucide-react';
 import { mockAccount } from '../data/myPage';
 import { isPublished, lessonCount } from '../data/courses';
+import CoverArt from './CoverArt';
 import './CourseCard.css';
 
 // ------------------------------------------------------------
-// One course as a card on the coach's Courses page: a cover, then whether
-// it's live, its title and who it's by. Until courses have cover images
-// here, the cover is a dark panel with the title written large on it (as
-// TagMango's own placeholder covers look).
+// One course as a card on the coach's Courses page: its cover, then
+// whether it's live, its title and who it's by. The cover is the one set
+// on the course's Landing page, or, until there is one, our orange with
+// the title on it (CoverArt.jsx), the same as students see in the academy.
 //
 //   ┌──────────────────────┐
-//   │  AI ENGINEERING      │  cover
-//   │  ACCELERATOR         │
+//   │  cover               │
 //   ├──────────────────────┤
 //   │ PUBLISHED            │  or DRAFT (grey)
 //   │ AI Engineering Acc…  │  title, two lines at most
@@ -20,7 +19,7 @@ import './CourseCard.css';
 //   │ [actions]            │  children: the coach's buttons, if any
 //   └──────────────────────┘
 //
-// course: { title, status, sections }
+// course: { title, status, sections, cover }
 // children: what goes at the foot (Edit course and ⋯ on the Courses page)
 // ------------------------------------------------------------
 export default function CourseCard({ course, children }) {
@@ -28,9 +27,8 @@ export default function CourseCard({ course, children }) {
   const live = isPublished(course);
   return (
     <article className="crd">
-      <div className="crd__cover" aria-hidden="true">
-        <BookOpen size={20} className="crd__cover-icon" />
-        <span className="crd__cover-title">{course.title}</span>
+      <div className="crd__cover">
+        <CoverArt course={course} />
       </div>
       <div className="crd__body">
         <span className={`crd__badge ${live ? 'crd__badge--live' : ''}`}>{live ? 'Published' : 'Draft'}</span>

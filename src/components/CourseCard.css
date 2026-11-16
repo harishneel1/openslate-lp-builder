@@ -1,5 +1,5 @@
 /* One course as a card (CourseCard.jsx). White card like the app's other
-   panels; the cover is a dark panel with the title on it. */
+   panels; the cover is the course's own (CoverArt.jsx). */
 .crd {
   display: flex;
   flex-direction: column;
@@ -11,43 +11,23 @@
   box-shadow: var(--shadow-card);
 }
 
+/* The card itself doesn't clip (so a menu can open past its edge): the
+   cover rounds its own top corners to match */
 .crd__cover {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  aspect-ratio: 16 / 9;
-  padding: 18px 20px;
   overflow: hidden;
-  /* The card itself doesn't clip (so a menu can open past its edge): the
-     cover rounds its own top corners to match */
   border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
-  color: #fff;
-  background:
-    radial-gradient(120% 90% at 100% 0%, rgba(239, 138, 60, 0.35), transparent 60%),
-    #111113;
 }
 
-.crd__cover-icon {
-  position: absolute;
-  top: 16px;
-  left: 20px;
-  color: rgba(255, 255, 255, 0.55);
+.crd__cover .cvr {
+  padding: 18px 20px;
 }
 
-/* The title on the cover: big, at most three lines. The height is capped
-   at exactly three lines too, so no sliver of a fourth line shows. */
-.crd__cover-title {
-  display: -webkit-box;
-  max-height: calc(3 * 1.2em - 2px);
-  overflow: hidden;
+.crd__cover .cvr--image {
+  padding: 0;
+}
+
+.crd__cover .cvr__title {
   font-size: 21px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
 }
 
 .crd__body {

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Check, ExternalLink, MoreHorizontal, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { BookOpen, Check, ExternalLink, Link2, MoreHorizontal, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import {
   COURSE_TITLE_MAX,
   academyCoursesUrl,
+  courseLandingUrl,
   createCourse,
   deleteCourse,
   isPublished,
   loadCourses,
   onCoursesChange,
 } from '../data/courses';
+import { copyText } from '../utils/copyText';
 import CourseCard from '../components/CourseCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CoursePage from './CoursePage';
@@ -20,7 +22,7 @@ import './CoursesPage.css';
 // its main button on the right, then the content.
 //
 //   Courses                   [View as student ↗] [+ Create course]
-//   Students get a course when they sign up on a contract linked to it.
+//   Students get a course when they buy it, or sign up on a contract linked to it.
 //   [🔍 Search courses        ]  [All 3] [Published 1] [Drafts 2]
 //   ┌────────┐ ┌────────┐ ┌────────┐
 //   │ cover  │ │ cover  │ │ cover  │   CourseCard.jsx
@@ -36,12 +38,13 @@ import './CoursesPage.css';
 // what matches the search). A course is published from its page.
 //
 // Create course opens "Create new course": a working title (required, up
-// to 100 characters), nothing else; contracts are linked on the course's
-// Access tab. Continue makes a draft course and opens its page
-// (CoursePage.jsx) here, with "← Courses" back to the list. Edit course
-// opens the same page. ⋯ → Delete asks first; the course goes, and its
-// contracts stay as they are. Deleting a published one says students
-// lose it too.
+// to 100 characters), nothing else; everything else is on the course's
+// page. Continue makes a draft course and opens its page (CoursePage.jsx)
+// here, in focus mode: the focus bar's "← All courses" back to the list. Edit course opens the
+// same page. ⋯ → Copy link copies the course's landing page link
+// (/web/course/<course>, the one to share; a draft's opens once it's
+// published). ⋯ → Delete asks first; the course goes, and its contracts
+// stay as they are. Deleting a published one says students lose it too.
 //
 // View as student opens the academy's Courses page as a preview (/web/courses?preview=1,
 // AcademyCoursesPage.jsx) in a new tab: what students see (published
@@ -60,7 +63,9 @@ function useCourses() {
   return list;
 }
 
-export default function CoursesPage() {
+// onFocus(focus | null): the focus bar while a course is open (App.jsx →
+// AppLayout's FocusBar), as 1:1 calls do
+export default function CoursesPage({ onFocus }) {
   const courses = useCourses();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -104,8 +109,14 @@ export default function CoursesPage() {
     tell(`“${course.title}” deleted`);
   };
 
+  const copyLink = async (course) => {
+    const ok = await copyText(courseLandingUrl(course.id));
+    if (!ok) tell('We couldn’t copy it. Open the course, then Preview ▾ Landing page.', 'error');
+    else tell(isPublished(course) ? 'Link copied' : 'Link copied. It opens once the course is published.');
+  };
+
   if (openId) {
-    return <CoursePage courseId={openId} onBack={() => setOpenId(null)} />;
+    return <CoursePage courseId={openId} onBack={() => setOpenId(null)} onFocus={onFocus} />;
   }
 
   const createButton = (
@@ -120,7 +131,6 @@ export default function CoursesPage() {
       <header className="crs__head">
         <div className="crs__head-text">
           <h1 className="crs__title">Courses</h1>
-          <p className="crs__sub">Students get a course when they sign up on a contract linked to it.</p>
         </div>
         <div className="crs__head-actions">
           <a className="crs-btn crs-btn--quiet" href={academyCoursesUrl()} target="_blank" rel="noopener">
@@ -200,6 +210,10 @@ export default function CoursesPage() {
                         setMenuFor(null);
                         setOpenId(c.id);
                       }}
+                      onCopy={() => {
+                        setMenuFor(null);
+                        copyLink(c);
+                      }}
                       onDelete={() => {
                         setMenuFor(null);
                         setDeleting(c);
@@ -251,8 +265,8 @@ export default function CoursesPage() {
   );
 }
 
-// ⋯ on a card: Edit course, then Delete. Closes on a click outside or Escape.
-function CardMenu({ title, open, onOpenChange, onEdit, onDelete }) {
+// ⋯ on a card: Edit course, Copy link, then Delete. Closes on a click outside or Escape.
+function CardMenu({ title, open, onOpenChange, onEdit, onCopy, onDelete }) {
   const wrap = useRef(null);
   const button = useRef(null);
   const menuId = useRef(`crs-menu-${Math.random().toString(36).slice(2)}`).current;
@@ -305,6 +319,10 @@ function CardMenu({ title, open, onOpenChange, onEdit, onDelete }) {
             <Pencil size={16} aria-hidden="true" />
             Edit course
           </button>
+          <button type="button" role="menuitem" className="crs-menu__item" onClick={onCopy}>
+            <Link2 size={16} aria-hidden="true" />
+            Copy link
+          </button>
           <div className="crs-menu__divider" role="separator" />
           <button type="button" role="menuitem" className="crs-menu__item crs-menu__item--danger" onClick={onDelete}>
             <Trash2 size={16} aria-hidden="true" />
@@ -316,10 +334,11 @@ function CardMenu({ title, open, onOpenChange, onEdit, onDelete }) {
   );
 }
 
-// "Create new course": just a working title, as TagMango's. Contracts are
-// linked on the course's Access tab (Publish asks for one). The browser's own <dialog>: dims the page, keeps the keyboard
-// inside, Escape closes. A click outside doesn't close it, so nothing
-// typed is lost by a stray click.
+// "Create new course": just a working title, as TagMango's. Everything
+// else (price, landing page, content) is on the course's page. The
+// browser's own <dialog>: dims the page, keeps the keyboard inside,
+// Escape closes. A click outside doesn't close it, so nothing typed is
+// lost by a stray click.
 function CreateCourseDialog({ onCancel, onCreated }) {
   const ref = useRef(null);
   const [title, setTitle] = useState('');

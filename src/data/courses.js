@@ -1,4 +1,5 @@
 import { getService } from './mockServices';
+import { contractSignupsOf } from './contractSignupsStore';
 
 // ------------------------------------------------------------
 // Courses. A course doesn't own a contract: it keeps a list of the
@@ -6,6 +7,15 @@ import { getService } from './mockServices';
 // changes a contract. Any contract can be linked (one made on the
 // Contracts page, a webinar session's, a 1:1 call's), and a deleted
 // contract simply stops showing on the course.
+//
+// The one exception is its price (Pricing, CoursePricing.jsx): setting a
+// price there makes a contract for the course (createContract in
+// mockServices.js) and links it, and the course's Buy button sells it.
+// That contract is buyContractId; buyContractMade says the course made
+// it (so its price is changed on the course), or false when the coach
+// picked one of the linked contracts for the Buy button instead (its
+// price is changed wherever that contract is managed). The Buy button's
+// contract is always one of contractIds.
 //
 // Who can open a course (with publishing, later): anyone whose email has
 // a sign-up on a linked contract that wasn't refunded.
@@ -40,21 +50,34 @@ import { getService } from './mockServices';
 //   { id: 'course-…', title, contractIds: [...], status: 'draft',
 //     cover: null | { fileId ('file:f-…'), name, ext, bytes }: an image in
 //            their Cloud Storage, shown on the course's card in the academy
-//            (set in the course's Settings),
+//            (set on the course's Landing page),
+//     subtitle: one line under the title on the landing page ('' for none),
+//     description: html, written in the text editor ('' for none),
+//     outcomes: ['…']      What students will learn (Intended learners)
+//     requirements: ['…']  Requirements or prerequisites
+//     audience: ['…']      Who this course is for
+//     testimonials: [{ id, name, text }]   what past students said, added
+//                          by hand (from WhatsApp, emails, reviews
+//                          elsewhere); shown as testimonials, never as
+//                          ratings
+//     buyContractId: null | the contract the Buy button sells (above),
+//     buyContractMade: true when the course made that contract,
 //     sections: [{ id: 'sec-…', title, lessons: [
 //       { id: 'les-…', title, content, description, resources,
 //         createdAt, updatedAt } ] }],
 //     createdAt, updatedAt }
+// Courses made before these fields read as empty ('' and []).
 // A new course starts with one empty section, "Untitled". Courses made
 // before sections existed have none; they read as an empty list.
 // Lessons made before content types kept plain `text`; they read as a
 // text lesson (each blank-line paragraph a <p>), and are saved that way
 // the next time their course changes.
 // status: 'draft' (only the coach sees it, and Preview as student) or
-// 'published' (in the academy; publishedAt is when). Publishing needs at
-// least one lesson with something in it and at least one linked contract
-// (publishCheck). Once published, changes go live as they're made: there's
-// no separate draft to publish again.
+// 'published' (in the academy; publishedAt is when). Publishing needs
+// (publishCheck): at least one lesson with something in it, a price (or
+// Free), a subtitle, and at least 3 things students will learn. Once
+// published, changes go live as they're made: there's no separate draft
+// to publish again.
 //
 // Kept in this browser for the mock; the real product keeps them on the
 // server, which must clean a lesson's html before showing it to anyone.
@@ -65,10 +88,15 @@ import { getService } from './mockServices';
 // coursePlayerPath(courseId, lessonId?, preview?) / coursePlayerUrl(…) → a
 //   course in the student's player: /web/courses/<course>/learn?lesson=<lesson>,
 //   with &preview=1 for the coach's Preview as student (drafts open too)
+// courseLandingPath(courseId, preview?) / courseLandingUrl(…) → its public
+//   landing page, /web/course/<course> (with ?preview=1 for the coach's
+//   Preview, drafts too); readCourseLandingPath(pathname) → the id, or null
+// courseSoldBy(contractId) → the published course whose Buy button sells it
 // isPublished(course)
 // publishCheck(course) → what publishing would do, and what stops it:
-//   { lessons, hidden (empty lessons left out), contracts, cover,
-//     problems: ['lessons' | 'contracts', …] }
+//   { lessons, hidden (empty lessons left out), contracts, cover, priced,
+//     subtitle, outcomes (how many),
+//     problems: ['lessons' | 'price' | 'subtitle' | 'outcomes', …] }
 // publishCourse(id) → the published course, or null (checks not met)
 // unpublishCourse(id) → the course, back to a draft, or null
 // studentSections(course) → the course as students see it: only lessons
@@ -77,9 +105,18 @@ import { getService } from './mockServices';
 // loadCourses() → every course, newest first
 // getCourse(id) → one course, or null
 // createCourse({ title, contractIds }) → the new course, or null if it couldn't save
-// updateCourse(id, { title?, contractIds?, cover? }) → the changed course, or null
+// updateCourse(id, { title?, contractIds?, cover?, subtitle?, description?,
+//   outcomes?, requirements?, audience?, buyContractId?, buyContractMade? })
+//   → the changed course, or null
 // deleteCourse(id) → true if it's gone
 // linkedContracts(course) → its contracts that still exist, in the order linked
+// buyContractOf(course) → the contract its Buy button sells, or null (none
+//   set yet, or it was deleted)
+// listOf(course, 'outcomes' | 'requirements' | 'audience') → that list
+// testimonialsOf(course) → its testimonials, whole ones only
+// instructorStats() → { students, courses }: the coach's published
+//   courses, and the people (one each, by email) signed up on any of
+//   their contracts. Ratings come once reviews are collected.
 // onCoursesChange(fn) → runs fn when courses change (here or in another tab);
 //   returns the function that stops it
 //
@@ -117,6 +154,17 @@ export const LESSON_TITLE_MAX = 120;
 export const LESSON_HTML_MAX = 200000; // a long article, with room for its markup
 export const LINK_MAX = 2000;
 
+// The landing page and Intended learners, as Udemy's
+export const SUBTITLE_MAX = 120;
+export const DESCRIPTION_HTML_MAX = 50000;
+export const LIST_ITEM_MAX = 160; // one thing students will learn, one requirement…
+export const LIST_MAX = 10; // how many of each
+export const OUTCOMES_MIN = 3; // needed to publish
+export const LISTS = ['outcomes', 'requirements', 'audience'];
+export const TESTIMONIALS_MAX = 6;
+export const TESTIMONIAL_NAME_MAX = 60;
+export const TESTIMONIAL_TEXT_MAX = 400;
+
 // What a new section is called, until it's renamed
 export const NEW_SECTION_TITLE = 'Untitled';
 
@@ -141,6 +189,21 @@ export function coursePlayerPath(courseId, lessonId = null, preview = false) {
 export const coursePlayerUrl = (courseId, lessonId = null, preview = false) =>
   `${window.location.origin}${coursePlayerPath(courseId, lessonId, preview)}`;
 
+// A course's landing page (CourseLandingPage.jsx), the link a coach
+// shares to sell it: /web/course/<course>. Public, no sign-in. Only a
+// published course shows; preview: the coach's Preview ▾ Landing page,
+// which shows drafts too. Built from the course's id, so renaming it never
+// breaks a link that's been sent.
+export const courseLandingPath = (courseId, preview = false) =>
+  `/web/course/${encodeURIComponent(courseId)}${preview ? '?preview=1' : ''}`;
+export const courseLandingUrl = (courseId, preview = false) =>
+  `${window.location.origin}${courseLandingPath(courseId, preview)}`;
+// The course id in /web/course/<course>, or null
+export function readCourseLandingPath(pathname) {
+  const parts = pathname.split('/').filter(Boolean);
+  return parts[0] === 'web' && parts[1] === 'course' && parts[2] ? decodeURIComponent(parts[2]) : null;
+}
+
 function read() {
   try {
     const list = JSON.parse(localStorage.getItem(KEY) ?? '[]');
@@ -164,6 +227,22 @@ const now = () => new Date().toISOString();
 const newId = (prefix) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const clean = (text, max) => String(text ?? '').trim().slice(0, max);
 const cleanIds = (ids) => [...new Set((Array.isArray(ids) ? ids : []).filter((id) => typeof id === 'string' && id))];
+// A list as saved: only lines with words in them, each kept short, at most LIST_MAX
+const cleanList = (list) =>
+  (Array.isArray(list) ? list : [])
+    .map((item) => clean(item, LIST_ITEM_MAX))
+    .filter(Boolean)
+    .slice(0, LIST_MAX);
+// Testimonials as saved: only ones with words in them; a name is optional
+const cleanTestimonials = (list) =>
+  (Array.isArray(list) ? list : [])
+    .map((t) => ({
+      id: typeof t?.id === 'string' && t.id ? t.id : newId('tst'),
+      name: clean(t?.name, TESTIMONIAL_NAME_MAX),
+      text: clean(t?.text, TESTIMONIAL_TEXT_MAX),
+    }))
+    .filter((t) => t.text)
+    .slice(0, TESTIMONIALS_MAX);
 
 export const loadCourses = () => read().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 
@@ -213,6 +292,25 @@ export function updateCourse(id, edits) {
         next.cover = { fileId: c.fileId, name: String(c.name ?? 'Cover'), ext: c.ext ?? null, bytes: Number(c.bytes) || 0 };
       } else return null;
     }
+    if ('subtitle' in edits) next.subtitle = clean(edits.subtitle, SUBTITLE_MAX);
+    if ('description' in edits) {
+      const html = String(edits.description ?? '');
+      if (html.length > DESCRIPTION_HTML_MAX) return null;
+      next.description = html === '<p></p>' ? '' : html;
+    }
+    LISTS.forEach((key) => {
+      if (key in edits) next[key] = cleanList(edits[key]);
+    });
+    if ('testimonials' in edits) next.testimonials = cleanTestimonials(edits.testimonials);
+    if ('buyContractId' in edits) {
+      const buy = edits.buyContractId;
+      next.buyContractId = typeof buy === 'string' && buy ? buy : null;
+    }
+    if ('buyContractMade' in edits) next.buyContractMade = Boolean(edits.buyContractMade);
+    // The Buy button's contract is always a linked one
+    if (next.buyContractId && !(next.contractIds ?? []).includes(next.buyContractId)) {
+      next.contractIds = [next.buyContractId, ...(next.contractIds ?? [])];
+    }
     return next;
   });
 }
@@ -224,6 +322,30 @@ export function deleteCourse(id) {
 }
 
 export const linkedContracts = (course) => (course?.contractIds ?? []).map(getService).filter(Boolean);
+
+export function buyContractOf(course) {
+  const id = course?.buyContractId;
+  if (!id || !(course.contractIds ?? []).includes(id)) return null;
+  return getService(id);
+}
+
+export const listOf = (course, key) => cleanList(course?.[key]);
+
+export const testimonialsOf = (course) => cleanTestimonials(course?.testimonials);
+
+export function instructorStats() {
+  const published = read().filter((c) => c.status === 'published');
+  const ids = new Set(published.flatMap((c) => c.contractIds ?? []));
+  const people = new Set(
+    [...ids].flatMap((id) => contractSignupsOf(id)).map((r) => String(r.email ?? '').trim().toLowerCase() || r.id),
+  );
+  return { students: people.size, courses: published.length };
+}
+
+// The published course whose Buy button sells this contract, or null: the
+// thank-you page after checkout uses it for Start learning
+export const courseSoldBy = (contractId) =>
+  contractId ? read().find((c) => c.buyContractId === contractId && isPublished(c)) ?? null : null;
 
 export function onCoursesChange(fn) {
   const fromOtherTab = (e) => {
@@ -605,10 +727,24 @@ export function publishCheck(course) {
   const all = sectionsOf(course).flatMap((sec) => sec.lessons);
   const lessons = all.filter((l) => l.content).length;
   const contracts = linkedContracts(course).length;
+  const priced = Boolean(buyContractOf(course));
+  const subtitle = clean(course?.subtitle, SUBTITLE_MAX);
+  const outcomes = listOf(course, 'outcomes').length;
   const problems = [];
   if (lessons === 0) problems.push('lessons');
-  if (contracts === 0) problems.push('contracts');
-  return { lessons, hidden: all.length - lessons, contracts, cover: Boolean(course?.cover), problems };
+  if (!priced) problems.push('price');
+  if (!subtitle) problems.push('subtitle');
+  if (outcomes < OUTCOMES_MIN) problems.push('outcomes');
+  return {
+    lessons,
+    hidden: all.length - lessons,
+    contracts,
+    cover: Boolean(course?.cover),
+    priced,
+    subtitle: Boolean(subtitle),
+    outcomes,
+    problems,
+  };
 }
 
 export function publishCourse(id) {

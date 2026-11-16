@@ -1,0 +1,667 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlignLeft,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Download,
+  Eye,
+  FileText,
+  MessageSquareQuote,
+  MonitorSmartphone,
+  PlayCircle,
+  Star,
+  Users,
+} from 'lucide-react';
+import {
+  academyHome,
+  buyContractOf,
+  getCourse,
+  instructorStats,
+  isPublished,
+  listOf,
+  onCoursesChange,
+  studentSections,
+  testimonialsOf,
+} from '../data/courses';
+import { buildContractCheckout, contractCheckoutPath } from '../data/contractCheckout';
+import { formatMoney, payAmount } from '../data/contractPricing';
+import { servicePrice } from '../data/mockServices';
+import { getMyProfile } from '../data/myProfile';
+import { EXAMPLE_COURSE, EXAMPLE_INSTRUCTOR, EXAMPLE_OFFER, EXAMPLE_RATING, EXAMPLE_REVIEWS } from '../data/exampleCourse';
+import { initials } from '../utils/initials';
+import { TextView } from '../components/TextEditor';
+import CoverArt from '../components/CoverArt';
+import AcademyTop from '../components/AcademyTop';
+import { KIND } from './lessonKinds';
+import './AcademyCoursesPage.css';
+import './CourseLandingPage.css';
+
+// ------------------------------------------------------------
+// A course's landing page: /web/course/<course>. The link a coach shares
+// to sell a course, laid out as Udemy's course page, in our colours, and
+// built from what the course already has (CoursePage.jsx's steps). Nothing
+// on it is designed by hand.
+//
+//   [HN]                      [📖 Courses]
+//   ███████████████████████████████████████████████████████████████████
+//   █ Yoga for Everyday Strength…                  ┌───────────────────┐
+//   █ Asana, breathwork and meditation…            │      cover        │
+//   █ 4.8 ★★★★★ (126 ratings) · 1,240 students     │ ₹2,499  ₹4,999    │
+//   █ Created by Meera Joshi · Last updated Oct…   │ [    Buy now    ] │
+//   ███████████████████████████████████████████████│ Pay once, start…  │
+//   ┌ What you'll learn ─────────────────────┐     └───────────────────┘
+//   │ ✓ Build a 20-minute…   ✓ Move safely…   │
+//   └─────────────────────────────────────────┘
+//   This course includes · Course content · Requirements · Description
+//   (folds after a few paragraphs: Show more) · Who this course is for
+//   Instructor: photo, name, headline, stats (rating, reviews, students,
+//   courses), bio (folds: Show more)
+//   ★ 4.8 course rating · 126 ratings: four review cards, Show all reviews
+//   What students say: testimonials the coach added
+//
+// Scrolled past the dark band, a slim bar sticks to the top: the title
+// (and rating), the price and Buy now, so buying is always one tap away.
+//
+// What it shows, and where it comes from:
+//   title, subtitle, cover, description,    Landing page step
+//     what you'll learn, requirements,
+//     who it's for, testimonials
+//   This course includes                    worked out from the lessons
+//                                           students see: videos (uploaded
+//                                           or YouTube/Vimeo), articles
+//                                           (text), PDFs, and resources
+//   Course content                          Curriculum: sections by name and
+//                                           lessons by name, as students see
+//                                           them (empty ones left out), each
+//                                           section with its lesson count.
+//                                           Names only: no lesson opens here.
+//   Instructor                              the coach's profile (name, photo,
+//                                           bio: myProfile.js), and stats
+//                                           that fill in by themselves
+//                                           (instructorStats: students,
+//                                           courses); a stat that's 0 isn't
+//                                           shown
+//   rating, reviews                         from students, once reviews are
+//                                           collected (not yet: only the
+//                                           example has them). Shown only
+//                                           with at least 3 reviews: one
+//                                           review, or two low ones, hurts
+//                                           more than none.
+//   price, Buy now                          Pricing: the Buy button's
+//                                           contract (buyContractOf). The
+//                                           price is the one for where
+//                                           they are (buildContractCheckout),
+//                                           with the full price crossed out
+//                                           when the contract has a discount.
+// A part with nothing in it isn't shown. Video lengths come later (the
+// prototype keeps no files): no "2h 38m total" yet.
+//
+// Buy now (Enroll for free, when it's free) opens the contract's checkout,
+// /web/checkout/<contract> (ContractCheckoutPage.jsx). After paying, its
+// thank-you page has Start learning, signed in (ContractDonePage.jsx). A
+// contract another page owns (a webinar's, say) sends them to that page.
+// A contract that's been turned off says sign-ups are closed.
+//
+// Desktop: the Buy box sits on the right, over the dark band, and stays in
+// view as they scroll. Phones: it comes under the band, and a bar with
+// the price and Buy now stays at the foot of the screen (the top bar
+// isn't used there).
+//
+// Only a published course shows. Any other link says the page isn't
+// available, without saying what's there. ?preview=1 is the coach's
+// Preview: drafts show too, with a strip on top saying so, and a draft's
+// Buy now does nothing (it works once it's published).
+//
+// Example mode (?mock=course-example): Meera's example course
+// (exampleCourse.js), the same page with its content, to show what a
+// finished landing page looks like. Its Buy now goes nowhere.
+//
+// embed (&embed=1): the example inside the guide beside the course editor
+// (courseAnnotations.js): no Example strip, and neither bar that follows
+// the scroll, so the guide's highlights have the page to themselves.
+//
+// courseId; preview; region: ?region=IN, EU or ELSE, to see another
+// country's price (as on checkout); example: show the example course;
+// embed: shown inside the guide
+// ------------------------------------------------------------
+
+const plural = (n, word) => `${n.toLocaleString('en-IN')} ${word}${n === 1 ? '' : 's'}`;
+const REVIEWS_MIN = 3; // fewer, and no rating or reviews show
+const REVIEWS_SHOWN = 4; // then Show all reviews
+const LONG_BIO = 420;
+const LONG_DESCRIPTION = 900; // characters of html, roughly three short paragraphs
+
+function useCourse(id) {
+  const [course, setCourse] = useState(() => getCourse(id));
+  useEffect(() => onCoursesChange(() => setCourse(getCourse(id))), [id]);
+  return course;
+}
+
+// What the Buy box offers: { state: 'buy' | 'closed' | 'none', href, free, amount, compare, monthly }
+function offerOf(course, region) {
+  const contract = buyContractOf(course);
+  if (!contract) return { state: 'none' };
+  const data = buildContractCheckout({ contractId: contract.id, region });
+  if (data.status === 'elsewhere') {
+    const free = servicePrice(contract) === 'Free';
+    return { state: 'buy', href: data.href, free, amount: servicePrice(contract), compare: null };
+  }
+  if (data.status !== 'ok') return { state: 'closed' };
+  const href = `${contractCheckoutPath(contract.id)}${region ? `?region=${encodeURIComponent(region)}` : ''}`;
+  if (data.free) return { state: 'buy', href, free: true, amount: 'Free', compare: null };
+  const p = data.price;
+  const compare = p.discount != null && p.discount > 0 ? formatMoney(p.price, p.currency) : null;
+  return {
+    state: 'buy',
+    href,
+    free: false,
+    amount: `${formatMoney(payAmount(p), p.currency)}${data.monthly ? '/month' : ''}`,
+    compare,
+    monthly: data.monthly,
+  };
+}
+
+// ★★★★☆, half stars rounded to the nearest half
+function Stars({ value, size = 15 }) {
+  return (
+    <span className="cld__stars" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((i) => {
+        const fill = Math.max(0, Math.min(1, value - i + 1));
+        return (
+          <span key={i} className="cld__star">
+            <Star size={size} className="cld__star-empty" />
+            {fill > 0 && (
+              <span className="cld__star-fill" style={{ width: `${Math.round(fill * 2) * 50}%` }}>
+                <Star size={size} />
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+export default function CourseLandingPage({ courseId, preview = false, region = null, example = false, embed = false }) {
+  const found = useCourse(example ? null : courseId);
+  const course = example ? EXAMPLE_COURSE : found && (preview || isPublished(found)) ? found : null;
+  const sections = useMemo(() => (course ? studentSections(course) : []), [course]);
+  const home = academyHome(preview);
+  const hero = useRef(null);
+  const [pastHero, setPastHero] = useState(false); // the slim bar shows
+
+  useEffect(() => {
+    document.title = course ? course.title : 'Page not available';
+  }, [course]);
+
+  // The slim bar: once the dark band has scrolled out of view
+  useEffect(() => {
+    const el = hero.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([entry]) => setPastHero(!entry.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [course?.id]);
+
+  if (!course) {
+    return (
+      <div className="acd">
+        <AcademyTop home={home} onCourses={false} />
+        <main className="acd__main">
+          <section className="acd__empty">
+            <h1 className="acd__empty-title">This page isn’t available</h1>
+            <p className="acd__empty-text">Check the link you were sent.</p>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  const live = isPublished(course);
+  const offer = example ? EXAMPLE_OFFER : offerOf(course, region);
+  const canBuy = offer.state === 'buy' && live;
+  const creator = example ? EXAMPLE_INSTRUCTOR : getMyProfile().creator;
+  const stats = example ? EXAMPLE_INSTRUCTOR.stats : instructorStats();
+  // Reviews come once students can rate a course; only the example has them yet
+  const reviews = example ? EXAMPLE_REVIEWS : [];
+  const rating = example ? EXAMPLE_RATING : null;
+  const showRating = Boolean(rating) && reviews.length >= REVIEWS_MIN;
+  const testimonials = example ? [] : testimonialsOf(course);
+  const outcomes = listOf(course, 'outcomes');
+  const requirements = listOf(course, 'requirements');
+  const audience = listOf(course, 'audience');
+  const lessons = sections.flatMap((s) => s.lessons);
+  const updated = new Date(course.updatedAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+  const count = (kinds) => lessons.filter((l) => kinds.includes(l.content.kind)).length;
+  const resources = lessons.reduce((n, l) => n + l.resources.length, 0);
+  const includes = [
+    { id: 'video', icon: PlayCircle, n: count(['video', 'embed']), word: 'video' },
+    { id: 'text', icon: AlignLeft, n: count(['text']), word: 'article' },
+    { id: 'pdf', icon: FileText, n: count(['pdf']), word: 'PDF' },
+    { id: 'res', icon: Download, n: resources, word: 'downloadable resource' },
+  ].filter((row) => row.n > 0);
+
+  const buyLabel = offer.free ? 'Enroll for free' : 'Buy now';
+
+  return (
+    <div className={`acd cld ${offer.state === 'buy' && !embed ? 'cld--with-bar' : ''}`}>
+      <AcademyTop home={home} onCourses={false} />
+      {example && !embed && (
+        <p className="cpl__preview" role="status">
+          <Eye size={17} aria-hidden="true" />
+          Example: a sample course by Meera Joshi, to show what a finished landing page looks like.
+        </p>
+      )}
+      {preview && !example && (
+        <p className={`cpl__preview ${live ? '' : 'cpl__preview--draft'}`} role="status">
+          <Eye size={17} aria-hidden="true" />
+          {live
+            ? 'Preview: this is the course’s landing page, as anyone with the link sees it.'
+            : 'Preview: this course is a draft, so this page isn’t live yet. Buy now works once it’s published.'}
+        </p>
+      )}
+
+      {/* ---------- Scrolled past the band: title, price, Buy now ---------- */}
+      {offer.state === 'buy' && !embed && (
+        <div className={`cld__sticky ${pastHero ? 'cld__sticky--on' : ''}`} aria-hidden={!pastHero}>
+          <div className="cld__wrap cld__sticky-row">
+            <div className="cld__sticky-text">
+              <p className="cld__sticky-title">{course.title}</p>
+              {showRating && (
+                <p className="cld__sticky-rating">
+                  <strong>{rating.average.toFixed(1)}</strong>
+                  <Stars value={rating.average} size={13} />
+                  <span>({plural(rating.count, 'rating')})</span>
+                </p>
+              )}
+            </div>
+            <p className="cld__sticky-price">
+              <span className="cld__amount">{offer.amount}</span>
+              {offer.compare && <s className="cld__compare">{offer.compare}</s>}
+            </p>
+            <BuyButton href={offer.href} enabled={canBuy} label={buyLabel} tabbable={pastHero} />
+          </div>
+        </div>
+      )}
+
+      {/* ---------- The dark band ---------- */}
+      <header className="cld__hero" ref={hero}>
+        <div className="cld__wrap">
+          <div className="cld__hero-text">
+            <h1 className="cld__title">{course.title}</h1>
+            {course.subtitle && <p className="cld__subtitle">{course.subtitle}</p>}
+            {showRating && (
+              <p className="cld__rating">
+                <strong className="cld__rating-value">{rating.average.toFixed(1)}</strong>
+                <Stars value={rating.average} />
+                <a className="cld__rating-link" href="#cld-reviews">
+                  ({plural(rating.count, 'rating')})
+                </a>
+                <span className="cld__rating-students">{plural(rating.students, 'student')}</span>
+              </p>
+            )}
+            <p className="cld__by">
+              Created by <a href="#cld-instructor">{creator.name}</a>
+              <span aria-hidden="true"> · </span>
+              Last updated {updated}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <div className="cld__wrap cld__layout">
+        <main className="cld__main">
+          {outcomes.length > 0 && (
+            <section className="cld__box" aria-labelledby="cld-learn">
+              <h2 className="cld__h2" id="cld-learn">
+                What you’ll learn
+              </h2>
+              <ul className="cld__learn">
+                {outcomes.map((item) => (
+                  <li key={item}>
+                    <Check size={17} strokeWidth={2.5} aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {includes.length > 0 && (
+            <section className="cld__part" aria-labelledby="cld-includes">
+              <h2 className="cld__h2" id="cld-includes">
+                This course includes
+              </h2>
+              <ul className="cld__includes">
+                {includes.map(({ id, icon: Icon, n, word }) => (
+                  <li key={id}>
+                    <Icon size={18} aria-hidden="true" />
+                    {plural(n, word)}
+                  </li>
+                ))}
+                <li>
+                  <MonitorSmartphone size={18} aria-hidden="true" />
+                  Access on your phone and computer
+                </li>
+              </ul>
+            </section>
+          )}
+
+          {sections.length > 0 && <Curriculum sections={sections} lessons={lessons.length} />}
+
+          {requirements.length > 0 && (
+            <section className="cld__part" aria-labelledby="cld-req">
+              <h2 className="cld__h2" id="cld-req">
+                Requirements
+              </h2>
+              <ul className="cld__bullets">
+                {requirements.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {course.description && <Description html={course.description} />}
+
+          {audience.length > 0 && (
+            <section className="cld__part" aria-labelledby="cld-who">
+              <h2 className="cld__h2" id="cld-who">
+                Who this course is for
+              </h2>
+              <ul className="cld__bullets">
+                {audience.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <Instructor creator={creator} stats={stats} />
+
+          {showRating && <Reviews rating={rating} reviews={reviews} />}
+
+          {testimonials.length > 0 && <Testimonials items={testimonials} />}
+        </main>
+
+        {/* ---------- The Buy box ---------- */}
+        <aside className="cld__side" aria-label="Buy this course">
+          <div className="cld__card">
+            <CoverArt course={course} />
+            <div className="cld__card-body">
+              <BuyParts offer={offer} canBuy={canBuy} label={buyLabel} />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* ---------- Phones: the price and Buy now, at the foot ---------- */}
+      {offer.state === 'buy' && !embed && (
+        <div className="cld__bar">
+          <p className="cld__bar-price">
+            <span className="cld__amount">{offer.amount}</span>
+            {offer.compare && <s className="cld__compare">{offer.compare}</s>}
+          </p>
+          <BuyButton href={offer.href} enabled={canBuy} label={buyLabel} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The price, Buy now and the line under it (or why it can't be bought)
+function BuyParts({ offer, canBuy, label }) {
+  if (offer.state === 'none') {
+    return <p className="cld__closed">This course can’t be bought yet.</p>;
+  }
+  if (offer.state === 'closed') {
+    return <p className="cld__closed">Sign-ups for this course are closed for now.</p>;
+  }
+  return (
+    <>
+      <p className="cld__price">
+        <span className="cld__amount">{offer.amount}</span>
+        {offer.compare && (
+          <s className="cld__compare">
+            <span className="sr-only">Full price </span>
+            {offer.compare}
+          </s>
+        )}
+      </p>
+      <BuyButton href={offer.href} enabled={canBuy} label={label} wide />
+      <p className="cld__after">
+        {offer.free
+          ? 'Sign up with your details and start straight away.'
+          : offer.monthly
+            ? 'Paid every month. Start as soon as you’ve paid.'
+            : 'Pay once. Start as soon as you’ve paid.'}
+      </p>
+    </>
+  );
+}
+
+function BuyButton({ href, enabled, label, wide = false, tabbable = true }) {
+  if (!enabled) {
+    return (
+      <span className={`cld__buy cld__buy--off ${wide ? 'cld__buy--wide' : ''}`} aria-disabled="true">
+        {label}
+      </span>
+    );
+  }
+  return (
+    <a
+      className={`cld__buy ${wide ? 'cld__buy--wide' : ''}`}
+      href={href}
+      tabIndex={tabbable ? undefined : -1}
+      // The example's Buy now (href '#') goes nowhere
+      onClick={href === '#' ? (e) => e.preventDefault() : undefined}
+    >
+      {label}
+    </a>
+  );
+}
+
+// Course content: each section folds open or shut; the first starts open
+function Curriculum({ sections, lessons }) {
+  const [open, setOpen] = useState(() => new Set([sections[0].id]));
+  const all = open.size === sections.length;
+  const toggle = (id) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  return (
+    <section className="cld__part" aria-labelledby="cld-content">
+      <h2 className="cld__h2" id="cld-content">
+        Course content
+      </h2>
+      <div className="cld__content-bar">
+        <p>
+          {plural(sections.length, 'section')} • {plural(lessons, 'lesson')}
+        </p>
+        <button
+          type="button"
+          className="cld__link"
+          onClick={() => setOpen(all ? new Set() : new Set(sections.map((s) => s.id)))}
+        >
+          {all ? 'Collapse all sections' : 'Expand all sections'}
+        </button>
+      </div>
+      <ol className="cld__sections">
+        {sections.map((section) => {
+          const isOpen = open.has(section.id);
+          return (
+            <li key={section.id} className="cld__section">
+              <button
+                type="button"
+                className="cld__section-head"
+                aria-expanded={isOpen}
+                aria-controls={`cld-sec-${section.id}`}
+                onClick={() => toggle(section.id)}
+              >
+                <ChevronDown size={18} className={`cld__chev ${isOpen ? 'cld__chev--open' : ''}`} aria-hidden="true" />
+                <span className="cld__section-title">{section.title}</span>
+                <span className="cld__section-count">{plural(section.lessons.length, 'lesson')}</span>
+              </button>
+              {isOpen && (
+                <ul className="cld__lessons" id={`cld-sec-${section.id}`}>
+                  {section.lessons.map((lesson) => {
+                    const kind = lesson.content.kind;
+                    const Icon = kind === 'video' || kind === 'embed' ? PlayCircle : KIND[kind]?.icon ?? FileText;
+                    return (
+                      <li key={lesson.id} className="cld__lesson">
+                        <Icon size={16} aria-hidden="true" />
+                        <span>{lesson.title}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+// Description: folded, with Show more, when it's long
+function Description({ html }) {
+  const [more, setMore] = useState(false);
+  const long = html.length > LONG_DESCRIPTION;
+  return (
+    <section className="cld__part" aria-labelledby="cld-desc">
+      <h2 className="cld__h2" id="cld-desc">
+        Description
+      </h2>
+      <div id="cld-desc-text" className={`cld__description ${long && !more ? 'cld__fold' : ''}`}>
+        <TextView html={html} />
+      </div>
+      {long && (
+        <button type="button" className="cld__link cld__more" aria-expanded={more} aria-controls="cld-desc-text" onClick={() => setMore((m) => !m)}>
+          {more ? 'Show less' : 'Show more'}
+          <ChevronDown size={16} className={`cld__chev ${more ? 'cld__chev--open' : ''}`} aria-hidden="true" />
+        </button>
+      )}
+    </section>
+  );
+}
+
+// The coach: photo, name, headline, stats that aren't 0, bio (folded when long)
+function Instructor({ creator, stats }) {
+  const [more, setMore] = useState(false);
+  const bio = String(creator.bio ?? '').trim();
+  const long = bio.length > LONG_BIO;
+  const rows = [
+    stats.rating ? { id: 'rating', icon: Star, text: `${stats.rating.toFixed(1)} instructor rating` } : null,
+    stats.reviews ? { id: 'reviews', icon: MessageSquareQuote, text: plural(stats.reviews, 'review') } : null,
+    stats.students ? { id: 'students', icon: Users, text: plural(stats.students, 'student') } : null,
+    stats.courses ? { id: 'courses', icon: BookOpen, text: plural(stats.courses, 'course') } : null,
+  ].filter(Boolean);
+
+  return (
+    <section className="cld__part" id="cld-instructor" aria-labelledby="cld-instructor-title">
+      <h2 className="cld__h2" id="cld-instructor-title">
+        Instructor
+      </h2>
+      <p className="cld__name">{creator.name}</p>
+      {creator.headline && <p className="cld__headline">{creator.headline}</p>}
+      <div className="cld__instructor">
+        <span className="cld__photo" aria-hidden="true">
+          {creator.photo ? <img src={creator.photo} alt="" /> : initials(creator.name)}
+        </span>
+        {rows.length > 0 && (
+          <ul className="cld__stats">
+            {rows.map(({ id, icon: Icon, text }) => (
+              <li key={id}>
+                <Icon size={16} aria-hidden="true" />
+                {text}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {bio && (
+        <>
+          <p id="cld-bio" className={`cld__bio ${long && !more ? 'cld__fold' : ''}`}>
+            {bio}
+          </p>
+          {long && (
+            <button type="button" className="cld__link cld__more" aria-expanded={more} aria-controls="cld-bio" onClick={() => setMore((m) => !m)}>
+              {more ? 'Show less' : 'Show more'}
+              <ChevronDown size={16} className={`cld__chev ${more ? 'cld__chev--open' : ''}`} aria-hidden="true" />
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+// ★ 4.8 course rating · 126 ratings, four cards, then Show all reviews
+function Reviews({ rating, reviews }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? reviews : reviews.slice(0, REVIEWS_SHOWN);
+  return (
+    <section className="cld__part" id="cld-reviews" aria-labelledby="cld-reviews-title">
+      <h2 className="cld__h2 cld__reviews-title" id="cld-reviews-title">
+        <Star size={20} className="cld__reviews-star" aria-hidden="true" />
+        {rating.average.toFixed(1)} course rating
+        <span className="cld__dot" aria-hidden="true">
+          ·
+        </span>
+        {plural(rating.count, 'rating')}
+      </h2>
+      <ul className="cld__reviews">
+        {shown.map((r) => (
+          <li key={r.id} className="cld__review">
+            <div className="cld__review-head">
+              <span className="cld__avatar" aria-hidden="true">
+                {initials(r.name)}
+              </span>
+              <div>
+                <p className="cld__review-name">{r.name}</p>
+                <p className="cld__review-meta">
+                  <Stars value={r.stars} size={13} />
+                  <span className="sr-only">{r.stars} out of 5 stars, </span>
+                  {r.when}
+                </p>
+              </div>
+            </div>
+            <p className="cld__review-text">{r.text}</p>
+          </li>
+        ))}
+      </ul>
+      {reviews.length > REVIEWS_SHOWN && (
+        <button type="button" className="cld__all" onClick={() => setAll((a) => !a)}>
+          {all ? 'Show fewer reviews' : `Show all ${reviews.length} reviews`}
+        </button>
+      )}
+    </section>
+  );
+}
+
+// What students say: testimonials the coach added, labelled as such (no stars)
+function Testimonials({ items }) {
+  return (
+    <section className="cld__part" aria-labelledby="cld-testimonials">
+      <h2 className="cld__h2" id="cld-testimonials">
+        What students say
+      </h2>
+      <ul className="cld__reviews">
+        {items.map((t) => (
+          <li key={t.id} className="cld__review cld__testimonial">
+            <MessageSquareQuote size={20} className="cld__quote" aria-hidden="true" />
+            <p className="cld__review-text">“{t.text}”</p>
+            {t.name && <p className="cld__testimonial-name">{t.name}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
