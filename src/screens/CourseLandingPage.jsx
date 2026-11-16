@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlignLeft,
+  ArrowRight,
   BookOpen,
   Check,
   ChevronDown,
@@ -28,39 +29,65 @@ import { buildContractCheckout, contractCheckoutPath } from '../data/contractChe
 import { formatMoney, payAmount } from '../data/contractPricing';
 import { servicePrice } from '../data/mockServices';
 import { getMyProfile } from '../data/myProfile';
+import { savedHandle } from '../data/myPage';
+import { getMockProfile } from '../data/mockProfile';
 import { EXAMPLE_COURSE, EXAMPLE_INSTRUCTOR, EXAMPLE_OFFER, EXAMPLE_RATING, EXAMPLE_REVIEWS } from '../data/exampleCourse';
 import { initials } from '../utils/initials';
 import { TextView } from '../components/TextEditor';
 import CoverArt from '../components/CoverArt';
 import AcademyTop from '../components/AcademyTop';
 import { KIND } from './lessonKinds';
+import '../styles/storeTheme.css';
 import './AcademyCoursesPage.css';
 import './CourseLandingPage.css';
 
 // ------------------------------------------------------------
 // A course's landing page: /web/course/<course>. The link a coach shares
-// to sell a course, laid out as Udemy's course page, in our colours, and
-// built from what the course already has (CoursePage.jsx's steps). Nothing
-// on it is designed by hand.
+// to sell a course. Laid out as Udemy's course page (people know how to
+// read it), but in our own look: the same warm, light style as the
+// coach's storefront and checkout (storeTheme.css), so going from their
+// storefront to a course to paying feels like one site. Built from what
+// the course already has (CoursePage.jsx's steps). Nothing on it is
+// designed by hand.
 //
 //   [HN]                      [📖 Courses]
-//   ███████████████████████████████████████████████████████████████████
-//   █ Yoga for Everyday Strength…                  ┌───────────────────┐
-//   █ Asana, breathwork and meditation…            │      cover        │
-//   █ 4.8 ★★★★★ (126 ratings) · 1,240 students     │ ₹2,499  ₹4,999    │
-//   █ Created by Meera Joshi · Last updated Oct…   │ [    Buy now    ] │
-//   ███████████████████████████████████████████████│ Pay once, start…  │
-//   ┌ What you'll learn ─────────────────────┐     └───────────────────┘
+//   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+//   ░ Yoga for Everyday Strength…    (warm band,     ┌───────────────────┐
+//   ░ Asana, breathwork and…          dot grid)      │      cover        │
+//   ░ 4.8 ★★★★★ (126 ratings) · 1,240 students       │ ₹2,499  ₹4,999    │
+//   ░ (MJ) Created by Meera Joshi · Last updated…    │ ( Buy now )       │
+//   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│ Pay once, start…  │
+//   ┌ What you'll learn (warm panel) ─────────┐      └───────────────────┘
 //   │ ✓ Build a 20-minute…   ✓ Move safely…   │
 //   └─────────────────────────────────────────┘
-//   This course includes · Course content · Requirements · Description
-//   (folds after a few paragraphs: Show more) · Who this course is for
-//   Instructor: photo, name, headline, stats (rating, reviews, students,
-//   courses), bio (folds: Show more)
+//   This course includes · Course content (a white card) · Requirements
+//   · Description (folds after a few paragraphs: Show more) · Who this
+//   course is for (plain text on the page)
+//   Instructor (a white card): photo, name, headline, stats (rating,
+//   reviews, students, courses), bio (folds: Show more), View profile
 //   ★ 4.8 course rating · 126 ratings: four review cards, Show all reviews
 //   What students say: testimonials the coach added
 //
-// Scrolled past the dark band, a slim bar sticks to the top: the title
+// The look, and where it comes from:
+//   the band        the storefront's creator panel: our orange's tint with
+//                   a fine orange dot grid fading out, dark words on it
+//   the page        light grey, with white cards only where they help
+//                   (Course content, Instructor, reviews), so it doesn't
+//                   become a stack of boxes; What you'll learn is the one
+//                   warm panel, the part that sells
+//   type            Poppins at 600–700 (never 800); section headings as
+//                   on every public page (20px, 600); long text in the
+//                   softer body colour; links and orange words in the
+//                   darker orange (--pf-accent-ink), which reads on white
+//   Buy now         checkout's Pay button: a pill in our orange with dark
+//                   words (--pf-accent-on), so the click into checkout
+//                   feels continuous
+//   avatars         initials on our orange (the coach) or its tint
+//                   (reviewers), as checkout and the academy show people
+// Every colour comes from the store theme's --pf-* names, so a change to
+// the brand's colours carries through.
+//
+// Scrolled past the band, a slim white bar sticks to the top: the title
 // (and rating), the price and Buy now, so buying is always one tap away.
 //
 // What it shows, and where it comes from:
@@ -81,7 +108,8 @@ import './CourseLandingPage.css';
 //                                           that fill in by themselves
 //                                           (instructorStats: students,
 //                                           courses); a stat that's 0 isn't
-//                                           shown
+//                                           shown. View profile: their
+//                                           storefront, once they have one
 //   rating, reviews                         from students, once reviews are
 //                                           collected (not yet: only the
 //                                           example has them). Shown only
@@ -103,7 +131,7 @@ import './CourseLandingPage.css';
 // contract another page owns (a webinar's, say) sends them to that page.
 // A contract that's been turned off says sign-ups are closed.
 //
-// Desktop: the Buy box sits on the right, over the dark band, and stays in
+// Desktop: the Buy box sits on the right, over the band, and stays in
 // view as they scroll. Phones: it comes under the band, and a bar with
 // the price and Buy now stays at the foot of the screen (the top bar
 // isn't used there).
@@ -119,7 +147,9 @@ import './CourseLandingPage.css';
 //
 // embed (&embed=1): the example inside the guide beside the course editor
 // (courseAnnotations.js): no Example strip, and neither bar that follows
-// the scroll, so the guide's highlights have the page to themselves.
+// the scroll, so the guide's highlights have the page to themselves. The
+// guide finds the parts by their class names (.cld__title, .cld__box…):
+// keep them when restyling.
 //
 // courseId; preview; region: ?region=IN, EU or ELSE, to see another
 // country's price (as on checkout); example: show the example course;
@@ -183,6 +213,15 @@ function Stars({ value, size = 15 }) {
   );
 }
 
+// The coach's picture, or their initials on our orange (as checkout shows them)
+function CreatorPhoto({ creator, className }) {
+  return (
+    <span className={className} aria-hidden="true">
+      {creator.photo ? <img src={creator.photo} alt="" /> : initials(creator.name)}
+    </span>
+  );
+}
+
 export default function CourseLandingPage({ courseId, preview = false, region = null, example = false, embed = false }) {
   const found = useCourse(example ? null : courseId);
   const course = example ? EXAMPLE_COURSE : found && (preview || isPublished(found)) ? found : null;
@@ -195,7 +234,7 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
     document.title = course ? course.title : 'Page not available';
   }, [course]);
 
-  // The slim bar: once the dark band has scrolled out of view
+  // The slim bar: once the band has scrolled out of view
   useEffect(() => {
     const el = hero.current;
     if (!el || typeof IntersectionObserver === 'undefined') return undefined;
@@ -206,7 +245,7 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
 
   if (!course) {
     return (
-      <div className="acd">
+      <div className="acd store-theme">
         <AcademyTop home={home} onCourses={false} />
         <main className="acd__main">
           <section className="acd__empty">
@@ -223,6 +262,10 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
   const canBuy = offer.state === 'buy' && live;
   const creator = example ? EXAMPLE_INSTRUCTOR : getMyProfile().creator;
   const stats = example ? EXAMPLE_INSTRUCTOR.stats : instructorStats();
+  // Their storefront, where View profile goes: Meera's for the example; the
+  // coach's own once they've picked its link
+  const handle = example ? getMockProfile().creator.handle : savedHandle();
+  const profileHref = handle ? `/${handle}` : null;
   // Reviews come once students can rate a course; only the example has them yet
   const reviews = example ? EXAMPLE_REVIEWS : [];
   const rating = example ? EXAMPLE_RATING : null;
@@ -246,7 +289,7 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
   const buyLabel = offer.free ? 'Enroll for free' : 'Buy now';
 
   return (
-    <div className={`acd cld ${offer.state === 'buy' && !embed ? 'cld--with-bar' : ''}`}>
+    <div className={`acd cld store-theme ${offer.state === 'buy' && !embed ? 'cld--with-bar' : ''}`}>
       <AcademyTop home={home} onCourses={false} />
       {example && !embed && (
         <p className="cpl__preview" role="status">
@@ -286,7 +329,7 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
         </div>
       )}
 
-      {/* ---------- The dark band ---------- */}
+      {/* ---------- The warm band ---------- */}
       <header className="cld__hero" ref={hero}>
         <div className="cld__wrap">
           <div className="cld__hero-text">
@@ -303,9 +346,12 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
               </p>
             )}
             <p className="cld__by">
-              Created by <a href="#cld-instructor">{creator.name}</a>
-              <span aria-hidden="true"> · </span>
-              Last updated {updated}
+              <CreatorPhoto creator={creator} className="cld__by-photo" />
+              <span>
+                Created by <a href="#cld-instructor">{creator.name}</a>
+                <span aria-hidden="true"> · </span>
+                Last updated {updated}
+              </span>
             </p>
           </div>
         </div>
@@ -321,7 +367,9 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
               <ul className="cld__learn">
                 {outcomes.map((item) => (
                   <li key={item}>
-                    <Check size={17} strokeWidth={2.5} aria-hidden="true" />
+                    <span className="cld__tick" aria-hidden="true">
+                      <Check size={13} strokeWidth={3} />
+                    </span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -379,7 +427,7 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
             </section>
           )}
 
-          <Instructor creator={creator} stats={stats} />
+          <Instructor creator={creator} stats={stats} profileHref={profileHref} />
 
           {showRating && <Reviews rating={rating} reviews={reviews} />}
 
@@ -552,8 +600,9 @@ function Description({ html }) {
   );
 }
 
-// The coach: photo, name, headline, stats that aren't 0, bio (folded when long)
-function Instructor({ creator, stats }) {
+// The coach, as a card (as the storefront's creator panel): photo, name,
+// headline, stats that aren't 0, bio (folded when long), View profile
+function Instructor({ creator, stats, profileHref }) {
   const [more, setMore] = useState(false);
   const bio = String(creator.bio ?? '').trim();
   const long = bio.length > LONG_BIO;
@@ -569,36 +618,44 @@ function Instructor({ creator, stats }) {
       <h2 className="cld__h2" id="cld-instructor-title">
         Instructor
       </h2>
-      <p className="cld__name">{creator.name}</p>
-      {creator.headline && <p className="cld__headline">{creator.headline}</p>}
-      <div className="cld__instructor">
-        <span className="cld__photo" aria-hidden="true">
-          {creator.photo ? <img src={creator.photo} alt="" /> : initials(creator.name)}
-        </span>
-        {rows.length > 0 && (
-          <ul className="cld__stats">
-            {rows.map(({ id, icon: Icon, text }) => (
-              <li key={id}>
-                <Icon size={16} aria-hidden="true" />
-                {text}
-              </li>
-            ))}
-          </ul>
+      <div className="cld__instructor-card">
+        <div className="cld__instructor">
+          <CreatorPhoto creator={creator} className="cld__photo" />
+          <div className="cld__instructor-text">
+            <p className="cld__name">{creator.name}</p>
+            {creator.headline && <p className="cld__headline">{creator.headline}</p>}
+            {rows.length > 0 && (
+              <ul className="cld__stats">
+                {rows.map(({ id, icon: Icon, text }) => (
+                  <li key={id}>
+                    <Icon size={15} aria-hidden="true" />
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+        {bio && (
+          <>
+            <p id="cld-bio" className={`cld__bio ${long && !more ? 'cld__fold' : ''}`}>
+              {bio}
+            </p>
+            {long && (
+              <button type="button" className="cld__link cld__more" aria-expanded={more} aria-controls="cld-bio" onClick={() => setMore((m) => !m)}>
+                {more ? 'Show less' : 'Show more'}
+                <ChevronDown size={16} className={`cld__chev ${more ? 'cld__chev--open' : ''}`} aria-hidden="true" />
+              </button>
+            )}
+          </>
+        )}
+        {profileHref && (
+          <a className="cld__profile" href={profileHref}>
+            View {creator.name.split(' ')[0]}’s profile
+            <ArrowRight size={16} aria-hidden="true" />
+          </a>
         )}
       </div>
-      {bio && (
-        <>
-          <p id="cld-bio" className={`cld__bio ${long && !more ? 'cld__fold' : ''}`}>
-            {bio}
-          </p>
-          {long && (
-            <button type="button" className="cld__link cld__more" aria-expanded={more} aria-controls="cld-bio" onClick={() => setMore((m) => !m)}>
-              {more ? 'Show less' : 'Show more'}
-              <ChevronDown size={16} className={`cld__chev ${more ? 'cld__chev--open' : ''}`} aria-hidden="true" />
-            </button>
-          )}
-        </>
-      )}
     </section>
   );
 }

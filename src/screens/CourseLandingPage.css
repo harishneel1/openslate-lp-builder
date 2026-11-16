@@ -1,18 +1,19 @@
-/* A course's landing page (CourseLandingPage.jsx), laid out as Udemy's:
-   a dark band with the title, the page under it, and the Buy box on the
-   right over the band. The top bar and preview strip come from
-   AcademyCoursesPage.css (.acd__top, .cpl__preview). */
+/* A course's landing page (CourseLandingPage.jsx): laid out as Udemy's
+   (a band with the title, the page under it, and the Buy box on the right
+   over the band), in our own warm, light look: the storefront's and
+   checkout's (styles/storeTheme.css, the --pf-* colours). The top bar and
+   preview strip come from AcademyCoursesPage.css (.acd__top, .cpl__preview).
+   The guide beside the course editor finds parts of this page by class
+   name (courseAnnotations.js): keep .cld__title, .cld__subtitle, .cld__box,
+   .cld__card, .cld__card-body. */
 
 .cld {
-  --cld-ink: #141414;
-  --cld-ink-2: #55555b;
-  --cld-line: #e3e3e7;
-  --cld-band: #17171a;
+  --cld-line: #e7e7ea;
   --cld-side: 340px;
 
   min-height: 100vh;
-  color: var(--cld-ink);
-  background: #fff;
+  color: var(--pf-text);
+  background: var(--pf-page);
 }
 
 .cld .sr-only {
@@ -31,18 +32,62 @@
   padding: 0 24px;
 }
 
-/* ================= The dark band =================
-   Tall enough that the Buy box (pulled up over it, .cld__side) always
-   starts inside it, whatever the title's length. */
+/* One focus style for everything on the page */
+.cld a:focus-visible,
+.cld button:focus-visible {
+  outline: 2px solid var(--pf-accent-ink);
+  outline-offset: 2px;
+}
+
+/* ================= The warm band =================
+   The storefront's creator panel: our orange's tint, a fine orange dot
+   grid fading out towards the bottom, dark words. Tall enough that the
+   Buy box (pulled up over it, .cld__side) always starts inside it. */
 .cld__hero {
+  position: relative;
   min-height: 300px;
-  color: #fff;
-  background: var(--cld-band);
+  color: var(--pf-text);
+  background: var(--pf-panel);
+  border-bottom: 1px solid var(--pf-panel-line);
+}
+
+.cld__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--pf-accent) 30%, transparent) 1.2px,
+    transparent 1.6px
+  );
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 80%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 80%);
+  pointer-events: none;
+}
+
+.cld__hero > * {
+  position: relative;
 }
 
 .cld__hero-text {
   max-width: calc(100% - var(--cld-side) - 48px);
-  padding: 48px 0 44px;
+  padding: 52px 0 48px;
+}
+
+.cld__title {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.cld__subtitle {
+  margin-top: 14px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--pf-body);
 }
 
 /* 4.8 ★★★★★ (126 ratings) 1,240 students */
@@ -51,41 +96,70 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
-  margin-top: 16px;
+  margin-top: 18px;
   font-size: 14.5px;
 }
 
 .cld__rating-value {
   font-weight: 700;
-  color: #ffc79c;
-}
-
-.cld__rating .cld__stars {
-  color: #ffb26b;
+  color: var(--pf-accent-ink);
 }
 
 .cld__rating-link {
-  color: #ffc79c;
+  color: var(--pf-accent-ink);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .cld__rating-students {
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--pf-body);
+}
+
+/* (MJ) Created by Meera Joshi · Last updated October 2026 */
+.cld__by {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  font-size: 14.5px;
+  color: var(--pf-body);
 }
 
 .cld__by a {
   font-weight: 600;
-  color: #ffc79c;
+  color: var(--pf-accent-ink);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-/* ★: an outline, filled from the left as far as the rating goes */
+/* The coach's picture, or their initials on our orange (as checkout's) */
+.cld__by-photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pf-accent-on);
+  background: var(--pf-accent);
+  border: 2px solid var(--pf-surface);
+  border-radius: 50%;
+}
+
+.cld__by-photo img,
+.cld__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ★: an outline, filled from the left as far as the rating goes, in our orange */
 .cld__stars {
   display: inline-flex;
   gap: 1px;
-  color: #e07a2c;
+  color: var(--pf-accent);
   vertical-align: -2px;
 }
 
@@ -111,16 +185,18 @@
 }
 
 /* ================= The slim bar, once the band has scrolled away =================
-   Desktop only: on phones the bar at the foot does this job. */
+   White with a hairline, as the academy's top bar. Desktop only: on
+   phones the bar at the foot does this job. */
 .cld__sticky {
   position: fixed;
   top: 0;
   right: 0;
   left: 0;
   z-index: var(--z-sticky);
-  color: #fff;
-  background: var(--cld-band);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+  color: var(--pf-text);
+  background: var(--pf-surface);
+  border-bottom: 1px solid var(--pf-line);
+  box-shadow: 0 6px 20px rgba(17, 17, 17, 0.06);
   transform: translateY(-100%);
   transition: transform 0.2s ease;
 }
@@ -144,7 +220,7 @@
 .cld__sticky-title {
   overflow: hidden;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -155,15 +231,11 @@
   gap: 6px;
   margin-top: 2px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--pf-muted);
 }
 
 .cld__sticky-rating strong {
-  color: #ffc79c;
-}
-
-.cld__sticky-rating .cld__stars {
-  color: #ffb26b;
+  color: var(--pf-accent-ink);
 }
 
 .cld__sticky-price {
@@ -176,38 +248,10 @@
   font-size: 20px;
 }
 
-.cld__sticky .cld__compare {
-  color: rgba(255, 255, 255, 0.6);
-}
-
 .cld__sticky .cld__buy {
   min-height: 44px;
-}
-
-.cld__title {
-  font-size: 34px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-
-.cld__subtitle {
-  margin-top: 12px;
-  font-size: 18px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.86);
-}
-
-.cld__by {
-  margin-top: 18px;
-  font-size: 14.5px;
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.cld__by strong {
-  font-weight: 600;
-  color: #ffc79c;
+  padding: 10px 22px;
+  font-size: 15px;
 }
 
 /* ================= The page, with the Buy box beside it ================= */
@@ -216,18 +260,20 @@
   grid-template-columns: minmax(0, 1fr) var(--cld-side);
   gap: 48px;
   align-items: start;
-  padding-bottom: 72px;
+  padding-bottom: 80px;
 }
 
 .cld__main {
   min-width: 0;
-  padding-top: 32px;
+  padding-top: 36px;
 }
 
+/* Section headings, as on every public page (.pf__section-title) */
 .cld__h2 {
-  font-size: 23px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 .cld__part {
@@ -238,18 +284,19 @@
   margin-top: 0;
 }
 
-/* What you'll learn: a bordered box, two columns of ticks */
+/* What you'll learn: the page's one warm panel, two columns of ticks */
 .cld__box {
-  padding: 22px 24px 24px;
-  border: 1px solid var(--cld-line);
-  border-radius: var(--radius-sm);
+  padding: 24px 26px 26px;
+  background: var(--pf-panel);
+  border: 1px solid var(--pf-panel-line);
+  border-radius: var(--radius-lg);
 }
 
 .cld__learn {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 28px;
-  margin-top: 16px;
+  gap: 14px 28px;
+  margin-top: 18px;
   list-style: none;
 }
 
@@ -259,20 +306,29 @@
   gap: 12px;
   font-size: 15px;
   line-height: 1.5;
+  color: var(--pf-text);
 }
 
-.cld__learn svg {
+/* ✓ in a small white disc */
+.cld__tick {
+  display: grid;
   flex: none;
-  margin-top: 3px;
-  color: var(--color-success);
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  color: var(--pf-accent-ink);
+  background: var(--pf-surface);
+  border: 1px solid var(--pf-panel-line);
+  border-radius: 50%;
 }
 
 /* This course includes */
 .cld__includes {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 28px;
-  margin-top: 14px;
+  gap: 12px 28px;
+  margin-top: 16px;
   list-style: none;
 }
 
@@ -281,14 +337,15 @@
   align-items: center;
   gap: 12px;
   font-size: 15px;
+  color: var(--pf-body);
 }
 
 .cld__includes svg {
   flex: none;
-  color: var(--cld-ink-2);
+  color: var(--pf-accent-ink);
 }
 
-/* Course content: "3 sections • 17 lessons", Expand all, then sections */
+/* Course content: "3 sections • 17 lessons", Expand all, then the sections in a white card */
 .cld__content-bar {
   display: flex;
   flex-wrap: wrap;
@@ -297,15 +354,18 @@
   gap: 8px 16px;
   margin-top: 10px;
   font-size: 14.5px;
-  color: var(--cld-ink-2);
+  color: var(--pf-muted);
 }
 
 .cld__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 0;
   font: inherit;
   font-size: 14.5px;
   font-weight: 600;
-  color: #b4520c;
+  color: var(--pf-accent-ink);
   background: none;
   border: 0;
   cursor: pointer;
@@ -316,18 +376,13 @@
   text-underline-offset: 3px;
 }
 
-.cld__link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
 .cld__sections {
-  margin-top: 12px;
-  list-style: none;
-  border: 1px solid var(--cld-line);
-  border-radius: var(--radius-sm);
+  margin-top: 14px;
   overflow: hidden;
+  list-style: none;
+  background: var(--pf-surface);
+  border: 1px solid var(--cld-line);
+  border-radius: var(--radius-lg);
 }
 
 .cld__section + .cld__section {
@@ -339,23 +394,27 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 56px;
-  padding: 12px 18px;
+  min-height: 58px;
+  padding: 12px 20px;
   font: inherit;
   text-align: left;
-  color: var(--cld-ink);
-  background: #f6f6f7;
+  color: var(--pf-text);
+  background: var(--pf-surface);
   border: 0;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
 .cld__section-head:hover {
-  background: #efeff1;
+  background: #fafafb;
 }
 
 .cld__section-head:focus-visible {
-  outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+.cld__section-head .cld__chev {
+  color: var(--pf-muted);
 }
 
 .cld__chev {
@@ -371,18 +430,19 @@
   flex: 1;
   min-width: 0;
   font-size: 15.5px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .cld__section-count {
   flex: none;
   font-size: 13.5px;
-  color: var(--cld-ink-2);
+  color: var(--pf-muted);
 }
 
 .cld__lessons {
-  padding: 8px 18px 14px 48px;
+  padding: 6px 20px 14px 50px;
   list-style: none;
+  background: #fbfbfc;
   border-top: 1px solid var(--cld-line);
 }
 
@@ -392,32 +452,40 @@
   gap: 12px;
   padding: 7px 0;
   font-size: 14.5px;
+  color: var(--pf-body);
 }
 
 .cld__lesson svg {
   flex: none;
-  color: var(--cld-ink-2);
+  color: var(--pf-muted);
 }
 
-/* Requirements, Who this course is for */
+/* Requirements, Who this course is for: plain text on the page */
 .cld__bullets {
-  margin-top: 12px;
+  margin-top: 14px;
   padding-left: 20px;
   font-size: 15px;
   line-height: 1.6;
+  color: var(--pf-body);
+}
+
+.cld__bullets li::marker {
+  color: var(--pf-accent);
 }
 
 .cld__bullets li + li {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .cld__description {
-  margin-top: 12px;
+  margin-top: 14px;
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.7;
+  color: var(--pf-body);
 }
 
-/* Long parts fold, with Show more (the description, the bio) */
+/* Long parts fold, with Show more (the description, the bio). The fade
+   ends in the colour behind it: the page, or the instructor's card. */
 .cld__fold {
   position: relative;
   max-height: 11.5em;
@@ -431,44 +499,119 @@
   bottom: 0;
   left: 0;
   height: 4em;
-  background: linear-gradient(rgba(255, 255, 255, 0), #fff);
+  background: linear-gradient(color-mix(in srgb, var(--pf-page) 0%, transparent), var(--pf-page));
   pointer-events: none;
 }
 
+.cld__instructor-card .cld__fold::after {
+  background: linear-gradient(color-mix(in srgb, var(--pf-surface) 0%, transparent), var(--pf-surface));
+}
+
 .cld__more {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
   margin-top: 10px;
 }
 
-/* Instructor: name and headline, then the photo with its stats beside it, then the bio */
+/* ================= Instructor: a white card, as the storefront's creator panel ================= */
+.cld__instructor-card {
+  margin-top: 16px;
+  padding: 24px 26px 26px;
+  background: var(--pf-surface);
+  border: 1px solid var(--cld-line);
+  border-radius: var(--radius-lg);
+}
+
+.cld__instructor {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.cld__photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--pf-accent-on);
+  background: var(--pf-accent);
+  border: 3px solid var(--pf-panel);
+  border-radius: 50%;
+}
+
+.cld__instructor-text {
+  min-width: 0;
+}
+
+.cld__name {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
 .cld__headline {
   margin-top: 2px;
-  font-size: 15px;
-  color: var(--cld-ink-2);
+  font-size: 14.5px;
+  color: var(--pf-muted);
 }
 
 .cld__stats {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
   list-style: none;
-  font-size: 14.5px;
+  font-size: 14px;
+  color: var(--pf-body);
 }
 
 .cld__stats li {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
 }
 
 .cld__stats svg {
   flex: none;
-  color: var(--cld-ink);
+  color: var(--pf-accent-ink);
 }
 
-/* Reviews: the summary, then cards in two columns */
+.cld__bio {
+  max-width: 680px;
+  margin-top: 18px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--pf-body);
+  white-space: pre-line;
+}
+
+/* View Meera's profile: a quiet pill, to their storefront, on a line of
+   its own (under Show more, when the bio folds) */
+.cld__profile {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pf-text);
+  text-decoration: none;
+  background: var(--pf-surface);
+  border: 1px solid #d9d9de;
+  border-radius: var(--radius-pill);
+  transition: border-color 0.15s;
+}
+
+.cld__profile:hover {
+  border-color: var(--pf-accent);
+}
+
+/* ================= Reviews and testimonials: white cards, two across ================= */
 .cld__reviews-title {
   display: flex;
   flex-wrap: wrap;
@@ -477,25 +620,27 @@
 }
 
 .cld__reviews-star {
-  color: #e07a2c;
+  color: var(--pf-accent);
   fill: currentColor;
 }
 
 .cld__dot {
-  color: var(--cld-ink-2);
+  color: var(--pf-muted);
 }
 
 .cld__reviews {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 32px;
-  margin-top: 8px;
+  gap: 16px;
+  margin-top: 16px;
   list-style: none;
 }
 
 .cld__review {
-  padding: 20px 0 22px;
-  border-top: 1px solid var(--cld-line);
+  padding: 20px 22px 22px;
+  background: var(--pf-surface);
+  border: 1px solid var(--cld-line);
+  border-radius: var(--radius-lg);
 }
 
 .cld__review-head {
@@ -504,22 +649,24 @@
   gap: 12px;
 }
 
+/* Initials on our orange's tint, as students show in the academy */
 .cld__avatar {
   display: grid;
   flex: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  background: #2a2a2e;
+  width: 42px;
+  height: 42px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--pf-accent-ink);
+  background: var(--pf-panel);
   border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--pf-panel-line);
 }
 
 .cld__review-name {
-  font-size: 15.5px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .cld__review-meta {
@@ -528,117 +675,64 @@
   gap: 8px;
   margin-top: 2px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--cld-ink-2);
+  color: var(--pf-muted);
 }
 
 .cld__review-text {
   margin-top: 12px;
   font-size: 15px;
   line-height: 1.6;
+  color: var(--pf-body);
 }
 
+/* Show all reviews: a quiet pill */
 .cld__all {
-  margin-top: 8px;
-  padding: 11px 18px;
+  margin-top: 18px;
+  padding: 11px 20px;
   font: inherit;
   font-size: 14.5px;
-  font-weight: 700;
-  color: var(--cld-ink);
-  background: #fff;
-  border: 1px solid var(--cld-ink);
-  border-radius: var(--radius-sm);
+  font-weight: 600;
+  color: var(--pf-text);
+  background: var(--pf-surface);
+  border: 1px solid #d9d9de;
+  border-radius: var(--radius-pill);
   cursor: pointer;
+  transition: border-color 0.15s;
 }
 
 .cld__all:hover {
-  background: #f6f6f7;
-}
-
-.cld__all:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  border-color: var(--pf-accent);
 }
 
 /* Testimonials: the coach's own, labelled, no stars */
 .cld__testimonial .cld__review-text {
-  margin-top: 8px;
-  font-style: italic;
+  margin-top: 10px;
 }
 
 .cld__quote {
-  color: #e07a2c;
+  color: var(--pf-accent);
 }
 
 .cld__testimonial-name {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
-
-/* Instructor */
-.cld__instructor {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-top: 14px;
-}
-
-.cld__photo {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 84px;
-  height: 84px;
-  overflow: hidden;
-  font-size: 26px;
-  font-weight: 700;
-  color: #b4520c;
-  background: var(--color-primary-tint);
-  border-radius: 50%;
-}
-
-.cld__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cld__name {
-  margin-top: 14px;
-  font-size: 19px;
-  font-weight: 700;
-  color: #b4520c;
-}
-
-.cld__photo {
-  width: 112px;
-  height: 112px;
-}
-
-.cld__bio {
-  max-width: 680px;
-  margin-top: 14px;
-  font-size: 15px;
-  line-height: 1.65;
-  white-space: pre-line;
-}
-
 
 /* ================= The Buy box ================= */
 .cld__side {
   position: sticky;
   top: 92px; /* under the slim bar, once it shows */
-  /* Up over the dark band, as on Udemy: it starts about 40px into it */
+  /* Up over the band, as on Udemy: it starts about 40px into it */
   margin-top: -260px;
 }
 
 .cld__card {
   overflow: hidden;
-  background: #fff;
+  background: var(--pf-surface);
   border: 1px solid var(--cld-line);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 14px 36px rgba(17, 17, 17, 0.1);
 }
 
 .cld__card .cvr__title {
@@ -646,7 +740,7 @@
 }
 
 .cld__card-body {
-  padding: 20px 22px 22px;
+  padding: 22px 22px 24px;
 }
 
 .cld__price,
@@ -659,48 +753,45 @@
 
 .cld__amount {
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .cld__compare {
   font-size: 16px;
-  color: var(--cld-ink-2);
+  color: var(--pf-muted);
 }
 
+/* Buy now: checkout's Pay button (.co__pay-btn), a pill in our orange with dark words */
 .cld__buy {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 50px;
-  padding: 12px 24px;
+  padding: 13px 24px;
   font-size: 16px;
-  font-weight: 700;
-  color: #fff;
+  font-weight: 600;
+  color: var(--pf-accent-on);
   text-decoration: none;
-  background: var(--color-primary);
-  border-radius: var(--radius-sm);
+  background: var(--pf-accent);
+  border-radius: var(--radius-pill);
   transition: background 0.15s;
 }
 
 .cld__buy:hover {
-  background: var(--color-primary-hover);
-}
-
-.cld__buy:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 3px;
+  background: var(--pf-accent-hover);
 }
 
 .cld__buy--wide {
   width: 100%;
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .cld__buy--off,
 .cld__buy--off:hover {
-  opacity: 0.45;
-  background: var(--color-primary);
+  opacity: 0.5;
+  background: var(--pf-accent);
   cursor: not-allowed;
 }
 
@@ -709,13 +800,13 @@
   font-size: 13.5px;
   line-height: 1.5;
   text-align: center;
-  color: var(--cld-ink-2);
+  color: var(--pf-muted);
 }
 
 .cld__closed {
   font-size: 15px;
   line-height: 1.5;
-  color: var(--cld-ink-2);
+  color: var(--pf-body);
 }
 
 /* The bar at the foot of the screen: phones only */
@@ -778,7 +869,7 @@
   }
 
   .cld__lessons {
-    padding-left: 18px;
+    padding-left: 20px;
   }
 
   /* The price and Buy now, always in reach */
@@ -797,9 +888,9 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: #fff;
-    border-top: 1px solid var(--cld-line);
-    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+    background: var(--pf-surface);
+    border-top: 1px solid var(--pf-line);
+    box-shadow: 0 -6px 20px rgba(17, 17, 17, 0.06);
   }
 
   .cld__bar .cld__amount {
@@ -820,15 +911,29 @@
     padding: 0 16px;
   }
 
-  .cld__box {
-    padding: 18px;
+  .cld__box,
+  .cld__instructor-card {
+    padding: 20px 18px;
+  }
+
+  .cld__instructor {
+    align-items: flex-start;
+  }
+
+  .cld__photo {
+    width: 72px;
+    height: 72px;
+    font-size: 22px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .cld__chev,
   .cld__buy,
-  .cld__sticky {
+  .cld__sticky,
+  .cld__section-head,
+  .cld__profile,
+  .cld__all {
     transition: none;
   }
 }
