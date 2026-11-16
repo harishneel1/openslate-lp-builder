@@ -1,80 +1,86 @@
 import { useState } from 'react';
-import { AlertTriangle, IndianRupee, Plus } from 'lucide-react';
+import { AlertTriangle, ExternalLink, IndianRupee } from 'lucide-react';
 import { buyContractOf, descriptionText } from '../data/courses';
-import { contractOf, createContract, servicePrice, updateContract } from '../data/mockServices';
-import { CourseAccess } from './CourseSettings';
+import { contractEditUrl, contractOf, createContract, servicePrice, updateContract } from '../data/mockServices';
+import { formatMoney } from '../data/contractPricing';
+import { PriceWithDiscount } from '../components/CallDetailsInput';
+import '../components/QuestionInput.css'; // the price boxes and "On your page" (qinput__*)
 
 // ------------------------------------------------------------
-// A course's Pricing step (CoursePage.jsx): what it costs, and who else
-// gets it.
+// A course's Pricing step (CoursePage.jsx): what it costs.
 //
 //   Price
 //   ┌──────────────────────────────────────────────────────────┐
-//   │ ₹  ₹4,999 one-time payment                [Change price] │
-//   │    Sold through its own contract, “Healthy cooking”…     │
+//   │ ₹  ₹2,499  ₹4,999  50% off · one-time      [Change price] │
+//   │    Sold through its contract on your Contracts page ↗     │
 //   └──────────────────────────────────────────────────────────┘
 //
 //   (or, with no price yet, or on Change price)
 //   (●) Paid  One payment, then it's theirs   ( ) Free
-//   Price  [₹ 4999        ]
+//   Price            ☐ Discounted price
+//   [₹ 4999     ]    [₹          ]
+//   ON YOUR PAGE  ₹4,999 crossed out  ₹2,499  50% off
 //                                              [Cancel] [Set price]
-//   Or sell it through a contract that's already linked
-//   [Vasthu webinar · ₹99            ⌄] [Use this contract]
-//
-//   + Also give it through another contract (a webinar, a 1:1 package…)
-//   (or, once there are some)
-//   Also given through                                [Link contracts]
-//   ▣ Monthly Vasthu Circle   ₹299/month · 27 sign-ups   [Remove]
 //
 // Price: setting one makes a contract for the course, named after it and
 // with its description (createContract in mockServices.js), links it, and
 // makes it the one the Buy button sells (buyContractId, buyContractMade in
-// courses.js). It shows on the Contracts page like any other. Changing
-// the price here changes that contract. The course's title stays its name
-// (syncContractTitle, when the title changes), and its description stays
-// the contract's description, as plain text (syncContractDescription,
-// when the description changes; descriptionText in courses.js).
-// Paid is one payment in rupees, a whole number from ₹1 to ₹9,99,999.
-// Free: people only sign up. Prices in other currencies, GST, discounts
-// and the checkout questions are set on the contract, on the Contracts
-// page; a price changed here keeps the other currencies as they are.
+// courses.js). It shows on the Contracts page like any other; the card's
+// second line opens it there (other currencies, GST, checkout questions).
+// Changing the price here changes that contract. The course's title stays
+// its name (syncContractTitle), and its description the contract's
+// description, as plain text (syncContractDescription).
+// Paid is one payment in rupees, a whole number from ₹1 to ₹9,99,999,
+// with an optional discounted price: the same two boxes as a 1:1 call's
+// and a webinar's price (PriceWithDiscount in CallDetailsInput.jsx). The
+// discount is saved on the contract the way the contract screen saves it
+// (the price, and the discounted price people pay: contractPricing.js),
+// so the landing page and checkout show the price crossed out.
+// Free: people only sign up. A price changed here keeps any other
+// currencies the contract has as they are.
 //
-// Or, instead, one of the linked contracts can be what the Buy button
-// sells (a course that had contracts before prices came in, say). Its
-// price is then changed wherever that contract is managed, so here it
-// only says which one it is, with Change. Its title and description are
-// its own: the course never changes them. Setting a price here later
-// makes the course's own contract; the old one stays linked, so everyone
-// on it keeps the course.
+// A course that had contracts before prices came in may sell through one
+// of those instead (buyContractMade false). The card names it, and links
+// to it, since its price is changed there; Change sets a price here, which
+// makes the course's own contract (the old one stays linked, so everyone
+// on it keeps the course). Linking more contracts isn't offered here any
+// more; links made before still give access.
 // If the Buy button's contract is deleted, this says so, and asks for a
 // price again (publishing needs one).
 //
-// Also give access through other contracts: the linked contracts other
-// than the Buy button's (the old Access tab): a webinar, a 1:1 package,
-// a bundle. Link contracts and Remove work as before (CoursePage.jsx).
-//
-// course, contracts (linked, still existing), counts (sign-ups per contract)
-// onSave(change) → true if the course saved; onSaved(ok): after a change
-//   to the contract alone, so the page can say "Saved"
-// onLink(): open Link contracts; onUnlink(contractId)
-// syncContractTitle(course, title): keeps the course's own contract named
-//   after it
-// syncContractDescription(course, html): keeps the course's own
-//   contract's description the course's, as plain text
+// course; onSave(change) → true if the course saved; onSaved(ok): after a
+//   change to the contract alone, so the page can say "Saved"
+// syncContractTitle(course, title), syncContractDescription(course, html):
+//   keep the course's own contract in step with it
+// priceOf(contract) → { now, was, off, free }: how a contract's price
+//   reads ("₹2,499", "₹4,999" crossed out or null, 50 (% off) or 0)
 // ------------------------------------------------------------
 
 export const PRICE_MAX = 999999;
 
 const isFree = (c) => c.type === 'free' || !(Number(c.price) > 0);
-// The rupee price on a contract, for the form
-const rupeesOf = (c) => contractOf(c).prices.find((p) => p.currency === 'INR')?.price ?? c.price ?? 0;
+// The rupee price on a contract: { price, discount }
+const rupeesOf = (c) => contractOf(c).prices.find((p) => p.currency === 'INR') ?? { price: c.price ?? 0, discount: null };
 
-// What the contract saves for a price: one in rupees first, any other
-// currencies it already had kept after it
-function priceFields(existing, { free, amount }) {
+export function priceOf(contract) {
+  if (!contract || isFree(contract)) return { now: 'Free', was: null, off: 0, free: true };
+  const main = contractOf(contract).prices[0];
+  const sale = main?.discount != null && main.discount > 0 && main.discount < main.price;
+  return {
+    now: servicePrice(contract),
+    was: sale ? formatMoney(main.price, main.currency) : null,
+    off: sale ? Math.round((1 - main.discount / main.price) * 100) : 0,
+    free: false,
+  };
+}
+
+// What the contract saves for a price: one in rupees first (with its
+// discounted price, if any), any other currencies it already had kept after it
+function priceFields(existing, { free, amount, was }) {
   if (free) return { type: 'free', prices: [] };
   const others = existing ? contractOf(existing).prices.filter((p) => p.currency !== 'INR') : [];
-  return { type: 'onetime', prices: [{ currency: 'INR', price: amount, discount: null }, ...others] };
+  const inr = was ? { currency: 'INR', price: was, discount: amount } : { currency: 'INR', price: amount, discount: null };
+  return { type: 'onetime', prices: [inr, ...others] };
 }
 
 export function syncContractTitle(course, title) {
@@ -92,13 +98,12 @@ export function syncContractDescription(course, html) {
   }
 }
 
-export default function CoursePricing({ course, contracts, counts, onSave, onSaved, onLink, onUnlink }) {
+export default function CoursePricing({ course, onSave, onSaved }) {
   const [editing, setEditing] = useState(false);
   const [, setTick] = useState(0); // the contract changed, not the course: read it again
   const buy = buyContractOf(course);
   const lost = Boolean(course.buyContractId) && !buy;
   const own = Boolean(buy && course.buyContractMade);
-  const others = contracts.filter((c) => c.id !== buy?.id);
   const showForm = editing || !buy;
   // The course's description, as its contract keeps it
   const description = descriptionText(course.description);
@@ -132,8 +137,12 @@ export default function CoursePricing({ course, contracts, counts, onSave, onSav
     if (ok) setEditing(false);
   };
 
-  const useExisting = (id) => {
-    if (onSave({ buyContractId: id, buyContractMade: false })) setEditing(false);
+  // The form starts from what's set: the price, and the discounted price
+  const start = () => {
+    if (!own) return { free: false, amount: '', was: '' };
+    if (isFree(buy)) return { free: true, amount: '', was: '' };
+    const { price, discount } = rupeesOf(buy);
+    return discount > 0 ? { free: false, amount: discount, was: price } : { free: false, amount: price, was: '' };
   };
 
   return (
@@ -147,96 +156,99 @@ export default function CoursePricing({ course, contracts, counts, onSave, onSav
         {lost && (
           <p className="lp__problem" role="alert">
             <AlertTriangle size={16} aria-hidden="true" /> The contract the Buy button sold was deleted. Set a price
-            again, or pick another contract.
+            again.
           </p>
         )}
 
-        {buy && !editing && (
-          <div className="prc__card">
-            <span className="prc__icon" aria-hidden="true">
-              <IndianRupee size={20} />
-            </span>
-            <div className="prc__text">
-              <p className="prc__amount">
-                {servicePrice(buy)}
-                {!isFree(buy) && buy.type !== 'subscription' && <span className="prc__type"> one-time payment</span>}
-              </p>
-              <p className="prc__meta">
-                {own ? (
-                  <>
-                    Sold through its own contract, <strong>{buy.title}</strong>, which shows on your Contracts page too,
-                    with the course’s description. Other currencies, GST and checkout questions are set there.
-                  </>
-                ) : (
-                  <>
-                    Sold through your contract <strong>{buy.title}</strong>. Its price is changed wherever that contract is
-                    managed.
-                  </>
-                )}
-              </p>
-            </div>
-            <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setEditing(true)}>
-              {own ? 'Change price' : 'Change'}
-            </button>
-          </div>
-        )}
+        {buy && !editing && <PriceCard contract={buy} own={own} onChange={() => setEditing(true)} />}
 
         {showForm && (
-          <>
-            <PriceForm
-              key={buy?.id ?? 'new'}
-              initial={own ? { free: isFree(buy), amount: rupeesOf(buy) } : { free: false, amount: '' }}
-              submitLabel={own ? 'Save price' : 'Set price'}
-              note={
-                buy && !own
-                  ? `Setting a price here makes a contract for this course. “${buy.title}” stays linked, so everyone on it keeps the course.`
-                  : null
-              }
-              onSubmit={submitPrice}
-              onCancel={buy ? () => setEditing(false) : null}
-            />
-            {others.length > 0 && <UseExisting contracts={others} onUse={useExisting} />}
-          </>
+          <PriceForm
+            key={buy?.id ?? 'new'}
+            initial={start()}
+            submitLabel={own ? 'Save price' : 'Set price'}
+            note={
+              buy && !own
+                ? `Setting a price here makes a contract for this course. “${buy.title}” stays linked, so everyone on it keeps the course.`
+                : null
+            }
+            onSubmit={submitPrice}
+            onCancel={buy ? () => setEditing(false) : null}
+          />
         )}
       </section>
-
-      {/* Other contracts: only a quiet link until there are some */}
-      {others.length > 0 ? (
-        <div className="lnd__part">
-          <CourseAccess
-            contracts={others}
-            counts={counts}
-            onLink={onLink}
-            onUnlink={onUnlink}
-            title="Also given through"
-            sub="People who sign up on any of these get the course too, without buying it here."
-          />
-        </div>
-      ) : (
-        <div className="lnd__extras">
-          <button type="button" className="lnd__extra" onClick={onLink}>
-            <Plus size={16} aria-hidden="true" />
-            Also give it through another contract (a webinar, a 1:1 package…)
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-// Paid or Free, and the price in rupees
+// The price as it is, in two lines: what it costs (the full price crossed
+// out when there's a discount), and where it's sold, linking there
+function PriceCard({ contract, own, onChange }) {
+  const { now, was, off, free } = priceOf(contract);
+  return (
+    <div className="prc__card">
+      <span className="prc__icon" aria-hidden="true">
+        <IndianRupee size={20} />
+      </span>
+      <div className="prc__text">
+        <p className="prc__amount">
+          {now}
+          {was && (
+            <>
+              <span className="sr-only">, was </span>
+              <s className="prc__was">{was}</s>
+              <span className="prc__off">{off}% off</span>
+            </>
+          )}
+          {!free && contract.type !== 'subscription' && <span className="prc__type"> · one-time</span>}
+        </p>
+        <a className="prc__where" href={contractEditUrl(contract.id)} target="_blank" rel="noopener">
+          {own ? (
+            'Sold through its contract on your Contracts page'
+          ) : (
+            <>
+              Sold through your contract <strong>{contract.title}</strong>
+            </>
+          )}
+          <ExternalLink size={13} aria-hidden="true" />
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      </div>
+      <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={onChange}>
+        {own ? 'Change price' : 'Change'}
+      </button>
+    </div>
+  );
+}
+
+// Paid or Free; for Paid, the price and an optional discounted price
 function PriceForm({ initial, submitLabel, note, onSubmit, onCancel }) {
   const [free, setFree] = useState(initial.free);
-  const [amount, setAmount] = useState(initial.amount ? String(initial.amount) : '');
+  // PriceWithDiscount's answers: price is what people pay; oldPrice, the
+  // full price crossed out (empty without a discount)
+  const [answers, setAnswers] = useState({
+    price: initial.amount ? String(initial.amount) : '',
+    oldPrice: initial.was ? String(initial.was) : '',
+  });
   const [tried, setTried] = useState(false);
-  const n = Number(amount);
-  const problem = !free && !(n >= 1) ? 'Enter a price of ₹1 or more' : null;
+  const pay = Number(answers.price) || 0;
+  const was = Number(answers.oldPrice) || 0;
+  let problem = null;
+  if (!free) {
+    if (was > 0 && pay === 0) problem = 'Add the discounted price, or untick it.';
+    else if (pay === 0) problem = 'Enter a price of ₹1 or more.';
+    else if (was > 0 && pay >= was) problem = 'The discounted price needs to be lower than the price.';
+  }
 
   const submit = (e) => {
     e.preventDefault();
     setTried(true);
     if (problem) return;
-    onSubmit({ free, amount: free ? 0 : Math.min(PRICE_MAX, Math.round(n)) });
+    onSubmit({
+      free,
+      amount: free ? 0 : Math.min(PRICE_MAX, pay),
+      was: !free && was > pay ? Math.min(PRICE_MAX, was) : null,
+    });
   };
 
   return (
@@ -260,32 +272,22 @@ function PriceForm({ initial, submitLabel, note, onSubmit, onCancel }) {
       </fieldset>
 
       {!free && (
-        <div className="crs-field prc__field">
-          <label className="crs-field__label" htmlFor="prc-amount">
-            Price
-          </label>
-          <span className={`prc__money ${tried && problem ? 'prc__money--error' : ''}`}>
-            <span className="prc__symbol" aria-hidden="true">
-              ₹
-            </span>
-            <input
-              id="prc-amount"
-              className="prc__input"
-              inputMode="numeric"
-              value={amount}
-              placeholder="4999"
-              autoComplete="off"
-              aria-invalid={Boolean(tried && problem) || undefined}
-              aria-describedby={tried && problem ? 'prc-amount-error' : undefined}
-              onChange={(e) => setAmount(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            />
-          </span>
-          {tried && problem && (
-            <p className="lp__error" id="prc-amount-error" role="alert">
-              {problem}
-            </p>
-          )}
+        <div className="prc__prices">
+          <PriceWithDiscount
+            answers={answers}
+            onChange={(value, id) => setAnswers((a) => ({ ...a, [id]: value }))}
+            ids={{ price: 'price', compare: 'oldPrice' }}
+            label="Price"
+            example="4999"
+          />
         </div>
+      )}
+
+      {/* The discount's own problems show under its box (PriceWithDiscount) */}
+      {tried && problem && pay === 0 && was === 0 && (
+        <p className="lp__error" role="alert">
+          {problem}
+        </p>
       )}
 
       {note && <p className="prc__note">{note}</p>}
@@ -301,29 +303,5 @@ function PriceForm({ initial, submitLabel, note, onSubmit, onCancel }) {
         </button>
       </div>
     </form>
-  );
-}
-
-// One of the linked contracts as the Buy button's, instead of a price here
-function UseExisting({ contracts, onUse }) {
-  const [picked, setPicked] = useState(contracts[0].id);
-  const id = contracts.some((c) => c.id === picked) ? picked : contracts[0].id;
-  return (
-    <div className="prc__existing">
-      <p className="prc__existing-title">Or sell it through a contract that’s already linked</p>
-      <p className="lrn__help">The Buy button goes to that contract’s checkout, at its price.</p>
-      <div className="prc__existing-row">
-        <select className="crs-input prc__select" value={id} aria-label="Linked contract" onChange={(e) => setPicked(e.target.value)}>
-          {contracts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title} · {servicePrice(c)}
-            </option>
-          ))}
-        </select>
-        <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => onUse(id)}>
-          Use this contract
-        </button>
-      </div>
-    </div>
   );
 }

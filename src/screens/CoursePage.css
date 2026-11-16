@@ -621,16 +621,47 @@
   color: var(--crs-ink-2);
 }
 
-.prc__meta {
+.prc__amount s.prc__was {
+  margin-left: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--crs-ink-3);
+}
+
+.prc__off {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e8e3e;
+}
+
+/* Where it's sold, as one quiet link to that contract */
+.prc__where {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   margin-top: 4px;
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--crs-ink-2);
+  text-decoration: none;
 }
 
-.prc__meta strong {
+.prc__where strong {
   font-weight: 600;
   color: var(--crs-ink);
+}
+
+.prc__where:hover {
+  color: var(--crs-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prc__where:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Paid or Free, then the price */
@@ -701,47 +732,9 @@
   color: var(--crs-ink-2);
 }
 
-.prc__field {
-  max-width: 260px;
-}
-
-.prc__money {
-  display: flex;
-  align-items: center;
-  min-height: 48px;
-  padding: 0 14px;
-  background: var(--color-surface);
-  border: 1px solid #d6d6da;
-  border-radius: var(--radius-md);
-}
-
-.prc__money:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-tint);
-}
-
-.prc__money--error {
-  border-color: #d93025;
-}
-
-.prc__symbol {
-  padding-right: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--crs-ink-2);
-}
-
-.prc__input {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 0;
-  font: inherit;
-  font-size: 16px;
-  font-variant-numeric: tabular-nums;
-  color: var(--crs-ink);
-  background: none;
-  border: 0;
-  outline: none;
+/* The price boxes (PriceWithDiscount, as on a 1:1 call and a webinar) */
+.prc__prices .call__prices {
+  margin-top: 0;
 }
 
 .prc__note {
@@ -753,44 +746,6 @@
 .prc__actions {
   display: flex;
   gap: 8px;
-}
-
-/* Or one of the linked contracts */
-.prc__existing {
-  max-width: 560px;
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px dashed #dcdce0;
-}
-
-.prc__existing-title {
-  font-size: 14.5px;
-  font-weight: 600;
-}
-
-.prc__existing-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.prc__select {
-  flex: 1;
-  min-width: 220px;
-  min-height: 40px;
-  cursor: pointer;
-}
-
-/* The other contracts: CourseAccess's part, without its own top line */
-.prc .lnd__part .cst__part {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.prc .cst__title {
-  font-size: 16.5px;
 }
 
 /* ================= Curriculum as a workspace =================
@@ -878,4 +833,9 @@
   .lrn__box {
     transition: none;
   }
+}
+
+/* The Publish pop-up: the full price, crossed out */
+.pub__was {
+  color: var(--crs-ink-3);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Eye, Link2, Rocket, Trash2, X } from 'lucide-react';
 import {
   buyContractOf,
@@ -7,7 +7,6 @@ import {
   deleteCourse,
   getCourse,
   isPublished,
-  linkedContracts,
   onCoursesChange,
   publishCheck,
   publishCourse,
@@ -15,16 +14,14 @@ import {
   updateCourse,
 } from '../data/courses';
 import { STEPS, courseSteps, missingToPublish } from '../data/courseSteps';
-import { signupCounts } from '../data/contractSignups';
-import { servicePrice } from '../data/mockServices';
 import { copyText } from '../utils/copyText';
 import { COURSE_EXAMPLE_PAGE, courseAnnotations } from '../data/courseAnnotations';
-import ContractPicker from '../components/ContractPicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ProfileExample from '../components/ProfileExample';
 import CourseContent from './CourseContent';
 import CourseLanding from './CourseLanding';
-import CoursePricing, { syncContractDescription, syncContractTitle } from './CoursePricing';
+import CoursePricing, { priceOf, syncContractDescription, syncContractTitle } from './CoursePricing';
+import CoursePublished from './CoursePublished';
 import './CoursesPage.css';
 import './CoursePage.css';
 
@@ -83,7 +80,7 @@ import './CoursePage.css';
 //   Landing page   the title, subtitle, description, what students will
 //                  learn, cover, and, behind "+ Add", requirements, who
 //                  it's for, testimonials (CourseLanding.jsx)
-//   Pricing        the price, and other contracts that give access
+//   Pricing        the price, with an optional discounted price
 //                  (CoursePricing.jsx)
 // A done step has a green tick in place of its number. Opens on the first
 // step that isn't done, or Curriculum once they all are. Moving between
@@ -122,9 +119,13 @@ import './CoursePage.css';
 // published before the description was needed, say) stays published: the
 // step loses its tick, and a line at the top of the step says what to add.
 //
-// The Buy button's contract (Pricing) stays linked: Link contracts and
-// Remove only change the other ones. On a published course, removing one
-// asks first, as students on it lose the course.
+// Publishing (Publish course while setting up, or Publish later): once
+// they confirm, the course is published straight away and the step is
+// replaced by the publish screen (CoursePublished.jsx). The first time, a
+// short build (lessons, price, landing page, live) as a webinar's sign-up
+// page has, then "Your course is live" with its link to share; published
+// again after unpublishing, straight to the link. Go to your course comes
+// back here, editing.
 //
 // courseId, onBack()
 // onFocus(focus | null): sets the focus bar (App.jsx → AppLayout's
@@ -141,7 +142,7 @@ const FIELD_TARGET = {
   subtitle: '#lnd-subtitle-input',
   description: '.lnd__desc .tte__content',
   outcomes: '.lrn--outcomes .lrn__input',
-  price: '#prc-amount',
+  price: '.prc__prices input',
 };
 
 function useCourse(id) {
@@ -183,19 +184,16 @@ const firstStepOf = (course) => {
 
 export default function CoursePage({ courseId, onBack, onFocus }) {
   const course = useCourse(courseId);
-  const contracts = useMemo(() => (course ? linkedContracts(course) : []), [course]);
-  const counts = useMemo(() => signupCounts(contracts), [contracts]);
   const [step, setStep] = useState(() => firstStepOf(course));
   const [needs, setNeeds] = useState(false); // Publish was pressed with something missing
   const [focusField, setFocusField] = useState(null); // { field, n }: put the cursor there
-  const [linking, setLinking] = useState(false);
   const [dirty, setDirty] = useState(false); // something open isn't saved yet
   const [pending, setPending] = useState(null); // what to do once they agree to leave it
   const [saveFailed, setSaveFailed] = useState(false); // the focus bar says "Not saved"
   const [notice, setNotice] = useState(null); // { text, tone }, at the foot of the screen
   const [publishing, setPublishing] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
-  const [unlinking, setUnlinking] = useState(null); // a contract on a published course, while asking
+  const [published, setPublished] = useState(null); // { first }: the publish screen is up
   const [deleting, setDeleting] = useState(false);
   const [paneOpen, setPaneOpen] = useState(false); // Curriculum: a lesson is open in its panel
   const noticeTimer = useRef(null);
@@ -315,16 +313,12 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
       setFocusField({ field: first.field, n: Date.now() });
     });
 
-  const removeContract = (id) => save({ contractIds: course.contractIds.filter((c) => c !== id) });
-  // On a published course, removing a contract asks first
-  const unlink = (id) =>
-    live ? setUnlinking(contracts.find((c) => c.id === id) ?? { id, title: 'this contract' }) : removeContract(id);
 
   const publish = () => {
     setPublishing(false);
     if (publishCourse(course.id)) {
       setNeeds(false);
-      tell('Published. Copy its link to share it.');
+      setPublished({ first: !course.publishedAt });
     } else tell('We couldn’t publish it just now. Try again.', 'error');
   };
   const unpublish = () => {
@@ -355,16 +349,17 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
     <CourseLanding key={course.id} course={course} onSave={save} onSaveTitle={saveTitle} onDirtyChange={setDirty} />
   );
   const pricingFields = (
-    <CoursePricing
-      course={course}
-      contracts={contracts}
-      counts={counts}
-      onSave={save}
-      onSaved={showSaved}
-      onLink={() => setLinking(true)}
-      onUnlink={unlink}
-    />
+<CoursePricing course={course} onSave={save} onSaved={showSaved} />
   );
+
+  // Just published: the publish screen, in place of the steps
+  if (published) {
+    return (
+      <div className="crs ced ced--published">
+        <CoursePublished course={course} animate={published.first} onDone={() => setPublished(null)} />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -575,48 +570,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         </ConfirmDialog>
       )}
 
-      {unlinking && (
-        <ConfirmDialog
-          title={contracts.length <= 1 ? 'Remove the last contract?' : 'Remove this contract?'}
-          confirmLabel={contracts.length <= 1 ? 'Remove and unpublish' : 'Remove contract'}
-          danger
-          onCancel={() => setUnlinking(null)}
-          onConfirm={() => {
-            const last = contracts.length <= 1;
-            const id = unlinking.id;
-            setUnlinking(null);
-            if (removeContract(id) && last && unpublishCourse(course.id)) tell('Unpublished. It’s a draft again.');
-          }}
-        >
-          <p>
-            {contracts.length <= 1 ? (
-              <>
-                A published course needs at least one contract, so removing <strong>{unlinking.title}</strong> unpublishes
-                the course too. Students won’t see it until you set a price and publish again.
-              </>
-            ) : (
-              <>
-                People who got this course through <strong>{unlinking.title}</strong> will lose it. Everyone on the other
-                contracts keeps it.
-              </>
-            )}
-          </p>
-        </ConfirmDialog>
-      )}
-
-      {linking && (
-        <LinkDialog
-          value={course.contractIds.filter((id) => id !== course.buyContractId)}
-          onCancel={() => setLinking(false)}
-          onSave={(ids) => {
-            // The Buy button's contract stays linked, first
-            const buy = buyContractOf(course);
-            const next = buy ? [buy.id, ...ids.filter((id) => id !== buy.id)] : ids;
-            if (save({ contractIds: next })) setLinking(false);
-          }}
-        />
-      )}
-
       <div className="crs__notice-wrap" aria-live="polite">
         {notice && (
           <p className={`crs__notice ${notice.tone === 'error' ? 'crs__notice--error' : ''}`}>
@@ -765,59 +718,13 @@ function PublishedMenu({ onUnpublish }) {
   );
 }
 
-// "Link contracts": the contract picker, open, with the linked ones
-// ticked (not the Buy button's, which always stays). Save keeps the
-// change; Cancel or Escape doesn't.
-function LinkDialog({ value, onCancel, onSave }) {
-  const ref = useRef(null);
-  const [ids, setIds] = useState(value);
-
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => dialog?.open && dialog.close();
-  }, []);
-
-  return (
-    <dialog
-      ref={ref}
-      className="crs-dialog"
-      aria-labelledby="cpg-link-title"
-      onCancel={(e) => {
-        e.preventDefault();
-        onCancel();
-      }}
-    >
-      <div className="crs-dialog__top">
-        <h2 className="crs-dialog__title" id="cpg-link-title">
-          Link contracts
-        </h2>
-        <button type="button" className="crs-dialog__close" onClick={onCancel} aria-label="Close">
-          <X size={18} aria-hidden="true" />
-        </button>
-      </div>
-      <div className="crs-dialog__body">
-        <p className="crs-field__help">People who sign up on any of these get the course too.</p>
-        <ContractPicker value={ids} onChange={setIds} startOpen />
-      </div>
-      <div className="crs-dialog__foot crs-dialog__foot--row">
-        <button type="button" className="crs-btn crs-btn--quiet" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="button" className="crs-btn crs-btn--primary" onClick={() => onSave(ids)}>
-          Save
-        </button>
-      </div>
-    </dialog>
-  );
-}
-
 // Publish, once nothing's missing: what goes live, and a note if there's
 // no cover
 function PublishDialog({ course, onCancel, onPublish }) {
   const check = publishCheck(course);
   const buy = buyContractOf(course);
   const others = check.contracts - (buy ? 1 : 0);
+  const price = priceOf(buy);
   return (
     <ConfirmDialog
       title={`Publish “${course.title}”?`}
@@ -837,7 +744,20 @@ function PublishDialog({ course, onCancel, onPublish }) {
           <li className="pub__row pub__row--ok">
             <Check size={17} strokeWidth={3} aria-hidden="true" />
             <span>
-              {servicePrice(buy) === 'Free' ? 'Free: people sign up to get it' : `Sold for ${servicePrice(buy)}`}
+              {price.free ? (
+                'Free: people sign up to get it'
+              ) : (
+                <>
+                  Sold for {price.now}
+                  {price.was && (
+                    <>
+                      {' '}
+                      <span className="sr-only">, was </span>
+                      <s className="pub__was">{price.was}</s> ({price.off}% off)
+                    </>
+                  )}
+                </>
+              )}
               {others > 0 && <span className="pub__note"> (and given through {plural(others, 'other contract')})</span>}
             </span>
           </li>
