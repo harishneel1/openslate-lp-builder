@@ -1725,9 +1725,10 @@
    The step's card is a split view: the outline on the left and the open
    lesson on the right, one line between them, no card inside a card.
    Each column scrolls on its own and runs the card's full height.
-   Nothing open: the outline has the whole card, on white. A lesson
-   clicked: it fades in on the right and the outline turns light grey
-   (its white sections stand out).
+   The outline is white, open or closed: only its width changes, so
+   opening a lesson feels calm. The one vertical line (the lesson's left
+   edge) is all that separates them: no gap, no second tone. A lesson
+   clicked fades in on the right.
    Widths follow what's in each: the lesson's content is never wider than
    720px (a comfortable reading line, as students see it), so its column
    is that plus padding, 780px, and no wider: wider would only be empty
@@ -1739,6 +1740,7 @@
   .ced--workspace .cct--split {
     display: flex;
     align-items: stretch; /* both columns run the full height, and scroll inside it */
+    gap: 0; /* the two meet at the lesson's left edge: one line, nothing between */
     height: 100%;
   }
 
@@ -1748,12 +1750,11 @@
     padding: 28px 32px 32px;
     overflow-y: auto;
     overscroll-behavior: contain;
-    transition: padding 0.3s, background-color 0.3s;
+    transition: padding 0.3s;
   }
 
   .ced--workspace .cct--split .cct__outline {
     padding: 20px 24px 28px;
-    background: #f8f8f9;
   }
 
   .ced--workspace .cct__pane {

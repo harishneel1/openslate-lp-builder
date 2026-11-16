@@ -41,8 +41,8 @@ import LessonPanel from './LessonPanel';
 // lesson, so each lesson starts fresh, scrolled to the top.
 //
 // Foot: the lesson's own ending, so finishing one never sends the eye to
-// the step's Continue under it (CoursePage.jsx quiets that while this is
-// open). Everything here saves as it's made, and the foot says so; while
+// the step's Continue (top right, CoursePage.jsx). The bottom of the
+// screen is the lesson's alone. Everything here saves as it's made, and the foot says so; while
 // something isn't saved yet (text being written), it says that instead.
 //   + Add next lesson  the one solid button: closes the panel and opens a
 //                      new lesson's title box right under this one

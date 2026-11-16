@@ -98,7 +98,6 @@ import LessonPane from './LessonPane';
 //   lesson has unsaved changes (CoursePage.jsx keeps that question)
 // onDirtyChange(dirty): the open lesson has (or no longer has) unsaved changes
 // onPaneChange(open): the lesson panel opened or closed, so the page can widen
-// onDraftChange(open): a new lesson's title box opened or closed
 // ------------------------------------------------------------
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -106,7 +105,7 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 // Where focus goes back to when the panel closes: the lesson's bar
 const focusBar = (lessonId) => requestAnimationFrame(() => document.getElementById(`les-open-${lessonId}`)?.focus());
 
-export default function CourseContent({ course, onSaved, guard, onDirtyChange, onPaneChange, onDraftChange }) {
+export default function CourseContent({ course, onSaved, guard, onDirtyChange, onPaneChange }) {
   const sections = sectionsOf(course);
   const [openId, setOpenId] = useState(null); // the lesson in the panel
   const [renamingId, setRenamingId] = useState(null); // the lesson whose name is being changed in its bar
@@ -135,9 +134,6 @@ export default function CourseContent({ course, onSaved, guard, onDirtyChange, o
   useEffect(() => onPaneChange?.(Boolean(openId)), [openId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onPaneChange?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A new lesson's title box is open (the page quiets its Continue meanwhile)
-  useEffect(() => onDraftChange?.(Boolean(draftIn)), [draftIn]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => onDraftChange?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- Dragging ----------
   const [armed, setArmed] = useState(null); // { type, id }: ⋮⋮ is pressed, so its item may be dragged

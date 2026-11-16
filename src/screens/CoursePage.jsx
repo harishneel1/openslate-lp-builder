@@ -41,28 +41,27 @@ import './CoursePage.css';
 // Setting up (a course never published yet): a guided path, one step at
 // a time, as a new 1:1 call's flow is. Steps ahead are greyed and can't be
 // opened until the ones before them are done; done ones can be opened
-// again. The top row has only the steps and 🗑. Each step ends with one
-// way forward, which works once that step's minimum is done:
-//   ① Curriculum ✓ ─ ② Landing page ─ ③ Pricing                        [🗑]
-//   ┌──────────────────────────────────────────────────────────────────┐
-//   │ the step                                                         │
-//   │──────────────────────────────────────────────────────────────────│
-//   │ [← Back]          Preview landing page ↗   [Continue to Pricing →] │
-//   └──────────────────────────────────────────────────────────────────┘
-//   Curriculum     Continue to Landing page →, once a lesson has
-//                  something in it ("You can keep adding lessons any
-//                  time"); See it as a student ↗ beside it, from then
+// again. The steps row carries the step's way forward on its right
+// (SetupActions), pinned at the top as the page scrolls, with Delete course
+// (red) set apart before it. It works once that step's minimum is done:
+//   ① Curriculum ✓  ② Landing page  ③ Pricing
+//             [🗑 Delete course] │ [← Back]  Preview landing page ↗  [Continue to Pricing →]
+//   Curriculum     See it as a student ↗ (once a lesson has something in
+//                  it), Continue to Landing page →
 //   Landing page   ← Back, Preview landing page ↗, Continue to Pricing →,
 //                  once it has a subtitle and 3 things students will learn
-//   Pricing        ← Back, Publish course, once it has a price (or Free):
-//                  the only Publish while setting up. It asks once.
-// While Continue can't be pressed, a line beside it says what's left.
+//   Pricing        ← Back, Preview landing page ↗, Publish course, once it
+//                  has a price (or Free): the only Publish while setting
+//                  up. It asks once.
+// While Continue can't be pressed, hovering or focusing it says what's left.
+// The steps have no foot of their own: the bottom of the screen belongs to
+// what's being worked on (the open lesson's Done / Add next lesson).
 // Coming back to a draft opens its first step that isn't done.
 //
 // Editing (published, or published before and unpublished since): every
 // step open, any time, as below, with the actions in the top row.
 //   ← All courses          AI Engineering Accelerator              ✓ Saved   (focus bar)
-//   ① Curriculum ✓  ② Landing page ✓  ③ Pricing ✓   [Copy link] [View landing page ↗] [● Published ▾] [🗑]
+//   ① Curriculum ✓  ② Landing page ✓  ③ Pricing ✓   [🗑 Delete course] │ [Copy link] [View landing page ↗] [● Published ▾]
 //   ┌────────────────────────────────────────────────────────────────────┐
 //   │ the open step                                                      │
 //   └────────────────────────────────────────────────────────────────────┘
@@ -71,8 +70,7 @@ import './CoursePage.css';
 //   Curriculum     a workspace (ced--workspace): on screens 1100px wide
 //                  and 640px tall or more, the page fits the screen and
 //                  never scrolls. The step's card runs from the steps row
-//                  to the bottom of the window, its foot (Continue) pinned
-//                  to the card's bottom edge, always in view. Inside it,
+//                  to the bottom of the window. Inside it,
 //                  the outline (CourseContent.jsx), and, once a lesson is
 //                  clicked, that lesson beside it (LessonPane.jsx): a
 //                  split view, one line between them, each column
@@ -189,7 +187,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const [unlinking, setUnlinking] = useState(null); // a contract on a published course, while asking
   const [deleting, setDeleting] = useState(false);
   const [paneOpen, setPaneOpen] = useState(false); // Curriculum: a lesson is open in its panel
-  const [drafting, setDrafting] = useState(false); // Curriculum: a new lesson's title box is open
   const noticeTimer = useRef(null);
   const exit = useRef(null); // the focus bar's way back, kept current
   const wide = useWide();
@@ -398,7 +395,33 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         </nav>
 
         <div className="ced__actions">
-          {/* Setting up: only 🗑 here; the way forward is at the foot of each step */}
+          {/* Delete course first, in red, set apart by a line, so it's never
+              right beside the main button */}
+          <button type="button" className="crs-btn crs-btn--small ced__delete" onClick={() => guard(() => setDeleting(true))}>
+            <Trash2 size={16} aria-hidden="true" />
+            Delete course
+          </button>
+          <span className="ced__actions-sep" aria-hidden="true" />
+
+          {/* Setting up: the step's way forward, here at the top right */}
+          {setup && (
+            <SetupActions
+              index={stepIndex}
+              done={steps[step].done}
+              missing={missingHere}
+              courseId={course.id}
+              hasLesson={hasLesson}
+              onBack={() => go(STEPS[stepIndex - 1].id)}
+              onNext={() =>
+                guard(() => {
+                  setStep(STEPS[stepIndex + 1].id);
+                  window.scrollTo?.({ top: 0 });
+                })
+              }
+              onPublish={() => guard(() => setPublishing(true))}
+            />
+          )}
+
           {!setup && step === 'curriculum' && (
             <a className="ced__bar-link" href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
               See it as a student
@@ -433,16 +456,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
                 Publish
               </button>
             ))}
-          <button
-            type="button"
-            className="crs-icon-btn ced__delete"
-            aria-label="Delete course"
-            data-tip="Delete course"
-            data-tip-align="end"
-            onClick={() => guard(() => setDeleting(true))}
-          >
-            <Trash2 size={17} aria-hidden="true" />
-          </button>
         </div>
       </header>
 
@@ -467,7 +480,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
               guard={guard}
               onDirtyChange={setDirty}
               onPaneChange={setPaneOpen}
-              onDraftChange={setDrafting}
             />
           )}
 
@@ -485,25 +497,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
               pricingFields
             ))}
         </div>
-
-        {setup && (
-          <SetupFoot
-            index={stepIndex}
-            done={steps[step].done}
-            missing={missingHere}
-            courseId={course.id}
-            hasLesson={hasLesson}
-            quiet={step === 'curriculum' && (paneOpen || drafting)}
-            onBack={() => go(STEPS[stepIndex - 1].id)}
-            onNext={() =>
-              guard(() => {
-                setStep(STEPS[stepIndex + 1].id);
-                window.scrollTo?.({ top: 0 });
-              })
-            }
-            onPublish={() => guard(() => setPublishing(true))}
-          />
-        )}
       </section>
 
       {/* ---------- Pop-ups ---------- */}
@@ -616,66 +609,71 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   );
 }
 
-// The foot of a step while setting up: ← Back, a preview where there's
-// something to see, and the one way forward (Continue to the next step, or
-// Publish course on the last), which works once this step's minimum is
-// done. Until then, a line beside it says what's left.
-// quiet: a lesson is open in the Curriculum's panel, which has its own
-// way forward (Add next lesson, LessonPane.jsx), or a new lesson's title
-// box is open (its Save), so Continue steps back to a quiet button: one
-// solid button on the screen at a time, the one for what comes next
-// where they are.
-function SetupFoot({ index, done, missing, courseId, hasLesson, quiet = false, onBack, onNext, onPublish }) {
+// While setting up, the step's way forward, at the right of the steps row
+// (beside the steps it moves through, and pinned with them as the page
+// scrolls): ← Back (after the first step), a preview where there's
+// something to see, and the one main button: Continue to the next step,
+// or Publish course on the last. It works once this step's minimum is
+// done; until then it says what's left as a hint on hover or focus (and
+// to screen readers).
+//   Curriculum     See it as a student ↗ (once a lesson has something in it)
+//                  · Continue to Landing page →
+//   Landing page   ← Back · Preview landing page ↗ · Continue to Pricing →
+//   Pricing        ← Back · Preview landing page ↗ · Publish course
+// The main button is always solid orange: the way forward stays obvious,
+// even while a lesson's own Add next lesson is on screen (far apart, each
+// for its own area).
+function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onNext, onPublish }) {
   const last = index === STEPS.length - 1;
   const next = STEPS[index + 1];
   const preview =
     index === 0
       ? hasLesson && { href: coursePlayerUrl(courseId, null, true), label: 'See it as a student' }
       : { href: courseLandingUrl(courseId, true), label: 'Preview landing page' };
-  const note = !done
-    ? `To ${last ? 'publish' : 'continue'}, ${missing.map((m) => m.text).join(' and ')}.`
-    : index === 0
-      ? 'You can keep adding lessons any time.'
-      : null;
+  const hint = done ? null : `To ${last ? 'publish' : 'continue'}, ${missing.map((m) => m.text).join(' and ')}.`;
 
   return (
-    <div className="ced__foot">
+    <>
       {index > 0 && (
         <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={onBack}>
           <ArrowLeft size={16} aria-hidden="true" />
           Back
         </button>
       )}
-      <p className="ced__foot-note" id="ced-foot-note" aria-live="polite">
-        {note}
-      </p>
       {preview && (
-        <a className="ced__foot-link" href={preview.href} target="_blank" rel="noopener">
+        <a className="ced__bar-link" href={preview.href} target="_blank" rel="noopener">
           {preview.label}
           <ExternalLink size={14} aria-hidden="true" />
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
       )}
-      <button
-        type="button"
-        className={`crs-btn ${quiet ? 'crs-btn--quiet' : 'crs-btn--primary'} ced__next`}
-        aria-disabled={!done || undefined}
-        aria-describedby={note ? 'ced-foot-note' : undefined}
-        onClick={() => done && (last ? onPublish() : onNext())}
-      >
-        {last ? (
-          <>
-            <Rocket size={17} aria-hidden="true" />
-            Publish course
-          </>
-        ) : (
-          <>
-            Continue to {next.label}
-            <ArrowRight size={17} aria-hidden="true" />
-          </>
+      <span className="ced__next-wrap" data-tip={hint ?? undefined} data-tip-align="end">
+        <button
+          type="button"
+          className="crs-btn crs-btn--primary crs-btn--small ced__next"
+          aria-disabled={!done || undefined}
+          aria-describedby={hint ? 'ced-next-hint' : undefined}
+          onClick={() => done && (last ? onPublish() : onNext())}
+        >
+          {last ? (
+            <>
+              <Rocket size={16} aria-hidden="true" />
+              Publish course
+            </>
+          ) : (
+            <>
+              Continue to {next.label}
+              <ArrowRight size={16} aria-hidden="true" />
+            </>
+          )}
+        </button>
+        {hint && (
+          <span className="sr-only" id="ced-next-hint">
+            {hint}
+          </span>
         )}
-      </button>
-    </div>
+      </span>
+    </>
   );
 }
 

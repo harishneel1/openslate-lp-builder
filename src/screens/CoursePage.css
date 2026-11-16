@@ -77,15 +77,37 @@
   border-radius: 50%;
 }
 
-/* 🗑: quiet until the pointer's on it */
+/* The line between 🗑 and the rest */
+.ced__actions-sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 6px 0 4px;
+  background: var(--color-border);
+}
+
+/* The row's hints open below it: above, the top of the page would cut them */
+.ced__bar [data-tip]::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+/* Delete course: red words and bin on white, with a red-tinted edge.
+   Outlined, not filled, so it reads clearly without shouting beside the
+   orange: deleting should be deliberate, not tempting. */
 .ced__delete {
-  color: var(--crs-ink-2);
+  color: #b42318;
+  background: var(--color-surface);
+  border-color: #efc4c0;
 }
 
 .ced__delete:hover {
-  color: #c62828;
-  border-color: #e8b4b4;
+  color: #a41d14;
   background: #fdecec;
+  border-color: #c62828;
+}
+
+.ced__delete:focus-visible {
+  outline-color: #c62828;
 }
 
 /* Curriculum, while editing: "See it as a student ↗", a quiet link at the
@@ -271,45 +293,8 @@
   padding: 28px 32px 32px;
 }
 
-/* Setting up: the foot of the step. ← Back on the left; what's left (or
-   a reassurance), a preview link and the one way forward on the right. */
-.ced__foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 18px;
-  padding: 18px 32px;
-  background: #fafafb;
-  border-top: 1px solid var(--color-border);
-  border-radius: 0 0 12px 12px;
-}
-
-.ced__foot-note {
-  flex: 1;
-  min-width: 200px;
-  font-size: 13.5px;
-  line-height: 1.5;
-  text-align: right;
-  color: var(--crs-ink-2);
-}
-
-.ced__foot-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--crs-ink-2);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.ced__foot-link:hover {
-  color: var(--crs-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
+/* Setting up: the step's way forward sits in the steps row (SetupActions
+   in CoursePage.jsx): no foot of its own. */
 .ced__next[aria-disabled='true'],
 .ced__next[aria-disabled='true']:hover {
   opacity: 0.45;
@@ -321,10 +306,10 @@
   background: var(--color-primary);
 }
 
-/* Quiet while a lesson is open (its panel has the way forward): no orange
-   edge on hover either, so it doesn't call for attention */
-.crs-btn--quiet.ced__next:hover:not([aria-disabled='true']) {
-  border-color: #b9b9bf;
+/* Holds the "what's left" hint (data-tip), since a button that can't be
+   pressed yet still shows it */
+.ced__next-wrap {
+  display: inline-flex;
 }
 
 /* After Publish with something missing: one line, what's left here */
@@ -788,8 +773,7 @@
 /* ================= Curriculum as a workspace =================
    On screens big enough for it, the Curriculum step fits the window and
    the page never scrolls: the steps row, then the step's card down to the
-   bottom of the window, its foot (Continue) pinned to the card's bottom
-   edge. The card's body is the outline and the open lesson, side by side,
+   bottom of the window. The card's body is the outline and the open lesson, side by side,
    each scrolling on its own (CoursesPage.css). The page is the main area's
    only child (AppLayout's <main>), so 100% is the window under the focus
    bar, less main's padding. Smaller or shorter screens: the page scrolls
@@ -803,8 +787,7 @@
   }
 
   .ced--workspace .ced__bar,
-  .ced--workspace .ced__needs,
-  .ced--workspace .ced__foot {
+  .ced--workspace .ced__needs {
     flex: none;
   }
 
@@ -857,19 +840,6 @@
     padding: 12px 16px;
   }
 
-  .ced__foot {
-    padding: 16px;
-  }
-
-  .ced__foot-note {
-    flex-basis: 100%;
-    order: -1;
-    text-align: left;
-  }
-
-  .ced__next {
-    flex: 1;
-  }
 
   .prc__kinds {
     grid-template-columns: minmax(0, 1fr);
