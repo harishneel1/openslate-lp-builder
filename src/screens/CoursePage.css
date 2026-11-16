@@ -8,6 +8,7 @@
 .ced {
   max-width: 1080px;
   padding-top: 0;
+  transition: max-width 0.25s ease;
 }
 
 /* ================= The row under the focus bar: steps, then actions =================
@@ -87,37 +88,40 @@
   background: #fdecec;
 }
 
-/* Curriculum: "See it as a student ↗" on its own at the top right. The
-   content's own intro line and top Add section aren't shown here: Add
-   section is at the foot, where the next section goes (CourseContent.jsx). */
-.ced__step-link {
-  display: flex;
-  justify-content: flex-end;
-  margin: -6px 0 14px;
-  font-size: 14px;
-}
-
-.ced__step-link a {
+/* Curriculum, while editing: "See it as a student ↗", a quiet link at the
+   start of the actions. The content's own intro line and top Add section
+   aren't shown here: Add section is at the foot, where the next section
+   goes (CourseContent.jsx). */
+.ced__bar-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-right: 6px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--crs-ink-2);
   text-decoration: none;
+  white-space: nowrap;
 }
 
-.ced__step-link a:hover {
+.ced__bar-link:hover {
   color: var(--crs-ink);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-.ced .cct > .cpg__bar {
+.ced__bar-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.ced .cct__outline > .cpg__bar {
   display: none;
 }
 
-.ced .cct > .cpg__bar + .cct__sections,
-.ced .cct > .cpg__bar + .cct__none {
+.ced .cct__outline > .cpg__bar + .cct__sections,
+.ced .cct__outline > .cpg__bar + .cct__none {
   margin-top: 0;
 }
 
@@ -229,6 +233,13 @@
   max-width: 1400px;
 }
 
+/* ================= Curriculum with a lesson open: outline left, lesson right =================
+   The page widens the same way, so the lesson's panel gets real room
+   (CourseContent.jsx, CoursesPage.css .cct--split). */
+.ced--split {
+  max-width: 1400px;
+}
+
 .ced__guided {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
@@ -302,8 +313,18 @@
 .ced__next[aria-disabled='true'],
 .ced__next[aria-disabled='true']:hover {
   opacity: 0.45;
-  background: var(--color-primary);
   cursor: not-allowed;
+}
+
+.crs-btn--primary.ced__next[aria-disabled='true'],
+.crs-btn--primary.ced__next[aria-disabled='true']:hover {
+  background: var(--color-primary);
+}
+
+/* Quiet while a lesson is open (its panel has the way forward): no orange
+   edge on hover either, so it doesn't call for attention */
+.crs-btn--quiet.ced__next:hover:not([aria-disabled='true']) {
+  border-color: #b9b9bf;
 }
 
 /* After Publish with something missing: one line, what's left here */
@@ -764,6 +785,50 @@
   font-size: 16.5px;
 }
 
+/* ================= Curriculum as a workspace =================
+   On screens big enough for it, the Curriculum step fits the window and
+   the page never scrolls: the steps row, then the step's card down to the
+   bottom of the window, its foot (Continue) pinned to the card's bottom
+   edge. The card's body is the outline and the open lesson, side by side,
+   each scrolling on its own (CoursesPage.css). The page is the main area's
+   only child (AppLayout's <main>), so 100% is the window under the focus
+   bar, less main's padding. Smaller or shorter screens: the page scrolls
+   as the other steps do. */
+@media (min-width: 1100px) and (min-height: 640px) {
+  .ced--workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: 0;
+  }
+
+  .ced--workspace .ced__bar,
+  .ced--workspace .ced__needs,
+  .ced--workspace .ced__foot {
+    flex: none;
+  }
+
+  .ced--workspace .ced__panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .ced--workspace .ced__panel-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .ced--workspace .ced__panel-body > .cct {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 /* ================= Narrower screens ================= */
 @media (max-width: 720px) {
   .ced__bar {
@@ -816,6 +881,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ced,
   .lrn__box {
     transition: none;
   }

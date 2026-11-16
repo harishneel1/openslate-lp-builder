@@ -1078,13 +1078,18 @@
   z-index: var(--z-dropdown);
 }
 
-/* ================= Content: sections and lessons (CourseContent.jsx) =================
+/* ================= Curriculum: sections and lessons (CourseContent.jsx) =================
    Boxy, like Cloud Storage: each section a white panel with plain 1px
    borders and a grey head strip; lessons are full-width rows split by
    thin lines. No grey-in-grey, no dashes, no soft shadows. */
 .cct {
   --cct-line: #e3e3e7;
   --cct-head: #f6f6f7;
+}
+
+/* The outline: sections and lessons. The full width until a lesson opens. */
+.cct__outline {
+  min-width: 0;
 }
 
 /* No sections yet */
@@ -1174,27 +1179,37 @@
   list-style: none;
 }
 
+/* --cct-row: the bar's colour, also behind its tools while the panel's open */
 .cct__lesson {
-  background: #f4f4f6;
+  --cct-row: #f4f4f6;
+  background: var(--cct-row);
   border: 1px solid #ebebee;
   border-radius: var(--radius-sm);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
-/* A bar: ▸ Lesson 1: ¶ Name ……… [+ Content] ✎ 🗑. A click anywhere opens it. */
+.cct__lesson:not(.cct__lesson--on):hover {
+  --cct-row: #eeeef1;
+}
+
+/* The lesson open in the panel: lit orange, with a bar down its left edge */
+.cct__lesson--on {
+  --cct-row: var(--color-primary-tint);
+  border-color: #f2c9a6;
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+/* A bar: Lesson 1: Name ……… [+ Content] ✎ 🗑 ⋮⋮. A click anywhere opens it in the panel. */
 .cct__lesson-row {
   display: flex;
   align-items: center;
   gap: 4px;
   min-height: 56px;
-  padding: 6px 10px 6px 6px;
+  padding: 6px 10px 6px 8px;
   cursor: pointer;
 }
 
-.cct__lesson--open > .cct__lesson-row {
-  border-bottom: 1px solid #e3e3e7;
-}
-
-/* Caret, "Lesson 1:", icon and name: one button, as wide as its words */
+/* "Lesson 1:", icon and name: one button, as wide as its words */
 .cct__lesson-open {
   display: flex;
   flex: 0 1 auto;
@@ -1217,32 +1232,10 @@
   outline-offset: 0;
 }
 
-/* ▸, filled, turning to ▾ when open */
-.cct__caret {
-  flex: none;
-  width: 0;
-  height: 0;
-  margin: 0 2px 0 4px;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 7px solid var(--crs-ink);
-  transition: transform 0.15s;
-}
-
-.cct__lesson--open .cct__caret {
-  transform: rotate(90deg);
-}
-
 .cct__lesson-num {
   flex: none;
   font-weight: 700;
   white-space: nowrap;
-}
-
-/* What it has, before its name (once it has something) */
-.cct__lesson-kind {
-  flex: none;
-  color: var(--crs-ink-2);
 }
 
 .cct__lesson-title {
@@ -1400,7 +1393,7 @@
 
 /* ---------- Add lesson: a new bar with a title box ---------- */
 .cct__new {
-  padding: 10px 12px 12px 6px;
+  padding: 10px 12px 12px 8px;
 }
 
 .cct__new-row {
@@ -1453,6 +1446,359 @@
 .cct__add-lesson:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
+}
+
+/* ---------- A lesson open: the outline on the left, its panel on the right ----------
+   Pushed in beside the outline, not over it (LessonPane.jsx). The page
+   widens to make room (CoursePage.css, .ced--split). */
+.cct--split {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(520px, 780px);
+  gap: 24px;
+  align-items: start;
+}
+
+/* On most screens the Curriculum step is a workspace and the panel fills
+   its column (below, "Curriculum as a workspace"). Where it isn't (short
+   screens), the panel stays in view as the page scrolls, under the steps'
+   bar, as tall as its lesson needs. Only its body scrolls. */
+.cct__pane {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: calc(100vh - 170px);
+  background: var(--color-surface);
+  border: 1px solid var(--cct-line);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04), 0 12px 32px rgba(17, 17, 17, 0.07);
+  animation: cct-pane-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Focused on opening only so the keyboard lands in it: no ring of its own
+   (what's inside it has theirs) */
+.cct__pane:focus {
+  outline: none;
+}
+
+/* With the panel open the outline is narrower, so names get the room:
+   a bar's tools sit over its right end, faded in on hover or with the
+   keyboard in the bar (the open lesson's too: its name shows whole). "Empty" stands in for
+   + Content, and sections drop their lesson count. */
+.cct__lesson-empty {
+  display: none;
+}
+
+.cct--split .cct__lesson-empty {
+  display: inline;
+  flex: none;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--crs-ink-3);
+  background: #e6e6ea;
+  border-radius: var(--radius-pill);
+}
+
+.cct--split .cct__lesson--on .cct__lesson-empty {
+  color: var(--crs-orange-ink);
+  background: #fbe0c9;
+}
+
+.cct--split .cct__lesson-row {
+  position: relative;
+}
+
+.cct--split .cct__tools {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 10px 0 32px;
+  background: linear-gradient(to right, transparent, var(--cct-row) 28px);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cct--split .cct__lesson:hover .cct__tools,
+.cct--split .cct__lesson:focus-within .cct__tools {
+  opacity: 1;
+}
+
+.cct--split .cct__content-btn,
+.cct--split .cct__count {
+  display: none;
+}
+
+@keyframes cct-pane-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+/* Its head: where it sits, ‹ › ✕, then its name */
+.cct__pane-head {
+  flex: none;
+  padding: 12px 14px 14px 22px;
+  border-bottom: 1px solid var(--cct-line);
+}
+
+.cct__pane-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cct__pane-where {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--crs-ink-3);
+}
+
+.cct__pane-section {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cct__pane-dot,
+.cct__pane-num {
+  flex: none;
+}
+
+.cct__pane-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-right: -4px;
+}
+
+.cct__pane-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--crs-ink-2);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cct__pane-btn:hover:not(:disabled) {
+  color: var(--crs-ink);
+  background: #ececee;
+}
+
+.cct__pane-btn:disabled {
+  color: #c8c8cd;
+  cursor: default;
+}
+
+.cct__pane-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.cct__pane-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--cct-line);
+}
+
+/* The lesson's name, renamed in place (InlineTitle, variant 'pane') */
+.cct__pane-head .ilt--pane {
+  margin: 4px 0 0 -9px;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.ilt--pane .ilt__input {
+  padding: 3px 8px;
+}
+
+.ilt--pane .ilt__size {
+  padding: 3px 10px 3px 8px;
+}
+
+/* Its foot: "Changes save as you go", Done, + Add next lesson. Stays put
+   at the bottom while the body scrolls. */
+.cct__pane-foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 12px 20px 12px 22px;
+  background: #fafafb;
+  border-top: 1px solid var(--cct-line);
+  border-radius: 0 0 10px 10px;
+}
+
+.cct__pane-saved {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--crs-ink-2);
+}
+
+.cct__pane-saved svg {
+  flex: none;
+  color: var(--color-success);
+}
+
+.cct__pane-saved--unsaved {
+  color: var(--crs-orange-ink);
+}
+
+/* A new lesson's title box under the lesson it was added from (Add next lesson) */
+.cct__draft {
+  list-style: none;
+}
+
+/* Its body: what goes in the lesson (LessonPanel.jsx) */
+.cct__pane-body {
+  flex: 1;
+  min-height: 0;
+  padding: 22px 22px 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The content tiles, a little narrower so all five fit on one line */
+.cct__pane .lp__choice {
+  width: 100px;
+}
+
+/* Their hints (data-tip): in the panel, not a floating bubble, which the
+   panel's scrolling body would cut off, but one quiet line in a space kept
+   for it under the tiles, saying what the pointed-at (or focused) tile is for */
+.cct__pane .lp__tiles {
+  position: relative;
+  padding-bottom: 46px;
+}
+
+.cct__pane .lp__tiles .lp__tile-wrap[data-tip] {
+  position: static;
+}
+
+.cct__pane .lp__tiles .lp__tile-wrap[data-tip]::after {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-width: 560px;
+  min-height: 36px;
+  padding: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--crs-ink-2);
+  background: none;
+  border-radius: 0;
+  transform: none;
+}
+
+/* Narrow screens only: the dimmed page behind the panel */
+.cct__scrim {
+  display: none;
+}
+
+/* ---------- Curriculum as a workspace (CoursePage.css, .ced--workspace) ----------
+   The step's card is a split view: the outline on the left and the open
+   lesson on the right, one line between them, no card inside a card.
+   Each column scrolls on its own and runs the card's full height.
+   Nothing open: the outline has the whole card, on white. A lesson
+   clicked: it fades in on the right and the outline turns light grey
+   (its white sections stand out).
+   Widths follow what's in each: the lesson's content is never wider than
+   720px (a comfortable reading line, as students see it), so its column
+   is that plus padding, 780px, and no wider: wider would only be empty
+   space. On smaller screens it gives way first, down to 520px. The
+   outline takes everything else, never under 360px, so names have room.
+   On 1440px that's about 600 / 780; on a 1190px screen about 360 / 720. */
+@media (min-width: 1100px) and (min-height: 640px) {
+  .ced--workspace .cct,
+  .ced--workspace .cct--split {
+    display: flex;
+    align-items: stretch; /* both columns run the full height, and scroll inside it */
+    height: 100%;
+  }
+
+  .ced--workspace .cct__outline {
+    flex: 1 1 0;
+    min-width: 360px;
+    padding: 28px 32px 32px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition: padding 0.3s, background-color 0.3s;
+  }
+
+  .ced--workspace .cct--split .cct__outline {
+    padding: 20px 24px 28px;
+    background: #f8f8f9;
+  }
+
+  .ced--workspace .cct__pane {
+    position: static;
+    flex: 0 1 780px;
+    min-width: 520px;
+    max-height: none;
+    border: 0;
+    border-left: 1px solid var(--cct-line);
+    border-radius: 0;
+    box-shadow: none;
+    animation: cct-pane-fade 0.3s ease-out;
+  }
+
+  .ced--workspace .cct__pane-head {
+    padding: 16px 20px 16px 28px;
+  }
+
+  .ced--workspace .cct__pane-body {
+    padding: 24px 28px 32px;
+  }
+
+  .ced--workspace .cct__pane-foot {
+    padding-left: 28px;
+    border-radius: 0;
+  }
+}
+
+@keyframes cct-pane-fade {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes cct-pane-slide {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes cct-dim {
+  from {
+    opacity: 0;
+  }
 }
 
 /* ---------- A kind's tile: as Cloud Storage's file tiles ---------- */
@@ -1522,13 +1868,7 @@
   box-shadow: inset 0 0 0 1px #e3e3e7;
 }
 
-/* ---------- The open lesson (LessonPanel.jsx) ---------- */
-.cct__lesson-panel {
-  padding: 18px 20px 20px 34px; /* lined up with "Lesson 1:" */
-  background: var(--color-surface);
-  border-radius: 0 0 calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px);
-}
-
+/* ---------- The open lesson's content (LessonPanel.jsx), in its panel ---------- */
 /* What goes in it: tiles in TagMango's order, Text set apart at the end */
 .lp__pick-head {
   display: flex;
@@ -2123,6 +2463,46 @@ a.crs-btn {
   text-decoration: none;
 }
 
+/* ---------- Under 1100px: no room for both, so the lesson's panel covers
+   the page from the right, over a dimmed page (as Drawer.css). The same
+   width the course page's guide needs (CoursePage.jsx, GUIDE_MEDIA). */
+@media (max-width: 1099px) {
+  .cct--split {
+    display: block;
+  }
+
+  .cct__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-sidebar) + 1);
+    display: block;
+    background: rgba(17, 17, 17, 0.32);
+    animation: cct-dim 0.24s ease-out;
+  }
+
+  .cct__pane {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: calc(var(--z-sidebar) + 2);
+    width: min(640px, 100vw);
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: -16px 0 48px rgba(0, 0, 0, 0.14);
+    animation-name: cct-pane-slide;
+  }
+
+  .cct__pane-head {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  }
+
+  .cct__pane-foot {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    border-radius: 0;
+  }
+}
+
 @media (max-width: 720px) {
   .cct__section-head {
     padding: 8px 8px 8px 12px;
@@ -2158,11 +2538,17 @@ a.crs-btn {
     flex-basis: 100%;
   }
 
-  .cct__lesson-panel {
-    padding: 16px 14px 18px;
+  .cct__pane-head {
+    padding-left: 16px;
   }
 
-  .lp__choice {
+  .cct__pane-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .lp__choice,
+  .cct__pane .lp__choice {
     width: 98px;
   }
 
@@ -2173,7 +2559,18 @@ a.crs-btn {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cct__caret {
+  .cct__lesson,
+  .cct--split .cct__tools {
+    transition: none;
+  }
+
+  .cct__pane,
+  .cct__scrim,
+  .ced--workspace .cct__pane {
+    animation: none;
+  }
+
+  .ced--workspace .cct__outline {
     transition: none;
   }
 }

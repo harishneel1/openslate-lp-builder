@@ -68,9 +68,19 @@ import './CoursePage.css';
 //   └────────────────────────────────────────────────────────────────────┘
 //
 // The steps (data/courseSteps.js says which are done):
-//   Curriculum     sections and lessons (CourseContent.jsx); while
-//                  editing, "See it as a student ↗" at the top: the
-//                  lessons in the player
+//   Curriculum     a workspace (ced--workspace): on screens 1100px wide
+//                  and 640px tall or more, the page fits the screen and
+//                  never scrolls. The step's card runs from the steps row
+//                  to the bottom of the window, its foot (Continue) pinned
+//                  to the card's bottom edge, always in view. Inside it,
+//                  the outline (CourseContent.jsx), and, once a lesson is
+//                  clicked, that lesson beside it (LessonPane.jsx): a
+//                  split view, one line between them, each column
+//                  scrolling on its own. While the lesson's open the page
+//                  widens to make room (ced--split), as it does for the
+//                  guide. Smaller screens: the page scrolls as the other
+//                  steps do. While editing, "See it as a student ↗" sits
+//                  in the steps row: the lessons in the player
 //   Landing page   the title, subtitle, what students will learn, cover,
 //                  and, behind "+ Add", description, requirements, who
 //                  it's for (CourseLanding.jsx)
@@ -178,6 +188,8 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const [unpublishing, setUnpublishing] = useState(false);
   const [unlinking, setUnlinking] = useState(null); // a contract on a published course, while asking
   const [deleting, setDeleting] = useState(false);
+  const [paneOpen, setPaneOpen] = useState(false); // Curriculum: a lesson is open in its panel
+  const [drafting, setDrafting] = useState(false); // Curriculum: a new lesson's title box is open
   const noticeTimer = useRef(null);
   const exit = useRef(null); // the focus bar's way back, kept current
   const wide = useWide();
@@ -322,6 +334,10 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const stepNumber = STEPS.findIndex((s) => s.id === step) + 1;
   const stepLabel = STEPS.find((s) => s.id === step)?.label;
   const guided = wide && Boolean(GUIDE_START[step]);
+  const split = step === 'curriculum' && paneOpen;
+  // Curriculum is a workspace: the page fits the screen and each column
+  // scrolls on its own (CoursePage.css, on screens big enough for it)
+  const workspace = step === 'curriculum';
 
   const landingFields = (
     <CourseLanding key={course.id} course={course} onSave={save} onSaveTitle={saveTitle} onDirtyChange={setDirty} />
@@ -339,7 +355,11 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   );
 
   return (
-    <div className={`crs ced ${guided ? 'ced--guided' : ''}`}>
+    <div
+      className={['crs', 'ced', guided && 'ced--guided', split && 'ced--split', workspace && 'ced--workspace']
+        .filter(Boolean)
+        .join(' ')}
+    >
       {!onFocus && (
         <button type="button" className="crs__back ced__back" onClick={() => guard(onBack)}>
           <ArrowLeft size={16} aria-hidden="true" /> All courses
@@ -379,6 +399,13 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
 
         <div className="ced__actions">
           {/* Setting up: only 🗑 here; the way forward is at the foot of each step */}
+          {!setup && step === 'curriculum' && (
+            <a className="ced__bar-link" href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
+              See it as a student
+              <ExternalLink size={14} aria-hidden="true" />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          )}
           {!setup && live && (
             <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={copyLink}>
               <Link2 size={16} aria-hidden="true" />
@@ -434,18 +461,14 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
 
         <div className="ced__panel-body">
           {step === 'curriculum' && (
-            <>
-              {!setup && (
-              <p className="ced__step-link">
-                <a href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
-                  See it as a student
-                  <ExternalLink size={14} aria-hidden="true" />
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
-              </p>
-              )}
-              <CourseContent course={course} onSaved={showSaved} guard={guard} onDirtyChange={setDirty} />
-            </>
+            <CourseContent
+              course={course}
+              onSaved={showSaved}
+              guard={guard}
+              onDirtyChange={setDirty}
+              onPaneChange={setPaneOpen}
+              onDraftChange={setDrafting}
+            />
           )}
 
           {GUIDE_START[step] &&
@@ -470,6 +493,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
             missing={missingHere}
             courseId={course.id}
             hasLesson={hasLesson}
+            quiet={step === 'curriculum' && (paneOpen || drafting)}
             onBack={() => go(STEPS[stepIndex - 1].id)}
             onNext={() =>
               guard(() => {
@@ -596,7 +620,12 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
 // something to see, and the one way forward (Continue to the next step, or
 // Publish course on the last), which works once this step's minimum is
 // done. Until then, a line beside it says what's left.
-function SetupFoot({ index, done, missing, courseId, hasLesson, onBack, onNext, onPublish }) {
+// quiet: a lesson is open in the Curriculum's panel, which has its own
+// way forward (Add next lesson, LessonPane.jsx), or a new lesson's title
+// box is open (its Save), so Continue steps back to a quiet button: one
+// solid button on the screen at a time, the one for what comes next
+// where they are.
+function SetupFoot({ index, done, missing, courseId, hasLesson, quiet = false, onBack, onNext, onPublish }) {
   const last = index === STEPS.length - 1;
   const next = STEPS[index + 1];
   const preview =
@@ -629,7 +658,7 @@ function SetupFoot({ index, done, missing, courseId, hasLesson, onBack, onNext, 
       )}
       <button
         type="button"
-        className="crs-btn crs-btn--primary ced__next"
+        className={`crs-btn ${quiet ? 'crs-btn--quiet' : 'crs-btn--primary'} ced__next`}
         aria-disabled={!done || undefined}
         aria-describedby={note ? 'ced-foot-note' : undefined}
         onClick={() => done && (last ? onPublish() : onNext())}
