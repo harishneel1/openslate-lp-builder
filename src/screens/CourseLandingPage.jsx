@@ -298,10 +298,6 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
       )}
       {preview && !example && (
         <p className={`cpl__preview ${live ? '' : 'cpl__preview--draft'}`} role="status">
-          <Eye size={17} aria-hidden="true" />
-          {live
-            ? 'Preview: this is the course’s landing page, as anyone with the link sees it.'
-            : 'Preview: this course is a draft, so this page isn’t live yet. Buy now works once it’s published.'}
         </p>
       )}
 
