@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, IndianRupee, Plus } from 'lucide-react';
-import { buyContractOf } from '../data/courses';
+import { buyContractOf, descriptionText } from '../data/courses';
 import { contractOf, createContract, servicePrice, updateContract } from '../data/mockServices';
 import { CourseAccess } from './CourseSettings';
 
@@ -26,12 +26,14 @@ import { CourseAccess } from './CourseSettings';
 //   Also given through                                [Link contracts]
 //   ▣ Monthly Vasthu Circle   ₹299/month · 27 sign-ups   [Remove]
 //
-// Price: setting one makes a contract for the course, named after it
-// (createContract in mockServices.js), links it, and makes it the one the
-// Buy button sells (buyContractId, buyContractMade in courses.js). It
-// shows on the Contracts page like any other. Changing the price here
-// changes that contract. The course's title stays its name
-// (syncContractTitle, when the title changes).
+// Price: setting one makes a contract for the course, named after it and
+// with its description (createContract in mockServices.js), links it, and
+// makes it the one the Buy button sells (buyContractId, buyContractMade in
+// courses.js). It shows on the Contracts page like any other. Changing
+// the price here changes that contract. The course's title stays its name
+// (syncContractTitle, when the title changes), and its description stays
+// the contract's description, as plain text (syncContractDescription,
+// when the description changes; descriptionText in courses.js).
 // Paid is one payment in rupees, a whole number from ₹1 to ₹9,99,999.
 // Free: people only sign up. Prices in other currencies, GST, discounts
 // and the checkout questions are set on the contract, on the Contracts
@@ -40,9 +42,10 @@ import { CourseAccess } from './CourseSettings';
 // Or, instead, one of the linked contracts can be what the Buy button
 // sells (a course that had contracts before prices came in, say). Its
 // price is then changed wherever that contract is managed, so here it
-// only says which one it is, with Change. Setting a price here later makes
-// the course's own contract; the old one stays linked, so everyone on it
-// keeps the course.
+// only says which one it is, with Change. Its title and description are
+// its own: the course never changes them. Setting a price here later
+// makes the course's own contract; the old one stays linked, so everyone
+// on it keeps the course.
 // If the Buy button's contract is deleted, this says so, and asks for a
 // price again (publishing needs one).
 //
@@ -56,6 +59,8 @@ import { CourseAccess } from './CourseSettings';
 // onLink(): open Link contracts; onUnlink(contractId)
 // syncContractTitle(course, title): keeps the course's own contract named
 //   after it
+// syncContractDescription(course, html): keeps the course's own
+//   contract's description the course's, as plain text
 // ------------------------------------------------------------
 
 export const PRICE_MAX = 999999;
@@ -78,6 +83,15 @@ export function syncContractTitle(course, title) {
   if (contract && contract.title !== title) updateContract(contract.id, { ...contractOf(contract), title });
 }
 
+export function syncContractDescription(course, html) {
+  if (!course?.buyContractMade) return;
+  const contract = buyContractOf(course);
+  const description = descriptionText(html);
+  if (contract && contractOf(contract).description !== description) {
+    updateContract(contract.id, { ...contractOf(contract), description });
+  }
+}
+
 export default function CoursePricing({ course, contracts, counts, onSave, onSaved, onLink, onUnlink }) {
   const [editing, setEditing] = useState(false);
   const [, setTick] = useState(0); // the contract changed, not the course: read it again
@@ -86,10 +100,18 @@ export default function CoursePricing({ course, contracts, counts, onSave, onSav
   const own = Boolean(buy && course.buyContractMade);
   const others = contracts.filter((c) => c.id !== buy?.id);
   const showForm = editing || !buy;
+  // The course's description, as its contract keeps it
+  const description = descriptionText(course.description);
 
   const submitPrice = (value) => {
     if (own) {
-      const ok = updateContract(buy.id, { ...contractOf(buy), title: course.title, ...priceFields(buy, value) });
+      const current = contractOf(buy);
+      const ok = updateContract(buy.id, {
+        ...current,
+        title: course.title,
+        description: description || current.description,
+        ...priceFields(buy, value),
+      });
       onSaved(ok);
       if (ok) {
         setEditing(false);
@@ -97,7 +119,7 @@ export default function CoursePricing({ course, contracts, counts, onSave, onSav
       }
       return;
     }
-    const made = createContract({ title: course.title, description: '', ...priceFields(null, value) });
+    const made = createContract({ title: course.title, description, ...priceFields(null, value) });
     if (!made) {
       onSaved(false);
       return;
@@ -142,8 +164,8 @@ export default function CoursePricing({ course, contracts, counts, onSave, onSav
               <p className="prc__meta">
                 {own ? (
                   <>
-                    Sold through its own contract, <strong>{buy.title}</strong>, which shows on your Contracts page too.
-                    Other currencies, GST and checkout questions are set there.
+                    Sold through its own contract, <strong>{buy.title}</strong>, which shows on your Contracts page too,
+                    with the course’s description. Other currencies, GST and checkout questions are set there.
                   </>
                 ) : (
                   <>

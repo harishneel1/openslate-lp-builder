@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import {
   COURSE_TITLE_MAX,
+  DESCRIPTION_MAX,
+  DESCRIPTION_MIN,
   LIST_ITEM_MAX,
   LIST_MAX,
   OUTCOMES_MIN,
@@ -10,10 +12,10 @@ import {
   TESTIMONIAL_NAME_MAX,
   TESTIMONIAL_TEXT_MAX,
   listOf,
+  descriptionText,
   testimonialsOf,
 } from '../data/courses';
-import ConfirmDialog from '../components/ConfirmDialog';
-import TextEditor, { TextView } from '../components/TextEditor';
+import TextEditor from '../components/TextEditor';
 import CourseCover from './CourseSettings';
 
 // ------------------------------------------------------------
@@ -25,6 +27,12 @@ import CourseCover from './CourseSettings';
 //   Subtitle
 //   [Dinners for busy weeks, from shop to table                  ]
 //
+//   Description                                                  ✓
+//   What the course covers, how it works, and what changes…
+//   [Normal ▾] [B] [I] [• list] [1. list] [🔗 Link]
+//   [Over four weeks, you'll plan, shop for and cook…            ]
+//   12 more characters needed to publish
+//
 //   What students will learn                                   2/3
 //   [e.g. Cook a week of dinners in under an hour                ]
 //   [e.g. Plan meals around what's in your kitchen               ]
@@ -33,18 +41,15 @@ import CourseCover from './CourseSettings';
 //
 //   Cover image (optional)                       (CourseSettings.jsx)
 //
-//   + Add a description   + Add requirements   + Add who it's for
-//   + Add testimonials
+//   + Add requirements   + Add who it's for   + Add testimonials
 //
 // Each part carries data-guide (its name in courseAnnotations.js): the
 // page's guide beside it highlights the part of the example being filled
 // in (CoursePage.jsx). The + Add links carry their part's name too.
 //
-// Only the next thing to do shows. The optional parts (description,
-// requirements, who it's for, testimonials) are one quiet link each, at
-// the end; a click
-// opens that part (the description straight into its editor). A part that
-// already has something in it shows open.
+// Only the next thing to do shows. The optional parts (requirements, who
+// it's for, testimonials) are one quiet link each, at the end; a click
+// opens that part. A part that already has something in it shows open.
 //
 // Title: the course's name everywhere (the focus bar, the academy, its
 // own contract). Up to 100 characters; it can't be empty: clearing it
@@ -65,16 +70,26 @@ import CourseCover from './CourseSettings';
 // happy to be named, a name. Up to 6. The landing page shows them under
 // "What students say", as testimonials, never as star ratings: those come
 // only from students who took the course. Each saves when they leave it.
-// Description: written in the text editor (TextEditor.jsx), saved with its
-// own Save. While it has unsaved changes the page asks before they leave
-// (onDirtyChange, the same as an open lesson).
+// Description: needed to publish, always open, written in the text
+// editor (TextEditor.jsx, autosave). It saves when they click away, like
+// the fields around it. It's also the description on the course's own
+// contract, the checkout page's (as plain text: CoursePage.jsx keeps it
+// in step), so it has the contract's limit: 2,000 characters of text, and
+// at least 50 to publish (DESCRIPTION_MAX, DESCRIPTION_MIN in courses.js,
+// counted as descriptionText counts them). Under it, only when it
+// matters: how many more are needed to publish, how many are left (from
+// 100), or how far over the limit it is (it doesn't save until it's
+// shorter, and the page asks before they leave, through onDirtyChange).
+// A green tick by its heading once it's long enough.
 //
 // course, onSave(change) → true if it saved
 // onSaveTitle(title) → true if it saved (CoursePage.jsx: renames its contract too)
 // onDirtyChange(dirty): the description has (or no longer has) unsaved changes
+//   (only while it's too long to save, or before they've clicked away)
 // ------------------------------------------------------------
 
 const NEAR_LIMIT = 20;
+const DESCRIPTION_NEAR = 100; // the description's count shows from here
 
 const LISTS = {
   outcomes: {
@@ -102,7 +117,6 @@ const LISTS = {
 };
 
 const EXTRAS = [
-  { id: 'description', add: 'Add a description', has: (c) => Boolean(c.description) },
   { id: 'requirements', add: 'Add requirements', has: (c) => listOf(c, 'requirements').length > 0 },
   { id: 'audience', add: 'Add who it’s for', has: (c) => listOf(c, 'audience').length > 0 },
   { id: 'testimonials', add: 'Add testimonials', has: (c) => testimonialsOf(c).length > 0 },
@@ -119,27 +133,23 @@ const Left = ({ text, max }) =>
 export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChange }) {
   // The optional parts open: those with something in them, and any clicked open
   const [opened, setOpened] = useState(() => new Set(EXTRAS.filter((x) => x.has(course)).map((x) => x.id)));
-  const [freshDescription, setFreshDescription] = useState(false); // opened from its link: straight into the editor
   const closed = EXTRAS.filter((x) => !opened.has(x.id));
 
   const open = (id) => {
     setOpened((prev) => new Set([...prev, id]));
-    if (id === 'description') setFreshDescription(true);
-    else requestAnimationFrame(() => document.querySelector(`.lrn--${id} .lrn__input, .lrn--${id} textarea`)?.focus());
+    requestAnimationFrame(() => document.querySelector(`.lrn--${id} .lrn__input, .lrn--${id} textarea`)?.focus());
   };
 
   return (
     <div className="lnd">
       <Title course={course} onSave={onSaveTitle ?? ((title) => onSave({ title }))} />
       <Subtitle course={course} onSave={onSave} />
+      <Description course={course} onSave={onSave} onDirtyChange={onDirtyChange} />
       <ListField id="outcomes" course={course} onSave={onSave} />
       <div className="cst lnd__cover" data-guide="cover">
         <CourseCover course={course} onSave={onSave} />
       </div>
 
-      {opened.has('description') && (
-        <Description course={course} onSave={onSave} onDirtyChange={onDirtyChange} startEditing={freshDescription} />
-      )}
       {opened.has('requirements') && <ListField id="requirements" course={course} onSave={onSave} />}
       {opened.has('audience') && <ListField id="audience" course={course} onSave={onSave} />}
       {opened.has('testimonials') && <TestimonialsField course={course} onSave={onSave} />}
@@ -451,93 +461,51 @@ function TestimonialsField({ course, onSave }) {
   );
 }
 
-function Description({ course, onSave, onDirtyChange, startEditing }) {
-  const html = course.description ?? '';
-  const [editing, setEditing] = useState(startEditing && !html);
-  const [removing, setRemoving] = useState(false);
-  const [discard, setDiscard] = useState(null);
-
-  // Leaving the step: nothing here is unsaved any more
-  useEffect(() => () => onDirtyChange(false), []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const save = (next) => {
-    const ok = onSave({ description: next });
-    if (ok) {
-      setEditing(false);
-      onDirtyChange(false);
-    }
-    return ok;
-  };
+function Description({ course, onSave, onDirtyChange }) {
+  const saved = course.description ?? '';
+  const [count, setCount] = useState(() => descriptionText(saved).length);
+  const left = DESCRIPTION_MAX - count;
+  const over = left < 0;
+  const short = count > 0 && count < DESCRIPTION_MIN;
+  const enough = count >= DESCRIPTION_MIN && !over;
 
   return (
-    <section className="lnd__part" aria-labelledby="lnd-description" data-guide="description">
-      <h3 className="lrn__title" id="lnd-description">
-        Description
-      </h3>
-
-      {editing ? (
-        <div className="lnd__editor">
-          <TextEditor
-            initialHtml={html}
-            onSave={save}
-            onCancel={() => {
-              setEditing(false);
-              onDirtyChange(false);
-            }}
-            onDirtyChange={onDirtyChange}
-            onAskDiscard={(then) => setDiscard(() => then)}
-          />
-        </div>
-      ) : html ? (
-        <>
-          <div className="lp__text lnd__text">
-            <TextView html={html} />
-          </div>
-          <div className="lp__actions">
-            <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setEditing(true)}>
-              <Pencil size={15} aria-hidden="true" /> Edit
-            </button>
-            <button type="button" className="crs-btn crs-btn--quiet crs-btn--small lp__remove" onClick={() => setRemoving(true)}>
-              <Trash2 size={15} aria-hidden="true" /> Remove
-            </button>
-          </div>
-        </>
-      ) : (
-        <button type="button" className="lnd__extra" onClick={() => setEditing(true)}>
-          <Plus size={16} aria-hidden="true" /> Write the description
-        </button>
-      )}
-
-      {removing && (
-        <ConfirmDialog
-          title="Remove the description?"
-          confirmLabel="Remove"
-          danger
-          onCancel={() => setRemoving(false)}
-          onConfirm={() => {
-            setRemoving(false);
-            save('');
-          }}
-        >
-          <p>The course’s description will be deleted. This can’t be undone.</p>
-        </ConfirmDialog>
-      )}
-
-      {discard && (
-        <ConfirmDialog
-          title="Discard your changes?"
-          confirmLabel="Discard changes"
-          cancelLabel="Keep editing"
-          danger
-          onCancel={() => setDiscard(null)}
-          onConfirm={() => {
-            const then = discard;
-            setDiscard(null);
-            then();
-          }}
-        >
-          <p>What you’ve changed here won’t be saved.</p>
-        </ConfirmDialog>
+    <section className={`lnd__part lnd__desc ${over ? 'lnd__desc--over' : ''}`} aria-labelledby="lnd-description" data-guide="description">
+      <div className="lrn__head">
+        <h3 className="lrn__title" id="lnd-description">
+          Description
+        </h3>
+        {enough && (
+          <span className="lrn__tally lrn__tally--ok">
+            <Check size={14} strokeWidth={3} aria-hidden="true" />
+            <span className="sr-only">Long enough to publish</span>
+          </span>
+        )}
+      </div>
+      <p className="lrn__help">
+        What the course covers, how it works, and what changes for students by the end. It also appears on the
+        course’s checkout page.
+      </p>
+      <div className="lnd__editor">
+        <TextEditor
+          initialHtml={saved}
+          autosave
+          label="Course description"
+          placeholder="e.g. Over four weeks, you’ll plan, shop for and cook a week of dinners in one afternoon. Each lesson is a short video with a recipe card to print…"
+          onSave={(html) => onSave({ description: html })}
+          onChange={(html) => setCount(descriptionText(html).length)}
+          canSave={(html) => descriptionText(html).length <= DESCRIPTION_MAX}
+          onDirtyChange={onDirtyChange}
+        />
+      </div>
+      {(over || short || left <= DESCRIPTION_NEAR) && (
+        <p className={`lnd__desc-note ${over ? 'lnd__desc-note--error' : ''}`} aria-live="polite">
+          {over
+            ? `${(-left).toLocaleString('en-IN')} characters over the ${DESCRIPTION_MAX.toLocaleString('en-IN')} limit. Shorten it to save.`
+            : short
+              ? `${DESCRIPTION_MIN - count} more character${DESCRIPTION_MIN - count === 1 ? '' : 's'} needed to publish`
+              : `${left} character${left === 1 ? '' : 's'} left`}
+        </p>
       )}
     </section>
   );

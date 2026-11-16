@@ -16,6 +16,10 @@ import { contractSignupsOf } from './contractSignupsStore';
 // picked one of the linked contracts for the Buy button instead (its
 // price is changed wherever that contract is managed). The Buy button's
 // contract is always one of contractIds.
+// The course's own contract is named after the course and carries its
+// description, as plain text (descriptionText): both stay in step as
+// they change (syncContractTitle, syncContractDescription in
+// CoursePricing.jsx). A picked contract is never changed.
 //
 // Who can open a course (with publishing, later): anyone whose email has
 // a sign-up on a linked contract that wasn't refunded.
@@ -52,7 +56,10 @@ import { contractSignupsOf } from './contractSignupsStore';
 //            their Cloud Storage, shown on the course's card in the academy
 //            (set on the course's Landing page),
 //     subtitle: one line under the title on the landing page ('' for none),
-//     description: html, written in the text editor ('' for none),
+//     description: html, written in the text editor ('' for none). Up to
+//            2,000 characters of text (DESCRIPTION_MAX, the same as a
+//            contract's description), and at least 50 to publish
+//            (DESCRIPTION_MIN), counted as descriptionText counts them,
 //     outcomes: ['…']      What students will learn (Intended learners)
 //     requirements: ['…']  Requirements or prerequisites
 //     audience: ['…']      Who this course is for
@@ -75,9 +82,12 @@ import { contractSignupsOf } from './contractSignupsStore';
 // status: 'draft' (only the coach sees it, and Preview as student) or
 // 'published' (in the academy; publishedAt is when). Publishing needs
 // (publishCheck): at least one lesson with something in it, a price (or
-// Free), a subtitle, and at least 3 things students will learn. Once
-// published, changes go live as they're made: there's no separate draft
-// to publish again.
+// Free), a subtitle, a description of at least 50 characters, and at
+// least 3 things students will learn. Once published, changes go live as
+// they're made: there's no separate draft to publish again. A published
+// course that's missing one of these (one published before the
+// description was needed, say) stays published; it can't be published
+// again until it's there.
 //
 // Kept in this browser for the mock; the real product keeps them on the
 // server, which must clean a lesson's html before showing it to anyone.
@@ -95,8 +105,8 @@ import { contractSignupsOf } from './contractSignupsStore';
 // isPublished(course)
 // publishCheck(course) → what publishing would do, and what stops it:
 //   { lessons, hidden (empty lessons left out), contracts, cover, priced,
-//     subtitle, outcomes (how many),
-//     problems: ['lessons' | 'price' | 'subtitle' | 'outcomes', …] }
+//     subtitle, description (its length in characters), outcomes (how many),
+//     problems: ['lessons' | 'price' | 'subtitle' | 'description' | 'outcomes', …] }
 // publishCourse(id) → the published course, or null (checks not met)
 // unpublishCourse(id) → the course, back to a draft, or null
 // studentSections(course) → the course as students see it: only lessons
@@ -107,13 +117,18 @@ import { contractSignupsOf } from './contractSignupsStore';
 // createCourse({ title, contractIds }) → the new course, or null if it couldn't save
 // updateCourse(id, { title?, contractIds?, cover?, subtitle?, description?,
 //   outcomes?, requirements?, audience?, buyContractId?, buyContractMade? })
-//   → the changed course, or null
+//   → the changed course, or null (a description over 2,000 characters
+//   doesn't save)
 // deleteCourse(id) → true if it's gone
 // linkedContracts(course) → its contracts that still exist, in the order linked
 // buyContractOf(course) → the contract its Buy button sells, or null (none
 //   set yet, or it was deleted)
 // listOf(course, 'outcomes' | 'requirements' | 'audience') → that list
 // testimonialsOf(course) → its testimonials, whole ones only
+// descriptionText(html) → the description as plain text, for its contract
+//   and for counting: paragraphs and headings apart by a blank line, each
+//   list item on its own line ("• " or "1. " before it), the formatting
+//   and links' addresses left out
 // instructorStats() → { students, courses }: the coach's published
 //   courses, and the people (one each, by email) signed up on any of
 //   their contracts. Ratings come once reviews are collected.
@@ -156,7 +171,9 @@ export const LINK_MAX = 2000;
 
 // The landing page and Intended learners, as Udemy's
 export const SUBTITLE_MAX = 120;
-export const DESCRIPTION_HTML_MAX = 50000;
+export const DESCRIPTION_HTML_MAX = 50000; // the markup around DESCRIPTION_MAX characters
+export const DESCRIPTION_MAX = 2000; // characters of text, as a contract's description (ContractEditor.jsx)
+export const DESCRIPTION_MIN = 50; // needed to publish
 export const LIST_ITEM_MAX = 160; // one thing students will learn, one requirement…
 export const LIST_MAX = 10; // how many of each
 export const OUTCOMES_MIN = 3; // needed to publish
@@ -244,6 +261,55 @@ const cleanTestimonials = (list) =>
     .filter((t) => t.text)
     .slice(0, TESTIMONIALS_MAX);
 
+// ---------- The description as plain text ----------
+
+const isList = (el) => el?.nodeType === 1 && (el.tagName === 'UL' || el.tagName === 'OL');
+
+// One block's words: line breaks kept, spaces tidied, lists inside it left
+// to the list
+function blockText(el) {
+  let out = '';
+  el.childNodes.forEach((n) => {
+    if (n.nodeType === 3) out += n.textContent;
+    else if (n.nodeType === 1 && n.tagName === 'BR') out += '\n';
+    else if (n.nodeType === 1 && !isList(n)) out += blockText(n);
+  });
+  return out
+    .replace(/[ \t ]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .trim();
+}
+
+// A list's items, a line each; a list inside an item indented under it
+function listLines(el, depth = 0) {
+  const lines = [];
+  [...el.children]
+    .filter((li) => li.tagName === 'LI')
+    .forEach((li, i) => {
+      const text = blockText(li).replace(/\n+/g, ' ');
+      if (text) lines.push(`${'  '.repeat(depth)}${el.tagName === 'OL' ? `${i + 1}.` : '•'} ${text}`);
+      [...li.children].filter(isList).forEach((sub) => lines.push(...listLines(sub, depth + 1)));
+    });
+  return lines;
+}
+
+export function descriptionText(html) {
+  const raw = String(html ?? '');
+  if (!raw.trim() || typeof DOMParser === 'undefined') return '';
+  const { body } = new DOMParser().parseFromString(raw, 'text/html');
+  const blocks = [];
+  body.childNodes.forEach((n) => {
+    if (n.nodeType === 3) {
+      const text = n.textContent.trim();
+      if (text) blocks.push(text);
+    } else if (n.nodeType === 1) {
+      const text = isList(n) ? listLines(n).join('\n') : blockText(n);
+      if (text) blocks.push(text);
+    }
+  });
+  return blocks.join('\n\n');
+}
+
 export const loadCourses = () => read().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 
 export const getCourse = (id) => (id ? read().find((c) => c.id === id) ?? null : null);
@@ -295,8 +361,9 @@ export function updateCourse(id, edits) {
     if ('subtitle' in edits) next.subtitle = clean(edits.subtitle, SUBTITLE_MAX);
     if ('description' in edits) {
       const html = String(edits.description ?? '');
-      if (html.length > DESCRIPTION_HTML_MAX) return null;
-      next.description = html === '<p></p>' ? '' : html;
+      const text = descriptionText(html);
+      if (html.length > DESCRIPTION_HTML_MAX || text.length > DESCRIPTION_MAX) return null;
+      next.description = text ? html : '';
     }
     LISTS.forEach((key) => {
       if (key in edits) next[key] = cleanList(edits[key]);
@@ -729,11 +796,13 @@ export function publishCheck(course) {
   const contracts = linkedContracts(course).length;
   const priced = Boolean(buyContractOf(course));
   const subtitle = clean(course?.subtitle, SUBTITLE_MAX);
+  const description = descriptionText(course?.description).length;
   const outcomes = listOf(course, 'outcomes').length;
   const problems = [];
   if (lessons === 0) problems.push('lessons');
   if (!priced) problems.push('price');
   if (!subtitle) problems.push('subtitle');
+  if (description < DESCRIPTION_MIN) problems.push('description');
   if (outcomes < OUTCOMES_MIN) problems.push('outcomes');
   return {
     lessons,
@@ -742,6 +811,7 @@ export function publishCheck(course) {
     cover: Boolean(course?.cover),
     priced,
     subtitle: Boolean(subtitle),
+    description,
     outcomes,
     problems,
   };

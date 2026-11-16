@@ -24,7 +24,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import ProfileExample from '../components/ProfileExample';
 import CourseContent from './CourseContent';
 import CourseLanding from './CourseLanding';
-import CoursePricing, { syncContractTitle } from './CoursePricing';
+import CoursePricing, { syncContractDescription, syncContractTitle } from './CoursePricing';
 import './CoursesPage.css';
 import './CoursePage.css';
 
@@ -49,7 +49,8 @@ import './CoursePage.css';
 //   Curriculum     See it as a student ↗ (once a lesson has something in
 //                  it), Continue to Landing page →
 //   Landing page   ← Back, Preview landing page ↗, Continue to Pricing →,
-//                  once it has a subtitle and 3 things students will learn
+//                  once it has a subtitle, a description (50 characters
+//                  or more) and 3 things students will learn
 //   Pricing        ← Back, Preview landing page ↗, Publish course, once it
 //                  has a price (or Free): the only Publish while setting
 //                  up. It asks once.
@@ -79,15 +80,15 @@ import './CoursePage.css';
 //                  guide. Smaller screens: the page scrolls as the other
 //                  steps do. While editing, "See it as a student ↗" sits
 //                  in the steps row: the lessons in the player
-//   Landing page   the title, subtitle, what students will learn, cover,
-//                  and, behind "+ Add", description, requirements, who
-//                  it's for (CourseLanding.jsx)
+//   Landing page   the title, subtitle, description, what students will
+//                  learn, cover, and, behind "+ Add", requirements, who
+//                  it's for, testimonials (CourseLanding.jsx)
 //   Pricing        the price, and other contracts that give access
 //                  (CoursePricing.jsx)
 // A done step has a green tick in place of its number. Opens on the first
 // step that isn't done, or Curriculum once they all are. Moving between
 // steps, or leaving, asks first if something isn't saved ("Leave without
-// saving?": an open lesson, the description).
+// saving?": an open lesson, a description too long to save).
 //
 // The actions, while editing:
 //   Copy link            once published: the landing page link to share
@@ -112,7 +113,14 @@ import './CoursePage.css';
 // up); narrower, the fields have the width to themselves.
 //
 // The title is the Landing page's first field, and renames the course's
-// own contract too (syncContractTitle).
+// own contract too (syncContractTitle). The description is the contract's
+// description too, as plain text (syncContractDescription): it's what the
+// checkout page says. A contract picked for the Buy button is never
+// changed.
+//
+// A published course that's missing something publishing needs (one
+// published before the description was needed, say) stays published: the
+// step loses its tick, and a line at the top of the step says what to add.
 //
 // The Buy button's contract (Pricing) stays linked: Link contracts and
 // Remove only change the other ones. On a published course, removing one
@@ -125,10 +133,13 @@ import './CoursePage.css';
 // ------------------------------------------------------------
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+// "a, b and c": what's missing, as one sentence
+const inWords = (parts) => (parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`);
 
 // Where the cursor goes for each missing field
 const FIELD_TARGET = {
   subtitle: '#lnd-subtitle-input',
+  description: '.lnd__desc .tte__content',
   outcomes: '.lrn--outcomes .lrn__input',
   price: '#prc-amount',
 };
@@ -272,7 +283,11 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
     setSaveFailed(!ok);
     return ok;
   };
-  const save = (change) => showSaved(Boolean(updateCourse(course.id, change)));
+  const save = (change) => {
+    const ok = showSaved(Boolean(updateCourse(course.id, change)));
+    if (ok && 'description' in change) syncContractDescription(course, change.description);
+    return ok;
+  };
   const saveTitle = (next) => {
     const ok = save({ title: next });
     if (ok) syncContractTitle(course, next);
@@ -469,7 +484,15 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         {needs && !live && missingHere.length > 0 && (
           <p className="ced__needs" role="status">
             <AlertTriangle size={16} aria-hidden="true" />
-            <span>Before you publish: {missingHere.map((m) => m.text).join(', and ')}.</span>
+            <span>Before you publish: {inWords(missingHere.map((m) => m.text))}.</span>
+          </p>
+        )}
+        {live && missingHere.length > 0 && (
+          <p className="ced__needs" role="status">
+            <AlertTriangle size={16} aria-hidden="true" />
+            <span>
+              Your course stays live, but this step isn’t finished: {inWords(missingHere.map((m) => m.text))}.
+            </span>
           </p>
         )}
 
@@ -634,7 +657,7 @@ function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onNex
     index === 0
       ? hasLesson && { href: coursePlayerUrl(courseId, null, true), label: 'See it as a student' }
       : { href: courseLandingUrl(courseId, true), label: 'Preview landing page' };
-  const hint = done ? null : `To ${last ? 'publish' : 'continue'}, ${missing.map((m) => m.text).join(' and ')}.`;
+  const hint = done ? null : `To ${last ? 'publish' : 'continue'}, ${inWords(missing.map((m) => m.text))}.`;
 
   return (
     <>

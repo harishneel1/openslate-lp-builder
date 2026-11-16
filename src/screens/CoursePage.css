@@ -544,6 +544,30 @@
   margin-top: 8px;
 }
 
+/* The description: always open, a little shorter than a lesson's text */
+.lnd__desc .tte__content {
+  min-height: 168px;
+}
+
+.lnd__desc--over .tte__box,
+.lnd__desc--over .tte__box:focus-within {
+  border-color: #d92d20;
+  box-shadow: 0 0 0 3px #fdecec;
+}
+
+.lnd__desc-note {
+  max-width: 820px;
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--crs-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.lnd__desc-note--error {
+  font-weight: 500;
+  color: #b42318;
+}
+
 /* The cover's own part (CourseSettings.jsx), lined up with the others */
 .lnd__cover .cst__part {
   margin: 0;

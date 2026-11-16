@@ -29,13 +29,21 @@ import './TextEditor.css';
 // asks first if there are changes. The page hears about unsaved changes
 // (onDirtyChange), so leaving the lesson can ask too.
 //
+// autosave: no Save or Cancel. It saves when they click away from it
+// (and when it closes), like the fields around it: a course's
+// description (CourseLanding.jsx). Emptying it saves too. The page shows
+// its own count and messages under it (onChange).
+//
 // initialHtml: the text as saved ('' for none)
 // onSave(html) → true if it saved; onCancel()
 // onDirtyChange(dirty)
+// placeholder, label (what screen readers call the box)
+// autosave; onChange(html): as they type; canSave(html) → false keeps it
+//   from saving (too long, say), still unsaved
 // ------------------------------------------------------------
 
 // The same set of things the editor and the read-only view understand
-export function textExtensions({ forView = false } = {}) {
+export function textExtensions({ forView = false, placeholder = 'Write this lesson here…' } = {}) {
   return [
     StarterKit.configure({
       heading: { levels: [2, 3] },
@@ -52,26 +60,59 @@ export function textExtensions({ forView = false } = {}) {
         HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' },
       },
     }),
-    ...(forView ? [] : [Placeholder.configure({ placeholder: 'Write this lesson here…' })]),
+    ...(forView ? [] : [Placeholder.configure({ placeholder })]),
   ];
 }
 
-export default function TextEditor({ initialHtml = '', onSave, onCancel, onDirtyChange, onAskDiscard }) {
+export default function TextEditor({
+  initialHtml = '',
+  onSave,
+  onCancel,
+  onDirtyChange,
+  onAskDiscard,
+  placeholder,
+  label = 'Lesson text',
+  autosave = false,
+  onChange,
+  canSave,
+}) {
   const baseline = useRef(null); // the html as it started, as the editor writes it
   const [dirty, setDirty] = useState(false);
   const [linking, setLinking] = useState(false);
+  // The latest callbacks, for the editor's own events
+  const latest = useRef({});
+  latest.current = { onSave, onChange, canSave, autosave };
+
+  // Autosave: what's changed, saved (unless canSave says no)
+  const commit = (e) => {
+    if (!e || e.isDestroyed || baseline.current === null) return;
+    const html = e.getHTML();
+    if (html === baseline.current) return;
+    const { onSave: save, canSave: can } = latest.current;
+    if (can && !can(html)) return;
+    if (save(e.isEmpty ? '' : html)) {
+      baseline.current = html;
+      setDirty(false);
+    }
+  };
 
   const editor = useEditor({
-    extensions: textExtensions(),
+    extensions: textExtensions({ placeholder }),
     content: initialHtml,
-    autofocus: initialHtml ? false : 'end',
+    autofocus: initialHtml || autosave ? false : 'end',
     editorProps: {
-      attributes: { class: 'tte__content', 'aria-label': 'Lesson text', 'aria-multiline': 'true' },
+      attributes: { class: 'tte__content', 'aria-label': label, 'aria-multiline': 'true' },
     },
     onCreate: ({ editor: e }) => {
       baseline.current = e.getHTML();
     },
-    onUpdate: ({ editor: e }) => setDirty(e.getHTML() !== baseline.current),
+    onUpdate: ({ editor: e }) => {
+      setDirty(e.getHTML() !== baseline.current);
+      latest.current.onChange?.(e.getHTML());
+    },
+    onBlur: ({ editor: e }) => {
+      if (latest.current.autosave) commit(e);
+    },
   });
 
   const state = useEditorState({
@@ -94,6 +135,16 @@ export default function TextEditor({ initialHtml = '', onSave, onCancel, onDirty
   useEffect(() => onDirtyChange?.(dirty), [dirty]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onDirtyChange?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Autosave: closing it (another step, say) saves what's there
+  const editorRef = useRef(null);
+  editorRef.current = editor;
+  useEffect(
+    () => () => {
+      if (latest.current.autosave) commit(editorRef.current);
+    },
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   if (!editor || !state) return null;
 
   const run = (fn) => fn(editor.chain().focus()).run();
@@ -112,7 +163,7 @@ export default function TextEditor({ initialHtml = '', onSave, onCancel, onDirty
   const cancel = () => (dirty ? onAskDiscard(onCancel) : onCancel());
 
   return (
-    <div className="tte">
+    <div className={`tte ${autosave ? 'tte--autosave' : ''}`}>
       <div className="tte__bar" role="toolbar" aria-label="Text formatting">
         <label className="tte__sr" htmlFor="tte-style">
           Text style
@@ -157,17 +208,19 @@ export default function TextEditor({ initialHtml = '', onSave, onCancel, onDirty
 
       <EditorContent editor={editor} className="tte__box" />
 
-      <div className="tte__foot">
-        <p className="tte__status" aria-live="polite">
-          {dirty ? (state.empty ? 'Write something to save' : 'Unsaved changes') : ''}
-        </p>
-        <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={cancel}>
-          Cancel
-        </button>
-        <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={save} disabled={!dirty || state.empty}>
-          Save text
-        </button>
-      </div>
+      {!autosave && (
+        <div className="tte__foot">
+          <p className="tte__status" aria-live="polite">
+            {dirty ? (state.empty ? 'Write something to save' : 'Unsaved changes') : ''}
+          </p>
+          <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={cancel}>
+            Cancel
+          </button>
+          <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={save} disabled={!dirty || state.empty}>
+            Save text
+          </button>
+        </div>
+      )}
     </div>
   );
 }
