@@ -28,7 +28,7 @@ import CourseCover from './CourseSettings';
 //   What students will learn                                   2/3
 //   [e.g. Cook a week of dinners in under an hour                ]
 //   [e.g. Plan meals around what's in your kitchen               ]
-//   [                                                            ]
+//   [e.g. Batch-cook lunches that keep for the whole week        ]
 //   + Add another
 //
 //   Cover image (optional)                       (CourseSettings.jsx)
@@ -50,10 +50,11 @@ import CourseCover from './CourseSettings';
 // own contract). Up to 100 characters; it can't be empty: clearing it
 // puts the saved one back.
 // Subtitle: needed to publish, up to 120 characters.
-// What students will learn: 3 lines to start, at least 3 needed to
-// publish (the count by its heading, grey, a green tick once there are
-// enough). + Add another adds a line, up to 10; ✕ takes one away once
-// there are more than 3.
+// What students will learn: 3 lines to start, each with an example in
+// it (one story: a cooking course), at least 3 needed to publish (the
+// count by its heading, grey, a green tick once there are enough).
+// + Add another adds a line, up to 10; ✕ takes one away once there are
+// more than 3.
 // Requirements, Who it's for: one line to start, the same way.
 // Each line, and the subtitle, saves when they leave it or press Enter
 // ("Saved" in the page's bar), so moving to another step never loses
@@ -80,7 +81,11 @@ const LISTS = {
     title: 'What students will learn',
     help: 'Things they’ll be able to do once they’ve finished.',
     rows: OUTCOMES_MIN,
-    examples: ['e.g. Cook a week of dinners in under an hour', 'e.g. Plan meals around what’s in your kitchen', ''],
+    examples: [
+      'e.g. Cook a week of dinners in under an hour',
+      'e.g. Plan meals around what’s in your kitchen',
+      'e.g. Batch-cook lunches that keep for the whole week',
+    ],
   },
   requirements: {
     title: 'Requirements',

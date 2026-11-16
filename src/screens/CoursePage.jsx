@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Link2, Rocket, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Eye, Link2, Rocket, Trash2, X } from 'lucide-react';
 import {
   buyContractOf,
   courseLandingUrl,
@@ -45,7 +45,7 @@ import './CoursePage.css';
 // (SetupActions), pinned at the top as the page scrolls, with Delete course
 // (red) set apart before it. It works once that step's minimum is done:
 //   ① Curriculum ✓  ② Landing page  ③ Pricing
-//             [🗑 Delete course] │ [← Back]  Preview landing page ↗  [Continue to Pricing →]
+//             [🗑 Delete course] │ [👁 Preview landing page ↗]  [← Back]  [Continue to Pricing →]
 //   Curriculum     See it as a student ↗ (once a lesson has something in
 //                  it), Continue to Landing page →
 //   Landing page   ← Back, Preview landing page ↗, Continue to Pricing →,
@@ -423,7 +423,8 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
           )}
 
           {!setup && step === 'curriculum' && (
-            <a className="ced__bar-link" href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
+            <a className="crs-btn crs-btn--small ced__preview" href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
+              <Eye size={16} aria-hidden="true" />
               See it as a student
               <ExternalLink size={14} aria-hidden="true" />
               <span className="sr-only"> (opens in a new tab)</span>
@@ -611,15 +612,18 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
 
 // While setting up, the step's way forward, at the right of the steps row
 // (beside the steps it moves through, and pinned with them as the page
-// scrolls): ← Back (after the first step), a preview where there's
-// something to see, and the one main button: Continue to the next step,
-// or Publish course on the last. It works once this step's minimum is
+// scrolls): a preview where there's something to see (a soft orange
+// button with an eye: "look at it"), then ← Back right beside the one
+// main button, so the two that move between steps sit together:
+// Continue to the next step, or Publish course on the last. Left to
+// right, each look means one thing: red (Delete course, careful), soft
+// orange (look), white (go back), solid orange (go forward). It works once this step's minimum is
 // done; until then it says what's left as a hint on hover or focus (and
 // to screen readers).
-//   Curriculum     See it as a student ↗ (once a lesson has something in it)
-//                  · Continue to Landing page →
-//   Landing page   ← Back · Preview landing page ↗ · Continue to Pricing →
-//   Pricing        ← Back · Preview landing page ↗ · Publish course
+//   Curriculum     👁 See it as a student ↗ (once a lesson has something
+//                  in it) · Continue to Landing page →
+//   Landing page   👁 Preview landing page ↗ · ← Back · Continue to Pricing →
+//   Pricing        👁 Preview landing page ↗ · ← Back · Publish course
 // The main button is always solid orange: the way forward stays obvious,
 // even while a lesson's own Add next lesson is on screen (far apart, each
 // for its own area).
@@ -634,18 +638,19 @@ function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onNex
 
   return (
     <>
+      {preview && (
+        <a className="crs-btn crs-btn--small ced__preview" href={preview.href} target="_blank" rel="noopener">
+          <Eye size={16} aria-hidden="true" />
+          {preview.label}
+          <ExternalLink size={14} aria-hidden="true" />
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      )}
       {index > 0 && (
         <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={onBack}>
           <ArrowLeft size={16} aria-hidden="true" />
           Back
         </button>
-      )}
-      {preview && (
-        <a className="ced__bar-link" href={preview.href} target="_blank" rel="noopener">
-          {preview.label}
-          <ExternalLink size={14} aria-hidden="true" />
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
       )}
       <span className="ced__next-wrap" data-tip={hint ?? undefined} data-tip-align="end">
         <button

@@ -114,34 +114,29 @@
   outline-color: #c62828;
 }
 
-/* Curriculum, while editing: "See it as a student ↗", a quiet link at the
-   start of the actions. The content's own intro line and top Add section
-   aren't shown here: Add section is at the foot, where the next section
-   goes (CourseContent.jsx). */
-.ced__bar-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--crs-ink-2);
-  text-decoration: none;
-  white-space: nowrap;
+/* Preview landing page ↗ / See it as a student ↗: a soft orange button
+   with an eye. A button (not a link), and in the orange family without
+   being the main action: different from Back (white) and Continue (solid
+   orange) at a glance. */
+.ced__preview {
+  color: #9a4a0f;
+  background: var(--color-primary-tint);
+  border-color: #f6d3b5;
 }
 
-.ced__bar-link:hover {
-  color: var(--crs-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.ced__preview:hover {
+  color: #82400d;
+  background: #fbe4cf;
+  border-color: #efb98d;
 }
 
-.ced__bar-link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
+.ced__preview svg:last-of-type {
+  opacity: 0.75;
 }
 
+/* Curriculum: the content's own intro line and top Add section aren't
+   shown here: Add section is at the foot, where the next section goes
+   (CourseContent.jsx). */
 .ced .cct__outline > .cpg__bar {
   display: none;
 }
