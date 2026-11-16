@@ -15,7 +15,6 @@ import {
   Users,
 } from 'lucide-react';
 import {
-  academyHome,
   buyContractOf,
   getCourse,
   instructorStats,
@@ -35,7 +34,6 @@ import { EXAMPLE_COURSE, EXAMPLE_INSTRUCTOR, EXAMPLE_OFFER, EXAMPLE_RATING, EXAM
 import { initials } from '../utils/initials';
 import { TextView } from '../components/TextEditor';
 import CoverArt from '../components/CoverArt';
-import AcademyTop from '../components/AcademyTop';
 import { KIND } from './lessonKinds';
 import '../styles/storeTheme.css';
 import './AcademyCoursesPage.css';
@@ -50,7 +48,6 @@ import './CourseLandingPage.css';
 // the course already has (CoursePage.jsx's steps). Nothing on it is
 // designed by hand.
 //
-//   [HN]                      [📖 Courses]
 //   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 //   ░ Yoga for Everyday Strength…    (warm band,     ┌───────────────────┐
 //   ░ Asana, breathwork and…          dot grid)      │      cover        │
@@ -86,6 +83,11 @@ import './CourseLandingPage.css';
 //                   (reviewers), as checkout and the academy show people
 // Every colour comes from the store theme's --pf-* names, so a change to
 // the brand's colours carries through.
+//
+// No academy bar on top (logo, Courses): this is a page shared to sell,
+// read by people who aren't students yet, so the band starts at the very
+// top and nothing leads away from the course. (The coach's Preview and the
+// Example still get their strip above it.)
 //
 // Scrolled past the band, a slim white bar sticks to the top: the title
 // (and rating), the price and Buy now, so buying is always one tap away.
@@ -226,7 +228,6 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
   const found = useCourse(example ? null : courseId);
   const course = example ? EXAMPLE_COURSE : found && (preview || isPublished(found)) ? found : null;
   const sections = useMemo(() => (course ? studentSections(course) : []), [course]);
-  const home = academyHome(preview);
   const hero = useRef(null);
   const [pastHero, setPastHero] = useState(false); // the slim bar shows
 
@@ -246,7 +247,6 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
   if (!course) {
     return (
       <div className="acd store-theme">
-        <AcademyTop home={home} onCourses={false} />
         <main className="acd__main">
           <section className="acd__empty">
             <h1 className="acd__empty-title">This page isn’t available</h1>
@@ -290,7 +290,6 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
 
   return (
     <div className={`acd cld store-theme ${offer.state === 'buy' && !embed ? 'cld--with-bar' : ''}`}>
-      <AcademyTop home={home} onCourses={false} />
       {example && !embed && (
         <p className="cpl__preview" role="status">
           <Eye size={17} aria-hidden="true" />

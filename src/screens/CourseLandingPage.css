@@ -1,8 +1,9 @@
 /* A course's landing page (CourseLandingPage.jsx): laid out as Udemy's
    (a band with the title, the page under it, and the Buy box on the right
    over the band), in our own warm, light look: the storefront's and
-   checkout's (styles/storeTheme.css, the --pf-* colours). The top bar and
-   preview strip come from AcademyCoursesPage.css (.acd__top, .cpl__preview).
+   checkout's (styles/storeTheme.css, the --pf-* colours). No academy top
+   bar: the band starts at the very top. The preview strip comes from
+   CoursePlayerPage.css (.cpl__preview).
    The guide beside the course editor finds parts of this page by class
    name (courseAnnotations.js): keep .cld__title, .cld__subtitle, .cld__box,
    .cld__card, .cld__card-body. */
