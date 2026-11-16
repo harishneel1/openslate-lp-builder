@@ -153,12 +153,6 @@ function CourseList({ student, preview }) {
   return (
     <div className="acd">
       <AcademyTop student={student} home={academyHome(preview)} />
-      {preview && (
-        <p className="cpl__preview" role="status">
-          <Eye size={17} aria-hidden="true" />
-          Preview: every published course is here. Each student sees only the ones their contracts give them.
-        </p>
-      )}
 
       <main className="acd__main">
         <h1 className="acd__title">Courses</h1>

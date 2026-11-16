@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Download, ExternalLink, Eye, FileText, Link2, Play, Share2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, Link2, Play } from 'lucide-react';
 import {
   academyHome,
   coursePlayerPath,
-  coursePlayerUrl,
   getCourse,
-  isPublished,
   onCoursesChange,
   readVideoLink,
   studentLessons,
@@ -14,76 +12,81 @@ import {
 import { onProgressChange, progressOf, setDone, setLast } from '../data/courseProgress';
 import { canSee, onStudentChange } from '../data/students';
 import { fileById, formatBytes, onStorageChange } from '../data/cloudStorage';
-import { copyText } from '../utils/copyText';
 import { TextView } from '../components/TextEditor';
-import { KIND, KindTile, tileKindOf } from './lessonKinds';
-import AcademyTop from '../components/AcademyTop';
+import { KindTile, tileKindOf } from './lessonKinds';
 import './AcademyCoursesPage.css';
 import './CoursePlayerPage.css';
 
 // ------------------------------------------------------------
 // One course, as a student takes it: /web/courses/<course>/learn?lesson=…
-// Laid out as TagMango's player, in our colours. Opened from a course's
-// card on the academy's Courses page, and by "Preview as student" on the
-// coach's course page.
+// Opened from a course's card on the academy's Courses page, and by
+// "See it as a student" on the coach's course page. In focus mode: only
+// the course, nothing else of the academy.
 //
-//   [HN]                    [📖 Courses]
-//   ┌ ← Back ─────────────┐  INTRODUCTION                 1 of 4 complete
-//   │ COURSE CONTENT      │  How servers work
-//   │ 1 / 4 lessons done  │  ┌──────────────────────────────────────────┐
-//   ├─────────────────────┤  │        the lesson: video, PDF or text    │
-//   │ Introduction      ⌃ │  └──────────────────────────────────────────┘
-//   │ 1 / 3 lessons       │  [Mark as complete]          ┌ NEXT ───────┐
-//   │ ┌ ✓ 01 What is MCP? │                              │ Setting up… › │
-//   │ │ ▶ 02 How servers… │                              └──────────────┘
-//   │ Building your…    ⌄ │
-//   └─────────────────────┘
+//   ← Back          AI Engineering Accelerator          ▓▓▓▓░░░░ 1 of 4
+//   ─────────────────────────────────────────────────────────────────────
+//   INTRODUCTION                                 │ INTRODUCTION       1/2 ⌃
+//   How servers work                             │ ┌────────────────────────┐
+//   ┌────────────────────────────────────────┐   │ │ ✓  What is MCP?        │
+//   │  the lesson: video, PDF or text        │   │ ├────────────────────────┤
+//   └────────────────────────────────────────┘   │ │ 2  How servers work    │ (lit)
+//   ‹ Previous          [Next: Install the SDK ›] │ └────────────────────────┘
+//                                                │ BUILDING YOUR…     0/3 ⌄
+//   About this lesson  (its description, if any) │
+//   Resources          (its files, if any)       │
 //
-// Students see sections by name only (no "Section 1"), and only lessons
-// with something in them (studentSections).
+// The bar: Back (to the academy's Courses page), the course's name, and
+// how much of it is done: a thin bar and "1 of 4". That's the only count
+// on the page.
 //
-// Sidebar: each section folds open or shut, with how many of its lessons
-// are done; the one you're in opens by itself. Each lesson: a round icon
-// for its kind (a tick once done), its number and name, its kind under
-// it, and Share (copies the lesson's link). The lesson you're on is lit.
+// The contents: down the right, the window's full height, scrolling on
+// its own (the lesson scrolls on its own too). Each section's name is a
+// small heading that folds it open or shut, with how many of its lessons
+// are done ("1/2"). Only the section they're in starts open; moving into
+// another section opens that one too. An open section's lessons sit in
+// one white box, a row each, split by thin lines: a small number (a small
+// green tick once done) and the name. Lessons are numbered through the
+// whole course. The open lesson is lit in orange, and kept in view. Students see sections by name
+// only, and only lessons with something in them (studentSections).
 //
-// Main: the section's name, the lesson's title, how much of the course is
-// done, then the lesson itself:
+// The lesson: its section and title, then the lesson itself:
 //   Embedded video  the YouTube or Vimeo player
 //   Video           a player (in the prototype, a stand-in: no files kept)
 //   PDF             the file, to read and download (a stand-in for now)
 //   Text            the text
-// Mark as complete (and undo) sits by how much is done, top right.
-// Under the lesson, as on TagMango: PREVIOUS and NEXT, side by side, each
-// with its lesson's name. NEXT marks this one done and opens that; on the
-// last lesson, Finish course instead.
-// Then its tabs: Description (when it has one; a Text lesson never does)
-// and Resources (its files to download, or "No additional resources").
-// No Q&A or comments.
+// Under it, one row: ‹ Previous on the left, and the way forward on the
+// right: Next: <lesson> ›, or on the last lesson Finish course ✓, then
+// "You've finished this course" once every lesson is done.
+// Then, only when there's something: About this lesson (its description;
+// a Text lesson never has one) and Resources (its files to download).
+//
+// Done: there's no Mark as complete. A lesson counts as done when they
+// move on from it to a later one (Next, or a later lesson in the list),
+// and the last one with Finish course. Going back changes nothing.
+// Progress is each student's own (courseProgress.js).
 //
 // Where they are: ?lesson= in the address, so a lesson's link opens it,
 // and Back and Forward move between lessons. With none, the course opens
 // where they left off (the last lesson they opened), else at the first
-// lesson not done. Progress is each student's own (courseProgress.js).
+// lesson not done.
 //
-// Phones: one column, the lesson first and the course's contents under it.
+// Phones and narrow windows: one column, the lesson first and the
+// contents under it; the page scrolls as one.
 //
 // Only a course the student can see opens here (students.js): published,
 // and on a contract they've signed up for. Any other link says the page
-// isn't available, without saying what's there. Except with &preview=1: the coach's
-// Preview as student, which opens drafts too, with a strip on top saying
-// it's a preview (and, for a draft, that students can't see it yet). The
-// preview flag stays in the address as they move between lessons; the
-// links Share copies are students' links, without it.
+// isn't available, without saying what's there. Except with &preview=1:
+// the coach's See it as a student, which opens drafts too and looks
+// exactly as students see it (no strip, no labels). Its progress is kept
+// apart from any student's ('preview'). The flag stays in the address as
+// they move between lessons.
 //
 // courseId
 // student: who's signed in (null while previewing)
-// preview: the coach's Preview as student
+// preview: the coach's See it as a student
 // ------------------------------------------------------------
 
 const lessonFromAddress = () => new URLSearchParams(window.location.search).get('lesson');
-const two = (n) => String(n).padStart(2, '0');
-const kindLabel = (lesson) => (lesson.content.kind === 'embed' ? 'Video' : KIND[lesson.content.kind]?.label ?? 'Lesson');
 
 function useLive(read, subscribe) {
   const [value, setValue] = useState(read);
@@ -107,6 +110,7 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
   const progress = useLive(() => progressOf(who, courseId), onProgressChange);
   const sections = useMemo(() => (course ? studentSections(course) : []), [course]);
   const lessons = useMemo(() => (course ? studentLessons(course) : []), [course]);
+  const mainRef = useRef(null);
 
   // The lesson open: the address's, else where they left off, else the first not done
   const [asked, setAsked] = useState(lessonFromAddress);
@@ -129,11 +133,13 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // The address and "where they left off" follow the lesson open
+  // The address and "where they left off" follow the lesson open; a new
+  // lesson starts at its top
   useEffect(() => {
     if (!currentId) return;
     if (lessonFromAddress() !== currentId) window.history.replaceState(null, '', coursePlayerPath(courseId, currentId, preview));
     setLast(who, courseId, currentId);
+    mainRef.current?.scrollTo?.({ top: 0 });
     window.scrollTo?.({ top: 0 });
   }, [courseId, currentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -141,8 +147,11 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
     document.title = current ? `${current.lesson.title} - ${course.title}` : course?.title ?? 'Course';
   }, [current?.lesson.title, course?.title]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Opens another lesson. Moving on to a later one counts this one as done.
   const go = (lessonId) => {
     if (lessonId === currentId) return;
+    const to = lessons.findIndex((x) => x.lesson.id === lessonId);
+    if (current && to > index) setDone(who, courseId, current.lesson.id, true);
     window.history.pushState(null, '', coursePlayerPath(courseId, lessonId, preview));
     setAsked(lessonId);
   };
@@ -151,151 +160,134 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
 
   if (!course || lessons.length === 0) {
     return (
-      <div className="acd">
-        <AcademyTop student={student} home={home} />
-        <main className="acd__main">
-          <a className="cpl__back" href={home}>
-            <ArrowLeft size={16} aria-hidden="true" /> Back to courses
-          </a>
-          <section className="acd__empty">
-            <h1 className="acd__empty-title">{course ? course.title : 'This page isn’t available'}</h1>
-            <p className="acd__empty-text">
-              {course ? 'There are no lessons in this course yet. Check back soon.' : 'Check the link, or go back to your courses.'}
-            </p>
-          </section>
+      <div className="acd cpl">
+        <Bar home={home} title={course?.title ?? ''} />
+        <main className="cpl__empty">
+          <h1 className="acd__empty-title">{course ? course.title : 'This page isn’t available'}</h1>
+          <p className="acd__empty-text">
+            {course ? 'There are no lessons in this course yet. Check back soon.' : 'Check the link, or go back to your courses.'}
+          </p>
         </main>
       </div>
     );
   }
 
-  const isDone = progress.done.has(current.lesson.id);
+  const allDone = doneCount === lessons.length;
+  const link = (lesson) => ({
+    href: coursePlayerPath(courseId, lesson.id, preview),
+    onClick: (e) => {
+      e.preventDefault();
+      go(lesson.id);
+    },
+  });
 
   return (
     <div className="acd cpl">
-      <AcademyTop student={student} home={home} />
-      {preview && (
-        <p className={`cpl__preview ${isPublished(course) ? '' : 'cpl__preview--draft'}`} role="status">
-          <Eye size={17} aria-hidden="true" />
-          {isPublished(course)
-            ? 'Preview: this is what students see. This course is published.'
-            : 'Preview: this course is a draft, so students can’t see it yet.'}
-        </p>
-      )}
+      <Bar home={home} title={course.title} done={doneCount} total={lessons.length} />
 
       <div className="cpl__layout">
-        <main className="cpl__main">
-          <div className="cpl__head">
-            <div className="cpl__head-text">
-              <p className="cpl__eyebrow">{current.section.title}</p>
-              <h1 className="cpl__title">{current.lesson.title}</h1>
-            </div>
-            <div className="cpl__head-side">
-              <p className="cpl__overall">
-                {doneCount} of {lessons.length} complete
-              </p>
-              <button
-                type="button"
-                className={`cpl__mark ${isDone ? 'cpl__mark--done' : ''}`}
-                aria-pressed={isDone}
-                onClick={() => setDone(who, courseId, current.lesson.id, !isDone)}
-              >
-                <Check size={16} strokeWidth={isDone ? 3 : 2} aria-hidden="true" />
-                {isDone ? 'Completed' : 'Mark as complete'}
-              </button>
-            </div>
-          </div>
+        <main className="cpl__main" ref={mainRef}>
+          <div className="cpl__inner">
+            <p className="cpl__eyebrow">{current.section.title}</p>
+            <h1 className="cpl__title">{current.lesson.title}</h1>
 
-          <LessonBody key={current.lesson.id} lesson={current.lesson} />
+            <LessonBody key={current.lesson.id} lesson={current.lesson} />
 
-          {/* PREVIOUS and NEXT, side by side, as on TagMango */}
-          <nav className="cpl__nav" aria-label="Lessons">
-            {prev ? (
-              <a
-                className="cpl__nav-card cpl__nav-card--prev"
-                href={coursePlayerPath(courseId, prev.lesson.id, preview)}
-                onClick={(e) => {
-                  e.preventDefault();
-                  go(prev.lesson.id);
-                }}
-              >
-                <span className="cpl__nav-arrow" aria-hidden="true">
-                  <ChevronLeft size={20} />
-                </span>
-                <span className="cpl__nav-text">
-                  <span className="cpl__nav-label">Previous</span>
-                  <span className="cpl__nav-title">{prev.lesson.title}</span>
-                </span>
-              </a>
-            ) : (
-              <span className="cpl__nav-gap" aria-hidden="true" />
-            )}
-
-            {next ? (
-              <a
-                className="cpl__nav-card cpl__nav-card--next"
-                href={coursePlayerPath(courseId, next.lesson.id, preview)}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setDone(who, courseId, current.lesson.id, true);
-                  go(next.lesson.id);
-                }}
-              >
-                <span className="cpl__nav-text">
-                  <span className="cpl__nav-label">Next</span>
-                  <span className="cpl__nav-title">{next.lesson.title}</span>
-                </span>
-                <span className="cpl__nav-arrow cpl__nav-arrow--on" aria-hidden="true">
-                  <ChevronRight size={20} />
-                </span>
-              </a>
-            ) : doneCount === lessons.length ? (
-              <div className="cpl__finished">
-                <span>You’ve finished this course.</span>
-                <a className="cpl__finished-link" href={home}>
-                  Back to courses
+            {/* One row: back on the left, the way forward on the right */}
+            <nav className="cpl__nav" aria-label="Lessons">
+              {prev ? (
+                <a className="cpl__prev" {...link(prev.lesson)}>
+                  <ChevronLeft size={18} aria-hidden="true" />
+                  Previous
+                  <span className="sr-only">: {prev.lesson.title}</span>
                 </a>
-              </div>
-            ) : (
-              <button type="button" className="cpl__finish" onClick={() => setDone(who, courseId, current.lesson.id, true)}>
-                Finish course <Check size={18} strokeWidth={3} aria-hidden="true" />
-              </button>
-            )}
-          </nav>
+              ) : (
+                <span aria-hidden="true" />
+              )}
 
-          <LessonTabs key={`tabs-${current.lesson.id}`} lesson={current.lesson} />
+              {next ? (
+                <a className="cpl__next" {...link(next.lesson)}>
+                  <span className="cpl__next-text">
+                    Next: <span className="cpl__next-title">{next.lesson.title}</span>
+                  </span>
+                  <ChevronRight size={18} aria-hidden="true" />
+                </a>
+              ) : allDone ? (
+                <p className="cpl__finished" role="status">
+                  <Check size={17} strokeWidth={3} aria-hidden="true" />
+                  You’ve finished this course.
+                  <a className="cpl__finished-link" href={home}>
+                    Back to courses
+                  </a>
+                </p>
+              ) : (
+                <button type="button" className="cpl__next" onClick={() => setDone(who, courseId, current.lesson.id, true)}>
+                  Finish course <Check size={18} strokeWidth={3} aria-hidden="true" />
+                </button>
+              )}
+            </nav>
+
+            <LessonMore key={`more-${current.lesson.id}`} lesson={current.lesson} />
+          </div>
         </main>
 
         <Contents
-          courseId={courseId}
-          preview={preview}
           sections={sections}
-          total={lessons.length}
-          doneCount={doneCount}
           done={progress.done}
           currentId={currentId}
           currentSectionId={current.section.id}
-          onGo={go}
+          link={link}
         />
       </div>
     </div>
   );
 }
 
-// ---------- The sidebar: the course's contents ----------
-function Contents({ courseId, preview, sections, total, doneCount, done, currentId, currentSectionId, onGo }) {
-  const [open, setOpen] = useState(() => new Set([currentSectionId]));
-  const [copied, setCopied] = useState(null); // the lesson whose link was just copied
+// ---------- The bar: Back, the course, how much is done ----------
+function Bar({ home, title, done = 0, total = 0 }) {
+  return (
+    <header className="cpl__bar">
+      <a className="cpl__back" href={home}>
+        <ArrowLeft size={17} aria-hidden="true" /> Back
+      </a>
+      <p className="cpl__bar-title">{title}</p>
+      {total > 0 ? (
+        <div className="cpl__progress">
+          <span
+            className="cpl__progress-track"
+            role="progressbar"
+            aria-label="Course progress"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={done}
+            aria-valuetext={`${done} of ${total} lessons done`}
+          >
+            <span className="cpl__progress-fill" style={{ width: `${(done / total) * 100}%` }} />
+          </span>
+          <span className="cpl__progress-text" aria-hidden="true">
+            {done} of {total}
+          </span>
+        </div>
+      ) : (
+        <span aria-hidden="true" />
+      )}
+    </header>
+  );
+}
 
-  // The section you're in opens by itself
+// ---------- The contents: sections that fold, a row for each lesson ----------
+function Contents({ sections, done, currentId, currentSectionId, link }) {
+  // Only the section they're in starts open; moving into another opens it too
+  const [open, setOpen] = useState(() => new Set([currentSectionId]));
   useEffect(() => {
     setOpen((prev) => (prev.has(currentSectionId) ? prev : new Set([...prev, currentSectionId])));
   }, [currentSectionId]);
 
+  // The open lesson stays in view in a long list
+  const sideRef = useRef(null);
   useEffect(() => {
-    if (!copied) return undefined;
-    const id = setTimeout(() => setCopied(null), 2000);
-    return () => clearTimeout(id);
-  }, [copied]);
+    sideRef.current?.querySelector('.cpl__lesson--on')?.scrollIntoView?.({ block: 'nearest' });
+  }, [currentId, open]);
 
   const toggle = (id) =>
     setOpen((prev) => {
@@ -305,94 +297,59 @@ function Contents({ courseId, preview, sections, total, doneCount, done, current
       return next;
     });
 
-  let number = 0;
-
+  let number = 0; // lessons are numbered through the whole course
   return (
-    <aside className="cpl__side" aria-label="Course content">
-      <a className="cpl__back" href={academyHome(preview)}>
-        <ArrowLeft size={16} aria-hidden="true" /> Back
-      </a>
-      <h2 className="cpl__side-title">Course content</h2>
-      <p className="cpl__side-count">
-        {doneCount} / {total} lessons complete
-      </p>
-
-      <ol className="cpl__sections">
-        {sections.map((section) => {
-          const isOpen = open.has(section.id);
-          const sectionDone = section.lessons.filter((l) => done.has(l.id)).length;
-          const first = number;
-          number += section.lessons.length;
-          return (
-            <li key={section.id} className="cpl__section">
+    <nav className="cpl__side" aria-label="Course content" ref={sideRef}>
+      {sections.map((section) => {
+        const isOpen = open.has(section.id);
+        const first = number;
+        number += section.lessons.length;
+        const sectionDone = section.lessons.filter((l) => done.has(l.id)).length;
+        return (
+          <section key={section.id} className={`cpl__section ${isOpen ? 'cpl__section--open' : ''}`}>
+            <h2 className="cpl__section-head">
               <button
                 type="button"
-                className="cpl__section-head"
+                className="cpl__section-btn"
                 aria-expanded={isOpen}
                 aria-controls={`cpl-sec-${section.id}`}
                 onClick={() => toggle(section.id)}
               >
-                <span className="cpl__section-text">
-                  <span className="cpl__section-title">{section.title}</span>
-                  <span className="cpl__section-count">
-                    {sectionDone} / {section.lessons.length} lessons
-                  </span>
+                <span className="cpl__section-title">{section.title}</span>
+                <span className="cpl__section-count">
+                  {sectionDone}/{section.lessons.length}
+                  <span className="sr-only"> lessons done</span>
                 </span>
-                <ChevronDown size={18} className={`cpl__chev ${isOpen ? 'cpl__chev--open' : ''}`} aria-hidden="true" />
+                <ChevronDown size={16} className="cpl__chev" aria-hidden="true" />
               </button>
-
-              {isOpen && (
-                <ol className="cpl__lessons" id={`cpl-sec-${section.id}`}>
-                  {section.lessons.map((lesson, i) => {
-                    const on = lesson.id === currentId;
-                    const isDone = done.has(lesson.id);
-                    const Icon = isDone ? Check : lesson.content.kind === 'text' ? FileText : lesson.content.kind === 'link' ? Link2 : lesson.content.kind === 'pdf' ? FileText : Play;
-                    return (
-                      <li key={lesson.id} className={`cpl__lesson ${on ? 'cpl__lesson--on' : ''} ${isDone ? 'cpl__lesson--done' : ''}`}>
-                        <a
-                          className="cpl__lesson-link"
-                          href={coursePlayerPath(courseId, lesson.id, preview)}
-                          aria-current={on ? 'page' : undefined}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            onGo(lesson.id);
-                          }}
-                        >
-                          <span className="cpl__lesson-icon" aria-hidden="true">
-                            <Icon size={17} strokeWidth={isDone ? 3 : 2} />
-                          </span>
-                          <span className="cpl__lesson-text">
-                            <span className="cpl__lesson-name">
-                              <span className="cpl__lesson-num">{two(first + i + 1)}</span> {lesson.title}
-                            </span>
-                            <span className="cpl__lesson-kind">
-                              {kindLabel(lesson)}
-                              {isDone && <span className="sr-only">, completed</span>}
-                            </span>
-                          </span>
-                        </a>
-                        <button
-                          type="button"
-                          className="cpl__share"
-                          aria-label={`Copy the link to ${lesson.title}`}
-                          data-tip={copied === lesson.id ? 'Link copied' : 'Copy link'}
-                          data-tip-align="end"
-                          onClick={async () => {
-                            if (await copyText(coursePlayerUrl(courseId, lesson.id))) setCopied(lesson.id);
-                          }}
-                        >
-                          <Share2 size={16} aria-hidden="true" />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ol>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    </aside>
+            </h2>
+            {isOpen && (
+              <ol className="cpl__lessons" id={`cpl-sec-${section.id}`}>
+                {section.lessons.map((lesson, i) => {
+                  const on = lesson.id === currentId;
+                  const isDone = done.has(lesson.id);
+                  return (
+                    <li key={lesson.id}>
+                      <a
+                        className={`cpl__lesson ${on ? 'cpl__lesson--on' : ''} ${isDone ? 'cpl__lesson--done' : ''}`}
+                        aria-current={on ? 'page' : undefined}
+                        {...link(lesson)}
+                      >
+                        <span className="cpl__mark" aria-hidden="true">
+                          {isDone ? <Check size={14} strokeWidth={2.75} /> : first + i + 1}
+                        </span>
+                        <span className="cpl__lesson-name">{lesson.title}</span>
+                        {isDone && <span className="sr-only">, done</span>}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -477,75 +434,51 @@ function LessonBody({ lesson }) {
   );
 }
 
-// ---------- Description | Resources ----------
-// Description only when there is one; Resources always, as TagMango has it
-function LessonTabs({ lesson }) {
+// ---------- About this lesson, Resources: only when there's something ----------
+function LessonMore({ lesson }) {
   const [, setTick] = useState(0);
   useEffect(() => onStorageChange(() => setTick((n) => n + 1)), []);
+  const [noted, setNoted] = useState(null); // the resource whose Download was pressed
   const hasDescription = Boolean(lesson.description) && lesson.content.kind !== 'text';
   const files = lesson.resources.filter((r) => fileById(r.fileId)); // deleted ones aren't offered
-  const tabs = [...(hasDescription ? [{ id: 'description', label: 'Description' }] : []), { id: 'resources', label: 'Resources' }];
-  const [tab, setTab] = useState(tabs[0].id);
-  const [noted, setNoted] = useState(null); // the resource whose Download was pressed
-
-  const onKey = (e) => {
-    if (tabs.length < 2 || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
-    const next = tabs[(tabs.findIndex((t) => t.id === tab) + 1) % tabs.length].id;
-    setTab(next);
-    requestAnimationFrame(() => document.getElementById(`cpl-tab-${next}`)?.focus());
-  };
+  if (!hasDescription && files.length === 0) return null;
 
   return (
-    <section className="cpl__tabs-wrap">
-      <div className="cpl__tabs" role="tablist" aria-label="About this lesson" onKeyDown={onKey}>
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            id={`cpl-tab-${t.id}`}
-            aria-selected={tab === t.id}
-            aria-controls={`cpl-panel-${t.id}`}
-            tabIndex={tab === t.id ? 0 : -1}
-            className="cpl__tab"
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-            {t.id === 'resources' && files.length > 0 && <span className="cpl__tab-count">{files.length}</span>}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'description' && (
-        <div className="cpl__tab-panel cpl__description" role="tabpanel" id="cpl-panel-description" aria-labelledby="cpl-tab-description">
-          <TextView html={lesson.description} />
-        </div>
+    <div className="cpl__more">
+      {hasDescription && (
+        <section className="cpl__part" aria-labelledby="cpl-about">
+          <h2 className="cpl__part-title" id="cpl-about">
+            About this lesson
+          </h2>
+          <div className="cpl__description">
+            <TextView html={lesson.description} />
+          </div>
+        </section>
       )}
 
-      {tab === 'resources' && (
-        <div className="cpl__tab-panel" role="tabpanel" id="cpl-panel-resources" aria-labelledby="cpl-tab-resources">
-          {files.length === 0 ? (
-            <p className="cpl__no-resources">No additional resources for this lesson.</p>
-          ) : (
-            <ul className="cpl__resources">
-              {files.map((r) => (
-                <li key={r.id} className="cpl__resource">
-                  <KindTile kind={tileKindOf(r)} size="small" />
-                  <span className="cpl__resource-text">
-                    <span className="cpl__resource-name">{r.name}</span>
-                    <span className="cpl__resource-detail">
-                      {noted === r.id ? 'The prototype keeps only the file’s name, so nothing downloads.' : `${r.ext ?? 'File'} · ${formatBytes(r.bytes)}`}
-                    </span>
+      {files.length > 0 && (
+        <section className="cpl__part" aria-labelledby="cpl-resources">
+          <h2 className="cpl__part-title" id="cpl-resources">
+            Resources
+          </h2>
+          <ul className="cpl__resources">
+            {files.map((r) => (
+              <li key={r.id} className="cpl__resource">
+                <KindTile kind={tileKindOf(r)} size="small" />
+                <span className="cpl__resource-text">
+                  <span className="cpl__resource-name">{r.name}</span>
+                  <span className="cpl__resource-detail">
+                    {noted === r.id ? 'The prototype keeps only the file’s name, so nothing downloads.' : `${r.ext ?? 'File'} · ${formatBytes(r.bytes)}`}
                   </span>
-                  <button type="button" className="cpl__download" onClick={() => setNoted(r.id)}>
-                    <Download size={16} aria-hidden="true" /> Download<span className="sr-only"> {r.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                </span>
+                <button type="button" className="cpl__download" onClick={() => setNoted(r.id)}>
+                  <Download size={16} aria-hidden="true" /> Download<span className="sr-only"> {r.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
-    </section>
+    </div>
   );
 }

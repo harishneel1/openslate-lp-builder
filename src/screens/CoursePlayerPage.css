@@ -1,55 +1,42 @@
-/* One course, as a student takes it (CoursePlayerPage.jsx). Laid out as
-   TagMango's player, in our colours: the course's contents in a card on
-   the left, the lesson on the right. The top bar and page are the
-   academy's (AcademyCoursesPage.css). */
+/* One course, as a student takes it (CoursePlayerPage.jsx), in focus
+   mode: a thin bar on top, then the lesson on the left and the
+   contents down the right, each scrolling on its own, the window's full
+   height. The page's colours and type are the academy's
+   (AcademyCoursesPage.css, .acd). */
 
-/* Preview as student: a strip under the top bar */
-.cpl__preview {
+.acd.cpl {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: #157a43;
-  text-align: center;
-  background: var(--color-success-tint);
-  border-bottom: 1px solid #c9ebd6;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
 }
 
-.cpl__preview--draft {
-  color: #8a4b0b;
-  background: #fef6e7;
-  border-bottom-color: #fde7c2;
-}
-
-.cpl__layout {
+/* ================= The bar: Back, the course, how much is done ================= */
+.cpl__bar {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  grid-template-areas: 'side main';
-  gap: 32px;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 24px 24px 56px;
-}
-
-.cpl__main {
-  grid-area: main;
-  min-width: 0;
+  flex: none;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  height: 60px;
+  padding: 0 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .cpl__back {
   display: inline-flex;
   align-items: center;
+  justify-self: start;
   gap: 6px;
-  padding: 4px 6px;
-  margin-left: -6px;
+  padding: 6px 10px;
+  margin-left: -10px;
   font-size: 15px;
   font-weight: 500;
   color: #55555b;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .cpl__back:hover {
@@ -57,121 +44,146 @@
   background: #f0f0f2;
 }
 
-.cpl__back:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.cpl__bar-title {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ---------- Sidebar: the course's contents ---------- */
+.cpl__progress {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 10px;
+}
+
+.cpl__progress-track {
+  position: relative;
+  width: 120px;
+  height: 6px;
+  overflow: hidden;
+  background: #ececef;
+  border-radius: var(--radius-pill);
+}
+
+.cpl__progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-success);
+  border-radius: var(--radius-pill);
+  transition: width 0.4s ease;
+}
+
+.cpl__progress-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b6b72;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ================= Contents | lesson ================= */
+.cpl__layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- The contents: flush to the right, the full height ----------
+   Each section a heading that folds, its lessons in one white box. */
 .cpl__side {
-  grid-area: side;
-  align-self: start;
-  position: sticky;
-  top: 96px;
-  max-height: calc(100vh - 120px);
+  flex: none;
+  width: 340px;
   overflow-y: auto;
-  padding: 18px 16px 16px;
-  background: var(--color-surface);
-  border: 1px solid #e3e3e7;
-  border-radius: var(--radius-lg);
+  padding: 16px 16px 32px;
+  background: #fafafb;
+  border-left: 1px solid var(--color-border);
 }
 
-.cpl__side-title {
-  margin-top: 18px;
-  padding: 0 4px;
-  font-size: 15px;
+.cpl__section + .cpl__section {
+  margin-top: 6px;
+}
+
+/* The section's name, how many are done, and the arrow: one button */
+.cpl__section-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 6px;
+  font: inherit;
+  color: #55555b;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cpl__section-btn:hover {
+  color: #141414;
+}
+
+.cpl__section-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.cpl__section-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
   font-weight: 700;
+  line-height: 1.4;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.cpl__side-count {
-  margin-top: 6px;
-  padding: 0 4px 16px;
-  font-size: 14.5px;
-  color: #6b6b72;
-  border-bottom: 1px solid #ececee;
-}
-
-.cpl__sections {
-  margin-top: 14px;
-  list-style: none;
-  border: 1px solid #ececee;
-  border-radius: var(--radius-md);
-}
-
-.cpl__section + .cpl__section {
-  border-top: 1px solid #ececee;
-}
-
-/* A section: its name and how many are done, folding open */
-.cpl__section-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  width: 100%;
-  padding: 16px 14px;
-  font: inherit;
-  color: #141414;
-  text-align: left;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-
-.cpl__section-head:hover {
-  background: #fafafb;
-}
-
-.cpl__section-head:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-  border-radius: var(--radius-md);
-}
-
-.cpl__section-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.cpl__section-title {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
 .cpl__section-count {
-  margin-top: 4px;
-  font-size: 14px;
-  color: #6b6b72;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #8a8a90;
+  font-variant-numeric: tabular-nums;
 }
 
 .cpl__chev {
   flex: none;
-  margin-top: 2px;
-  color: #55555b;
+  color: #8a8a90;
   transition: transform 0.15s;
 }
 
-.cpl__chev--open {
+.cpl__section--open .cpl__chev {
   transform: rotate(180deg);
 }
 
-/* Its lessons: a card each */
+/* Its lessons: one white box, a row each */
 .cpl__lessons {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 10px 12px;
+  margin-bottom: 8px;
+  overflow: hidden;
   list-style: none;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: 10px;
+}
+
+.cpl__lessons li + li {
+  border-top: 1px solid #efeff1;
 }
 
 .cpl__lesson {
   display: flex;
-  align-items: center;
-  border-radius: var(--radius-md);
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px 11px 12px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: #2b2b30;
+  text-decoration: none;
+  transition: background 0.15s;
 }
 
 .cpl__lesson:hover {
@@ -180,131 +192,71 @@
 
 .cpl__lesson--on,
 .cpl__lesson--on:hover {
-  background: var(--color-primary-tint);
-}
-
-.cpl__lesson-link {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: 10px 6px 10px 10px;
+  font-weight: 600;
   color: #141414;
-  text-decoration: none;
-  border-radius: var(--radius-md);
+  background: var(--color-primary-tint);
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
-.cpl__lesson-link:focus-visible {
+.cpl__lesson:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
 
-/* A round icon for its kind; a tick once done */
-.cpl__lesson-icon {
-  display: grid;
+/* Its number; a small green tick in the same place once done */
+.cpl__mark {
+  display: inline-flex;
   flex: none;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  color: #b4520c;
-  background: var(--color-primary-tint);
-  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a8a90;
+  font-variant-numeric: tabular-nums;
 }
 
-.cpl__lesson--on .cpl__lesson-icon {
-  color: #fff;
-  background: var(--color-primary);
+.cpl__lesson--done .cpl__mark {
+  color: var(--color-success);
 }
 
-.cpl__lesson--done .cpl__lesson-icon {
-  color: #fff;
-  background: var(--color-success);
-}
-
-.cpl__lesson-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.cpl__lesson--on .cpl__mark {
+  color: var(--color-primary);
 }
 
 .cpl__lesson-name {
-  overflow: hidden;
-  font-size: 15.5px;
-  font-weight: 600;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cpl__lesson-num {
-  font-weight: 500;
-  color: #8a8a90;
-}
-
-.cpl__lesson-kind {
-  font-size: 13.5px;
-  color: #6b6b72;
-}
-
-.cpl__share {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  margin-right: 6px;
-  color: #77777d;
-  background: none;
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.cpl__share:hover {
-  color: #141414;
-  background: rgba(0, 0, 0, 0.06);
-}
-
-.cpl__share:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-/* ---------- Main: the lesson ---------- */
-.cpl__head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 8px 24px;
-  margin-bottom: 20px;
-}
-
-.cpl__head-text {
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- The lesson ---------- */
+.cpl__main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.cpl__inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 40px 64px;
 }
 
 .cpl__eyebrow {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #6b6b72;
+  color: #8a8a90;
 }
 
 .cpl__title {
-  margin-top: 4px;
+  margin: 4px 0 20px;
   font-size: 28px;
   font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
-}
-
-.cpl__overall {
-  flex: none;
-  padding-bottom: 4px;
-  font-size: 15px;
-  color: #6b6b72;
 }
 
 /* A player: YouTube, Vimeo, or the stand-in for an uploaded video */
@@ -438,165 +390,85 @@
   cursor: not-allowed;
 }
 
-/* ---------- Top right: how much is done, and Mark as complete ---------- */
-.cpl__head-side {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.cpl__overall {
-  padding-bottom: 0;
-}
-
-.cpl__mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 16px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: #141414;
-  background: var(--color-surface);
-  border: 1px solid #d6d6da;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-}
-
-.cpl__mark:hover {
-  border-color: var(--color-primary);
-}
-
-.cpl__mark--done,
-.cpl__mark--done:hover {
-  color: #157a43;
-  background: var(--color-success-tint);
-  border-color: #b6e2c7;
-}
-
-.cpl__mark:focus-visible,
-.cpl__nav-card:focus-visible,
-.cpl__finish:focus-visible,
-.cpl__tab:focus-visible,
-.cpl__download:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* ---------- PREVIOUS | NEXT, side by side ---------- */
+/* ---------- ‹ Previous ······ Next: <lesson> › ---------- */
 .cpl__nav {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-top: 20px;
 }
 
-.cpl__nav-card {
-  display: flex;
+.cpl__prev {
+  display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 16px;
-  min-width: 0;
-  padding: 14px 18px;
-  color: #141414;
-  text-decoration: none;
-  background: var(--color-surface);
-  border: 1px solid #e3e3e7;
-  border-radius: var(--radius-lg);
-}
-
-.cpl__nav-card:hover {
-  border-color: var(--color-primary);
-}
-
-.cpl__nav-card--next {
-  grid-column: 2;
-}
-
-.cpl__nav-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.cpl__nav-card--next .cpl__nav-text {
-  text-align: right;
-}
-
-.cpl__nav-label {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #6b6b72;
-}
-
-.cpl__nav-title {
-  overflow: hidden;
-  font-size: 16px;
+  gap: 4px;
+  padding: 10px 14px 10px 8px;
+  font-size: 15px;
   font-weight: 600;
+  color: #55555b;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+
+.cpl__prev:hover {
+  color: #141414;
+  background: #ececef;
+}
+
+/* The way forward: the one orange button on the page */
+.cpl__next {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 70%;
+  min-height: 46px;
+  padding: 0 18px 0 20px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 14px rgba(239, 138, 60, 0.25);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cpl__next:hover {
+  background: var(--color-primary-hover);
+}
+
+.cpl__next-text {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cpl__nav-arrow {
-  display: grid;
+.cpl__next-title {
+  font-weight: 700;
+}
+
+.cpl__next svg {
   flex: none;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  color: #b4520c;
-  background: var(--color-surface);
-  border: 1px solid #f0c9a8;
-  border-radius: 50%;
-}
-
-.cpl__nav-arrow--on {
-  color: #fff;
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.cpl__finish {
-  display: inline-flex;
-  grid-column: 2;
-  justify-self: end;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 20px;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--color-primary);
-  border: 0;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-}
-
-.cpl__finish:hover {
-  background: var(--color-primary-hover);
 }
 
 .cpl__finished {
-  display: flex;
-  grid-column: 2;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 8px 16px;
-  padding: 14px 20px;
+  gap: 6px 10px;
+  padding: 12px 18px;
   font-size: 15px;
   font-weight: 600;
   color: #157a43;
   background: var(--color-success-tint);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
 }
 
 .cpl__finished-link {
@@ -604,78 +476,35 @@
   text-underline-offset: 3px;
 }
 
-/* ---------- Description | Resources ---------- */
-.cpl__tabs-wrap {
+.cpl__prev:focus-visible,
+.cpl__next:focus-visible,
+.cpl__back:focus-visible,
+.cpl__download:focus-visible,
+.cpl__finished-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- About this lesson, Resources ---------- */
+.cpl__more {
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid #e3e3e7;
+}
+
+.cpl__part + .cpl__part {
   margin-top: 28px;
 }
 
-.cpl__tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid #e3e3e7;
-}
-
-/* Plain text tabs; the open one underlined in orange */
-.cpl__tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  margin-bottom: -1px;
-  padding: 0 14px;
-  font: inherit;
-  font-size: 15.5px;
-  font-weight: 600;
-  color: #6b6b72;
-  background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-}
-
-.cpl__tab:hover {
-  color: #141414;
-}
-
-.cpl__tab[aria-selected='true'] {
-  color: #141414;
-  border-bottom-color: var(--color-primary);
-}
-
-.cpl__tab-count {
-  min-width: 22px;
-  padding: 0 7px;
-  font-size: 12.5px;
+.cpl__part-title {
+  margin-bottom: 12px;
+  font-size: 17px;
   font-weight: 700;
-  line-height: 1.6;
-  color: #b4520c;
-  text-align: center;
-  background: var(--color-primary-tint);
-  border-radius: var(--radius-pill);
-}
-
-.cpl__tab-panel {
-  margin-top: 16px;
-}
-
-.cpl__description {
-  padding: 22px 26px;
-  background: var(--color-surface);
-  border: 1px solid #e3e3e7;
-  border-radius: var(--radius-lg);
 }
 
 .cpl__description .tte__content--view {
   font-size: 16px;
-}
-
-.cpl__no-resources {
-  padding: 40px 20px;
-  font-size: 15px;
-  color: #6b6b72;
-  text-align: center;
-  border: 1px dashed #d6d6da;
-  border-radius: var(--radius-lg);
+  line-height: 1.7;
 }
 
 .cpl__resources {
@@ -689,7 +518,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
+  padding: 12px 16px;
 }
 
 .cpl__resource + .cpl__resource {
@@ -721,41 +550,74 @@
   flex: none;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: 38px;
+  padding: 0 14px;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   color: #141414;
   background: var(--color-surface);
   border: 1px solid #d6d6da;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .cpl__download:hover {
-  border-color: var(--color-primary);
+  border-color: #b9b9bf;
 }
 
-/* ---------- Phones and narrow windows: one column, the lesson first ---------- */
-@media (max-width: 960px) {
+/* ---------- Nothing to show: not available, or no lessons yet ---------- */
+.cpl__empty {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12vh 24px 0;
+  text-align: center;
+}
+
+/* ================= Phones and narrow windows =================
+   One column, the lesson first and the contents under it; the page
+   scrolls as one. */
+@media (max-width: 900px) {
+  .acd.cpl {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .cpl__bar {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 0 14px;
+  }
+
+  .cpl__bar-title {
+    text-align: left;
+  }
+
+  .cpl__progress-track {
+    width: 56px;
+  }
+
   .cpl__layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'main'
-      'side';
-    gap: 24px;
-    padding: 16px 16px 40px;
+    flex-direction: column;
+  }
+
+  .cpl__side,
+  .cpl__main {
+    overflow: visible;
   }
 
   .cpl__side {
-    position: static;
-    max-height: none;
+    width: auto;
+    padding: 20px 16px 32px;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
   }
 
-  .cpl__head {
-    flex-direction: column;
-    align-items: flex-start;
+  .cpl__inner {
+    padding: 20px 16px 28px;
   }
 
   .cpl__title {
@@ -766,39 +628,17 @@
     padding: 20px 18px;
   }
 
-  .cpl__head-side {
-    flex-direction: row;
-    align-items: center;
+  .cpl__next {
+    max-width: none;
+    flex: 1;
     justify-content: space-between;
-    width: 100%;
-  }
-
-  .cpl__nav {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-  }
-
-  .cpl__nav-card--next,
-  .cpl__finish,
-  .cpl__finished {
-    grid-column: 1;
-  }
-
-  .cpl__finish {
-    justify-self: stretch;
-    justify-content: center;
-  }
-
-  .cpl__nav-gap {
-    display: none;
-  }
-
-  .cpl__description {
-    padding: 18px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cpl__progress-fill,
+  .cpl__next,
+  .cpl__lesson,
   .cpl__chev {
     transition: none;
   }
