@@ -1,5 +1,4 @@
 import { getService } from './mockServices';
-import { contractSignupsOf } from './contractSignupsStore';
 import {
   TESTIMONIAL_FROM_MAX,
   cleanCoverVideo,
@@ -26,11 +25,12 @@ import {
 // they change (syncContractTitle, syncContractDescription in
 // CoursePricing.jsx). A picked contract is never changed.
 //
-// contractIds may still hold other contracts linked before the rule of
-// one contract: they're kept, but give no access and aren't counted
-// (linkedContracts returns only the Buy button's). For the real product:
-// before shipping, check whether any live course has others linked, and
-// move their students onto the course's own contract first.
+// The other contracts in contractIds are the ones it's "also included
+// with" (the Price & access tab): a webinar's, a 1:1 call's, a batch's or
+// any other contract. Their people get the course too (students.js), but
+// only its own contract's buyers are its students (Students tab,
+// courseStudents.js). Contracts linked before this, on older courses,
+// count as "also included with" again.
 //
 // A course's content: sections, each with its lessons, in order.
 // A lesson has one main type of content, as on TagMango (resources, the
@@ -134,8 +134,19 @@ import {
 //   → the changed course, or null (a description over 2,000 characters
 //   doesn't save)
 // deleteCourse(id) → true if it's gone
-// linkedContracts(course) → the contracts that give access: only its Buy
-//   button's (one course, one contract), when it still exists
+// linkedContracts(course) → the contracts that give access: its Buy
+//   button's first (its own, sold on its landing page), then the ones it's
+//   also included with, each only while it still exists
+// extraContractsOf(course) → the contracts it's also included with (not
+//   its Buy button's), in the order they were added: people who join
+//   any of them get the course too, but aren't on its Students tab
+// includeWith(courseId, contractIds) → the course, now also included with
+//   those contracts (ones already there, and its own, are skipped), or null
+// stopIncludingWith(courseId, contractId) → the course, no longer
+//   included with that contract (its own can't be taken off), or null.
+//   Nobody is refunded: the people on it just lose the course.
+// coursesIncludedWith(contractId) → the courses that contract is also
+//   included with (not as their Buy button's): for the Contracts page
 // buyContractOf(course) → the contract its Buy button sells, or null (none
 //   set yet, or it was deleted)
 // listOf(course, 'outcomes' | 'requirements' | 'audience') → that list
@@ -144,9 +155,10 @@ import {
 //   and for counting: paragraphs and headings apart by a blank line, each
 //   list item on its own line ("• " or "1. " before it), the formatting
 //   and links' addresses left out
-// instructorStats() → { students, courses }: the coach's published
-//   courses, and the people (one each, by email) signed up on their Buy
-//   buttons' contracts. Ratings come once reviews are collected.
+// instructorStats() → { students: 0, courses: 0 }: nothing about the
+//   coach is counted for now. The instructor card's numbers (students,
+//   rating) are the ones the coach types in, the course's Track record
+//   (courseExtras.js), and nothing shows while that's off.
 // onCoursesChange(fn) → runs fn when courses change (here or in another tab);
 //   returns the function that stops it
 //
@@ -424,24 +436,40 @@ export function buyContractOf(course) {
   return getService(id);
 }
 
-// One course, one contract: only the Buy button's gives access
+// Its own contract, then the ones it's also included with
 export function linkedContracts(course) {
   const buy = buyContractOf(course);
-  return buy ? [buy] : [];
+  return [...(buy ? [buy] : []), ...extraContractsOf(course)];
 }
+
+export function extraContractsOf(course) {
+  return (course?.contractIds ?? [])
+    .filter((id) => id !== course.buyContractId)
+    .map((id) => getService(id))
+    .filter(Boolean);
+}
+
+export const includeWith = (courseId, contractIds) =>
+  change(courseId, (c) => {
+    const have = new Set(c.contractIds ?? []);
+    const adding = cleanIds(contractIds).filter((id) => !have.has(id) && id !== c.buyContractId);
+    return adding.length ? { ...c, contractIds: [...(c.contractIds ?? []), ...adding] } : c;
+  });
+
+export const stopIncludingWith = (courseId, contractId) =>
+  change(courseId, (c) =>
+    contractId === c.buyContractId ? null : { ...c, contractIds: (c.contractIds ?? []).filter((id) => id !== contractId) },
+  );
+
+export const coursesIncludedWith = (contractId) =>
+  contractId ? read().filter((c) => c.buyContractId !== contractId && (c.contractIds ?? []).includes(contractId)) : [];
 
 export const listOf = (course, key) => cleanList(course?.[key]);
 
 export const testimonialsOf = (course) => cleanTestimonials(course?.testimonials);
 
-export function instructorStats() {
-  const published = read().filter((c) => c.status === 'published');
-  const ids = new Set(published.map((c) => c.buyContractId).filter(Boolean));
-  const people = new Set(
-    [...ids].flatMap((id) => contractSignupsOf(id)).map((r) => String(r.email ?? '').trim().toLowerCase() || r.id),
-  );
-  return { students: people.size, courses: published.length };
-}
+// Nothing counted for now: the coach types the numbers in (Track record)
+export const instructorStats = () => ({ students: 0, courses: 0 });
 
 // The published course whose Buy button sells this contract, or null: the
 // thank-you page after checkout uses it for Start learning

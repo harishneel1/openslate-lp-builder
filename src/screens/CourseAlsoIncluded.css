@@ -1,0 +1,242 @@
+/* "Also included with" on a course's Price & access tab
+   (CourseAlsoIncluded.jsx), its + Add pop-up, and the "Also gives" line
+   on the Contracts page (ContractsPage.jsx). Titles, help text and
+   buttons are CoursesPage.css's (lrn__title, lrn__help, crs-btn). */
+
+.inc {
+  margin-top: 36px;
+}
+
+.inc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inc__head .crs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inc__list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.inc__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+}
+
+.inc__row + .inc__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.inc__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--crs-ink-2, #55555b);
+  background: var(--color-bg);
+  border-radius: 10px;
+}
+
+.inc__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.inc__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inc__meta {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.inc__actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.inc__actions .crs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inc__remove {
+  color: var(--crs-danger, #c62828);
+}
+
+.inc__note {
+  margin-top: 4px;
+}
+
+.inc__head + .inc__note {
+  max-width: 60ch;
+}
+
+/* Read out, not shown, wherever these sit */
+.inc .sr-only,
+.inc-pick .sr-only,
+.inc-pick__empty .sr-only,
+.ct-row__gives .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- + Add: the pop-up's list ---------- */
+.inc-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inc-pick__intro {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.inc-pick__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+
+.inc-pick__search svg {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+}
+
+.inc-pick__search input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px 0 36px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.inc-pick__search input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.inc-pick__list {
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.inc-pick__list li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.inc-pick__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.inc-pick__item:hover {
+  background: #fafafa;
+}
+
+.inc-pick__item--on {
+  background: var(--color-primary-tint);
+}
+
+.inc-pick__item input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
+.inc-pick__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.inc-pick__name {
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inc-pick__meta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.inc-pick__none {
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.inc-pick__make {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Contracts page: "Also gives: AI Engineering" under a name ---------- */
+.ct-row__gives {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Phones: Open and Remove go under the name */
+@media (max-width: 640px) {
+  .inc__row {
+    flex-wrap: wrap;
+  }
+
+  .inc__actions {
+    width: 100%;
+    padding-left: 50px;
+  }
+}

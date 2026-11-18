@@ -1,5 +1,6 @@
-import { contractSignupsOf, CONTRACT_SIGNUPS_EVENT, isRefunded } from './contractSignupsStore';
-import { isPublished, loadCourses } from './courses';
+import { contractSignupsOf, CONTRACT_SIGNUPS_EVENT } from './contractSignupsStore';
+import { isPublished, linkedContracts, loadCourses } from './courses';
+import { holds, matchOf } from './courseAccess';
 import { getAllServices } from './mockServices';
 
 // ------------------------------------------------------------
@@ -15,15 +16,17 @@ import { getAllServices } from './mockServices';
 //         photo: null, createdAt }
 //   - who's signed in is kept in this browser too
 //
-// Access (RBAC): one course, one contract. A student sees a course only
-// when it's published and they have a sign-up on the course's own
-// contract (the one its Buy button sells, course.buyContractId) that
-// hasn't been refunded, matched by any email or mobile number they've
-// had (contractSignupsStore.js). A refund, full or part, takes the
-// course away. Other contracts once linked to a course (course.contractIds)
-// no longer give access. (For the real product: before shipping, check
-// whether any live course has other contracts linked, and move their
-// students onto the course's own contract first.)
+// Access (RBAC): a student sees a course when it's published and they
+// hold one of its contracts, matched by any email or mobile number
+// they've had (courseAccess.js):
+//   - its own, the one its Buy button sells (course.buyContractId):
+//     a sign-up that hasn't been refunded. A refund, full or part, takes
+//     the course away. These are the people on its Students tab.
+//   - any it's also included with (extraContractsOf in courses.js): a
+//     webinar's, a 1:1 call's, a batch's or any other contract. Booking
+//     the call, registering for the webinar or joining the batch gives the
+//     course too, until the booking is cancelled, they're removed, or the
+//     sign-up is refunded. These people aren't on its Students tab.
 // Courses they don't have don't show at all. Access belongs to the
 // student, not to one email: changing their email or number later keeps
 // their courses, since the old ones stay in emails/phones.
@@ -226,12 +229,9 @@ export function studentIdFor({ email, phone }) {
 }
 
 export function canSee(student, course) {
-  if (!student || !isPublished(course) || !course.buyContractId) return false;
-  const emails = new Set((student.emails ?? []).map(lower).filter(Boolean));
-  const phones = new Set((student.phones ?? []).map(digits).filter(Boolean));
-  return contractSignupsOf(course.buyContractId).some(
-    (r) => !isRefunded(r) && (emails.has(lower(r.email)) || phones.has(digits(r.phone))),
-  );
+  if (!student || !isPublished(course)) return false;
+  const who = matchOf(student);
+  return linkedContracts(course).some((contract) => holds(contract, who));
 }
 
 export const coursesOf = (student) => loadCourses().filter((c) => canSee(student, c));

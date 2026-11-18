@@ -77,7 +77,7 @@ import './CoursePage.css';
 // steps are plain tabs (no numbers, no ticks: it's managing the course
 // now, not making it), every one open, any time.
 //   ← All courses     AI Engineering ✎     [Copy link] [View landing page ↗] [● Published ▾]   (focus bar)
-//   Curriculum  Landing page  Pricing  Students        [👁 See it as a student ↗] ✓ Saved · live for students
+//   Curriculum  Landing page  Price & access  Students        [👁 See it as a student ↗] ✓ Saved · live for students
 //   ┌────────────────────────────────────────────────────────────────────┐
 //   │ the open tab                                                       │
 //   └────────────────────────────────────────────────────────────────────┘
@@ -113,7 +113,10 @@ import './CoursePage.css';
 //                  learn, cover, and, behind "+ Add", requirements, who
 //                  it's for, testimonials (CourseLanding.jsx)
 //   Pricing        the price, with an optional discounted price
-//                  (CoursePricing.jsx)
+//                  (CoursePricing.jsx). Called Price & access while
+//                  editing, where it also has Also included with: the
+//                  other contracts whose people get the course too
+//                  (CourseAlsoIncluded.jsx)
 //   Students       editing only (published, or published before): the
 //                  course's sales, students and refunds, everyone who
 //                  bought it, and each student's details in a side panel
@@ -225,6 +228,8 @@ function useWide() {
 
 // Editing only: the tab after the steps
 const STUDENTS_TAB = { id: 'students', label: 'Students' };
+// Editing: the Pricing step's tab name (its price, and Also included with)
+const PRICING_TAB_LABEL = 'Price & access';
 
 // Where the guide opens on each step that has it
 const GUIDE_START = { landing: 'title', pricing: 'price' };
@@ -368,7 +373,10 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   // Setting up: never published. A step opens once every step before it is done.
   const setup = !live && !course.publishedAt;
   // Editing: the steps as tabs, and Students after them
-  const tabs = setup ? STEPS : [...STEPS, STUDENTS_TAB];
+  // (Pricing is Price & access once it's published: it holds Also included with too)
+  const tabs = setup
+    ? STEPS
+    : [...STEPS.map((s) => (s.id === 'pricing' ? { ...s, label: PRICING_TAB_LABEL } : s)), STUDENTS_TAB];
   const onStudents = !setup && step === 'students';
   const stepIndex = STEPS.findIndex((s) => s.id === step);
   const reachable = (i) => !setup || STEPS.slice(0, i).every((s) => steps[s.id].done);
@@ -473,7 +481,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const landingFields = (
     <CourseLanding key={course.id} course={course} onSave={save} onSaveTitle={saveTitle} onDirtyChange={setDirty} />
   );
-  const pricingFields = <CoursePricing course={course} onSave={save} onSaved={onSaved} />;
+  const pricingFields = <CoursePricing course={course} onSave={save} onSaved={onSaved} showAccess={!setup} />;
 
   // Just published: the publish screen, in place of the steps. Go to your
   // course comes back on the Curriculum tab.
@@ -988,7 +996,7 @@ function PublishDialog({ course, onCancel, onPublish }) {
                   )}
                 </>
               )}
-              {others > 0 && <span className="pub__note"> (and given through {plural(others, 'other contract')})</span>}
+              {others > 0 && <span className="pub__note"> · also included with {plural(others, 'contract')}</span>}
             </span>
           </li>
         )}

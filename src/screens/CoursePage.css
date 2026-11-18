@@ -715,7 +715,7 @@
 /* The price as it is, with Change */
 .prc__card {
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* the price and Change price on one line, centred */
   gap: 14px;
   max-width: 760px;
   margin-top: 14px;
@@ -741,7 +741,24 @@
   min-width: 0;
 }
 
+/* Open contract ↗ and Change price, side by side on the right */
+.prc__card-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prc__card-actions .crs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .prc__amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   font-size: 20px;
   font-weight: 700;
   line-height: 1.3;

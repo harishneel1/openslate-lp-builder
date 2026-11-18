@@ -23,12 +23,14 @@ import { CONTRACT_SIGNUPS_EVENT } from '../data/contractSignupsStore';
 import { livePageOf } from '../data/contractCheckout';
 import { BOOKINGS_CHANGED_EVENT } from '../data/bookingsStore';
 import { formatMoney } from '../data/contractPricing';
+import { coursesIncludedWith } from '../data/courses';
 import ContractEditor from './ContractEditor';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { copyText } from '../utils/copyText';
 import { SETUP_CHANGED_EVENT } from '../data/myPage';
 import './ContractsPage.css';
 import './ContractCreated.css';
+import './CourseAlsoIncluded.css'; // the "Also gives" line under a name
 
 // ------------------------------------------------------------
 // Contracts: the pages people sign up and pay on. 1:1 calls, webinars and
@@ -44,9 +46,14 @@ import './ContractCreated.css';
 //   │ │ [Search by name                    ]  All  Paid  Free │ │
 //   │ │ Contract                 Price     Sign-ups  Start date     │ │
 //   │ │ (▣) Career clarity call  ₹1,500    24        30 Apr 2026 [Edit] [↗] [⋯]
+//   │ │     Also gives: AI Engineering                              │ │
 //   │ │                          One-time                           │ │
 //   │ └────────────────────────────────────────────────────┘ │
 //   └────────────────────────────────────────────────────────┘
+//
+// Also gives: the courses this contract is also included with (a course's
+// Price & access tab, courses.js coursesIncludedWith): people who join it
+// get those courses too. Not shown for a course's own contract.
 //
 // Sign-ups: everyone who has signed up on the contract, paid or free,
 // whether or not it has happened yet (contractSignups.js). "None yet"
@@ -459,10 +466,12 @@ function OwnedDialog({ owner, onCancel, onConfirm }) {
 // One contract: name, price, sign-ups, start date, Edit, ↗ and ⋯. Every row
 // looks the same; Edit decides (in the list) whether it opens the contract
 // screen or the pop-up for one a call or webinar owns.
+// Under the name, "Also gives: …" when courses are also included with it.
 // signups: how many people have signed up on it
 function ContractRow({ contract, signups = 0, menuOpen, onMenu, onCopyId, onCopyLink, onEdit, onDelete }) {
   const free = isFree(contract);
   const live = livePageOf(contract).view;
+  const gives = coursesIncludedWith(contract.id);
 
   return (
     <li className={`ct-row ${menuOpen ? 'ct-row--menu' : ''}`}>
@@ -475,6 +484,9 @@ function ContractRow({ contract, signups = 0, menuOpen, onMenu, onCopyId, onCopy
           <button type="button" className="ct-row__title" onClick={onEdit}>
             {contract.title}
           </button>
+          {gives.length > 0 && (
+            <span className="ct-row__gives">Also gives: {gives.map((c) => c.title).join(', ')}</span>
+          )}
         </span>
       </div>
 
