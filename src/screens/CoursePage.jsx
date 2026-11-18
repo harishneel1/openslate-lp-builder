@@ -14,6 +14,7 @@ import {
   updateCourse,
 } from '../data/courses';
 import { STEPS, courseSteps, missingToPublish } from '../data/courseSteps';
+import { coverVideoOf, trackRecordOf } from '../data/courseExtras';
 import { copyText } from '../utils/copyText';
 import { COURSE_EXAMPLE_PAGE, courseAnnotations } from '../data/courseAnnotations';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -843,8 +844,9 @@ function PublishedMenu({ onUnpublish }) {
   );
 }
 
-// Publish, once nothing's missing: what goes live, and a note if there's
-// no cover
+// Publish, once nothing's missing: what goes live, and notes (they don't
+// stop it): no cover (neither an image nor a video), and the track record
+// not turned on (it's recommended)
 function PublishDialog({ course, onCancel, onPublish }) {
   const check = publishCheck(course);
   const buy = buyContractOf(course);
@@ -887,10 +889,19 @@ function PublishDialog({ course, onCancel, onPublish }) {
             </span>
           </li>
         )}
-        {!check.cover && (
+        {!check.cover && !coverVideoOf(course) && (
           <li className="pub__row pub__row--note">
             <AlertTriangle size={17} aria-hidden="true" />
-            <span>No cover image yet: its card shows the title on our orange. You can add one on the Landing page.</span>
+            <span>No cover yet: its card shows the title on our orange. You can add an image or a video on the Landing page.</span>
+          </li>
+        )}
+        {!trackRecordOf(course).on && (
+          <li className="pub__row pub__row--note">
+            <AlertTriangle size={17} aria-hidden="true" />
+            <span>
+              Your track record isn’t shown. It’s recommended: it helps buyers trust your course. You can turn it on in
+              Landing page.
+            </span>
           </li>
         )}
       </ul>

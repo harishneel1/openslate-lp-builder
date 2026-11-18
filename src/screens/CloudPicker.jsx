@@ -11,8 +11,10 @@ import './CloudPicker.css';
 //        the videos and PDFs they've uploaded, to use as its content.
 //        Images and other documents aren't listed: a lesson can't use them.
 //        One file.
-//   only 'image'  (the course's cover, CourseCover.jsx): their images.
-//        One file.
+//   only 'image'  (a cover video's thumbnail, CourseCover.jsx): their
+//        images. One file.
+//   only 'cover'  (the course's cover, CourseCover.jsx): their images and
+//        videos, with Images / Videos filters. One file.
 //   only 'any'    (Upload resources in a lesson, LessonExtras.jsx): any
 //        file they've uploaded, ZIPs and all, with filters by kind.
 //        Several at once (multiple).
@@ -41,7 +43,7 @@ import './CloudPicker.css';
 //
 // Webinar recordings aren't listed yet: they live with their sessions.
 //
-// only: 'lesson' | 'image' | 'any'
+// only: 'lesson' | 'image' | 'cover' | 'any'
 // multiple: tick several (onPick gets a list)
 // taken: file ids already used here (multiple only): shown, not pickable
 // onPick(asset) (one) or onPick([assets]) (multiple), onCancel()
@@ -52,15 +54,27 @@ const TYPES = [
   { id: 'video', label: 'Videos' },
   { id: 'pdf', label: 'PDFs' },
 ];
+const COVER_TYPES = [
+  { id: 'image', label: 'Images' },
+  { id: 'video', label: 'Videos' },
+];
+
+// What a file counts as for each use (null: not offered)
+const KIND_OF = {
+  any: (a) => a.type,
+  image: (a) => (a.type === 'image' ? 'image' : null),
+  cover: (a) => (a.type === 'image' || a.type === 'video' ? a.type : null),
+  lesson: (a) => lessonKindOfFile(a),
+};
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 export default function CloudPicker({ only = 'lesson', multiple = false, taken = [], onPick, onCancel }) {
   // What a file counts as here (null: not offered), and its filter
-  const kindOf = (a) => (only === 'any' ? a.type : only === 'image' ? (a.type === 'image' ? 'image' : null) : lessonKindOfFile(a));
-  const chipTypes = only === 'lesson' ? TYPES : only === 'any' ? ASSET_TYPES : [];
+  const kindOf = KIND_OF[only] ?? KIND_OF.lesson;
+  const chipTypes = only === 'lesson' ? TYPES : only === 'cover' ? COVER_TYPES : only === 'any' ? ASSET_TYPES : [];
   const tileOf = (a) => (only === 'lesson' ? kindOf(a) : tileKindOf(a));
-  const labelOf = (a) => (only === 'lesson' ? LABEL[kindOf(a)] : a.ext ?? typeOf(a.type).one);
+  const labelOf = (a) => (only === 'lesson' || only === 'cover' ? LABEL[kindOf(a)] : a.ext ?? typeOf(a.type).one);
   const ref = useRef(null);
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState('');
@@ -95,7 +109,13 @@ export default function CloudPicker({ only = 'lesson', multiple = false, taken =
 
   const addLabel = pickedMany.length === 0 ? 'Add files' : `Add ${plural(pickedMany.length, 'file')}`;
   const title =
-    only === 'image' ? 'Pick a cover from Cloud Storage' : only === 'any' ? 'Pick resources from Cloud Storage' : 'Pick from Cloud Storage';
+    only === 'image'
+      ? 'Pick an image from Cloud Storage'
+      : only === 'cover'
+        ? 'Pick a cover from Cloud Storage'
+        : only === 'any'
+          ? 'Pick resources from Cloud Storage'
+          : 'Pick from Cloud Storage';
 
   return (
     <dialog
@@ -123,14 +143,18 @@ export default function CloudPicker({ only = 'lesson', multiple = false, taken =
             <p className="cldp__empty-title">
               {only === 'image'
                 ? 'No images in your Cloud Storage yet'
-                : only === 'any'
+                : only === 'cover'
+                  ? 'No images or videos in your Cloud Storage yet'
+                  : only === 'any'
                   ? 'Nothing in your Cloud Storage yet'
                   : 'No videos or PDFs in your Cloud Storage yet'}
             </p>
             <p className="cldp__empty-text">
               {only === 'image'
                 ? 'You can upload one with Upload image.'
-                : only === 'any'
+                : only === 'cover'
+                  ? 'You can upload one with Upload.'
+                  : only === 'any'
                   ? 'You can upload from your computer instead.'
                   : 'You can upload one with Upload video or PDF in the lesson.'}
             </p>

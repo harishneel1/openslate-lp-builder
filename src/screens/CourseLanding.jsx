@@ -17,6 +17,7 @@ import {
 } from '../data/courses';
 import TextEditor from '../components/TextEditor';
 import CourseCover from './CourseCover';
+import { DurationField, TrackRecordField } from './CourseLandingExtras';
 
 // ------------------------------------------------------------
 // A course's Landing page step (CoursePage.jsx): everything people see
@@ -144,11 +145,13 @@ export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChan
     <div className="lnd">
       <Title course={course} onSave={onSaveTitle ?? ((title) => onSave({ title }))} />
       <Subtitle course={course} onSave={onSave} />
+      <DurationField course={course} onSave={onSave} />
       <Description course={course} onSave={onSave} onDirtyChange={onDirtyChange} />
       <ListField id="outcomes" course={course} onSave={onSave} />
-      <div className="cst lnd__cover" data-guide="cover">
+            <div className="cst lnd__cover" data-guide="cover">
         <CourseCover course={course} onSave={onSave} />
       </div>
+      <TrackRecordField course={course} onSave={onSave} />
 
       {opened.has('requirements') && <ListField id="requirements" course={course} onSave={onSave} />}
       {opened.has('audience') && <ListField id="audience" course={course} onSave={onSave} />}

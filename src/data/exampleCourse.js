@@ -55,6 +55,7 @@ export const EXAMPLE_COURSE = {
   id: 'course-example',
   title: 'Yoga for Everyday Strength: 30 Days to a Steadier Body and Calmer Mind',
   subtitle: 'Asana, breathwork and meditation in 20-minute sessions you can do at home, before work',
+  duration: { amount: 30, unit: 'days' },
   status: 'published',
   cover: { src: '/course-yoga.jpg', name: 'course-yoga.jpg' },
   updatedAt: '2026-10-28T09:00:00.000Z',

@@ -5,6 +5,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  Clock,
   Download,
   Eye,
   FileText,
@@ -35,6 +36,9 @@ import { initials } from '../utils/initials';
 import { TextView } from '../components/TextEditor';
 import CoverArt from '../components/CoverArt';
 import { KIND } from './lessonKinds';
+import { coverVideoOf, durationOf, durationText, trackRecordOf } from '../data/courseExtras';
+import { readVideoLink } from '../data/courses';
+import './CourseExtras.css';
 import '../styles/storeTheme.css';
 import './AcademyCoursesPage.css';
 import './CourseLandingPage.css';
@@ -275,16 +279,27 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
   const requirements = listOf(course, 'requirements');
   const audience = listOf(course, 'audience');
   const lessons = sections.flatMap((s) => s.lessons);
-  const updated = new Date(course.updatedAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const updated = new Date(course.updatedAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  // Round 3: how long it takes, and the coach's own track record (only
+  // once they've turned it on). The course's own rating takes over once it
+  // has enough reviews (showRating).
+  const duration = durationOf(course);
+  const track = example ? null : trackRecordOf(course);
+  const showTrack = !showRating && Boolean(track?.on);
+  const realStudents = stats.students ?? 0;
+  const shownStats = track?.on
+    ? { ...stats, rating: stats.rating || track.rating, ratingFrom: stats.rating ? null : track.source, students: Math.max(realStudents, track.students) }
+    : stats;
 
   const count = (kinds) => lessons.filter((l) => kinds.includes(l.content.kind)).length;
   const resources = lessons.reduce((n, l) => n + l.resources.length, 0);
-  const includes = [
+    const includes = [
+    duration ? { id: 'time', icon: Clock, text: `${durationText(duration)} to complete` } : null,
     { id: 'video', icon: PlayCircle, n: count(['video', 'embed']), word: 'video' },
     { id: 'text', icon: AlignLeft, n: count(['text']), word: 'article' },
     { id: 'pdf', icon: FileText, n: count(['pdf']), word: 'PDF' },
     { id: 'res', icon: Download, n: resources, word: 'downloadable resource' },
-  ].filter((row) => row.n > 0);
+   ].filter((row) => row && (row.text || row.n > 0));
 
   const buyLabel = offer.free ? 'Enroll for free' : 'Buy now';
 
@@ -296,8 +311,12 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
           Example: a sample course by Meera Joshi, to show what a finished landing page looks like.
         </p>
       )}
-      {preview && !example && (
+            {preview && !example && (
         <p className={`cpl__preview ${live ? '' : 'cpl__preview--draft'}`} role="status">
+          <Eye size={17} aria-hidden="true" />
+          {live
+            ? 'Preview: this is your live landing page.'
+            : 'Preview: this course is a draft. Only you can see this page. Buy now works once it’s published.'}
         </p>
       )}
 
@@ -340,14 +359,36 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
                 <span className="cld__rating-students">{plural(rating.students, 'student')}</span>
               </p>
             )}
+                        {showTrack && (
+              <p className="cld__proof cld__rating">
+                <strong className="cld__proof-value">{track.rating.toFixed(1)}</strong>
+                <Stars value={track.rating} />
+                <span aria-hidden="true">·</span>
+                <span className="cld__proof-students">{plural(track.students, 'student')}</span>
+              </p>
+            )}
+            {!showRating && !showTrack && !example && realStudents > 0 && (
+              <p className="cld__proof">
+                <span className="cld__proof-students">
+                  {plural(realStudents, 'student')} {realStudents === 1 ? 'has' : 'have'} learned with {creator.name.split(' ')[0]}
+                </span>
+              </p>
+            )}
+            {!showRating && !showTrack && !example && realStudents === 0 && <p className="cld__new">New course</p>}
             <p className="cld__by">
               <CreatorPhoto creator={creator} className="cld__by-photo" />
               <span>
                 Created by <a href="#cld-instructor">{creator.name}</a>
                 <span aria-hidden="true"> · </span>
-                Last updated {updated}
+                                Last updated {updated}
               </span>
             </p>
+            {duration && (
+              <p className="cld__duration">
+                <Clock size={16} aria-hidden="true" />
+                {durationText(duration)} to complete
+              </p>
+            )}
           </div>
         </div>
       </header>
@@ -378,10 +419,10 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
                 This course includes
               </h2>
               <ul className="cld__includes">
-                {includes.map(({ id, icon: Icon, n, word }) => (
+                {includes.map(({ id, icon: Icon, n, word, text }) => (
                   <li key={id}>
                     <Icon size={18} aria-hidden="true" />
-                    {plural(n, word)}
+                    {text ?? plural(n, word)}
                   </li>
                 ))}
                 <li>
@@ -422,8 +463,7 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
             </section>
           )}
 
-          <Instructor creator={creator} stats={stats} profileHref={profileHref} />
-
+          <Instructor creator={creator} stats={shownStats} profileHref={profileHref} />
           {showRating && <Reviews rating={rating} reviews={reviews} />}
 
           {testimonials.length > 0 && <Testimonials items={testimonials} />}
@@ -432,7 +472,7 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
         {/* ---------- The Buy box ---------- */}
         <aside className="cld__side" aria-label="Buy this course">
           <div className="cld__card">
-            <CoverArt course={course} />
+            <CoverMedia course={course} />
             <div className="cld__card-body">
               <BuyParts offer={offer} canBuy={canBuy} label={buyLabel} />
             </div>
@@ -602,7 +642,13 @@ function Instructor({ creator, stats, profileHref }) {
   const bio = String(creator.bio ?? '').trim();
   const long = bio.length > LONG_BIO;
   const rows = [
-    stats.rating ? { id: 'rating', icon: Star, text: `${stats.rating.toFixed(1)} instructor rating` } : null,
+    stats.rating
+      ? {
+          id: 'rating',
+          icon: Star,
+          text: stats.ratingFrom ? `${stats.rating.toFixed(1)} rating on ${stats.ratingFrom}` : `${stats.rating.toFixed(1)} instructor rating`,
+        }
+      : null,
     stats.reviews ? { id: 'reviews', icon: MessageSquareQuote, text: plural(stats.reviews, 'review') } : null,
     stats.students ? { id: 'students', icon: Users, text: plural(stats.students, 'student') } : null,
     stats.courses ? { id: 'courses', icon: BookOpen, text: plural(stats.courses, 'course') } : null,
@@ -715,5 +761,44 @@ function Testimonials({ items }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+// The Buy box's cover: the picture, or, for a cover video, the picture
+// with a ▶ that plays it right there (with its controls, no autoplay
+// until it's clicked). An uploaded video can't play in the prototype,
+// which keeps only its name.
+function CoverMedia({ course }) {
+  const video = coverVideoOf(course);
+  const [playing, setPlaying] = useState(false);
+  if (!video) return <CoverArt course={course} />;
+
+  if (playing && video.kind === 'embed') {
+    const v = readVideoLink(video.url);
+    const src = `${v.embedUrl}${v.embedUrl.includes('?') ? '&' : '?'}autoplay=1`;
+    return (
+      <div className="cld__cover-frame">
+        <iframe
+          src={src}
+          title={`${course.title}: intro video`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    );
+  }
+  if (playing) {
+    return (
+      <div className="cld__cover-frame cld__cover-standin">
+        <strong>{video.name}</strong>
+        <span>The prototype keeps only the video’s name, so it can’t play here yet.</span>
+      </div>
+    );
+  }
+  return (
+    <button type="button" className="cld__cover-btn" onClick={() => setPlaying(true)} aria-label={`Play the intro video: ${course.title}`}>
+      <CoverArt course={course} play />
+    </button>
   );
 }

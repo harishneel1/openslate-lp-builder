@@ -1,5 +1,6 @@
 import { getService } from './mockServices';
 import { contractSignupsOf } from './contractSignupsStore';
+import { cleanCoverVideo, cleanDuration, cleanTrackRecord } from './courseExtras';
 
 // ------------------------------------------------------------
 // Courses. A course doesn't own a contract: it keeps a list of the
@@ -368,7 +369,15 @@ export function updateCourse(id, edits) {
     LISTS.forEach((key) => {
       if (key in edits) next[key] = cleanList(edits[key]);
     });
-    if ('testimonials' in edits) next.testimonials = cleanTestimonials(edits.testimonials);
+        if ('testimonials' in edits) next.testimonials = cleanTestimonials(edits.testimonials);
+    // Round 3 (courseExtras.js): the cover as a video, time to complete, the track record
+    if ('coverVideo' in edits) {
+      const video = cleanCoverVideo(edits.coverVideo);
+      if (video === undefined) return null; // not a video: doesn't save
+      next.coverVideo = video;
+    }
+    if ('duration' in edits) next.duration = cleanDuration(edits.duration);
+    if ('trackRecord' in edits) next.trackRecord = cleanTrackRecord(edits.trackRecord);
     if ('buyContractId' in edits) {
       const buy = edits.buyContractId;
       next.buyContractId = typeof buy === 'string' && buy ? buy : null;

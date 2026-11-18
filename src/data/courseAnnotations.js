@@ -18,18 +18,22 @@ import { PAGE_DOMAIN } from './myPage';
 // class names change, update the targets here.
 //
 // Keys are the fields' data-guide names (CourseLanding.jsx,
-// CoursePricing.jsx): whichever one the coach is in, its part shows.
+// CourseLandingExtras.jsx, CoursePricing.jsx): whichever one the coach is
+// in, its part shows.
 //   target   a selector inside the example page
 //   label    names the part (the orange pill)
 //   labelAt  optional, as in profileAnnotations.js. 'under' (with under:
 //            a selector) puts the pill below that part of the page, with
-//            its arrow running up the margin to the box: the title and
-//            subtitle use it, so their pill sits below What you'll learn,
+//            its arrow running up the margin to the box: the parts in the
+//            band use it, so their pill sits below What you'll learn,
 //            off the band, covering nothing.
 //
 // Testimonials have no part of their own on the example, which has
 // students' reviews instead: their pill points at the reviews, where
 // testimonials sit until students rate the course.
+// Your track record points at the rating line in the band: on the
+// example it's Meera's course rating, which is where a coach's own
+// numbers show until their course has its own.
 //
 // COURSE_EXAMPLE_PAGE: the page prop for ProfileExample
 //   dim: how much the rest of the page is shaded (0–1), lighter than the
@@ -49,13 +53,25 @@ export const courseAnnotations = {
     labelAt: 'under',
     under: '.cld__box',
   },
+  duration: {
+    target: '.cld__duration',
+    label: 'This is how long it takes',
+    labelAt: 'under',
+    under: '.cld__box',
+  },
+  trackRecord: {
+    target: '.cld__rating',
+    label: 'This is your track record',
+    labelAt: 'under',
+    under: '.cld__box',
+  },
   outcomes: {
     target: '.cld__box',
     label: 'This is what students will learn',
   },
   cover: {
     target: '.cld__card .cvr',
-    label: 'This is your cover image',
+    label: 'This is your cover',
     labelAt: 'left',
   },
   description: {
