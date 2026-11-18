@@ -1,9 +1,10 @@
 /* One course's page (CoursePage.jsx), in focus mode: under the app's
-   focus bar, one row (the three steps, then the actions), and the open
-   step under it, the full width. Orange is only for the main action (Publish) and what needs
-   doing; everything else is quiet. Buttons, badges, menus, pop-ups and
-   the parts inside each step come from CoursesPage.css; this file is the
-   frame and the step's own fields. */
+   focus bar, one row (the steps or tabs, then the save status and the
+   actions), and the open step under it, the full width. Orange is only
+   for the main action (Publish) and what needs doing; everything else is
+   quiet. Buttons, badges, menus, pop-ups and the parts inside each step
+   come from CoursesPage.css; this file is the frame and the step's own
+   fields. */
 
 .ced {
   max-width: 1080px;
@@ -12,8 +13,9 @@
 }
 
 /* ================= The row under the focus bar: steps, then actions =================
-   The way back, the course's name and "Saved" are in the app's focus bar
-   (AppLayout.jsx), as for an open 1:1 call. */
+   The way back and the course's name (renamed there) are in the app's
+   focus bar (AppLayout.jsx), as for an open 1:1 call. Whether it's saved
+   is here, before the actions (.ced__status). */
 .ced__bar {
   position: sticky;
   top: 0;
@@ -37,7 +39,8 @@
   margin: 12px 0 4px -10px;
 }
 
-/* Copy link (once live), View landing page, Publish or ● Published ▾, 🗑 */
+/* The save status, then: Copy link (once live), View landing page,
+   Publish or ● Published ▾ (or, setting up, the step's way forward) */
 .ced__actions {
   display: flex;
   flex: none;
@@ -81,7 +84,7 @@
   border-radius: 50%;
 }
 
-/* The line between 🗑 and the rest */
+/* The line between the save status and the buttons */
 .ced__actions-sep {
   width: 1px;
   height: 24px;
@@ -95,23 +98,84 @@
   bottom: auto;
 }
 
-/* Delete course: red words and bin on white, with a red-tinted edge.
-   Outlined, not filled, so it reads clearly without shouting beside the
-   orange: deleting should be deliberate, not tempting. */
-.ced__delete {
+/* ---------- The save status ----------
+   Grey while something isn't saved, green once it is (lit up for a moment
+   just after a save), red if it couldn't save. One line, never wrapping. */
+.ced__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--crs-ink-2);
+  white-space: nowrap;
+  border-radius: var(--radius-pill, 999px);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.ced__status-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+}
+
+.ced__status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--crs-ink-3);
+  border-radius: 50%;
+}
+
+.ced__status--saved .ced__status-icon {
+  color: var(--color-success);
+}
+
+.ced__status--fresh {
+  color: #157a43;
+  background: var(--color-success-tint);
+}
+
+.ced__status--failed {
   color: #b42318;
-  background: var(--color-surface);
-  border-color: #efc4c0;
-}
-
-.ced__delete:hover {
-  color: #a41d14;
   background: #fdecec;
-  border-color: #c62828;
 }
 
-.ced__delete:focus-visible {
-  outline-color: #c62828;
+.ced__status-spin {
+  animation: ced-spin 0.9s linear infinite;
+}
+
+@keyframes ced-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ced__status-retry {
+  padding: 2px 8px;
+  margin-left: 2px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b42318;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ced__status-retry:hover {
+  background: #fbd9d6;
+}
+
+.ced__status-retry:focus-visible {
+  outline: 2px solid #c62828;
+  outline-offset: 1px;
 }
 
 /* Preview landing page ↗ / See it as a student ↗: a soft orange button
@@ -146,6 +210,12 @@
   margin-top: 0;
 }
 
+/* The open lesson's foot: Done and + Add next lesson, on the right (its
+   save line moved to the steps row) */
+.ced .cct__pane-foot {
+  justify-content: flex-end;
+}
+
 /* Title and subtitle belong together: no line between them */
 .lnd__part--title + .lnd__part {
   margin-top: 20px;
@@ -165,7 +235,9 @@
   margin-left: auto;
 }
 
-/* ---------- The steps: ① Curriculum ② Landing page ③ Pricing ---------- */
+/* ---------- The steps: ① Curriculum ② Landing page ③ Pricing ----------
+   Once it's been published, the same row as plain tabs (ced__stepper--tabs):
+   names only, the open one underlined in orange. */
 .ced__stepper {
   min-width: 0;
 }
@@ -222,7 +294,7 @@
   background: #f0f0f2;
 }
 
-/* The step's number, or a green tick once it's done */
+/* The step's number, or a green tick once it's done (setting up only) */
 .ced__num {
   display: grid;
   flex: none;
@@ -245,6 +317,11 @@
 .ced__step--on .ced__num--done {
   color: #fff;
   background: var(--color-success);
+}
+
+/* Tabs: a little closer together, the names alone */
+.ced__stepper--tabs ol {
+  gap: 24px;
 }
 
 /* ================= The guide: fields on the left, the example on the right =================
@@ -568,7 +645,7 @@
   color: #b42318;
 }
 
-/* The cover's own part (CourseSettings.jsx), lined up with the others */
+/* The cover's own part (CourseCover.jsx), lined up with the others */
 .lnd__cover .cst__part {
   margin: 0;
   padding: 0;
@@ -790,6 +867,25 @@
   }
 }
 
+/* ================= Where the row gets tight: the save status shrinks to its icon =================
+   The words are still in its tooltip (title) and read out. A failed save
+   keeps its Retry. */
+@media (max-width: 1240px) {
+  .ced__status:not(.ced__status--failed) .ced__status-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ced__status:not(.ced__status--failed) {
+    padding: 4px 8px;
+  }
+}
+
 /* ================= Narrower screens ================= */
 @media (max-width: 720px) {
   .ced__bar {
@@ -830,8 +926,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ced,
-  .lrn__box {
+  .lrn__box,
+  .ced__status {
     transition: none;
+  }
+
+  .ced__status-spin {
+    animation: none;
   }
 }
 

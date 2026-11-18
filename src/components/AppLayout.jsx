@@ -15,6 +15,7 @@ import { loadSaved } from '../utils/storage';
 import { formatTime, zoned } from '../utils/slots';
 import AccountMenu from './AccountMenu';
 import UpdatesBell from './UpdatesBell';
+import InlineTitle from './InlineTitle';
 import './AppLayout.css';
 
 const sidebarItems = [
@@ -159,7 +160,8 @@ function SidebarFoot({ activeNav, onNavigate }) {
 // Focus mode: while a webinar or a 1:1 call is open, the app's top nav and
 // sidebar step back and one slim bar takes their place: exit on the left,
 // its name in the middle, save status on the right.
-// focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel, minimal, when, icon, status }
+// focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel,
+//   minimal, when, icon, status, onRename, titleMax, renameHint }
 // exitLabel: where the exit goes ('All webinars', or 'Webinar details'
 // while editing a published webinar's pages)
 // minimal: on a page that already shows the title big and edits nothing
@@ -169,8 +171,19 @@ function SidebarFoot({ activeNav, onNavigate }) {
 // ("Video call · 30 min"). Given, the middle shows it (icon, title, when)
 // even when minimal: the email editors use it, so it's clear whose email is open.
 // icon: the one beside the title with `when` (a webinar's Video; a call's Users)
-// status: false for no "Saved" on the right, on screens that save with their
-//   own button (a 1:1 call's editor). "Not saved" still shows if saving fails.
+// status: false for no "Saved" on the right: on screens that save with their
+//   own button (a 1:1 call's editor), or that show their own save status
+//   (a course's page, in its steps row). "Not saved" still shows if
+//   saveFailed is passed as true.
+// onRename(title): the title can be renamed right here (only a course's
+//   page passes it): it becomes a box with an always-visible pencil
+//   (InlineTitle, variant 'bar'). Other pages don't pass it, so their bar
+//   is unchanged.
+// titleMax: the longest the title can be (with onRename); how many
+//   characters are left shows while editing, from 20 left
+// renameHint: one line under the box while it's being renamed (a
+//   published course: "Students and your landing page will show the new
+//   name straight away.")
 function FocusBar({
   title,
   onExit,
@@ -180,6 +193,9 @@ function FocusBar({
   when = null,
   icon: Icon = Video,
   status = true,
+  onRename = null,
+  titleMax = 100,
+  renameHint = null,
 }) {
   return (
     <header className="focusbar">
@@ -197,6 +213,17 @@ function FocusBar({
         </p>
       ) : minimal ? (
         <span />
+      ) : onRename ? (
+        <InlineTitle
+          id="focusbar-title"
+          label="Name"
+          variant="bar"
+          value={title}
+          maxLength={titleMax}
+          onSave={onRename}
+          hint={renameHint}
+          countNear={20}
+        />
       ) : (
         <p className="focusbar__title" title={title}>
           {title}

@@ -16,7 +16,7 @@ import {
   testimonialsOf,
 } from '../data/courses';
 import TextEditor from '../components/TextEditor';
-import CourseCover from './CourseSettings';
+import CourseCover from './CourseCover';
 
 // ------------------------------------------------------------
 // A course's Landing page step (CoursePage.jsx): everything people see

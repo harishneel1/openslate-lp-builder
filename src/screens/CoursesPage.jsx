@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Check, ExternalLink, Link2, MoreHorizontal, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { BookOpen, Check, ExternalLink, Eye, Link2, MoreHorizontal, Pencil, Plus, Search, Trash2, Type, X } from 'lucide-react';
 import {
   COURSE_TITLE_MAX,
   academyCoursesUrl,
@@ -9,11 +9,13 @@ import {
   isPublished,
   loadCourses,
   onCoursesChange,
+  updateCourse,
 } from '../data/courses';
 import { copyText } from '../utils/copyText';
 import CourseCard from '../components/CourseCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CoursePage from './CoursePage';
+import { syncContractTitle } from './CoursePricing';
 import './CoursesPage.css';
 
 // ------------------------------------------------------------
@@ -22,13 +24,12 @@ import './CoursesPage.css';
 // its main button on the right, then the content.
 //
 //   Courses                   [View as student ↗] [+ Create course]
-//   Students get a course when they buy it, or sign up on a contract linked to it.
 //   [🔍 Search courses        ]  [All 3] [Published 1] [Drafts 2]
 //   ┌────────┐ ┌────────┐ ┌────────┐
 //   │ cover  │ │ cover  │ │ cover  │   CourseCard.jsx
 //   │PUBLISHED│ │ DRAFT  │ │        │
 //   │ Title  │ │        │ │        │
-//   │[Edit course][⋯]    │ │        │
+//   │[✎ Edit course][👁][⋯]│ │        │
 //   └────────┘ └────────┘ └────────┘
 //
 // No courses yet: one card in the middle saying "Your courses will appear
@@ -40,11 +41,26 @@ import './CoursesPage.css';
 // Create course opens "Create new course": a working title (required, up
 // to 100 characters), nothing else; everything else is on the course's
 // page. Continue makes a draft course and opens its page (CoursePage.jsx)
-// here, in focus mode: the focus bar's "← All courses" back to the list. Edit course opens the
-// same page. ⋯ → Copy link copies the course's landing page link
-// (/web/course/<course>, the one to share; a draft's opens once it's
-// published). ⋯ → Delete asks first; the course goes, and its contracts
-// stay as they are. Deleting a published one says students lose it too.
+// here, in focus mode: the focus bar's "← All courses" back to the list.
+//
+// On each card:
+//   Edit course   opens the course's page
+//   👁            its landing page, in a new tab: the live one, as buyers
+//                 see it, once published ("View landing page"); the
+//                 preview, with its strip, while it's a draft ("Preview
+//                 landing page")
+//   ⋯             Edit course · Rename · Copy link · Delete
+//     Rename      "Rename course": the title, as Create new course has it,
+//                 with Save. It's the same name as everywhere else (the
+//                 course page's focus bar, its Landing page step), and
+//                 renames the course's own contract too. A published one
+//                 says students and its landing page show the new name
+//                 straight away. The link never changes.
+//     Copy link   the course's landing page link (/web/course/<course>,
+//                 the one to share; a draft's opens once it's published)
+//     Delete      asks first; the course goes, and its contracts stay as
+//                 they are. Deleting a published one says students lose
+//                 it too. This is the only place a course is deleted.
 //
 // View as student opens the academy's Courses page as a preview (/web/courses?preview=1,
 // AcademyCoursesPage.jsx) in a new tab: what students see (published
@@ -72,6 +88,7 @@ export default function CoursesPage({ onFocus }) {
   const [creating, setCreating] = useState(false);
   const [openId, setOpenId] = useState(null); // the course whose page is open
   const [menuFor, setMenuFor] = useState(null); // the card whose ⋯ menu is open
+  const [renaming, setRenaming] = useState(null); // the course the rename pop-up is about
   const [deleting, setDeleting] = useState(null); // the course the delete pop-up is about
   const [notice, setNotice] = useState(null); // { text, tone }
 
@@ -111,7 +128,7 @@ export default function CoursesPage({ onFocus }) {
 
   const copyLink = async (course) => {
     const ok = await copyText(courseLandingUrl(course.id));
-    if (!ok) tell('We couldn’t copy it. Open the course, then Preview ▾ Landing page.', 'error');
+    if (!ok) tell('We couldn’t copy it. Open the course, then View landing page.', 'error');
     else tell(isPublished(course) ? 'Link copied' : 'Link copied. It opens once the course is published.');
   };
 
@@ -194,34 +211,55 @@ export default function CoursesPage({ onFocus }) {
             </section>
           ) : (
             <ul className="crs__grid" aria-label="Your courses">
-              {shown.map((c) => (
-                <li key={c.id} className={menuFor === c.id ? 'crs__grid-item--menu' : undefined}>
-                  <CourseCard course={c}>
-                    <button type="button" className="crs-btn crs-btn--quiet crs-btn--small crs-btn--grow" onClick={() => setOpenId(c.id)}>
-                      <Pencil size={15} aria-hidden="true" />
-                      Edit course
-                      <span className="sr-only">: {c.title}</span>
-                    </button>
-                    <CardMenu
-                      title={c.title}
-                      open={menuFor === c.id}
-                      onOpenChange={(open) => setMenuFor(open ? c.id : null)}
-                      onEdit={() => {
-                        setMenuFor(null);
-                        setOpenId(c.id);
-                      }}
-                      onCopy={() => {
-                        setMenuFor(null);
-                        copyLink(c);
-                      }}
-                      onDelete={() => {
-                        setMenuFor(null);
-                        setDeleting(c);
-                      }}
-                    />
-                  </CourseCard>
-                </li>
-              ))}
+              {shown.map((c) => {
+                const live = isPublished(c);
+                const viewLabel = live ? 'View landing page' : 'Preview landing page';
+                return (
+                  <li key={c.id} className={menuFor === c.id ? 'crs__grid-item--menu' : undefined}>
+                    <CourseCard course={c}>
+                      <button type="button" className="crs-btn crs-btn--quiet crs-btn--small crs-btn--grow" onClick={() => setOpenId(c.id)}>
+                        <Pencil size={15} aria-hidden="true" />
+                        Edit course
+                        <span className="sr-only">: {c.title}</span>
+                      </button>
+                      {/* Its landing page: live once published, the preview while it's a draft */}
+                      <a
+                        className="crs-icon-btn crs__view"
+                        href={courseLandingUrl(c.id, !live)}
+                        target="_blank"
+                        rel="noopener"
+                        title={viewLabel}
+                      >
+                        <Eye size={18} aria-hidden="true" />
+                        <span className="sr-only">
+                          {viewLabel}: {c.title} (opens in a new tab)
+                        </span>
+                      </a>
+                      <CardMenu
+                        title={c.title}
+                        open={menuFor === c.id}
+                        onOpenChange={(open) => setMenuFor(open ? c.id : null)}
+                        onEdit={() => {
+                          setMenuFor(null);
+                          setOpenId(c.id);
+                        }}
+                        onRename={() => {
+                          setMenuFor(null);
+                          setRenaming(c);
+                        }}
+                        onCopy={() => {
+                          setMenuFor(null);
+                          copyLink(c);
+                        }}
+                        onDelete={() => {
+                          setMenuFor(null);
+                          setDeleting(c);
+                        }}
+                      />
+                    </CourseCard>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </>
@@ -233,6 +271,17 @@ export default function CoursesPage({ onFocus }) {
           onCreated={(course) => {
             setCreating(false);
             setOpenId(course.id);
+          }}
+        />
+      )}
+
+      {renaming && (
+        <RenameCourseDialog
+          course={renaming}
+          onCancel={() => setRenaming(null)}
+          onRenamed={(course) => {
+            setRenaming(null);
+            tell(`Renamed to “${course.title}”`);
           }}
         />
       )}
@@ -265,8 +314,9 @@ export default function CoursesPage({ onFocus }) {
   );
 }
 
-// ⋯ on a card: Edit course, Copy link, then Delete. Closes on a click outside or Escape.
-function CardMenu({ title, open, onOpenChange, onEdit, onCopy, onDelete }) {
+// ⋯ on a card: Edit course, Rename, Copy link, then Delete. Closes on a
+// click outside or Escape.
+function CardMenu({ title, open, onOpenChange, onEdit, onRename, onCopy, onDelete }) {
   const wrap = useRef(null);
   const button = useRef(null);
   const menuId = useRef(`crs-menu-${Math.random().toString(36).slice(2)}`).current;
@@ -318,6 +368,10 @@ function CardMenu({ title, open, onOpenChange, onEdit, onCopy, onDelete }) {
           <button type="button" role="menuitem" className="crs-menu__item" onClick={onEdit}>
             <Pencil size={16} aria-hidden="true" />
             Edit course
+          </button>
+          <button type="button" role="menuitem" className="crs-menu__item" onClick={onRename}>
+            <Type size={16} aria-hidden="true" />
+            Rename
           </button>
           <button type="button" role="menuitem" className="crs-menu__item" onClick={onCopy}>
             <Link2 size={16} aria-hidden="true" />
@@ -427,6 +481,113 @@ function CreateCourseDialog({ onCancel, onCreated }) {
             Continue
           </button>
           {!ready && <p className="crs-dialog__hint">Add a title to continue</p>}
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
+// "Rename course": the title, as Create new course has it, with Cancel
+// and Save. The words start selected, ready to type over. An empty title
+// can't be saved; an unchanged one just closes. It renames the course's
+// own contract too (syncContractTitle), as renaming on its page does.
+function RenameCourseDialog({ course, onCancel, onRenamed }) {
+  const ref = useRef(null);
+  const input = useRef(null);
+  const [title, setTitle] = useState(course.title);
+  const [failed, setFailed] = useState(false);
+  const ready = title.trim().length > 0;
+  const live = isPublished(course);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    input.current?.select();
+    return () => dialog?.open && dialog.close();
+  }, []);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!ready) return;
+    const next = title.trim();
+    if (next === course.title) {
+      onCancel();
+      return;
+    }
+    const saved = updateCourse(course.id, { title: next });
+    if (!saved) {
+      setFailed(true);
+      return;
+    }
+    syncContractTitle(saved, saved.title);
+    onRenamed(saved);
+  };
+
+  return (
+    <dialog
+      ref={ref}
+      className="crs-dialog"
+      aria-labelledby="crs-rename-title"
+      onCancel={(e) => {
+        e.preventDefault();
+        onCancel();
+      }}
+    >
+      <form className="crs-dialog__form" onSubmit={submit} noValidate>
+        <div className="crs-dialog__top">
+          <h2 className="crs-dialog__title" id="crs-rename-title">
+            Rename course
+          </h2>
+          <button type="button" className="crs-dialog__close" onClick={onCancel} aria-label="Close">
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="crs-dialog__body">
+          <div className="crs-field">
+            <span className="crs-field__row">
+              <label className="crs-field__label" htmlFor="crs-rename-name">
+                Title
+              </label>
+              <span className="crs-field__count">
+                {title.length}/{COURSE_TITLE_MAX}
+              </span>
+            </span>
+            <input
+              ref={input}
+              id="crs-rename-name"
+              className="crs-input"
+              value={title}
+              maxLength={COURSE_TITLE_MAX}
+              autoComplete="off"
+              aria-describedby={live ? 'crs-rename-note' : undefined}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setFailed(false);
+              }}
+            />
+          </div>
+
+          {live && (
+            <p className="crs-dialog__help crs__rename-note" id="crs-rename-note">
+              Students and your landing page will show the new name straight away.
+            </p>
+          )}
+
+          {failed && (
+            <p className="crs-dialog__error" role="alert">
+              We couldn’t rename it just now. Try again.
+            </p>
+          )}
+        </div>
+
+        <div className="crs-dialog__foot crs-dialog__foot--row">
+          <button type="button" className="crs-btn crs-btn--quiet" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className="crs-btn crs-btn--primary" disabled={!ready}>
+            Save
+          </button>
         </div>
       </form>
     </dialog>

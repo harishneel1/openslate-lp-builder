@@ -4,6 +4,7 @@
    wide as the words. */
 
 .ilt {
+  position: relative; /* for the hint under it */
   display: flex;
   align-items: center;
   gap: 2px;
@@ -63,7 +64,7 @@
   box-shadow: 0 0 0 3px var(--color-primary-tint);
 }
 
-/* Pencil and bin: quiet grey, darker when pointed at */
+/* Pencil and bin: always shown, quiet grey, darker when pointed at */
 .ilt__tool {
   display: grid;
   flex: none;
@@ -107,7 +108,40 @@
   visibility: hidden;
 }
 
-/* ---------- The course's title ---------- */
+/* Characters left, only near the limit and only while editing */
+.ilt__count {
+  flex: none;
+  padding-left: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--crs-orange-ink, #9a4a0f);
+  font-variant-numeric: tabular-nums;
+}
+
+/* One line under the box while it's being edited */
+.ilt__hint {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 60;
+  display: none;
+  padding: 7px 11px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #fff;
+  white-space: nowrap;
+  background: #1f1f22;
+  border-radius: 6px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ilt:has(.ilt__input:focus) .ilt__hint {
+  display: block;
+}
+
+/* ---------- The course's title, big on a page ---------- */
 .ilt--page {
   margin-left: -11px; /* the words line up with the page, not the box's edge */
   font-size: 30px;
@@ -120,6 +154,40 @@
 
 .ilt--page .ilt__size {
   padding: 4px 12px 4px 10px; /* a little extra, so the last letter never scrolls */
+}
+
+/* ---------- The course's name in the focus bar (AppLayout.jsx) ----------
+   The same size and weight as the bar's plain title. Pointed at, the
+   words get a light grey box, so it reads as something to click. */
+.ilt--bar {
+  justify-self: center;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.ilt--bar .ilt__size,
+.ilt--bar .ilt__input {
+  font-weight: 600;
+  color: var(--color-text, #141414);
+}
+
+.ilt--bar .ilt__input {
+  padding: 5px 8px;
+}
+
+.ilt--bar .ilt__size {
+  padding: 5px 10px 5px 8px;
+}
+
+.ilt--bar:hover .ilt__input:not(:focus) {
+  background: #f3f3f3;
+  border-color: transparent;
+}
+
+.ilt--bar .ilt__tool {
+  width: 28px;
+  height: 28px;
 }
 
 /* ---------- A section's name, a lesson's name ---------- */
@@ -157,5 +225,15 @@
 @media (max-width: 720px) {
   .ilt--page {
     font-size: 24px;
+  }
+
+  .ilt--bar {
+    max-width: 100%;
+  }
+
+  .ilt__hint {
+    white-space: normal;
+    width: max-content;
+    max-width: 260px;
   }
 }

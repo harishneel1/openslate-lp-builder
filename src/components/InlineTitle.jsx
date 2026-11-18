@@ -5,8 +5,11 @@ import './InlineTitle.css';
 // ------------------------------------------------------------
 // A title that's edited in place, with a pencil right after its last
 // word so it's clear it can be changed (and, if it can be deleted, a bin
-// beside the pencil). Used for a course's title (CoursePage.jsx), a
-// section's name and a lesson's name while it's renamed (CourseContent.jsx).
+// beside the pencil). The pencil is always shown, never only on hover:
+// touch screens have no hover, and it says "you can rename this".
+// Used for a course's name in the focus bar (AppLayout.jsx, variant
+// 'bar'), a section's name and a lesson's name (CourseContent.jsx), and
+// the open lesson's name in its panel (LessonPane.jsx, variant 'pane').
 //
 //   AI Engineering Accelerator ✎
 //   Introduction ✎ 🗑
@@ -19,12 +22,16 @@ import './InlineTitle.css';
 // one back.
 //
 // id, label (for screen readers), value, maxLength, onSave(text)
-// variant: 'page' (the course's title) | 'section' | 'lesson'
+// variant: 'page' | 'bar' (the focus bar) | 'section' | 'lesson' | 'pane'
 // autoFocus, onFocused(): select it straight away (a new section, a lesson
 //   being renamed)
 // onEditEnd(): after it's left (saved or not), for a lesson's name, which
 //   goes back to being a plain row
 // onDelete(), deleteLabel: show a bin after the pencil ("Delete section")
+// hint: one line shown under the box while it's being edited (a published
+//   course: "Students and your landing page will show the new name…")
+// countNear: while editing, how many characters are left shows once
+//   there are this many or fewer (needs maxLength)
 // ------------------------------------------------------------
 
 export default function InlineTitle({
@@ -39,10 +46,12 @@ export default function InlineTitle({
   onEditEnd,
   onDelete,
   deleteLabel = 'Delete',
+  hint = null,
+  countNear = null,
 }) {
   const [text, setText] = useState(value);
   const input = useRef(null);
-  useEffect(() => setText(value), [value]); // changed in another tab
+  useEffect(() => setText(value), [value]); // changed in another tab, or elsewhere on the page
 
   const edit = () => {
     input.current?.focus();
@@ -63,6 +72,8 @@ export default function InlineTitle({
   };
 
   const small = variant !== 'page';
+  const left = maxLength ? maxLength - text.length : null;
+  const showCount = countNear != null && left != null && left <= countNear;
 
   return (
     <div className={`ilt ilt--${variant}`}>
@@ -82,6 +93,7 @@ export default function InlineTitle({
           value={text}
           maxLength={maxLength}
           autoComplete="off"
+          aria-describedby={hint ? `${id}-hint` : undefined}
           onChange={(e) => setText(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
@@ -93,6 +105,11 @@ export default function InlineTitle({
           }}
         />
       </span>
+      {showCount && (
+        <span className="ilt__count" aria-live="polite">
+          {left}
+        </span>
+      )}
       {/* For the mouse; the box itself is what the keyboard reaches */}
       <button
         type="button"
@@ -115,6 +132,11 @@ export default function InlineTitle({
         >
           <Trash2 size={small ? 15 : 18} />
         </button>
+      )}
+      {hint && (
+        <span className="ilt__hint" id={`${id}-hint`}>
+          {hint}
+        </span>
       )}
     </div>
   );

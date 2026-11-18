@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Eye, Link2, Rocket, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Eye, Link2, Loader2, Rocket, X } from 'lucide-react';
 import {
+  COURSE_TITLE_MAX,
   buyContractOf,
   courseLandingUrl,
   coursePlayerUrl,
-  deleteCourse,
   getCourse,
   isPublished,
   onCoursesChange,
@@ -29,9 +29,12 @@ import './CoursePage.css';
 // One course's page: where Create course's Continue and Edit course land.
 // In focus mode, as an open 1:1 call: the app's sidebar and top nav step
 // aside, and its focus bar (AppLayout.jsx) is the way back, with the
-// course's name in the middle and "Saved" on the right. Under it, one row:
-// the three steps, and the course's actions. On each screen, only the next
-// thing to do.
+// course's name in the middle, renamed right there (✎, always shown).
+// Under it, one row: the steps (or tabs), then the save status and the
+// course's actions. On each screen, only the next thing to do.
+//
+// Deleting a course is on the Courses list only (the card's ⋯ menu,
+// CoursesPage.jsx), not here.
 //
 // Two modes:
 //
@@ -39,10 +42,10 @@ import './CoursePage.css';
 // a time, as a new 1:1 call's flow is. Steps ahead are greyed and can't be
 // opened until the ones before them are done; done ones can be opened
 // again. The steps row carries the step's way forward on its right
-// (SetupActions), pinned at the top as the page scrolls, with Delete course
-// (red) set apart before it. It works once that step's minimum is done:
+// (SetupActions), pinned at the top as the page scrolls, after the save
+// status. It works once that step's minimum is done:
 //   ① Curriculum ✓  ② Landing page  ③ Pricing
-//             [🗑 Delete course] │ [👁 Preview landing page ↗]  [← Back]  [Continue to Pricing →]
+//             ✓ Saved as draft │ [👁 Preview landing page ↗]  [← Back]  [Continue to Pricing →]
 //   Curriculum     See it as a student ↗ (once a lesson has something in
 //                  it), Continue to Landing page →
 //   Landing page   ← Back, Preview landing page ↗, Continue to Pricing →,
@@ -56,13 +59,28 @@ import './CoursePage.css';
 // what's being worked on (the open lesson's Done / Add next lesson).
 // Coming back to a draft opens its first step that isn't done.
 //
-// Editing (published, or published before and unpublished since): every
-// step open, any time, as below, with the actions in the top row.
-//   ← All courses          AI Engineering Accelerator              ✓ Saved   (focus bar)
-//   ① Curriculum ✓  ② Landing page ✓  ③ Pricing ✓   [🗑 Delete course] │ [Copy link] [View landing page ↗] [● Published ▾]
+// Editing (published, or published before and unpublished since): the
+// steps are plain tabs (no numbers, no ticks: it's managing the course
+// now, not making it), every one open, any time.
+//   ← All courses          AI Engineering Accelerator ✎                       (focus bar)
+//   Curriculum  Landing page  Pricing    ✓ Saved · live for students │ [Copy link] [View landing page ↗] [● Published ▾]
 //   ┌────────────────────────────────────────────────────────────────────┐
-//   │ the open step                                                      │
+//   │ the open tab                                                       │
 //   └────────────────────────────────────────────────────────────────────┘
+//
+// The save status (SaveStatus), the one place that says whether changes
+// are saved (not the focus bar, not the lesson panel):
+//   ● Unsaved changes            something's typed and not saved yet (a
+//                                field still being typed in, a lesson's
+//                                text not saved, an upload under way)
+//   ⟳ Saving…                    for a moment after each change
+//   ✓ Saved as draft             (green; a short highlight, then it stays)
+//   ✓ Saved · live for students  the same, once published: changes are live
+//   ⚠ Couldn't save · Retry      Retry runs the change again, when this
+//                                page knows what it was (the landing page's
+//                                fields, the title); otherwise it asks them
+//                                to make the change again
+// On narrower screens only its icon shows, with the words on hover.
 //
 // The steps (data/courseSteps.js says which are done):
 //   Curriculum     a workspace (ced--workspace): on screens 1100px wide
@@ -82,23 +100,28 @@ import './CoursePage.css';
 //                  it's for, testimonials (CourseLanding.jsx)
 //   Pricing        the price, with an optional discounted price
 //                  (CoursePricing.jsx)
-// A done step has a green tick in place of its number. Opens on the first
-// step that isn't done, or Curriculum once they all are. Moving between
-// steps, or leaving, asks first if something isn't saved ("Leave without
-// saving?": an open lesson, a description too long to save).
+// Setting up: a done step has a green tick in place of its number. Opens
+// on the first step that isn't done, or Curriculum once they all are.
+// Moving between steps, or leaving, asks first if something isn't saved
+// ("Leave without saving?": an open lesson, a description too long to save).
 //
 // The actions, while editing:
 //   Copy link            once published: the landing page link to share
 //   View landing page ↗  what buyers see (CourseLandingPage.jsx)
 //   Publish              only on a course unpublished since: with something
 //                        missing it doesn't publish: it opens the first
-//                        step that needs work, puts the cursor in the
+//                        tab that needs work, puts the cursor in the
 //                        field, and says in one line at the top of that
-//                        step what's left there. Else it asks once.
+//                        tab what's left there. Else it asks once.
 //   ● Published ▾        once live, in Publish's place: Unpublish (asks
 //                        first; progress is kept)
-//   🗑                    Delete course (asks first), in both modes
 // Changes go live as they're made once it's published.
+//
+// The title: renamed in the focus bar (here), on the Landing page step's
+// Title field, or from the Courses list (⋯ → Rename). All the same name:
+// it renames the course's own contract too (syncContractTitle). Renaming
+// a published course says, while editing, that students and the landing
+// page show the new name straight away. The link never changes.
 //
 // The guide: on the Landing page and Pricing steps, the step's fields sit
 // on the left and Meera's example course on the right (ProfileExample.jsx
@@ -109,15 +132,14 @@ import './CoursePage.css';
 // (Pricing). Only on screens wide enough for both columns (1100px and
 // up); narrower, the fields have the width to themselves.
 //
-// The title is the Landing page's first field, and renames the course's
-// own contract too (syncContractTitle). The description is the contract's
-// description too, as plain text (syncContractDescription): it's what the
-// checkout page says. A contract picked for the Buy button is never
-// changed.
+// The description is the contract's description too, as plain text
+// (syncContractDescription): it's what the checkout page says. A contract
+// picked for the Buy button is never changed.
 //
 // A published course that's missing something publishing needs (one
-// published before the description was needed, say) stays published: the
-// step loses its tick, and a line at the top of the step says what to add.
+// published before the description was needed, say) stays published: a
+// line at the top of the tab says what to add. The tabs themselves show
+// nothing.
 //
 // Publishing (Publish course while setting up, or Publish later): once
 // they confirm, the course is published straight away and the step is
@@ -125,7 +147,7 @@ import './CoursePage.css';
 // short build (lessons, price, landing page, live) as a webinar's sign-up
 // page has, then "Your course is live" with its link to share; published
 // again after unpublishing, straight to the link. Go to your course comes
-// back here, editing.
+// back here, editing, on the Curriculum tab.
 //
 // courseId, onBack()
 // onFocus(focus | null): sets the focus bar (App.jsx → AppLayout's
@@ -144,6 +166,12 @@ const FIELD_TARGET = {
   outcomes: '.lrn--outcomes .lrn__input',
   price: '.prc__prices input',
 };
+
+// The save status: how long "Saving…" shows, then how long "Saved" stays lit
+const SAVING_MS = 450;
+const FRESH_MS = 1800;
+// After leaving a field they typed in: if nothing saved by then, nothing changed
+const TYPING_SETTLE_MS = 600;
 
 function useCourse(id) {
   const [course, setCourse] = useState(() => getCourse(id));
@@ -178,6 +206,8 @@ const GUIDE_START = { landing: 'title', pricing: 'price' };
 
 const firstStepOf = (course) => {
   if (!course) return 'curriculum';
+  // Once it's been published, the tabs open on Curriculum
+  if (isPublished(course) || course.publishedAt) return 'curriculum';
   const steps = courseSteps(course);
   return STEPS.find(({ id }) => !steps[id].done)?.id ?? 'curriculum';
 };
@@ -189,18 +219,34 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const [focusField, setFocusField] = useState(null); // { field, n }: put the cursor there
   const [dirty, setDirty] = useState(false); // something open isn't saved yet
   const [pending, setPending] = useState(null); // what to do once they agree to leave it
-  const [saveFailed, setSaveFailed] = useState(false); // the focus bar says "Not saved"
+  const [saveState, setSaveState] = useState({ kind: 'saved', fresh: false }); // 'saving' | 'saved' | 'failed'
+  const [typing, setTyping] = useState(false); // typed in a field that saves when they leave it
   const [notice, setNotice] = useState(null); // { text, tone }, at the foot of the screen
   const [publishing, setPublishing] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [published, setPublished] = useState(null); // { first }: the publish screen is up
-  const [deleting, setDeleting] = useState(false);
   const [paneOpen, setPaneOpen] = useState(false); // Curriculum: a lesson is open in its panel
   const noticeTimer = useRef(null);
+  const saveTimers = useRef([]);
+  const typingTimer = useRef(null);
+  const retry = useRef(null); // the change that couldn't be saved, to run again
   const exit = useRef(null); // the focus bar's way back, kept current
+  const rename = useRef(null); // the focus bar's rename, kept current
   const wide = useWide();
   const [guide, setGuide] = useState(() => GUIDE_START[step] ?? null); // the example's highlighted part
-  useEffect(() => () => clearTimeout(noticeTimer.current), []);
+
+  const clearSaveTimers = () => {
+    saveTimers.current.forEach(clearTimeout);
+    saveTimers.current = [];
+  };
+  useEffect(
+    () => () => {
+      clearTimeout(noticeTimer.current);
+      clearTimeout(typingTimer.current);
+      clearSaveTimers();
+    },
+    [],
+  );
 
   // A new step: its guide starts on its first part
   useEffect(() => setGuide(GUIDE_START[step] ?? null), [step]);
@@ -219,11 +265,23 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
     if (course) document.title = course.title;
   }, [course]);
 
-  // Focus mode: the focus bar names the course, and its exit comes back here
+  // Focus mode: the focus bar names the course (renamed right there), and
+  // its exit comes back here. Its own "Saved" is off: the save status is in
+  // the steps row.
   const title = course?.title ?? 'Course';
+  const liveNow = isPublished(course);
   useEffect(() => {
-    onFocus?.({ title, exitLabel: 'All courses', saveFailed, onExit: () => exit.current() });
-  }, [title, saveFailed, onFocus]);
+    onFocus?.({
+      title,
+      exitLabel: 'All courses',
+      status: false,
+      saveFailed: false,
+      onExit: () => exit.current(),
+      onRename: course ? (next) => rename.current?.(next) : null,
+      titleMax: COURSE_TITLE_MAX,
+      renameHint: liveNow ? 'Students and your landing page will show the new name straight away.' : null,
+    });
+  }, [title, liveNow, Boolean(course), onFocus]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onFocus?.(null), [onFocus]);
 
   // After Publish with something missing: the cursor in the field that needs it
@@ -276,21 +334,52 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const reachable = (i) => !setup || STEPS.slice(0, i).every((s) => steps[s.id].done);
   const hasLesson = publishCheck(course).lessons > 0;
 
-  // A change: the focus bar says "Not saved" when it didn't work
-  const showSaved = (ok) => {
-    setSaveFailed(!ok);
-    return ok;
+  // ---------- Saving ----------
+  // After every change: "Saving…" for a moment, then "Saved" lit up, then
+  // "Saved" settles. Or "Couldn't save", with what to run again if known.
+  const showSaved = (ok, again = null) => {
+    clearSaveTimers();
+    clearTimeout(typingTimer.current);
+    setTyping(false);
+    if (!ok) {
+      retry.current = again;
+      setSaveState({ kind: 'failed' });
+      return false;
+    }
+    retry.current = null;
+    setSaveState({ kind: 'saving' });
+    saveTimers.current.push(setTimeout(() => setSaveState({ kind: 'saved', fresh: true }), SAVING_MS));
+    saveTimers.current.push(setTimeout(() => setSaveState({ kind: 'saved', fresh: false }), SAVING_MS + FRESH_MS));
+    return true;
   };
-  const save = (change) => {
-    const ok = showSaved(Boolean(updateCourse(course.id, change)));
+  // What the steps' own parts report (lessons, the price): ok or not
+  const onSaved = (ok) => showSaved(ok);
+
+  const save = (change, again) => {
+    const ok = Boolean(updateCourse(course.id, change));
+    showSaved(ok, again ?? (() => save(change)));
     if (ok && 'description' in change) syncContractDescription(course, change.description);
     return ok;
   };
   const saveTitle = (next) => {
-    const ok = save({ title: next });
+    const ok = save({ title: next }, () => saveTitle(next));
     if (ok) syncContractTitle(course, next);
     return ok;
   };
+  rename.current = saveTitle;
+
+  // Typing in a field that saves when they leave it: "Unsaved changes"
+  // until it saves. Left without a change, nothing saves: it settles back.
+  const onTyped = () => {
+    clearTimeout(typingTimer.current);
+    setTyping(true);
+  };
+  const onLeftField = () => {
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => setTyping(false), TYPING_SETTLE_MS);
+  };
+
+  const status = saveState.kind === 'failed' ? 'failed' : dirty || typing ? 'unsaved' : saveState.kind;
 
   const tell = (text, tone = 'ok') => {
     clearTimeout(noticeTimer.current);
@@ -313,7 +402,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
       setFocusField({ field: first.field, n: Date.now() });
     });
 
-
   const publish = () => {
     setPublishing(false);
     if (publishCourse(course.id)) {
@@ -325,11 +413,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
     setUnpublishing(false);
     if (unpublishCourse(course.id)) tell('Unpublished. It’s a draft again.');
     else tell('We couldn’t unpublish it just now. Try again.', 'error');
-  };
-  const remove = () => {
-    setDeleting(false);
-    if (deleteCourse(course.id)) onBack();
-    else tell('We couldn’t delete it just now. Try again.', 'error');
   };
   const copyLink = async () => {
     const ok = await copyText(courseLandingUrl(course.id));
@@ -348,15 +431,21 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const landingFields = (
     <CourseLanding key={course.id} course={course} onSave={save} onSaveTitle={saveTitle} onDirtyChange={setDirty} />
   );
-  const pricingFields = (
-<CoursePricing course={course} onSave={save} onSaved={showSaved} />
-  );
+  const pricingFields = <CoursePricing course={course} onSave={save} onSaved={onSaved} />;
 
-  // Just published: the publish screen, in place of the steps
+  // Just published: the publish screen, in place of the steps. Go to your
+  // course comes back on the Curriculum tab.
   if (published) {
     return (
       <div className="crs ced ced--published">
-        <CoursePublished course={course} animate={published.first} onDone={() => setPublished(null)} />
+        <CoursePublished
+          course={course}
+          animate={published.first}
+          onDone={() => {
+            setPublished(null);
+            setStep('curriculum');
+          }}
+        />
       </div>
     );
   }
@@ -373,9 +462,9 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         </button>
       )}
 
-      {/* ---------- One row: the steps, and the course's actions ---------- */}
+      {/* ---------- One row: the steps (or tabs), the save status, the actions ---------- */}
       <header className="ced__bar">
-        <nav className="ced__stepper" aria-label="Course steps">
+        <nav className={`ced__stepper ${setup ? '' : 'ced__stepper--tabs'}`} aria-label={setup ? 'Course steps' : 'Course'}>
           <ol>
             {STEPS.map((s, i) => {
               const done = steps[s.id].done;
@@ -386,17 +475,22 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
                   <button
                     type="button"
                     className={`ced__step ${on ? 'ced__step--on' : ''} ${open ? '' : 'ced__step--locked'}`}
-                    aria-current={on ? 'step' : undefined}
+                    aria-current={on ? (setup ? 'step' : 'page') : undefined}
                     disabled={!open}
                     onClick={() => go(s.id)}
                   >
-                    <span className={`ced__num ${done ? 'ced__num--done' : ''}`} aria-hidden="true">
-                      {done ? <Check size={13} strokeWidth={3} /> : i + 1}
-                    </span>
+                    {/* Setting up only: the number, or a tick once done. Tabs show just the name. */}
+                    {setup && (
+                      <span className={`ced__num ${done ? 'ced__num--done' : ''}`} aria-hidden="true">
+                        {done ? <Check size={13} strokeWidth={3} /> : i + 1}
+                      </span>
+                    )}
                     {s.label}
-                    <span className="sr-only">
-                      {done ? ', done' : open ? ', not done yet' : ', opens once the step before it is done'}
-                    </span>
+                    {setup && (
+                      <span className="sr-only">
+                        {done ? ', done' : open ? ', not done yet' : ', opens once the step before it is done'}
+                      </span>
+                    )}
                   </button>
                 </li>
               );
@@ -405,12 +499,14 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         </nav>
 
         <div className="ced__actions">
-          {/* Delete course first, in red, set apart by a line, so it's never
-              right beside the main button */}
-          <button type="button" className="crs-btn crs-btn--small ced__delete" onClick={() => guard(() => setDeleting(true))}>
-            <Trash2 size={16} aria-hidden="true" />
-            Delete course
-          </button>
+          {/* Whether changes are saved: the one place that says so */}
+          <SaveStatus
+            status={status}
+            fresh={saveState.kind === 'saved' && saveState.fresh}
+            live={live}
+            canRetry={Boolean(retry.current)}
+            onRetry={() => retry.current?.()}
+          />
           <span className="ced__actions-sep" aria-hidden="true" />
 
           {/* Setting up: the step's way forward, here at the top right */}
@@ -471,9 +567,15 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
       </header>
 
       {/* ---------- The open step ---------- */}
-      <section className="crs__panel ced__panel" aria-labelledby="ced-step-title">
+      {/* Typing in a field shows "Unsaved changes" until it saves */}
+      <section
+        className="crs__panel ced__panel"
+        aria-labelledby="ced-step-title"
+        onInputCapture={onTyped}
+        onBlurCapture={onLeftField}
+      >
         <h2 className="sr-only" id="ced-step-title" tabIndex={-1}>
-          Step {stepNumber} of {STEPS.length}: {stepLabel}
+          {setup ? `Step ${stepNumber} of ${STEPS.length}: ${stepLabel}` : stepLabel}
         </h2>
 
         {needs && !live && missingHere.length > 0 && (
@@ -486,7 +588,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
           <p className="ced__needs" role="status">
             <AlertTriangle size={16} aria-hidden="true" />
             <span>
-              Your course stays live, but this step isn’t finished: {inWords(missingHere.map((m) => m.text))}.
+              Your course stays live, but this tab isn’t finished: {inWords(missingHere.map((m) => m.text))}.
             </span>
           </p>
         )}
@@ -495,7 +597,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
           {step === 'curriculum' && (
             <CourseContent
               course={course}
-              onSaved={showSaved}
+              onSaved={onSaved}
               guard={guard}
               onDirtyChange={setDirty}
               onPaneChange={setPaneOpen}
@@ -554,22 +656,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         </ConfirmDialog>
       )}
 
-      {deleting && (
-        <ConfirmDialog
-          title={live ? 'Delete this published course?' : 'Delete this course?'}
-          confirmLabel="Delete course"
-          danger
-          onCancel={() => setDeleting(false)}
-          onConfirm={remove}
-        >
-          <p>
-            <strong>{course.title}</strong> will be deleted.{' '}
-            {live && 'It’s published, so students lose it straight away, and their progress with it. '}
-            Its contracts stay as they are. This can’t be undone.
-          </p>
-        </ConfirmDialog>
-      )}
-
       <div className="crs__notice-wrap" aria-live="polite">
         {notice && (
           <p className={`crs__notice ${notice.tone === 'error' ? 'crs__notice--error' : ''}`}>
@@ -586,14 +672,53 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   );
 }
 
+// Whether changes are saved, in the steps row, before the actions:
+//   ● Unsaved changes · ⟳ Saving… · ✓ Saved as draft (✓ Saved · live for
+//   students) · ⚠ Couldn't save · Retry
+// "Saved" lights up green for a moment after each save (fresh), then
+// stays, quieter. On narrower screens only the icon shows (CoursePage.css);
+// the words are in its tooltip and still read out.
+// status: 'unsaved' | 'saving' | 'saved' | 'failed'; live: published;
+// canRetry: Retry can run the change again; onRetry()
+function SaveStatus({ status, fresh, live, canRetry, onRetry }) {
+  const text = {
+    unsaved: 'Unsaved changes',
+    saving: 'Saving…',
+    saved: live ? 'Saved · live for students' : 'Saved as draft',
+    failed: canRetry ? 'Couldn’t save' : 'Couldn’t save your last change. Make it again.',
+  }[status];
+  const icon = {
+    unsaved: <span className="ced__status-dot" />,
+    saving: <Loader2 size={15} className="ced__status-spin" />,
+    saved: <Check size={15} strokeWidth={2.75} />,
+    failed: <AlertTriangle size={15} />,
+  }[status];
+
+  return (
+    <div className={`ced__status ced__status--${status} ${fresh ? 'ced__status--fresh' : ''}`} title={text}>
+      <span className="ced__status-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="ced__status-text" role="status" aria-live="polite">
+        {text}
+      </span>
+      {status === 'failed' && canRetry && (
+        <button type="button" className="ced__status-retry" onClick={onRetry}>
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
 // While setting up, the step's way forward, at the right of the steps row
 // (beside the steps it moves through, and pinned with them as the page
 // scrolls): a preview where there's something to see (a soft orange
 // button with an eye: "look at it"), then ← Back right beside the one
 // main button, so the two that move between steps sit together:
 // Continue to the next step, or Publish course on the last. Left to
-// right, each look means one thing: red (Delete course, careful), soft
-// orange (look), white (go back), solid orange (go forward). It works once this step's minimum is
+// right, each look means one thing: soft orange (look), white (go back),
+// solid orange (go forward). It works once this step's minimum is
 // done; until then it says what's left as a hint on hover or focus (and
 // to screen readers).
 //   Curriculum     👁 See it as a student ↗ (once a lesson has something

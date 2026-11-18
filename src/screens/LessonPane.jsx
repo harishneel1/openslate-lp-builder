@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { LESSON_TITLE_MAX } from '../data/courses';
 import InlineTitle from '../components/InlineTitle';
 import LessonPanel from './LessonPanel';
@@ -16,7 +16,7 @@ import LessonPanel from './LessonPanel';
 //   │ [Cloud] [Upload video] [PDF] [Embedded video] │ [Text]    │
 //   │ …its description and resources, once it has content       │
 //   ├──────────────────────────────────────────────────────────┤
-//   │ ✓ Changes save as you go          [Done] [+ Add next lesson] │
+//   │                               [Done] [+ Add next lesson]   │
 //   └──────────────────────────────────────────────────────────┘
 //
 // The head stays put; only the body scrolls, so a long text lesson
@@ -28,7 +28,8 @@ import LessonPanel from './LessonPanel';
 // (which the scrolling body would cut off).
 //
 // Head: where the lesson sits (its section, and its number there, as in
-// the outline), then its name, renamed in place (InlineTitle).
+// the outline), then its name, renamed in place (InlineTitle, its pencil
+// always shown).
 //   ‹ ›  the lesson before or after it, across sections, in the order
 //        students take them. Disabled at either end.
 //   ✕    closes the panel (so does Escape, unless they're typing or a
@@ -41,9 +42,8 @@ import LessonPanel from './LessonPanel';
 // lesson, so each lesson starts fresh, scrolled to the top.
 //
 // Foot: the lesson's own ending, so finishing one never sends the eye to
-// the step's Continue (top right, CoursePage.jsx). The bottom of the
-// screen is the lesson's alone. Everything here saves as it's made, and the foot says so; while
-// something isn't saved yet (text being written), it says that instead.
+// the step's Continue (top right, CoursePage.jsx). Whether it's saved is
+// said once, in the course page's steps row (its save status), not here.
 //   + Add next lesson  the one solid button: closes the panel and opens a
 //                      new lesson's title box right under this one
 //                      (CourseContent.jsx)
@@ -61,11 +61,6 @@ export default function LessonPane({ course, entry, prev, next, onGo, onClose, o
   const { lesson, section, sectionNumber, number } = entry;
   const pane = useRef(null);
   const body = useRef(null);
-  const [dirty, setDirty] = useState(false); // something in the lesson isn't saved yet
-  const dirtyChange = (d) => {
-    setDirty(d);
-    onDirtyChange(d);
-  };
 
   // A new lesson in the panel: its top, and the keyboard in the panel
   // unless it's already there (‹ › keep it on themselves)
@@ -144,19 +139,10 @@ export default function LessonPane({ course, entry, prev, next, onGo, onClose, o
       </header>
 
       <div className="cct__pane-body" ref={body}>
-        <LessonPanel key={lesson.id} course={course} lesson={lesson} onSaved={onSaved} onDirtyChange={dirtyChange} />
+        <LessonPanel key={lesson.id} course={course} lesson={lesson} onSaved={onSaved} onDirtyChange={onDirtyChange} />
       </div>
 
       <footer className="cct__pane-foot">
-        <p className={`cct__pane-saved ${dirty ? 'cct__pane-saved--unsaved' : ''}`} aria-live="polite">
-          {dirty ? (
-            'Not saved yet'
-          ) : (
-            <>
-              <Check size={15} strokeWidth={2.5} aria-hidden="true" /> Changes save as you go
-            </>
-          )}
-        </p>
         <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={onClose}>
           Done
         </button>
