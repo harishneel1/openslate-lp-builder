@@ -1,5 +1,7 @@
 import { peopleOf, onSignupsChange } from './webinarSignups';
 import { loadBookings, onBookingsChange } from './bookingsStore';
+import { allContractSignups, getContractSignup, onContractSignupsChange, refundSignup } from './contractSignupsStore';
+import { courseOfContract } from './courses';
 import { funnelTypes } from './funnelTypes';
 import { webinarWhen } from './webinar';
 import { coachZone } from './buildBookingsJson';
@@ -49,6 +51,11 @@ import { addressLine, loadInvoiceSettings } from './invoiceSettings';
 //     sign-up (webinarSignups.js) and paid call booking (bookingsStore.js)
 //     is a sale, and every refunded sign-up is a refund, so the money
 //     matches the webinar and call pages
+//   - payments on contracts' own checkout pages (contractSignupsStore.js):
+//     a course's Buy button, and any other contract sold on its own page.
+//     A course's are named after the course, kind 'course'; the rest are
+//     'product'. A refunded one is a refund. So the money matches the
+//     course's Students tab.
 //   - demo history: about 80 days of sample sales, withdrawals, a refund
 //     and monthly TDS, made once (seedDemoEarnings) so the page has
 //     something real-looking in it. Remove for production.
@@ -56,8 +63,8 @@ import { addressLine, loadInvoiceSettings } from './invoiceSettings';
 // Call bookings that are cancelled stay sales: cancelling a call doesn't
 // refund it (BookingDrawer.jsx). Refunding one by hand is round 2.
 //
-// Not yet (later rounds): refunding from a sale, invoices, GST, TCS,
-// month summaries, failed withdrawals, changing the bank account.
+// Not yet (later rounds): invoices for GST, TCS, month summaries, failed
+// withdrawals, changing the bank account.
 // TDS is only in the demo history; real sales get none in the prototype.
 //
 // Orders (Sales → Transactions, ordersOf): every sale, plus what never
@@ -66,6 +73,9 @@ import { addressLine, loadInvoiceSettings } from './invoiceSettings';
 // cents) and the rate it became rupees at; its gross and everything in
 // the ledger are rupees. Refunding from a payment (refundOrder) takes the
 // whole refund out of the coach's balance: our fee isn't given back.
+// A payment on a contract's checkout page is refunded on its sign-up
+// itself (refundSignup), once only, so a course refunded from Sales loses
+// its student their access, as one refunded on the course does.
 // Each paid order has an invoice in the coach's name (invoiceFrom), numbered
 // <code>/<year>/<running number> like TagMango's.
 //
@@ -74,7 +84,8 @@ import { addressLine, loadInvoiceSettings } from './invoiceSettings';
 //     samples: [sale entry], withdrawals: [withdrawal], refunds: [refund],
 //     settledBefore, finishedBefore, hideDemo }
 //   refunds:        made from Transactions: { id, saleId, at, minor }, minor
-//                   in the payment's own currency
+//                   in the payment's own currency (not for checkout
+//                   payments: those are kept on the sign-up)
 //   settledBefore:  Prototype controls' "Make everything ready now": sales
 //                   made before it count as settled (ms), or null
 //   finishedBefore: "Finish withdrawals now": withdrawals made before it
@@ -328,6 +339,7 @@ function saleEntry({
   rate = 1,
   coupon = null,
   listMinor = null,
+  courseId = null,
 }) {
   const paid = paidMinor ?? gross;
   const inr = currency === 'INR' ? paid : Math.round(paid * rate);
@@ -349,9 +361,10 @@ function saleEntry({
     email,
     phone,
     offering,
-    offeringKind, // 'webinar' | 'call' | 'product'
+    offeringKind, // 'webinar' | 'call' | 'course' | 'product'
     offeringWhen, // 'Sat 7 Nov', the session or call it was for, or null
-    source, // 'demo' | 'sample' | 'signup' | 'booking'
+    source, // 'demo' | 'sample' | 'signup' | 'booking' | 'checkout'
+    courseId, // the course a 'course' sale was for, else null
     ref: refFor('pay_', id),
   };
 }
@@ -446,8 +459,8 @@ function save(next) {
 
 const update = (change) => save({ ...load(), ...change(load()) });
 
-// Anything that can change the ledger: its own store, sign-ups, bookings
-// (here or in another tab). Returns the unsubscribe.
+// Anything that can change the ledger: its own store, sign-ups, bookings,
+// checkout payments (here or in another tab). Returns the unsubscribe.
 export function onEarningsChange(callback) {
   const fromOtherTab = (e) => {
     if (e.key === KEY || e.key === null) callback();
@@ -457,8 +470,10 @@ export function onEarningsChange(callback) {
   const offSignups = onSignupsChange(callback);
   const offBookings = onBookingsChange(callback);
   const offPayouts = onPayoutsChange(callback);
+  const offCheckout = onContractSignupsChange(callback);
   return () => {
     offPayouts();
+    offCheckout();
     window.removeEventListener(CHANGED_EVENT, callback);
     window.removeEventListener('storage', fromOtherTab);
     offSignups();
@@ -466,7 +481,27 @@ export function onEarningsChange(callback) {
   };
 }
 
-// ---------- Real sales: sign-ups and bookings ----------
+// ---------- Checkout payments (contractSignupsStore.js) ----------
+
+// What a checkout sign-up was for: its course's name (kind 'course'), or
+// its contract's (kind 'product')
+function checkoutOffering(r) {
+  const course = courseOfContract(r.contractId);
+  return course
+    ? { offering: course.title, offeringKind: 'course', courseId: course.id }
+    : { offering: r.contractTitle || 'Product', offeringKind: 'product', courseId: null };
+}
+
+// An amount in a sign-up's main unit (1499.5) → minor units (149950)
+const toMinor = (amount) => Math.round((Number(amount) || 0) * 100);
+
+const currencyOfSignup = (r) => (CURRENCIES[r.currency] ? r.currency : 'INR');
+
+// A sale's id for a checkout sign-up, and back
+const checkoutSaleId = (signupId) => `sale-${signupId}`;
+const signupIdOfSale = (saleId) => (String(saleId).startsWith('sale-ord_') ? String(saleId).slice(5) : null);
+
+// ---------- Real sales: sign-ups, bookings, checkout payments ----------
 
 function liveEntries(webinars = []) {
   const out = [];
@@ -520,6 +555,45 @@ function liveEntries(webinars = []) {
         source: 'booking',
       }),
     );
+  });
+  // Payments on contracts' own checkout pages: a course's Buy button, or
+  // any other contract sold there. A refunded one is a refund too.
+  allContractSignups().forEach((r) => {
+    const at = Date.parse(r.createdAt);
+    const paidMinor = toMinor(r.total);
+    if (r.free || !(paidMinor > 0) || !Number.isFinite(at)) return;
+    const currency = currencyOfSignup(r);
+    const rate = CURRENCIES[currency].rate;
+    const listMinor = toMinor(r.price);
+    const sale = saleEntry({
+      id: checkoutSaleId(r.id),
+      at,
+      gross: null,
+      currency,
+      paidMinor,
+      rate,
+      listMinor: listMinor > paidMinor ? listMinor : paidMinor,
+      coupon: r.coupon ?? null,
+      name: r.name,
+      email: r.email,
+      phone: r.phone,
+      ...checkoutOffering(r),
+      source: 'checkout',
+    });
+    out.push(sale);
+    if (Number.isFinite(r.refundedAt) && Number(r.refunded) > 0) {
+      const minor = Math.min(paidMinor, toMinor(r.refunded));
+      out.push(
+        refundEntry({
+          id: `refund-${r.id}`,
+          at: r.refundedAt,
+          refunded: currency === 'INR' ? minor : Math.round(minor * rate),
+          minor,
+          sale,
+          why: 'removed',
+        }),
+      );
+    }
   });
   return out;
 }
@@ -776,12 +850,13 @@ export function statementCsv(rows, now = Date.now()) {
       ];
     }),
   ];
-  return `\uFEFF${lines.map((r) => r.map(cell).join(',')).join('\r\n')}`;
+  return `﻿${lines.map((r) => r.map(cell).join(',')).join('\r\n')}`;
 }
 
 // ---------- Orders (Sales → Transactions) ----------
 
-// Free sign-ups and free call bookings made in this browser
+// Free sign-ups and free call bookings made in this browser, and free
+// sign-ups on contracts' checkout pages (a free course, say)
 function liveFreeOrders(webinars = []) {
   const out = [];
   const webinarType = funnelTypes.find((t) => t.id === 'webinar');
@@ -819,6 +894,21 @@ function liveFreeOrders(webinars = []) {
       paidMinor: 0,
     });
   });
+  allContractSignups().forEach((r) => {
+    const at = Date.parse(r.createdAt);
+    if (!(r.free || !(toMinor(r.total) > 0)) || !Number.isFinite(at)) return;
+    out.push({
+      id: `free-${r.id}`,
+      kind: 'free',
+      at,
+      name: r.name,
+      email: r.email ?? '',
+      phone: r.phone ?? '',
+      ...checkoutOffering(r),
+      currency: 'INR',
+      paidMinor: 0,
+    });
+  });
   return out;
 }
 
@@ -827,7 +917,8 @@ function liveFreeOrders(webinars = []) {
 //     offering, offeringKind, currency, paidMinor (what they paid, in their
 //     currency), inr (the same in rupees), listMinor, coupon,
 //     refundedMinor, status: 'completed' | 'part-refunded' | 'refunded' |
-//     'failed', ref, invoiceNo (paid orders), why (failed: what happened) }
+//     'failed', ref, invoiceNo (paid orders), why (failed: what happened),
+//     source, courseId (a course's sale) }
 export function ordersOf({ webinars = [], now = Date.now() } = {}) {
   const s = load();
   const { entries } = ledgerOf({ webinars, now });
@@ -845,6 +936,8 @@ export function ordersOf({ webinars = [], now = Date.now() } = {}) {
         phone: e.phone,
         offering: e.offering,
         offeringKind: e.offeringKind,
+        source: e.source ?? null,
+        courseId: e.courseId ?? null,
         currency: e.currency ?? 'INR',
         rate: e.rate ?? 1,
         paidMinor,
@@ -877,6 +970,8 @@ export function ordersOf({ webinars = [], now = Date.now() } = {}) {
       refundedMinor: 0,
       rate: 1,
       ref: null,
+      source: null,
+      courseId: null,
       ...o,
       status: o.kind === 'failed' ? 'failed' : 'completed',
     }));
@@ -890,6 +985,14 @@ export const ORDER_STATUSES = [
   { id: 'failed', label: 'Failed' },
 ];
 
+// What each kind of offering is called, for a filter by kind
+export const OFFERING_KINDS = [
+  { id: 'webinar', label: 'Webinars' },
+  { id: 'call', label: '1:1 calls' },
+  { id: 'course', label: 'Courses' },
+  { id: 'product', label: 'Products' },
+];
+
 // What the Status column says
 export const orderStatusLabel = (o) =>
   ({ completed: 'Completed', 'part-refunded': 'Part refunded', refunded: 'Refunded', failed: 'Failed' })[o.status] ??
@@ -899,10 +1002,11 @@ export const orderStatusLabel = (o) =>
 export const orderAmount = (o) => (o.kind === 'free' ? 'Free' : moneyIn(o.paidMinor, o.currency));
 
 // Orders between two days and matching the filters, newest first.
-// filters: { query, offering ('' for all), status ('' | 'completed' |
-// 'refunded' | 'failed'), currency ('' | 'INR' | 'USD' | 'EUR'), free (show
-// free sign-ups) }. 'refunded' includes part refunds.
-export function filterOrders(orders, { from, to, query = '', offering = '', status = '', currency = '', free = false }) {
+// filters: { query, offering ('' for all), kind ('' for all, or an
+// OFFERING_KINDS id: 'course' for course sales), status ('' | 'completed'
+// | 'refunded' | 'failed'), currency ('' | 'INR' | 'USD' | 'EUR'), free
+// (show free sign-ups) }. 'refunded' includes part refunds.
+export function filterOrders(orders, { from, to, query = '', offering = '', kind = '', status = '', currency = '', free = false }) {
   const lo = from && to && from > to ? to : from;
   const hi = from && to && from > to ? from : to;
   const needle = query.trim().toLowerCase();
@@ -913,6 +1017,7 @@ export function filterOrders(orders, { from, to, query = '', offering = '', stat
     if (hi && key > hi) return false;
     if (!free && o.kind === 'free') return false;
     if (offering && o.offering !== offering) return false;
+    if (kind && o.offeringKind !== kind) return false;
     if (status === 'refunded' && !(o.status === 'refunded' || o.status === 'part-refunded')) return false;
     if (status && status !== 'refunded' && o.status !== status) return false;
     if (currency && (o.kind === 'free' || o.currency !== currency)) return false;
@@ -960,13 +1065,19 @@ export function ordersCsv(rows) {
       o.invoiceNo ?? '',
     ]),
   ];
-  return `\uFEFF${lines.map((r) => r.map(cell).join(',')).join('\r\n')}`;
+  return `﻿${lines.map((r) => r.map(cell).join(',')).join('\r\n')}`;
 }
 
 // ---------- Refunding a payment ----------
 
-// What can still be refunded, in the payment's currency
-export const refundableOf = (o) => (o.kind === 'paid' ? Math.max(0, o.paidMinor - (o.refundedMinor ?? 0)) : 0);
+// What can still be refunded, in the payment's currency. A checkout
+// payment (a course's, say) is refunded once only, so after any refund
+// there's nothing left to refund on it.
+export const refundableOf = (o) => {
+  if (o.kind !== 'paid') return 0;
+  if (o.source === 'checkout' && (o.refundedMinor ?? 0) > 0) return 0;
+  return Math.max(0, o.paidMinor - (o.refundedMinor ?? 0));
+};
 
 // What a refund takes out of the balance, in rupees
 export const refundCost = (o, minor) => (o.currency === 'INR' ? minor : Math.round(minor * o.rate));
@@ -974,6 +1085,7 @@ export const refundCost = (o, minor) => (o.currency === 'INR' ? minor : Math.rou
 // What's wrong with refunding this much, or null when it's fine.
 // total: the coach's whole balance (withdrawable and settling), in rupees
 export function refundProblem(o, minor, total) {
+  if (o.source === 'checkout' && (o.refundedMinor ?? 0) > 0) return 'This payment has already been refunded.';
   const left = refundableOf(o);
   if (!Number.isFinite(minor)) return 'Enter an amount, like 500 or 500.50.';
   if (minor <= 0) return 'Enter an amount to refund.';
@@ -984,10 +1096,17 @@ export function refundProblem(o, minor, total) {
 }
 
 // Refunds the buyer. Returns the refund's id, or null.
+// A checkout payment (a course's Buy button, or another contract's own
+// page) is refunded on its sign-up (refundSignup): a course's student
+// then loses their access, as a refund on the course's Students tab does.
 export function refundOrder(orderId, minor, { webinars = [], now = Date.now() } = {}) {
   const order = ordersOf({ webinars, now }).find((o) => o.id === orderId);
   const { total } = ledgerOf({ webinars, now });
   if (!order || refundProblem(order, minor, total)) return null;
+  const signupId = signupIdOfSale(orderId);
+  if (signupId && getContractSignup(signupId)) {
+    return refundSignup(signupId, minor / 100, { at: now }) ? `refund-${signupId}` : null;
+  }
   const id = `rf-${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const ok = update((st) => ({ refunds: [...st.refunds, { id, saleId: orderId, at: now, minor }] }));
   return ok ? id : null;

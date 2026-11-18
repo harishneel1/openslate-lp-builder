@@ -661,12 +661,6 @@ function Instructor({ creator, stats, profileHref }) {
             )}
           </>
         )}
-        {profileHref && (
-          <a className="cld__profile" href={profileHref}>
-            View {creator.name.split(' ')[0]}’s profile
-            <ArrowRight size={16} aria-hidden="true" />
-          </a>
-        )}
       </div>
     </section>
   );

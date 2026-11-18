@@ -8,11 +8,14 @@
   padding-bottom: 48px;
 }
 
-/* Sales' colours (and Settings', which shares its tiles and pills), from
-   Cloud Storage's: each kind has a solid colour, a pale tint for its tile
-   and pill, and a dark ink for text on the tint */
+/* Sales' colours (and Settings', which shares its tiles and pills, and a
+   course's Students tab, CourseStudents.jsx), from Cloud Storage's: each
+   kind has a solid colour, a pale tint for its tile and pill, and a dark
+   ink for text on the tint */
 .sales,
-.settings {
+.settings,
+.cst,
+.cst-drawer {
   --sx-orange: var(--color-primary);
   --sx-orange-tint: var(--color-primary-tint);
   --sx-orange-ink: #c4560a;
@@ -22,6 +25,8 @@
   --sx-green: var(--color-success);
   --sx-green-tint: #e3f5ea;
   --sx-green-ink: #177a42;
+  --sx-violet-tint: #f1ebfc;
+  --sx-violet-ink: #6438b0;
   --sx-amber-tint: #fef6e7;
   --sx-amber-ink: #8a4b0b;
   --sx-red-tint: #fdecec;
@@ -55,6 +60,11 @@
 .sx-tile--withdrawal {
   color: var(--sx-blue-ink);
   background: var(--sx-blue-tint);
+}
+
+.sx-tile--course {
+  color: var(--sx-violet-ink);
+  background: var(--sx-violet-tint);
 }
 
 .sx-tile--product,
@@ -1310,6 +1320,17 @@
   margin-top: 14px;
   font-size: 14px;
   font-weight: 600;
+}
+
+/* A course's payment: the buyer loses the course (amber, as refunds are) */
+.tx-refund__access {
+  margin-top: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #8a4b0b;
+  background: #fef6e7;
+  border-radius: var(--radius-sm);
 }
 
 /* Phones: each order is a small card */

@@ -1,19 +1,24 @@
 import { getService } from './mockServices';
 import { contractSignupsOf } from './contractSignupsStore';
-import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, cleanTrackRecord, readLinkedIn } from './courseExtras';
+import {
+  TESTIMONIAL_FROM_MAX,
+  cleanCoverVideo,
+  cleanDuration,
+  cleanPhoto,
+  cleanTrackRecord,
+  readLinkedIn,
+} from './courseExtras';
+
 // ------------------------------------------------------------
-// Courses. A course doesn't own a contract: it keeps a list of the
-// contracts that give access to it, and only reads them. Linking never
-// changes a contract. Any contract can be linked (one made on the
-// Contracts page, a webinar session's, a 1:1 call's), and a deleted
-// contract simply stops showing on the course.
+// Courses. One course, one contract: the contract its Buy button sells
+// (buyContractId). That's the only way in: students get the course when
+// they have a sign-up on it that hasn't been refunded (students.js).
 //
-// The one exception is its price (Pricing, CoursePricing.jsx): setting a
-// price there makes a contract for the course (createContract in
-// mockServices.js) and links it, and the course's Buy button sells it.
-// That contract is buyContractId; buyContractMade says the course made
-// it (so its price is changed on the course), or false when the coach
-// picked one of the linked contracts for the Buy button instead (its
+// Its price (Pricing, CoursePricing.jsx): setting a price there makes a
+// contract for the course (createContract in mockServices.js) and makes
+// it the Buy button's. buyContractMade says the course made it (so its
+// price is changed on the course), or false for an older course whose
+// coach picked one of their contracts for the Buy button instead (its
 // price is changed wherever that contract is managed). The Buy button's
 // contract is always one of contractIds.
 // The course's own contract is named after the course and carries its
@@ -21,8 +26,11 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 // they change (syncContractTitle, syncContractDescription in
 // CoursePricing.jsx). A picked contract is never changed.
 //
-// Who can open a course (with publishing, later): anyone whose email has
-// a sign-up on a linked contract that wasn't refunded.
+// contractIds may still hold other contracts linked before the rule of
+// one contract: they're kept, but give no access and aren't counted
+// (linkedContracts returns only the Buy button's). For the real product:
+// before shipping, check whether any live course has others linked, and
+// move their students onto the course's own contract first.
 //
 // A course's content: sections, each with its lessons, in order.
 // A lesson has one main type of content, as on TagMango (resources, the
@@ -54,7 +62,9 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 //   { id: 'course-…', title, contractIds: [...], status: 'draft',
 //     cover: null | { fileId ('file:f-…'), name, ext, bytes }: an image in
 //            their Cloud Storage, shown on the course's card in the academy
-//            (set on the course's Landing page),
+//            (set on the course's Landing page). With a cover video, it's
+//            the video's thumbnail.
+//     coverVideo, duration, trackRecord: see courseExtras.js
 //     subtitle: one line under the title on the landing page ('' for none),
 //     description: html, written in the text editor ('' for none). Up to
 //            2,000 characters of text (DESCRIPTION_MAX, the same as a
@@ -63,10 +73,11 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 //     outcomes: ['…']      What students will learn (Intended learners)
 //     requirements: ['…']  Requirements or prerequisites
 //     audience: ['…']      Who this course is for
-//     testimonials: [{ id, name, text }]   what past students said, added
-//                          by hand (from WhatsApp, emails, reviews
-//                          elsewhere); shown as testimonials, never as
-//                          ratings
+//     testimonials: [{ id, name, from, text, photo, source, linkedin }]
+//                          what past students said, added by hand (from
+//                          WhatsApp, emails, reviews elsewhere), made as a
+//                          webinar's reviews; shown as testimonials, never
+//                          as ratings (courseExtras.js says what each is)
 //     buyContractId: null | the contract the Buy button sells (above),
 //     buyContractMade: true when the course made that contract,
 //     sections: [{ id: 'sec-…', title, lessons: [
@@ -74,8 +85,8 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 //         createdAt, updatedAt } ] }],
 //     createdAt, updatedAt }
 // Courses made before these fields read as empty ('' and []).
-// A new course starts with one empty section, "Untitled". Courses made
-// before sections existed have none; they read as an empty list.
+// A new course starts with no sections: the Curriculum step opens on
+// "No sections yet" and + Add your first section.
 // Lessons made before content types kept plain `text`; they read as a
 // text lesson (each blank-line paragraph a <p>), and are saved that way
 // the next time their course changes.
@@ -102,6 +113,8 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 //   landing page, /web/course/<course> (with ?preview=1 for the coach's
 //   Preview, drafts too); readCourseLandingPath(pathname) → the id, or null
 // courseSoldBy(contractId) → the published course whose Buy button sells it
+// courseOfContract(contractId) → the course (published or not) whose Buy
+//   button sells it, or null: Sales names course sales by it
 // isPublished(course)
 // publishCheck(course) → what publishing would do, and what stops it:
 //   { lessons, hidden (empty lessons left out), contracts, cover, priced,
@@ -115,12 +128,14 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 // loadCourses() → every course, newest first
 // getCourse(id) → one course, or null
 // createCourse({ title, contractIds }) → the new course, or null if it couldn't save
-// updateCourse(id, { title?, contractIds?, cover?, subtitle?, description?,
-//   outcomes?, requirements?, audience?, buyContractId?, buyContractMade? })
+// updateCourse(id, { title?, contractIds?, cover?, coverVideo?, duration?,
+//   trackRecord?, subtitle?, description?, outcomes?, requirements?,
+//   audience?, testimonials?, buyContractId?, buyContractMade? })
 //   → the changed course, or null (a description over 2,000 characters
 //   doesn't save)
 // deleteCourse(id) → true if it's gone
-// linkedContracts(course) → its contracts that still exist, in the order linked
+// linkedContracts(course) → the contracts that give access: only its Buy
+//   button's (one course, one contract), when it still exists
 // buyContractOf(course) → the contract its Buy button sells, or null (none
 //   set yet, or it was deleted)
 // listOf(course, 'outcomes' | 'requirements' | 'audience') → that list
@@ -130,8 +145,8 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 //   list item on its own line ("• " or "1. " before it), the formatting
 //   and links' addresses left out
 // instructorStats() → { students, courses }: the coach's published
-//   courses, and the people (one each, by email) signed up on any of
-//   their contracts. Ratings come once reviews are collected.
+//   courses, and the people (one each, by email) signed up on their Buy
+//   buttons' contracts. Ratings come once reviews are collected.
 // onCoursesChange(fn) → runs fn when courses change (here or in another tab);
 //   returns the function that stops it
 //
@@ -140,7 +155,7 @@ import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, clean
 // sectionsOf(course) → its sections, each with lessons (never missing)
 // lessonCount(course) → how many lessons it has
 // findLesson(course, lessonId) → { lesson, section } or null
-// addSection(courseId) → { course, section }, called "Untitled" until renamed
+// addSection(courseId) → { course, section }, called "Untitled section" until renamed
 // renameSection(courseId, sectionId, title)   empty keeps the old title
 // deleteSection(courseId, sectionId)          and its lessons
 // addLesson(courseId, sectionId, title) → { course, lesson }   a title is needed
@@ -250,8 +265,7 @@ const cleanList = (list) =>
     .map((item) => clean(item, LIST_ITEM_MAX))
     .filter(Boolean)
     .slice(0, LIST_MAX);
-
-    // Testimonials as saved: only ones with words in them. Name, who they
+// Testimonials as saved: only ones with words in them. Name, who they
 // are, their picture (photo, or the Google icon: source 'google') and
 // their LinkedIn link are all optional. The photo is kept with the
 // testimonial (the real product: in the database, not Cloud Storage).
@@ -283,7 +297,7 @@ function blockText(el) {
     else if (n.nodeType === 1 && !isList(n)) out += blockText(n);
   });
   return out
-    .replace(/[ \t ]+/g, ' ')
+    .replace(/[ \t ]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .trim();
 }
@@ -360,10 +374,10 @@ export function updateCourse(id, edits) {
     }
     if ('contractIds' in edits) next.contractIds = cleanIds(edits.contractIds);
     if ('cover' in edits) {
-      const c = edits.cover;
-      if (c === null) next.cover = null;
-      else if (c && typeof c.fileId === 'string' && c.fileId) {
-        next.cover = { fileId: c.fileId, name: String(c.name ?? 'Cover'), ext: c.ext ?? null, bytes: Number(c.bytes) || 0 };
+      const cv = edits.cover;
+      if (cv === null) next.cover = null;
+      else if (cv && typeof cv.fileId === 'string' && cv.fileId) {
+        next.cover = { fileId: cv.fileId, name: String(cv.name ?? 'Cover'), ext: cv.ext ?? null, bytes: Number(cv.bytes) || 0 };
       } else return null;
     }
     if ('subtitle' in edits) next.subtitle = clean(edits.subtitle, SUBTITLE_MAX);
@@ -376,8 +390,8 @@ export function updateCourse(id, edits) {
     LISTS.forEach((key) => {
       if (key in edits) next[key] = cleanList(edits[key]);
     });
-        if ('testimonials' in edits) next.testimonials = cleanTestimonials(edits.testimonials);
-    // Round 3 (courseExtras.js): the cover as a video, time to complete, the track record
+    if ('testimonials' in edits) next.testimonials = cleanTestimonials(edits.testimonials);
+    // The cover as a video, time to complete, the track record (courseExtras.js)
     if ('coverVideo' in edits) {
       const video = cleanCoverVideo(edits.coverVideo);
       if (video === undefined) return null; // not a video: doesn't save
@@ -404,12 +418,16 @@ export function deleteCourse(id) {
   return left.length === list.length || write(left);
 }
 
-export const linkedContracts = (course) => (course?.contractIds ?? []).map(getService).filter(Boolean);
-
 export function buyContractOf(course) {
   const id = course?.buyContractId;
   if (!id || !(course.contractIds ?? []).includes(id)) return null;
   return getService(id);
+}
+
+// One course, one contract: only the Buy button's gives access
+export function linkedContracts(course) {
+  const buy = buyContractOf(course);
+  return buy ? [buy] : [];
 }
 
 export const listOf = (course, key) => cleanList(course?.[key]);
@@ -418,7 +436,7 @@ export const testimonialsOf = (course) => cleanTestimonials(course?.testimonials
 
 export function instructorStats() {
   const published = read().filter((c) => c.status === 'published');
-  const ids = new Set(published.flatMap((c) => c.contractIds ?? []));
+  const ids = new Set(published.map((c) => c.buyContractId).filter(Boolean));
   const people = new Set(
     [...ids].flatMap((id) => contractSignupsOf(id)).map((r) => String(r.email ?? '').trim().toLowerCase() || r.id),
   );
@@ -429,6 +447,10 @@ export function instructorStats() {
 // thank-you page after checkout uses it for Start learning
 export const courseSoldBy = (contractId) =>
   contractId ? read().find((c) => c.buyContractId === contractId && isPublished(c)) ?? null : null;
+
+// The course whose Buy button sells this contract, published or not, or null
+export const courseOfContract = (contractId) =>
+  contractId ? read().find((c) => c.buyContractId === contractId) ?? null : null;
 
 export function onCoursesChange(fn) {
   const fromOtherTab = (e) => {

@@ -1,0 +1,547 @@
+/* A course's Students tab (CourseStudents.jsx) and one student's panel
+   (CourseStudentDrawer.jsx). The numbers, tiles, pills, search and the
+   refund pop-up are Sales' (SalesPage.css, whose colours .cst picks up);
+   panels and buttons are OfferingsHome.css's; the panel's sections are a
+   booking's (BookingDrawer.css). */
+
+.cst {
+  /* The initials' colours, as on Bookings (BookingsPage.css .bk-face) */
+  --bk-face-bg: #fdf1e7;
+  --bk-orange-ink: #b4520c;
+  --bk-tint-line: #f6d6b9;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--color-text);
+}
+
+/* The panels sit straight on the page's grey, without OfferingsHome's own gaps */
+.cst > .oh__panel {
+  margin: 0;
+}
+
+/* ---------- The three numbers ---------- */
+.cst-totals {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+/* "· 1 person", beside the amount, so all three numbers stay the same height */
+.cst-stat__note {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ---------- The list's head: title, then search, filter and Download ---------- */
+.cst__head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+/* Both rows run the panel's full width */
+.cst__head > * {
+  width: 100%;
+}
+
+.cst__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+/* Search, then the filters beside it, both on the left */
+.cst__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px 12px;
+}
+
+.cst__tools .tx-search {
+  flex: 0 1 300px;
+}
+
+.cst__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto; /* across from the title, on the right */
+}
+
+.cst__download:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* ---------- The list ---------- */
+.cst-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* initials | who | progress | joined | money | WhatsApp ⋯ : the column
+   labels over the list use the same columns */
+.cst-row,
+.cst-list__head {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1.6fr) minmax(140px, 1fr) 110px 190px 76px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+/* The labels: a thin grey band, as on Sales' Transactions table */
+.cst-list__head {
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  cursor: default;
+}
+
+.cst-list__head-end {
+  text-align: right;
+}
+
+/* "3 of 25 students", under a searched or filtered list */
+.cst-list__count {
+  padding: 14px 24px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.cst-row:hover {
+  background: #fcfcfd;
+}
+
+/* Refunded: still listed, quieter */
+.cst-row--gone .cst-row__name,
+.cst-row--gone .cst-row__paid {
+  color: var(--color-text-muted);
+}
+
+.cst-row--gone .bk-face {
+  opacity: 0.6;
+}
+
+.cst-row__who {
+  min-width: 0;
+}
+
+.cst-row__name {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cst-row__name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cst-row__name:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.cst-row__contact {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.cst-row__joined {
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cst-row__money {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cst-row__paid {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cst-row__acts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+
+.cst-row__wa {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: #1f8a4c;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.cst-row__wa:hover {
+  background: #e7f6ec;
+}
+
+.cst-row__wa:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.cst-row__wa--none:hover {
+  background: none;
+}
+
+/* ---------- Progress: a thin bar and words ---------- */
+.cst-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.cst-progress__bar {
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  height: 6px;
+  overflow: hidden;
+  background: #ececef;
+  border-radius: var(--radius-pill);
+}
+
+.cst-progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-success);
+  border-radius: inherit;
+}
+
+.cst-progress__text {
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.cst-progress--wide {
+  margin-top: 14px;
+}
+
+.cst-progress--wide .cst-progress__bar {
+  max-width: none;
+  height: 8px;
+}
+
+.cst-progress--wide .cst-progress__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ---------- Nobody yet, or nobody matching ---------- */
+.cst-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 24px 48px;
+  text-align: center;
+}
+
+.cst-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  color: var(--sx-violet-ink);
+  background: var(--sx-violet-tint);
+  border-radius: 50%;
+}
+
+.cst-empty__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cst-empty__text {
+  max-width: 44ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.cst-empty .oh__edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cst-proto {
+  margin-top: 4px;
+}
+
+/* ---------- One student's panel ---------- */
+.cst-drawer__status {
+  padding: 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.cst-drawer__status--gone {
+  background: #fffaf2;
+  border-color: #f3dcb7;
+}
+
+.cst-drawer__status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.cst-drawer__status-detail {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.cst-drawer__note {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.cst-drawer__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  width: 100%;
+}
+
+.cst-drawer__foot .bk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cst-drawer__foot-note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* A payment: a short bill, then when and its ID, then any refund */
+.cst-pay {
+  padding: 4px 0 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cst-pay + .cst-pay {
+  margin-top: 6px;
+}
+
+.cst-pay__bill {
+  margin: 0;
+}
+
+.cst-pay__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 0;
+  font-size: 14px;
+}
+
+.cst-pay__line dt,
+.cst-pay__line > span:first-child {
+  color: var(--color-text-muted);
+}
+
+.cst-pay__line dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cst-pay__line--total {
+  margin-top: 6px;
+  padding-top: 10px;
+  font-weight: 700;
+  border-top: 1px dashed var(--color-border);
+}
+
+.cst-pay__line--total dt {
+  color: var(--color-text);
+}
+
+.cst-pay__meta {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.cst-pay__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.cst-pay__refund {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a4b0b;
+  background: #fef6e7;
+  border-radius: var(--radius-sm);
+}
+
+.cst-pay__invoice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cst-pay__invoice:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---------- Narrower screens ---------- */
+/* Progress and the joined day move under the name */
+@media (max-width: 900px) {
+  .cst-list__head {
+    display: none;
+  }
+
+  .cst-row {
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'face who money acts'
+      'face progress joined acts';
+    row-gap: 8px;
+  }
+
+  .cst-row > .bk-face {
+    grid-area: face;
+    align-self: start;
+  }
+
+  .cst-row__who {
+    grid-area: who;
+  }
+
+  .cst-row > .cst-progress {
+    grid-area: progress;
+  }
+
+  .cst-row__joined {
+    grid-area: joined;
+    text-align: right;
+  }
+
+  .cst-row__money {
+    grid-area: money;
+  }
+
+  .cst-row__acts {
+    grid-area: acts;
+  }
+}
+
+/* Phones: the numbers stack; each student is a small card */
+@media (max-width: 640px) {
+  .cst-totals {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .cst__tools .tx-search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .cst__tools .wd-seg {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .cst-row {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'face who acts'
+      'face money money'
+      'face progress progress';
+    padding: 14px 16px;
+  }
+
+  .cst-row__money {
+    justify-content: flex-start;
+  }
+
+  .cst-row__joined {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cst-row,
+  .cst-row__wa {
+    transition: none;
+  }
+}
+
+/* The tab itself, on a course's page (CoursePage.jsx): under the tabs row */
+.ced__students {
+  margin-top: 16px;
+}

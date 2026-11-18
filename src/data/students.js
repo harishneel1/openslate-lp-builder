@@ -1,4 +1,4 @@
-import { contractSignupsOf, CONTRACT_SIGNUPS_EVENT } from './contractSignupsStore';
+import { contractSignupsOf, CONTRACT_SIGNUPS_EVENT, isRefunded } from './contractSignupsStore';
 import { isPublished, loadCourses } from './courses';
 import { getAllServices } from './mockServices';
 
@@ -15,12 +15,18 @@ import { getAllServices } from './mockServices';
 //         photo: null, createdAt }
 //   - who's signed in is kept in this browser too
 //
-// Access (RBAC): a student sees a course only when it's published and
-// they have a sign-up on one of its contracts (contractSignupsStore.js),
-// matched by any email or mobile number they've had. Courses they don't
-// have don't show at all. Access belongs to the student, not to one
-// email: changing their email or number later keeps their courses, since
-// the old ones stay in emails/phones.
+// Access (RBAC): one course, one contract. A student sees a course only
+// when it's published and they have a sign-up on the course's own
+// contract (the one its Buy button sells, course.buyContractId) that
+// hasn't been refunded, matched by any email or mobile number they've
+// had (contractSignupsStore.js). A refund, full or part, takes the
+// course away. Other contracts once linked to a course (course.contractIds)
+// no longer give access. (For the real product: before shipping, check
+// whether any live course has other contracts linked, and move their
+// students onto the course's own contract first.)
+// Courses they don't have don't show at all. Access belongs to the
+// student, not to one email: changing their email or number later keeps
+// their courses, since the old ones stay in emails/phones.
 //
 // Their name, and the email or number they didn't sign in with, come from
 // what they gave at checkout: their newest sign-up on any contract made
@@ -37,8 +43,11 @@ import { getAllServices } from './mockServices';
 //   { error }: a new number or email joins the ones they've had, so their
 //   courses stay; a photo is a small data URL, or null to remove it
 // usedByOther(id, { phone } | { email }) → true when someone else has it
+// studentIdFor({ email, phone }) → the id of the student with that email
+//   or number, or null (they haven't signed in yet): whose progress to read
 // onStudentChange(fn) → runs fn when someone signs in or out, or a sign-up
-//   is saved (here or in another tab); returns the function that stops it
+//   is saved or refunded (here or in another tab); returns the function
+//   that stops it
 // canSee(student, course) → true when they can open it
 // coursesOf(student) → the published courses they can open
 // INDIAN_MOBILE → what a number must look like (10 digits, from 6 to 9)
@@ -104,7 +113,10 @@ function signupsFor({ emails = [], phones = [] }) {
   const wantEmails = new Set(emails.map(lower).filter(Boolean));
   const wantPhones = new Set(phones.map(digits).filter(Boolean));
   if (wantEmails.size === 0 && wantPhones.size === 0) return [];
-  const ids = new Set([...getAllServices().map((c) => c.id), ...loadCourses().flatMap((c) => c.contractIds ?? [])]);
+  const ids = new Set([
+    ...getAllServices().map((c) => c.id),
+    ...loadCourses().flatMap((c) => [c.buyContractId, ...(c.contractIds ?? [])]).filter(Boolean),
+  ]);
   return [...ids]
     .flatMap((id) => contractSignupsOf(id))
     .filter((r) => wantEmails.has(lower(r.email)) || wantPhones.has(digits(r.phone)))
@@ -202,12 +214,23 @@ export function updateStudent(id, changes) {
   return { student };
 }
 
+export function studentIdFor({ email, phone }) {
+  const e = lower(email);
+  const p = digits(phone).slice(-10);
+  const found = load().find(
+    (s) =>
+      (e && (s.emails ?? [s.email]).map(lower).includes(e)) ||
+      (p.length === 10 && (s.phones ?? [s.phone]).some((x) => digits(x).slice(-10) === p)),
+  );
+  return found?.id ?? null;
+}
+
 export function canSee(student, course) {
-  if (!student || !isPublished(course)) return false;
+  if (!student || !isPublished(course) || !course.buyContractId) return false;
   const emails = new Set((student.emails ?? []).map(lower).filter(Boolean));
   const phones = new Set((student.phones ?? []).map(digits).filter(Boolean));
-  return (course.contractIds ?? []).some((id) =>
-    contractSignupsOf(id).some((r) => emails.has(lower(r.email)) || phones.has(digits(r.phone))),
+  return contractSignupsOf(course.buyContractId).some(
+    (r) => !isRefunded(r) && (emails.has(lower(r.email)) || phones.has(digits(r.phone))),
   );
 }
 

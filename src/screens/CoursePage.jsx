@@ -1,5 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Eye, Link2, Loader2, Rocket, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  ExternalLink,
+  Eye,
+  Link2,
+  Loader2,
+  Rocket,
+  X,
+} from 'lucide-react';
 import {
   COURSE_TITLE_MAX,
   buyContractOf,
@@ -23,6 +35,7 @@ import CourseContent from './CourseContent';
 import CourseLanding from './CourseLanding';
 import CoursePricing, { priceOf, syncContractDescription, syncContractTitle } from './CoursePricing';
 import CoursePublished from './CoursePublished';
+import CourseStudents from './CourseStudents';
 import './CoursesPage.css';
 import './CoursePage.css';
 
@@ -63,8 +76,8 @@ import './CoursePage.css';
 // Editing (published, or published before and unpublished since): the
 // steps are plain tabs (no numbers, no ticks: it's managing the course
 // now, not making it), every one open, any time.
-//   ← All courses          AI Engineering Accelerator ✎                       (focus bar)
-//   Curriculum  Landing page  Pricing    ✓ Saved · live for students │ [Copy link] [View landing page ↗] [● Published ▾]
+//   ← All courses     AI Engineering ✎     [Copy link] [View landing page ↗] [● Published ▾]   (focus bar)
+//   Curriculum  Landing page  Pricing  Students        [👁 See it as a student ↗] ✓ Saved · live for students
 //   ┌────────────────────────────────────────────────────────────────────┐
 //   │ the open tab                                                       │
 //   └────────────────────────────────────────────────────────────────────┘
@@ -101,12 +114,17 @@ import './CoursePage.css';
 //                  it's for, testimonials (CourseLanding.jsx)
 //   Pricing        the price, with an optional discounted price
 //                  (CoursePricing.jsx)
+//   Students       editing only (published, or published before): the
+//                  course's sales, students and refunds, everyone who
+//                  bought it, and each student's details in a side panel
+//                  (CourseStudents.jsx). Not a step: nothing to finish
+//                  there, so publishing never sends them to it.
 // Setting up: a done step has a green tick in place of its number. Opens
 // on the first step that isn't done, or Curriculum once they all are.
 // Moving between steps, or leaving, asks first if something isn't saved
 // ("Leave without saving?": an open lesson, a description too long to save).
 //
-// The actions, while editing:
+// The actions, while editing, in the focus bar on the right (CourseBarActions):
 //   Copy link            once published: the landing page link to share
 //   View landing page ↗  what buyers see (CourseLandingPage.jsx)
 //   Publish              only on a course unpublished since: with something
@@ -116,7 +134,9 @@ import './CoursePage.css';
 //                        tab what's left there. Else it asks once.
 //   ● Published ▾        once live, in Publish's place: Unpublish (asks
 //                        first; progress is kept)
-// Changes go live as they're made once it's published.
+// Changes go live as they're made once it's published. The tabs row keeps
+// only what belongs to the open tab: See it as a student on Curriculum, and
+// the save status on every tab but Students (nothing there is edited).
 //
 // The title: renamed in the focus bar (here), on the Landing page step's
 // Title field, or from the Courses list (⋯ → Rename). All the same name:
@@ -158,7 +178,8 @@ import './CoursePage.css';
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 // "a, b and c": what's missing, as one sentence
-const inWords = (parts) => (parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`);
+const inWords = (parts) =>
+  parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 
 // Where the cursor goes for each missing field
 const FIELD_TARGET = {
@@ -202,6 +223,9 @@ function useWide() {
   return wide;
 }
 
+// Editing only: the tab after the steps
+const STUDENTS_TAB = { id: 'students', label: 'Students' };
+
 // Where the guide opens on each step that has it
 const GUIDE_START = { landing: 'title', pricing: 'price' };
 
@@ -233,6 +257,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const retry = useRef(null); // the change that couldn't be saved, to run again
   const exit = useRef(null); // the focus bar's way back, kept current
   const rename = useRef(null); // the focus bar's rename, kept current
+  const bar = useRef({}); // the focus bar's buttons' actions, kept current
   const wide = useWide();
   const [guide, setGuide] = useState(() => GUIDE_START[step] ?? null); // the example's highlighted part
 
@@ -271,6 +296,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   // the steps row.
   const title = course?.title ?? 'Course';
   const liveNow = isPublished(course);
+  const setupNow = !course || (!liveNow && !course.publishedAt);
   useEffect(() => {
     onFocus?.({
       title,
@@ -281,8 +307,18 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
       onRename: course ? (next) => rename.current?.(next) : null,
       titleMax: COURSE_TITLE_MAX,
       renameHint: liveNow ? 'Students and your landing page will show the new name straight away.' : null,
+      // Editing: the course's own buttons, on the right of the bar
+      actions: setupNow ? null : (
+        <CourseBarActions
+          live={liveNow}
+          courseId={course.id}
+          onCopy={() => bar.current.copyLink?.()}
+          onPublish={() => bar.current.askPublish?.()}
+          onUnpublish={() => setUnpublishing(true)}
+        />
+      ),
     });
-  }, [title, liveNow, Boolean(course), onFocus]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [title, liveNow, setupNow, course?.id, onFocus]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onFocus?.(null), [onFocus]);
 
   // After Publish with something missing: the cursor in the field that needs it
@@ -331,6 +367,9 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const missingHere = missing.filter((m) => m.step === step);
   // Setting up: never published. A step opens once every step before it is done.
   const setup = !live && !course.publishedAt;
+  // Editing: the steps as tabs, and Students after them
+  const tabs = setup ? STEPS : [...STEPS, STUDENTS_TAB];
+  const onStudents = !setup && step === 'students';
   const stepIndex = STEPS.findIndex((s) => s.id === step);
   const reachable = (i) => !setup || STEPS.slice(0, i).every((s) => steps[s.id].done);
   const hasLesson = publishCheck(course).lessons > 0;
@@ -421,8 +460,10 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
     else tell('We couldn’t copy it. Open View landing page and copy its address instead.', 'error');
   };
 
+  bar.current = { copyLink, askPublish };
+
   const stepNumber = STEPS.findIndex((s) => s.id === step) + 1;
-  const stepLabel = STEPS.find((s) => s.id === step)?.label;
+  const stepLabel = tabs.find((s) => s.id === step)?.label;
   const guided = wide && Boolean(GUIDE_START[step]);
   const split = step === 'curriculum' && paneOpen;
   // Curriculum is a workspace: the page fits the screen and each column
@@ -465,10 +506,13 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
 
       {/* ---------- One row: the steps (or tabs), the save status, the actions ---------- */}
       <header className="ced__bar">
-        <nav className={`ced__stepper ${setup ? '' : 'ced__stepper--tabs'}`} aria-label={setup ? 'Course steps' : 'Course'}>
+        <nav
+          className={`ced__stepper ${setup ? '' : 'ced__stepper--tabs'}`}
+          aria-label={setup ? 'Course steps' : 'Course'}
+        >
           <ol>
-            {STEPS.map((s, i) => {
-              const done = steps[s.id].done;
+            {tabs.map((s, i) => {
+              const done = steps[s.id]?.done ?? false;
               const on = s.id === step;
               const open = on || reachable(i);
               return (
@@ -478,6 +522,8 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
                     className={`ced__step ${on ? 'ced__step--on' : ''} ${open ? '' : 'ced__step--locked'}`}
                     aria-current={on ? (setup ? 'step' : 'page') : undefined}
                     disabled={!open}
+                    // A click doesn't leave the keyboard's focus ring on it
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => go(s.id)}
                   >
                     {/* Setting up only: the number, or a tick once done. Tabs show just the name. */}
@@ -500,126 +546,132 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         </nav>
 
         <div className="ced__actions">
-          {/* Whether changes are saved: the one place that says so */}
-          <SaveStatus
-            status={status}
-            fresh={saveState.kind === 'saved' && saveState.fresh}
-            live={live}
-            canRetry={Boolean(retry.current)}
-            onRetry={() => retry.current?.()}
-          />
-          <span className="ced__actions-sep" aria-hidden="true" />
+          {setup ? (
+            <>
+              {/* Whether changes are saved: the one place that says so */}
+              <SaveStatus
+                status={status}
+                fresh={saveState.kind === 'saved' && saveState.fresh}
+                live={live}
+                canRetry={Boolean(retry.current)}
+                onRetry={() => retry.current?.()}
+              />
+              <span className="ced__actions-sep" aria-hidden="true" />
 
-          {/* Setting up: the step's way forward, here at the top right */}
-          {setup && (
-            <SetupActions
-              index={stepIndex}
-              done={steps[step].done}
-              missing={missingHere}
-              courseId={course.id}
-              hasLesson={hasLesson}
-              onBack={() => go(STEPS[stepIndex - 1].id)}
-              onNext={() =>
-                guard(() => {
-                  setStep(STEPS[stepIndex + 1].id);
-                  window.scrollTo?.({ top: 0 });
-                })
-              }
-              onPublish={() => guard(() => setPublishing(true))}
-            />
+              {/* Setting up: the step's way forward, here at the top right */}
+              <SetupActions
+                index={stepIndex}
+                done={steps[step].done}
+                missing={missingHere}
+                courseId={course.id}
+                hasLesson={hasLesson}
+                onBack={() => go(STEPS[stepIndex - 1].id)}
+                onNext={() =>
+                  guard(() => {
+                    setStep(STEPS[stepIndex + 1].id);
+                    window.scrollTo?.({ top: 0 });
+                  })
+                }
+                onPublish={() => guard(() => setPublishing(true))}
+              />
+            </>
+          ) : (
+            <>
+              {/* Editing: only what belongs to the open tab. The course's own
+                  buttons are in the focus bar (CourseBarActions). */}
+              {step === 'curriculum' && (
+                <a
+                  className="crs-btn crs-btn--small ced__preview"
+                  href={coursePlayerUrl(course.id, null, true)}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <Eye size={16} aria-hidden="true" />
+                  See it as a student
+                  <ExternalLink size={14} aria-hidden="true" />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              )}
+              {/* Nothing to edit on Students, so nothing to say about saving */}
+              {!onStudents && (
+                <SaveStatus
+                  status={status}
+                  fresh={saveState.kind === 'saved' && saveState.fresh}
+                  live={live}
+                  canRetry={Boolean(retry.current)}
+                  onRetry={() => retry.current?.()}
+                />
+              )}
+            </>
           )}
-
-          {!setup && step === 'curriculum' && (
-            <a className="crs-btn crs-btn--small ced__preview" href={coursePlayerUrl(course.id, null, true)} target="_blank" rel="noopener">
-              <Eye size={16} aria-hidden="true" />
-              See it as a student
-              <ExternalLink size={14} aria-hidden="true" />
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
-          )}
-          {!setup && live && (
-            <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={copyLink}>
-              <Link2 size={16} aria-hidden="true" />
-              Copy link
-            </button>
-          )}
-          {!setup && (
-            <a
-              className="crs-btn crs-btn--quiet crs-btn--small"
-              href={courseLandingUrl(course.id, true)}
-              target="_blank"
-              rel="noopener"
-            >
-              View landing page
-              <ExternalLink size={15} aria-hidden="true" />
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
-          )}
-          {!setup &&
-            (live ? (
-              <PublishedMenu onUnpublish={() => setUnpublishing(true)} />
-            ) : (
-              <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={askPublish}>
-                <Rocket size={16} aria-hidden="true" />
-                Publish
-              </button>
-            ))}
         </div>
       </header>
 
       {/* ---------- The open step ---------- */}
+      {/* Students: its own panels, straight on the page */}
+      {onStudents && (
+        <section className="ced__students" aria-labelledby="ced-step-title">
+          <h2 className="sr-only" id="ced-step-title" tabIndex={-1}>
+            Students
+          </h2>
+          <CourseStudents course={course} />
+        </section>
+      )}
+
       {/* Typing in a field shows "Unsaved changes" until it saves */}
-      <section
-        className="crs__panel ced__panel"
-        aria-labelledby="ced-step-title"
-        onInputCapture={onTyped}
-        onBlurCapture={onLeftField}
-      >
-        <h2 className="sr-only" id="ced-step-title" tabIndex={-1}>
-          {setup ? `Step ${stepNumber} of ${STEPS.length}: ${stepLabel}` : stepLabel}
-        </h2>
+      {!onStudents && (
+        <section
+          className="crs__panel ced__panel"
+          aria-labelledby="ced-step-title"
+          onInputCapture={onTyped}
+          onBlurCapture={onLeftField}
+        >
+          <h2 className="sr-only" id="ced-step-title" tabIndex={-1}>
+            {setup ? `Step ${stepNumber} of ${STEPS.length}: ${stepLabel}` : stepLabel}
+          </h2>
 
-        {needs && !live && missingHere.length > 0 && (
-          <p className="ced__needs" role="status">
-            <AlertTriangle size={16} aria-hidden="true" />
-            <span>Before you publish: {inWords(missingHere.map((m) => m.text))}.</span>
-          </p>
-        )}
-        {live && missingHere.length > 0 && (
-          <p className="ced__needs" role="status">
-            <AlertTriangle size={16} aria-hidden="true" />
-            <span>
-              Your course stays live, but this tab isn’t finished: {inWords(missingHere.map((m) => m.text))}.
-            </span>
-          </p>
-        )}
-
-        <div className="ced__panel-body">
-          {step === 'curriculum' && (
-            <CourseContent
-              course={course}
-              onSaved={onSaved}
-              guard={guard}
-              onDirtyChange={setDirty}
-              onPaneChange={setPaneOpen}
-            />
+          {needs && !live && missingHere.length > 0 && (
+            <p className="ced__needs" role="status">
+              <AlertTriangle size={16} aria-hidden="true" />
+              <span>Before you publish: {inWords(missingHere.map((m) => m.text))}.</span>
+            </p>
+          )}
+          {live && missingHere.length > 0 && (
+            <p className="ced__needs" role="status">
+              <AlertTriangle size={16} aria-hidden="true" />
+              <span>
+                Your course stays live, but this tab isn’t finished: {inWords(missingHere.map((m) => m.text))}.
+              </span>
+            </p>
           )}
 
-          {GUIDE_START[step] &&
-            (guided ? (
-              <div className="ced__guided" onFocusCapture={pickGuide} onPointerDownCapture={pickGuide}>
-                <div className="ced__guided-main">{step === 'landing' ? landingFields : pricingFields}</div>
-                <aside className="ced__guide" aria-label="Example of a finished course page">
-                  <ProfileExample page={COURSE_EXAMPLE_PAGE} questionId={guide} />
-                </aside>
-              </div>
-            ) : step === 'landing' ? (
-              landingFields
-            ) : (
-              pricingFields
-            ))}
-        </div>
-      </section>
+          <div className="ced__panel-body">
+            {step === 'curriculum' && (
+              <CourseContent
+                course={course}
+                onSaved={onSaved}
+                guard={guard}
+                onDirtyChange={setDirty}
+                onPaneChange={setPaneOpen}
+              />
+            )}
+
+            {GUIDE_START[step] &&
+              (guided ? (
+                <div className="ced__guided" onFocusCapture={pickGuide} onPointerDownCapture={pickGuide}>
+                  <div className="ced__guided-main">{step === 'landing' ? landingFields : pricingFields}</div>
+                  <aside className="ced__guide" aria-label="Example of a finished course page">
+                    <ProfileExample page={COURSE_EXAMPLE_PAGE} questionId={guide} />
+                  </aside>
+                </div>
+              ) : step === 'landing' ? (
+                landingFields
+              ) : (
+                pricingFields
+              ))}
+          </div>
+        </section>
+      )}
 
       {/* ---------- Pop-ups ---------- */}
       {pending && (
@@ -651,8 +703,8 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
           onConfirm={unpublish}
         >
           <p>
-            <strong>{course.title}</strong> goes back to being a draft. Students won’t see it, and its link stops working,
-            until you publish it again. Their progress is kept.
+            <strong>{course.title}</strong> goes back to being a draft. Students won’t see it, and its link stops
+            working, until you publish it again. Their progress is kept.
           </p>
         </ConfirmDialog>
       )}
@@ -784,6 +836,55 @@ function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onNex
   );
 }
 
+// The course's own buttons, while editing: in the app's focus bar, on the
+// right (AppLayout.jsx, focus.actions), so the tabs row under it holds only
+// the tabs and what belongs to the open tab.
+//   [🔗 Copy link] [View landing page ↗] [● Published ▾]
+//   Copy link            once published: the landing page link to share
+//   View landing page ↗  what buyers see (CourseLandingPage.jsx)
+//   Publish              only on a course unpublished since (askPublish)
+//   ● Published ▾        once live, in Publish's place: Unpublish
+// Where the bar gets tight (CoursePage.css), Copy link and View landing
+// page shrink to their icons, with the words in their hint.
+function CourseBarActions({ live, courseId, onCopy, onPublish, onUnpublish }) {
+  return (
+    <div className="focusbar__actions">
+      {live && (
+        <button
+          type="button"
+          className="crs-btn crs-btn--quiet crs-btn--small"
+          onClick={onCopy}
+          data-tip="Copy link"
+          data-tip-align="end"
+        >
+          <Link2 size={16} aria-hidden="true" />
+          <span className="focusbar__act-label">Copy link</span>
+        </button>
+      )}
+      <a
+        className="crs-btn crs-btn--quiet crs-btn--small"
+        href={courseLandingUrl(courseId, true)}
+        target="_blank"
+        rel="noopener"
+        data-tip="View landing page"
+        data-tip-align="end"
+      >
+        <span className="focusbar__act-label">View landing page</span>
+        <ExternalLink size={15} aria-hidden="true" />
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+      {live ? (
+        <PublishedMenu onUnpublish={onUnpublish} />
+      ) : (
+        <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={onPublish}>
+          <Rocket size={16} aria-hidden="true" />
+          Publish
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ● Published ▾, in Publish's place once it's live: Unpublish. Closes on a
 // click outside or Escape.
 function PublishedMenu({ onUnpublish }) {
@@ -864,7 +965,9 @@ function PublishDialog({ course, onCancel, onPublish }) {
           <Check size={17} strokeWidth={3} aria-hidden="true" />
           <span>
             {plural(check.lessons, 'lesson')} will go live
-            {check.hidden > 0 && <span className="pub__note"> ({plural(check.hidden, 'empty lesson')} stay hidden)</span>}
+            {check.hidden > 0 && (
+              <span className="pub__note"> ({plural(check.hidden, 'empty lesson')} stay hidden)</span>
+            )}
           </span>
         </li>
         {buy && (
@@ -892,7 +995,9 @@ function PublishDialog({ course, onCancel, onPublish }) {
         {!check.cover && !coverVideoOf(course) && (
           <li className="pub__row pub__row--note">
             <AlertTriangle size={17} aria-hidden="true" />
-            <span>No cover yet: its card shows the title on our orange. You can add an image or a video on the Landing page.</span>
+            <span>
+              No cover yet: its card shows the title on our orange. You can add an image or a video on the Landing page.
+            </span>
           </li>
         )}
         {!trackRecordOf(course).on && (
@@ -905,7 +1010,9 @@ function PublishDialog({ course, onCancel, onPublish }) {
           </li>
         )}
       </ul>
-      <p className="pub__after">Once it’s published, the changes you make go live straight away. You can unpublish any time.</p>
+      <p className="pub__after">
+        Once it’s published, the changes you make go live straight away. You can unpublish any time.
+      </p>
     </ConfirmDialog>
   );
 }

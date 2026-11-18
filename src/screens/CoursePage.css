@@ -34,13 +34,68 @@
   box-shadow: 0 -32px 0 var(--color-bg);
 }
 
+/* ================= The course's own buttons, in the app's focus bar =================
+   While editing: Copy link, View landing page and ● Published ▾ on the
+   right of the bar (AppLayout.jsx, focus.actions; CourseBarActions in
+   CoursePage.jsx), so the row under it holds only the tabs. Above the
+   page's sticky row, so the Published menu opens over it. */
+.focusbar__end {
+  position: relative;
+  z-index: calc(var(--z-sticky, 10) + 1);
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.focusbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Read out, not shown ("opens in a new tab"): the bar is outside .crs,
+   whose .sr-only (CoursesPage.css) doesn't reach it */
+.focusbar__actions .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.focusbar__actions .crs-btn--small,
+.focusbar__actions .ced__live {
+  min-height: 36px;
+}
+
+/* Its hints open below it: above, the top of the window would cut them */
+.focusbar__actions [data-tip]::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+/* The words show in the buttons, so the hints only appear once they shrink */
+.focusbar__actions [data-tip]::after {
+  content: none;
+}
+
+/* The Published menu opens under its button, lined up on the right */
+.focusbar__actions .crs-menu__list {
+  right: 0;
+  left: auto;
+}
+
 /* Only when the app doesn't put the page in focus mode */
 .ced__back {
   margin: 12px 0 4px -10px;
 }
 
-/* The save status, then: Copy link (once live), View landing page,
-   Publish or ● Published ▾ (or, setting up, the step's way forward) */
+/* Setting up: the save status, then the step's way forward. Editing: See
+   it as a student (Curriculum) and the save status, at the right */
 .ced__actions {
   display: flex;
   flex: none;
@@ -883,6 +938,29 @@
 
   .ced__status:not(.ced__status--failed) {
     padding: 4px 8px;
+  }
+}
+
+/* The focus bar gets tight: Copy link and View landing page shrink to
+   their icons, and their hints say what they are */
+@media (max-width: 1360px) {
+  .focusbar__act-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .focusbar__actions .crs-btn--small:has(.focusbar__act-label) {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .focusbar__actions [data-tip]::after {
+    content: attr(data-tip);
   }
 }
 

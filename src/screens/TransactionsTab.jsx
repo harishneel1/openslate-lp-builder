@@ -7,6 +7,7 @@ import { usePanel } from '../components/DatePicker';
 import { Pager, PeriodChoice, RangeButton, Segmented, Stat, Tile, useMoney } from './SalesShared';
 import {
   CURRENCIES,
+  OFFERING_KINDS,
   ORDER_STATUSES,
   amountInput,
   clockTime,
@@ -51,10 +52,11 @@ import './SalesPage.css';
 //     refunds) and Successful orders (payments that went through and
 //     weren't refunded in full).
 //   - Search finds a name, an email or a phone number (any 3+ digits).
-//   - Filters, in one small panel: Offering, Status (Completed, Refunded,
-//     Failed), Currency (INR, USD, EUR) and Show free sign-ups (off to
-//     start with: free sign-ups aren't money). The button shows how many
-//     are on; Clear filters turns them all off.
+//   - Filters, in one small panel: Type (Webinars, 1:1 calls, Courses,
+//     Products), Offering (only that type's, once a type is picked),
+//     Status (Completed, Refunded, Failed), Currency (INR, USD, EUR) and
+//     Show free sign-ups (off to start with: free sign-ups aren't money).
+//     The button shows how many are on; Clear filters turns them all off.
 //   - The period and Download work as on Withdrawals: the same period
 //     button, and a pop-up with the period and status that downloads a
 //     CSV of the orders (with the search and other filters as they are).
@@ -62,17 +64,20 @@ import './SalesPage.css';
 //     for dollars and euros the ⓘ says what it came to in rupees. A free
 //     sign-up says Free. A coupon shows under the offering.
 //   - Each offering has its kind's tile (webinar orange, call blue,
-//     product green), as Cloud Storage's files do. Status is a coloured
-//     pill: Completed green, Refunded amber, Failed red (what happened
-//     is in its ⓘ), Free sign-up grey.
+//     course violet, product green), as Cloud Storage's files do. Status
+//     is a coloured pill: Completed green, Refunded amber, Failed red
+//     (what happened is in its ⓘ), Free sign-up grey.
 //   - ⋯: Issue refund and Download invoice. Neither does anything for a
 //     free sign-up or a failed payment, and refunding stops once all of it
-//     was refunded; the menu says why under each.
+//     was refunded; the menu says why under each. A course's payment is
+//     refunded once only (full or part), and the refund takes the course
+//     away from the buyer, as one from the course's Students tab does.
 //   - Issue refund opens a pop-up: Full or Part (an amount in the buyer's
 //     currency), and what comes out of the coach's balance, in rupees.
 //     All of it comes out of their balance: our fee isn't given back. It
 //     can't be more than their whole balance. The row then says Refunded
 //     or Part refunded, and the Withdrawals statement has the refund.
+//     The same pop-up is the course Students tab's Refund (RefundDialog).
 //   - Download invoice opens the invoice, in the coach's name, in a new
 //     tab (InvoicePage.jsx), to save as a PDF.
 //   - 20 a page. On a phone each order is a small card.
@@ -84,7 +89,11 @@ const PAGE_SIZE = 20;
 
 const STATUS_OPTIONS = [{ id: '', label: 'All' }, ...ORDER_STATUSES];
 const CURRENCY_OPTIONS = [{ id: '', label: 'All' }, ...Object.keys(CURRENCIES).map((c) => ({ id: c, label: c }))];
-const NO_FILTERS = { offering: '', status: '', currency: '', free: false };
+const NO_FILTERS = { kind: '', offering: '', status: '', currency: '', free: false };
+
+// The tile for an order's kind of offering (SalesShared.jsx)
+const TILE_KINDS = ['webinar', 'call', 'course', 'product'];
+const tileOf = (o) => (TILE_KINDS.includes(o.offeringKind) ? o.offeringKind : 'webinar');
 
 export default function TransactionsTab({ webinars = [] }) {
   const { orders, total, now } = useMoney(webinars);
@@ -140,7 +149,7 @@ export default function TransactionsTab({ webinars = [] }) {
                   onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
                 />
               </label>
-              <FiltersButton filters={filters} offerings={offeringsOf(orders)} onChange={setFilters} />
+              <FiltersButton filters={filters} orders={orders} onChange={setFilters} />
             </div>
 
             <div className="wd-st__group wd-st__group--end">
@@ -156,7 +165,7 @@ export default function TransactionsTab({ webinars = [] }) {
           <div className="oh__panel-body">
             <p className="wd-st__empty">
               {orders.length === 0
-                ? 'No transactions yet. Payments for your webinars and 1:1 calls show up here.'
+                ? 'No transactions yet. Payments for your webinars, 1:1 calls and courses show up here.'
                 : query.trim()
                   ? `No one matching “${query.trim()}” in ${rangeLabel(range)}.`
                   : `No transactions in ${rangeLabel(range)}${countOn(filters) ? ' with these filters' : ''}.`}
@@ -233,14 +242,21 @@ export default function TransactionsTab({ webinars = [] }) {
   );
 }
 
-const countOn = (f) => [f.offering, f.status, f.currency, f.free].filter(Boolean).length;
+const countOn = (f) => [f.kind, f.offering, f.status, f.currency, f.free].filter(Boolean).length;
 
 // ---------- Filters ----------
 // One button, a small panel under it. Every change applies at once.
-function FiltersButton({ filters, offerings, onChange }) {
+// Picking a type narrows Offering to that type's offerings (and clears an
+// offering of another type).
+function FiltersButton({ filters, orders, onChange }) {
   const { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown } = usePanel();
   const on = countOn(filters);
   const set = (change) => onChange({ ...filters, ...change });
+  const offerings = offeringsOf(filters.kind ? orders.filter((o) => o.offeringKind === filters.kind) : orders);
+  const setKind = (kind) => {
+    const keep = !filters.offering || orders.some((o) => o.offering === filters.offering && (!kind || o.offeringKind === kind));
+    set({ kind, offering: keep ? filters.offering : '' });
+  };
 
   return (
     <div className="wd-rng" ref={wrapRef}>
@@ -263,12 +279,28 @@ function FiltersButton({ filters, offerings, onChange }) {
 
       {open && (
         <div className="wd-rng__panel tx-filters" role="dialog" aria-label="Filters" onKeyDown={onPanelKeyDown}>
+          <label className="tx-filters__label" htmlFor="tx-kind">
+            Type
+          </label>
+          <div className="wd-sort tx-filters__select">
+            <select id="tx-kind" value={filters.kind} onChange={(e) => setKind(e.target.value)}>
+              <option value="">All types</option>
+              {OFFERING_KINDS.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <label className="tx-filters__label" htmlFor="tx-offering">
             Offering
           </label>
           <div className="wd-sort tx-filters__select">
             <select id="tx-offering" value={filters.offering} onChange={(e) => set({ offering: e.target.value })}>
-              <option value="">All offerings</option>
+              <option value="">
+                {filters.kind ? `All ${OFFERING_KINDS.find((k) => k.id === filters.kind)?.label.toLowerCase()}` : 'All offerings'}
+              </option>
               {offerings.map((name) => (
                 <option key={name} value={name}>
                   {name}
@@ -321,12 +353,14 @@ const dateLabel = (key) => {
 function OrderRow({ order: o, menuOpen, onMenu, onRefund }) {
   const left = refundableOf(o);
   const noMoney = o.kind === 'free' ? 'It was a free sign-up.' : o.kind === 'failed' ? 'The payment didn’t go through.' : null;
+  // A course's payment is refunded once only, so any refund closes it
+  const refundedWhy = o.source === 'checkout' && o.refundedMinor > 0 ? 'It was refunded already.' : 'It was refunded in full.';
   const items = [
     {
       label: 'Issue refund',
       icon: RotateCcw,
       disabled: Boolean(noMoney) || left === 0,
-      hint: noMoney ?? (left === 0 ? 'It was refunded in full.' : undefined),
+      hint: noMoney ?? (left === 0 ? refundedWhy : o.offeringKind === 'course' ? 'They lose the course.' : undefined),
       onSelect: onRefund,
     },
     {
@@ -354,7 +388,7 @@ function OrderRow({ order: o, menuOpen, onMenu, onRefund }) {
       </td>
       <td className="tx-row__what">
         <div className="sx-with-tile">
-          <Tile kind={o.offeringKind === 'call' || o.offeringKind === 'product' ? o.offeringKind : 'webinar'} />
+          <Tile kind={tileOf(o)} />
           <div className="sx-with-tile__text">
             <span>{o.offering}</span>
             {o.coupon && (
@@ -409,13 +443,17 @@ function CopyLine({ text, label }) {
 
 // ---------- Issue refund ----------
 // Full or part, in the buyer's currency; what comes out of the balance,
-// in rupees. Enter refunds when the amount is fine.
-function RefundDialog({ order, balance, onCancel, onConfirm }) {
+// in rupees. Enter refunds when the amount is fine. A course's payment
+// says the buyer loses the course (any refund, full or part, takes it
+// away). Also the Refund on a course's Students tab (CourseStudents.jsx).
+// order: from ordersOf (earnings.js); balance: the coach's whole balance
+export function RefundDialog({ order, balance, onCancel, onConfirm }) {
   const left = refundableOf(order);
   const [mode, setMode] = useState('full');
   const [text, setText] = useState(() => amountInput(left));
   const [touched, setTouched] = useState(false);
   const input = useRef(null);
+  const course = order.offeringKind === 'course';
 
   const minor = mode === 'full' ? left : parseAmount(text);
   const problem = refundProblem(order, minor, balance);
@@ -441,6 +479,7 @@ function RefundDialog({ order, balance, onCancel, onConfirm }) {
       title={`Refund ${order.name || 'this buyer'}`}
       confirmLabel={problem ? 'Refund' : `Refund ${moneyIn(minor, order.currency)}`}
       confirmDisabled={Boolean(problem)}
+      danger={course}
       onCancel={onCancel}
       onConfirm={confirm}
     >
@@ -497,6 +536,12 @@ function RefundDialog({ order, balance, onCancel, onConfirm }) {
         {!problem && (
           <p className="tx-refund__cost">
             {money(refundCost(order, minor))} comes out of your balance.
+          </p>
+        )}
+        {course && (
+          <p className="tx-refund__access">
+            {order.name ? order.name.split(/\s+/)[0] : 'They'} lose{order.name ? 's' : ''} access to the course straight away,
+            for a full or a part refund. This can’t be undone.
           </p>
         )}
         <p className="wd-dlg__note">They usually get it back in 5 to 7 working days.</p>

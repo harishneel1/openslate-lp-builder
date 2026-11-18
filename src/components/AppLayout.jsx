@@ -161,7 +161,7 @@ function SidebarFoot({ activeNav, onNavigate }) {
 // sidebar step back and one slim bar takes their place: exit on the left,
 // its name in the middle, save status on the right.
 // focus: null for the normal shell, or { title, onExit, saveFailed, exitLabel,
-//   minimal, when, icon, status, onRename, titleMax, renameHint }
+//   minimal, when, icon, status, onRename, titleMax, renameHint, actions }
 // exitLabel: where the exit goes ('All webinars', or 'Webinar details'
 // while editing a published webinar's pages)
 // minimal: on a page that already shows the title big and edits nothing
@@ -184,6 +184,9 @@ function SidebarFoot({ activeNav, onNavigate }) {
 // renameHint: one line under the box while it's being renamed (a
 //   published course: "Students and your landing page will show the new
 //   name straight away.")
+// actions: buttons for the right of the bar, in the save status's place
+//   (a published course's Copy link, View landing page and ● Published ▾:
+//   CoursePage.jsx). "Not saved" still shows before them if saving fails.
 function FocusBar({
   title,
   onExit,
@@ -196,6 +199,7 @@ function FocusBar({
   onRename = null,
   titleMax = 100,
   renameHint = null,
+  actions = null,
 }) {
   return (
     <header className="focusbar">
@@ -230,7 +234,16 @@ function FocusBar({
         </p>
       )}
 
-      {saveFailed ? (
+      {actions ? (
+        <div className="focusbar__end">
+          {saveFailed && (
+            <p className="focusbar__status focusbar__status--error">
+              <AlertTriangle size={15} /> Not saved
+            </p>
+          )}
+          {actions}
+        </div>
+      ) : saveFailed ? (
         <p className="focusbar__status focusbar__status--error">
           <AlertTriangle size={15} /> Not saved
         </p>

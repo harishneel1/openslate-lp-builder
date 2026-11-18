@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FlaskConical,
+  GraduationCap,
   Landmark,
   Package,
   Receipt,
@@ -41,7 +42,8 @@ import { PayoutControlRows } from './PayoutSetup';
 // the money, kept up to date; the period button and its picks; the
 // All / Credit / Debit kind of control; page buttons; and the Prototype
 // controls under both tabs. Styles are in
-// SalesPage.css.
+// SalesPage.css. A course's Students tab (CourseStudents.jsx) uses the
+// money, the numbers (Stat) and the tiles too.
 // ------------------------------------------------------------
 
 // The money now: the ledger (balances, statement) and every order.
@@ -63,12 +65,14 @@ export function useMoney(webinars) {
 // A coloured tile, as Cloud Storage's files have: an icon on its kind's
 // tint (SalesPage.css). The kinds and their colours, the same everywhere
 // in Sales:
-//   webinar  orange (our primary)   call  blue   product  green
-//   sale     green (money in)       refund  amber
-//   withdrawal  blue (to your bank) tax  grey
+//   webinar  orange (our primary)   call  blue   course  violet
+//   product  green                  sale  green (money in)
+//   refund  amber                   withdrawal  blue (to your bank)
+//   tax  grey
 const TILE_ICONS = {
   webinar: Video,
   call: Users,
+  course: GraduationCap,
   product: Package,
   sale: ArrowDownLeft,
   refund: RotateCcw,
@@ -339,7 +343,7 @@ export function SalesTestControls() {
               </button>
               <p className="proto__note">
                 {demo ? 'Showing about 80 days of sample history. ' : 'Showing a new account. '}
-                Real webinar sign-ups and call bookings made in this browser always show.
+                Real webinar sign-ups, call bookings and course purchases made in this browser always show.
               </p>
             </div>
           </div>
