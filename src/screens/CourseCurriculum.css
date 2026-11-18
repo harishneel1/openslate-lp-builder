@@ -3,13 +3,16 @@
    CoursesPage.css: every rule here starts with .cct--folders (or .ced
    .cct--folders) so it wins over the older outline styles there.
 
-   A section: a white card with a solid dark header bar across its top
+   A section: a white card with a light orange header bar across its top
    ("SECTION 1", its name, how many lessons, ⋮⋮ on hover, ⌄ to fold on
    the right), and its lessons under the bar, indented a little, each a
    light grey row: the bar says "this is a section", the rows inside are
    its lessons. */
 
-/* ---------- Sections: a card with a solid header bar ---------- */
+/* ---------- Sections: a card with a light orange header bar ----------
+   Our own colours: the primary tint, with an orange edge on the left (as
+   the upcoming-session card on a webinar's page), "SECTION 1" in our
+   orange ink and the name in black. */
 .cct.cct--folders .cct__sections {
   gap: 20px;
   margin-top: 0;
@@ -22,22 +25,28 @@
   border-radius: 10px;
 }
 
-/* The bar: our darkest orange, white words, the full width of the card */
+/* The bar: the primary tint, an orange edge on the left, black words */
 .cct--folders .cct__tab {
   position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
   min-height: 56px;
-  padding: 6px 8px 6px 6px;
-  color: #fff;
-  background: #6b3410;
+  padding: 6px 8px 6px 10px;
+  color: var(--crs-ink, #141414);
+  background: var(--color-primary-tint);
+  border-bottom: 1px solid #f6d6b9;
   border-radius: 9px 9px 0 0;
+  box-shadow: inset 4px 0 0 var(--color-primary);
 }
 
-/* The section open in the panel: an orange line along the bar's foot */
+/* The section open in the panel: a thicker edge, and the card outlined in orange */
 .cct--folders .cct__tab--on {
-  box-shadow: inset 0 -3px 0 var(--color-primary);
+  box-shadow: inset 6px 0 0 var(--color-primary);
+}
+
+.cct.cct--folders .cct__section:has(.cct__tab--on) {
+  border-color: var(--color-primary);
 }
 
 /* A lesson dragged over a folded section's bar: it'll go to that section's end */
@@ -69,7 +78,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: #b4520c; /* our orange ink */
 }
 
 .cct--folders .cct__tab-text {
@@ -89,7 +98,7 @@
   padding: 0 6px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--crs-ink-2, #55555b);
   white-space: nowrap;
 }
 
@@ -109,20 +118,20 @@
 
 .cct--folders .cct__fold:hover,
 .cct--folders .cct__tab-name:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(180, 82, 12, 0.08);
 }
 
 .cct--folders .cct__fold:focus-visible,
 .cct--folders .cct__tab-name:focus-visible,
 .cct--folders .cct__tab .cct__grip:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
 
 /* ⋮⋮ on the bar: on hover, or with the keyboard on it */
 .cct--folders .cct__tab .cct__grip {
   margin-left: 0;
-  color: rgba(255, 255, 255, 0.85);
+  color: #b4520c;
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -133,12 +142,13 @@
 }
 
 .cct--folders .cct__tab .cct__grip:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
+  color: #8f3f07;
+  background: rgba(180, 82, 12, 0.08);
 }
 
-/* Folded: just the bar, rounded all round */
+/* Folded: just the bar, rounded all round, no line under it */
 .cct--folders .cct__section--folded .cct__tab {
+  border-bottom: 0;
   border-radius: 9px;
 }
 
