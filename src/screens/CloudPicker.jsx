@@ -3,33 +3,48 @@ import { Check, Cloud, Search, X } from 'lucide-react';
 import { ASSET_TYPES, assetsOf, formatBytes, onStorageChange, typeOf } from '../data/cloudStorage';
 import { lessonKindOfFile } from '../data/courses';
 import { KindTile, tileKindOf } from './lessonKinds';
+import './CloudPicker.css';
 
 // ------------------------------------------------------------
 // "Pick from Cloud Storage", for a lesson or a course's cover.
 //   only 'lesson' (the Cloud Storage tile in a lesson, LessonPanel.jsx):
 //        the videos and PDFs they've uploaded, to use as its content.
 //        Images and other documents aren't listed: a lesson can't use them.
-//   only 'image'  (Cover image in a course's Settings, CourseSettings.jsx):
-//        their images.
-//   only 'any'    (Upload resources in a lesson, LessonPanel.jsx): any
+//        One file.
+//   only 'image'  (the course's cover, CourseCover.jsx): their images.
+//        One file.
+//   only 'any'    (Upload resources in a lesson, LessonExtras.jsx): any
 //        file they've uploaded, ZIPs and all, with filters by kind.
+//        Several at once (multiple).
 // Newest first.
 //
-//   ┌──────────── Pick from Cloud Storage ──────────── ✕ ┐
+// One file (a lesson's content, a cover): round buttons, Use this file.
+//
+// Several (multiple, a lesson's resources): a checkbox on each row; a
+// click anywhere on the row ticks or unticks it. What's ticked stays
+// ticked through the search and the filters, so they can search
+// "slides", tick two, search "worksheet", tick one more. Files already
+// on this lesson (taken) show ticked and greyed, "Already added", and
+// can't be clicked, so nothing is added twice.
+//
+//   ┌──────── Pick resources from Cloud Storage ──────── ✕ ┐
 //   │ [🔍 Search files            ]                       │
-//   │ [All 4] [Videos 2] [PDFs 2]                          │
-//   │ ◉ ▶MP4 Course intro, week 1.mp4      2.3 GB · 20 Oct │
-//   │ ○ ▤PDF Vasthu home checklist.pdf     2.4 MB · 9 Nov  │
-//   │ …                                                   │
+//   │ [All 6] [Documents 3] [Images 2] [Other 1]           │
+//   │ ☑ ▤PDF Slides week 1.pdf          2.4 MB · 9 Nov     │
+//   │ ☐ ▤ZIP starter-code.zip           12 MB · 8 Nov      │
+//   │ ▣ ▤PDF Workbook.pdf   Already added                 │
 //   ├─────────────────────────────────────────────────────┤
-//   │                         [Cancel] [Use this file]    │
+//   │ 1 selected · Clear               [Cancel] [Add 1 file] │
 //   └─────────────────────────────────────────────────────┘
+// Add N files gives them back in the order they were ticked. With
+// nothing ticked it reads Add files and can't be pressed.
 //
-// One file at a time: a video becomes a video lesson, a PDF a PDF lesson
-// (lessonKindOfFile). Webinar recordings aren't listed yet: they live
-// with their sessions.
+// Webinar recordings aren't listed yet: they live with their sessions.
 //
-// only: 'lesson' | 'image' | 'any'; onPick(asset), onCancel()
+// only: 'lesson' | 'image' | 'any'
+// multiple: tick several (onPick gets a list)
+// taken: file ids already used here (multiple only): shown, not pickable
+// onPick(asset) (one) or onPick([assets]) (multiple), onCancel()
 // ------------------------------------------------------------
 
 const LABEL = { video: 'Video', pdf: 'PDF', image: 'Image' };
@@ -38,7 +53,9 @@ const TYPES = [
   { id: 'pdf', label: 'PDFs' },
 ];
 
-export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+export default function CloudPicker({ only = 'lesson', multiple = false, taken = [], onPick, onCancel }) {
   // What a file counts as here (null: not offered), and its filter
   const kindOf = (a) => (only === 'any' ? a.type : only === 'image' ? (a.type === 'image' ? 'image' : null) : lessonKindOfFile(a));
   const chipTypes = only === 'lesson' ? TYPES : only === 'any' ? ASSET_TYPES : [];
@@ -48,7 +65,9 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
   const [tick, setTick] = useState(0);
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all');
-  const [chosen, setChosen] = useState(null);
+  const [chosen, setChosen] = useState(null); // one file's id
+  const [ticked, setTicked] = useState([]); // multiple: ids, in the order they were ticked
+  const takenIds = useMemo(() => new Set(multiple ? taken : []), [multiple, taken]);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -67,6 +86,16 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
   const types = chipTypes.filter((t) => matching.some((f) => kindOf(f) === t.id));
   const shown = matching.filter((f) => type === 'all' || kindOf(f) === type);
   const picked = files.find((f) => f.id === chosen) ?? null;
+  const pickedMany = ticked.map((id) => files.find((f) => f.id === id)).filter(Boolean);
+
+  const toggle = (id) => {
+    if (takenIds.has(id)) return;
+    setTicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const addLabel = pickedMany.length === 0 ? 'Add files' : `Add ${plural(pickedMany.length, 'file')}`;
+  const title =
+    only === 'image' ? 'Pick a cover from Cloud Storage' : only === 'any' ? 'Pick resources from Cloud Storage' : 'Pick from Cloud Storage';
 
   return (
     <dialog
@@ -80,7 +109,7 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
     >
       <div className="crs-dialog__top">
         <h2 className="crs-dialog__title" id="cldp-title">
-          {only === 'image' ? 'Pick a cover from Cloud Storage' : only === 'any' ? 'Pick a resource from Cloud Storage' : 'Pick from Cloud Storage'}
+          {title}
         </h2>
         <button type="button" className="crs-dialog__close" onClick={onCancel} aria-label="Close">
           <X size={18} aria-hidden="true" />
@@ -102,7 +131,7 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
               {only === 'image'
                 ? 'You can upload one with Upload image.'
                 : only === 'any'
-                  ? 'You can upload one from your computer instead.'
+                  ? 'You can upload from your computer instead.'
                   : 'You can upload one with Upload video or PDF in the lesson.'}
             </p>
           </div>
@@ -136,14 +165,21 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
             {shown.length === 0 ? (
               <p className="cldp__none">No files match “{query.trim()}”.</p>
             ) : (
-              <ul className="cldp__list" role="radiogroup" aria-label="Files">
+              <ul className="cldp__list" role={multiple ? 'group' : 'radiogroup'} aria-label="Files">
                 {shown.map((f) => {
-                  const on = chosen === f.id;
+                  const isTaken = takenIds.has(f.id);
+                  const on = multiple ? isTaken || ticked.includes(f.id) : chosen === f.id;
                   return (
                     <li key={f.id}>
-                      <label className={`cldp__row ${on ? 'cldp__row--on' : ''}`}>
-                        <input type="radio" name="cldp-file" checked={on} onChange={() => setChosen(f.id)} />
-                        <span className="cldp__radio" aria-hidden="true">
+                      <label
+                        className={['cldp__row', on && 'cldp__row--on', isTaken && 'cldp__row--taken'].filter(Boolean).join(' ')}
+                      >
+                        {multiple ? (
+                          <input type="checkbox" checked={on} disabled={isTaken} onChange={() => toggle(f.id)} />
+                        ) : (
+                          <input type="radio" name="cldp-file" checked={on} onChange={() => setChosen(f.id)} />
+                        )}
+                        <span className={multiple ? 'cldp__check' : 'cldp__radio'} aria-hidden="true">
                           {on && <Check size={13} strokeWidth={3.5} />}
                         </span>
                         <KindTile kind={tileOf(f)} size="small" />
@@ -153,6 +189,7 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
                             {labelOf(f)} · {formatBytes(f.bytes)} · Added {f.day}
                           </span>
                         </span>
+                        {isTaken && <span className="cldp__taken">Already added</span>}
                       </label>
                     </li>
                   );
@@ -164,12 +201,31 @@ export default function CloudPicker({ only = 'lesson', onPick, onCancel }) {
       </div>
 
       <div className="crs-dialog__foot crs-dialog__foot--row">
+        {multiple && pickedMany.length > 0 && (
+          <p className="cldp__picked" aria-live="polite">
+            {pickedMany.length} selected
+            <button type="button" className="cldp__clear" onClick={() => setTicked([])}>
+              Clear
+            </button>
+          </p>
+        )}
         <button type="button" className="crs-btn crs-btn--quiet" onClick={onCancel}>
           Cancel
         </button>
-        <button type="button" className="crs-btn crs-btn--primary" disabled={!picked} onClick={() => picked && onPick(picked)}>
-          Use this file
-        </button>
+        {multiple ? (
+          <button
+            type="button"
+            className="crs-btn crs-btn--primary"
+            disabled={pickedMany.length === 0}
+            onClick={() => pickedMany.length > 0 && onPick(pickedMany)}
+          >
+            {addLabel}
+          </button>
+        ) : (
+          <button type="button" className="crs-btn crs-btn--primary" disabled={!picked} onClick={() => picked && onPick(picked)}>
+            Use this file
+          </button>
+        )}
       </div>
     </dialog>
   );

@@ -1,82 +1,96 @@
 import { useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react';
 import { LESSON_TITLE_MAX } from '../data/courses';
 import InlineTitle from '../components/InlineTitle';
 import LessonPanel from './LessonPanel';
 
 // ------------------------------------------------------------
-// The lesson being worked on, in a panel to the right of the curriculum
-// (CourseContent.jsx). One lesson at a time.
+// The lesson being worked on, in the panel to the right of the curriculum
+// (CourseContent.jsx). One lesson at a time. The panel stays open: there's
+// no ✕ or Done here (only on narrow screens, where it covers the page).
+// This is the one place a lesson is renamed or deleted.
 //
 //   ┌──────────────────────────────────────────────────────────┐
-//   │ SECTION 1: INTRODUCTION · LESSON 2              ‹  ›  │ ✕ │
+//   │ INTRODUCTION · LESSON 2                       ‹  ›  │ 🗑 │
 //   │ How servers work ✎                                        │
 //   ├──────────────────────────────────────────────────────────┤
 //   │ What goes in this lesson? Pick one.                       │
 //   │ [Cloud] [Upload video] [PDF] [Embedded video] │ [Text]    │
 //   │ …its description and resources, once it has content       │
 //   ├──────────────────────────────────────────────────────────┤
-//   │                               [Done] [+ Add next lesson]   │
+//   │                                     [+ Add next lesson]   │
 //   └──────────────────────────────────────────────────────────┘
 //
 // The head stays put; only the body scrolls, so a long text lesson
-// never pushes ‹ › and ✕ away. On most screens it's the right column of
-// the Curriculum workspace, the full height of the step's card, beside
-// the outline (CoursesPage.css). On short screens it stays in view as the
-// page scrolls; on narrow ones it covers the page from the right.
-// The content tiles' hints show as a line under the tiles, not a bubble
-// (which the scrolling body would cut off).
+// never pushes ‹ › away. On most screens it's the right column of the
+// Curriculum workspace, the full height of the step's card, beside the
+// outline (CoursesPage.css, CourseCurriculum.css). On short screens it
+// stays in view as the page scrolls; on narrow ones it covers the page
+// from the right, with ✕ (and Escape) to close it.
 //
-// Head: where the lesson sits (its section, and its number there, as in
-// the outline), then its name, renamed in place (InlineTitle, its pencil
-// always shown).
+// Head: where the lesson sits (its section's name, and its number there,
+// as in the outline), then its name, renamed in place (InlineTitle, its
+// pencil always shown). A new lesson ("Untitled lesson") opens with its
+// name selected, ready to type over (selectTitle).
 //   ‹ ›  the lesson before or after it, across sections, in the order
 //        students take them. Disabled at either end.
-//   ✕    closes the panel (so does Escape, unless they're typing or a
-//        pop-up is open)
-// Moving to another lesson or closing asks first when something isn't
-// saved (CourseContent's guard).
+//   🗑    Delete lesson (asks first; CourseContent.jsx)
+// Moving to another lesson asks first when something isn't saved
+// (CourseContent's guard).
 //
-// Body: what goes in the lesson, as before (LessonPanel.jsx): the content
-// tiles, then the content, its description and resources. Keyed by the
-// lesson, so each lesson starts fresh, scrolled to the top.
+// Body: what goes in the lesson (LessonPanel.jsx): the content tiles,
+// then the content, its description and resources. Keyed by the lesson,
+// so each lesson starts fresh, scrolled to the top.
 //
-// Foot: the lesson's own ending, so finishing one never sends the eye to
-// the step's Continue (top right, CoursePage.jsx). Whether it's saved is
-// said once, in the course page's steps row (its save status), not here.
-//   + Add next lesson  the one solid button: closes the panel and opens a
-//                      new lesson's title box right under this one
-//                      (CourseContent.jsx)
-//   Done               closes the panel
-//
-// Opening it puts the keyboard in it; ‹ › keep focus on themselves.
+// Foot: + Add next lesson, the one solid button: a new "Untitled lesson"
+// right after this one, opened here with its name selected
+// (CourseContent.jsx). Whether things are saved is said once, in the
+// course page's steps row, not here.
 //
 // course; entry: { lesson, section, sectionNumber, number } (CourseContent)
 // prev, next: entries, or null at either end
-// onGo(lessonId), onClose(), onAddNext(), onRename(title) → saved or not
+// onGo(lessonId), onAddNext(), onDelete(), onRename(title) → saved or not
 // onSaved(ok), onDirtyChange(dirty): passed on to the lesson's content
+// selectTitle, onTitleSelected(): select its name straight away (a new lesson)
+// closable, onClose(): narrow screens only: ✕ and Escape close the panel
 // ------------------------------------------------------------
 
-export default function LessonPane({ course, entry, prev, next, onGo, onClose, onAddNext, onRename, onSaved, onDirtyChange }) {
-  const { lesson, section, sectionNumber, number } = entry;
+export default function LessonPane({
+  course,
+  entry,
+  prev,
+  next,
+  onGo,
+  onAddNext,
+  onDelete,
+  onRename,
+  onSaved,
+  onDirtyChange,
+  selectTitle = false,
+  onTitleSelected,
+  closable = false,
+  onClose,
+}) {
+  const { lesson, section, number } = entry;
   const pane = useRef(null);
   const body = useRef(null);
 
   // A new lesson in the panel: its top, and the keyboard in the panel
-  // unless it's already there (‹ › keep it on themselves)
+  // unless it's already there (‹ › keep it on themselves; a new lesson's
+  // name has it)
   useEffect(() => {
     if (body.current) body.current.scrollTop = 0;
     if (!pane.current?.contains(document.activeElement)) pane.current?.focus({ preventScroll: true });
   }, [lesson.id]);
 
-  // Escape closes, except while typing (the box handles its own Escape)
-  // or with a pop-up open over the page
+  // Narrow screens: Escape closes, except while typing (the box handles
+  // its own Escape) or with a pop-up open over the page
   const onKeyDown = (e) => {
-    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    if (!closable || e.key !== 'Escape' || e.defaultPrevented) return;
     if (e.target.closest?.('input, textarea, select, [contenteditable="true"], dialog')) return;
     if (document.querySelector('dialog[open]')) return;
     e.preventDefault();
-    onClose();
+    onClose?.();
   };
 
   return (
@@ -92,9 +106,7 @@ export default function LessonPane({ course, entry, prev, next, onGo, onClose, o
       <header className="cct__pane-head">
         <div className="cct__pane-top">
           <p className="cct__pane-where">
-            <span className="cct__pane-section">
-              Section {sectionNumber}: {section.title}
-            </span>
+            <span className="cct__pane-section">{section.title}</span>
             <span className="cct__pane-dot" aria-hidden="true">
               ·
             </span>
@@ -122,9 +134,20 @@ export default function LessonPane({ course, entry, prev, next, onGo, onClose, o
               <ChevronRight size={19} aria-hidden="true" />
             </button>
             <span className="cct__pane-sep" aria-hidden="true" />
-            <button type="button" className="cct__pane-btn" aria-label="Close lesson" title="Close (Esc)" onClick={onClose}>
-              <X size={19} aria-hidden="true" />
+            <button
+              type="button"
+              className="cct__pane-btn cct__pane-btn--delete"
+              aria-label={`Delete lesson: ${lesson.title}`}
+              title="Delete lesson"
+              onClick={onDelete}
+            >
+              <Trash2 size={18} aria-hidden="true" />
             </button>
+            {closable && (
+              <button type="button" className="cct__pane-btn" aria-label="Close lesson" title="Close (Esc)" onClick={onClose}>
+                <X size={19} aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
         <InlineTitle
@@ -135,6 +158,8 @@ export default function LessonPane({ course, entry, prev, next, onGo, onClose, o
           value={lesson.title}
           maxLength={LESSON_TITLE_MAX}
           onSave={onRename}
+          autoFocus={selectTitle}
+          onFocused={onTitleSelected}
         />
       </header>
 
@@ -143,9 +168,6 @@ export default function LessonPane({ course, entry, prev, next, onGo, onClose, o
       </div>
 
       <footer className="cct__pane-foot">
-        <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={onClose}>
-          Done
-        </button>
         <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={onAddNext}>
           <Plus size={16} aria-hidden="true" />
           Add next lesson

@@ -1,0 +1,298 @@
+/* The Curriculum outline as folders (CourseContent.jsx), and the panel's
+   section view (SectionPane.jsx). Loaded with CourseContent, so before
+   CoursesPage.css: every rule here starts with .cct--folders (or .ced
+   .cct--folders) so it wins over the older outline styles there.
+
+   A section: a white card with a solid dark header bar across its top
+   ("SECTION 1", its name, how many lessons, ⋮⋮ on hover, ⌄ to fold on
+   the right), and its lessons under the bar, indented a little, each a
+   light grey row: the bar says "this is a section", the rows inside are
+   its lessons. */
+
+/* ---------- Sections: a card with a solid header bar ---------- */
+.cct.cct--folders .cct__sections {
+  gap: 20px;
+  margin-top: 0;
+}
+
+.cct.cct--folders .cct__section {
+  overflow: visible;
+  background: var(--color-surface);
+  border: 1px solid var(--cct-line);
+  border-radius: 10px;
+}
+
+/* The bar: our darkest orange, white words, the full width of the card */
+.cct--folders .cct__tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 6px 8px 6px 6px;
+  color: #fff;
+  background: #6b3410;
+  border-radius: 9px 9px 0 0;
+}
+
+/* The section open in the panel: an orange line along the bar's foot */
+.cct--folders .cct__tab--on {
+  box-shadow: inset 0 -3px 0 var(--color-primary);
+}
+
+/* A lesson dragged over a folded section's bar: it'll go to that section's end */
+.cct--folders .cct__tab--drop {
+  outline: 2px dashed var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* "SECTION 1" over the name: one button, opens the section in the panel */
+.cct--folders .cct__tab-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cct--folders .cct__tab-eyebrow {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.cct--folders .cct__tab-text {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* How many lessons it holds */
+.cct--folders .cct__tab-count {
+  flex: none;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
+  white-space: nowrap;
+}
+
+/* ⌄ / › on the right: folds the section */
+.cct--folders .cct__fold {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cct--folders .cct__fold:hover,
+.cct--folders .cct__tab-name:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cct--folders .cct__fold:focus-visible,
+.cct--folders .cct__tab-name:focus-visible,
+.cct--folders .cct__tab .cct__grip:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+
+/* ⋮⋮ on the bar: on hover, or with the keyboard on it */
+.cct--folders .cct__tab .cct__grip {
+  margin-left: 0;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cct--folders .cct__tab:hover .cct__grip,
+.cct--folders .cct__tab .cct__grip:focus-visible {
+  opacity: 1;
+}
+
+.cct--folders .cct__tab .cct__grip:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Folded: just the bar, rounded all round */
+.cct--folders .cct__section--folded .cct__tab {
+  border-radius: 9px;
+}
+
+/* Under the bar: the lessons, indented a little */
+.cct--folders .cct__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 10px 22px;
+}
+
+.cct.cct--folders .cct__lessons {
+  gap: 8px;
+}
+
+/* ---------- Lessons: rows inside the folder ---------- */
+.cct.cct--folders .cct__lesson {
+  --cct-row: #f7f7f8;
+  border-color: #ededf0;
+}
+
+.cct.cct--folders .cct__lesson:not(.cct__lesson--on):hover {
+  --cct-row: #f0f0f3;
+}
+
+.cct.cct--folders .cct__lesson--on {
+  --cct-row: var(--color-primary-tint);
+  border-color: #f2c9a6;
+}
+
+.cct--folders .cct__lesson-row {
+  min-height: 48px;
+}
+
+.cct--folders .cct__lesson-open {
+  gap: 8px;
+  font-size: 15px;
+}
+
+/* "1." in a quiet grey, lined up */
+.cct--folders .cct__lesson-num {
+  min-width: 1.6em;
+  font-weight: 600;
+  color: var(--crs-ink-3);
+}
+
+.cct--folders .cct__lesson--on .cct__lesson-num {
+  color: var(--crs-orange-ink);
+}
+
+/* ⋮⋮ on a row: on hover, or with the keyboard in the row (the panel
+   closed; with it open, the row's tools already fade in this way) */
+.cct--folders:not(.cct--split) .cct__lesson .cct__grip {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cct--folders:not(.cct--split) .cct__lesson:hover .cct__grip,
+.cct--folders:not(.cct--split) .cct__lesson:focus-within .cct__grip {
+  opacity: 1;
+}
+
+/* + Add lesson, inside the folder under its last lesson */
+.cct--folders .cct__add-lesson {
+  margin-top: 2px;
+}
+
+.cct--folders .cct__drop-end--empty {
+  height: 46px;
+}
+
+/* The orange line above a section being dropped: above its tab */
+.cct.cct--folders .cct__section--drop-before::before {
+  top: -13px;
+}
+
+/* ---------- Widths: the outline 420px at least, the panel 720px at most ---------- */
+.cct.cct--folders.cct--split {
+  grid-template-columns: minmax(420px, 1fr) minmax(520px, 720px);
+}
+
+@media (min-width: 1100px) and (min-height: 640px) {
+  .ced--workspace .cct.cct--folders .cct__outline {
+    min-width: 420px;
+  }
+
+  .ced--workspace .cct.cct--folders .cct__pane {
+    flex: 0 1 720px;
+  }
+}
+
+/* ---------- The panel ---------- */
+/* Delete (lesson or section): red when pointed at */
+.cct--folders .cct__pane-btn--delete:hover:not(:disabled) {
+  color: #c62828;
+  background: #fdecec;
+}
+
+/* The lesson's foot: just + Add next lesson, on the right */
+.cct--folders .cct__pane-foot {
+  justify-content: flex-end;
+}
+
+/* The section view: how many lessons, a line of help, + Add lesson */
+.cct__sec-view {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 520px;
+}
+
+.cct__sec-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 6px;
+  color: var(--crs-orange-ink);
+  background: var(--color-primary-tint);
+  border-radius: 10px;
+}
+
+.cct__sec-count {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cct__sec-help {
+  margin-bottom: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--crs-ink-2);
+}
+
+@media (max-width: 720px) {
+  .cct--folders .cct__tab {
+    max-width: 100%;
+  }
+
+  .cct--folders .cct__card {
+    padding: 10px 8px 8px 12px;
+  }
+
+  /* No hover on touch screens: ⋮⋮ always shows there */
+  .cct--folders .cct__tab .cct__grip,
+  .cct--folders:not(.cct--split) .cct__lesson .cct__grip {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cct--folders .cct__tab .cct__grip,
+  .cct--folders .cct__lesson .cct__grip {
+    transition: none;
+  }
+}

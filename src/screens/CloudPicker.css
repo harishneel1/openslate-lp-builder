@@ -1,0 +1,93 @@
+/* Pick from Cloud Storage, several at once (CloudPicker.jsx, multiple).
+   The rest of the pop-up's look is in CoursesPage.css (.cldp…). */
+
+/* A square checkbox, where one file has a round button */
+.cldp__check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: #fff;
+  border: 1.5px solid #c9c9cf;
+  border-radius: 5px;
+}
+
+.cldp__row--on .cldp__check {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* Already on this lesson: ticked, greyed, can't be clicked */
+.cldp__row--taken,
+.cldp__row--taken:hover {
+  background: #fafafb;
+  cursor: default;
+}
+
+.cldp__row--taken .cldp__check {
+  background: #c9c9cf;
+  border-color: #c9c9cf;
+}
+
+.cldp__row--taken .cldp__name {
+  color: var(--crs-ink-3);
+}
+
+.cldp__taken {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--crs-ink-3);
+  white-space: nowrap;
+}
+
+/* The foot: "2 selected · Clear" on the left, the buttons on the right */
+.cldp .crs-dialog__foot--row {
+  align-items: center;
+}
+
+.cldp__picked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--crs-ink-2);
+}
+
+.cldp__clear {
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--crs-orange-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cldp__clear:hover {
+  background: var(--color-primary-tint);
+}
+
+.cldp__clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+@media (max-width: 560px) {
+  .cldp .crs-dialog__foot--row {
+    flex-wrap: wrap;
+  }
+
+  .cldp__picked {
+    width: 100%;
+  }
+}

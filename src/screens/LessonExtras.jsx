@@ -34,7 +34,12 @@ import { KindTile, tileKindOf } from './lessonKinds';
 //                           then joins the lesson's resources. Storage
 //                           full, or a file too big for what's left, says
 //                           so here.
-//   Pick from Cloud Storage anything already there (CloudPicker, 'any').
+//   Pick from Cloud Storage anything already there, several at once
+//                           (CloudPicker, 'any', multiple). Files already
+//                           on this lesson show as "Already added" there,
+//                           so nothing is added twice. The ones picked
+//                           join the resources in the order they were
+//                           ticked.
 // 🗑 takes a resource off the lesson; the file stays in Cloud Storage.
 // One deleted from Cloud Storage says so, in red.
 //
@@ -166,6 +171,16 @@ function Resources({ course, lesson, onSaved, uploads, setUploads }) {
     const ok = Boolean(addResource(course.id, lesson.id, asset));
     onSaved(ok);
     return ok;
+  };
+
+  // Several picked from Cloud Storage, in the order they were ticked: one
+  // "Saved" (or "Couldn't save") for them all
+  const attachAll = (assets) => {
+    let ok = true;
+    assets.forEach((asset) => {
+      if (!addResource(course.id, lesson.id, asset)) ok = false;
+    });
+    onSaved(ok);
   };
 
   // Files from the computer: each checked against what's left, then uploaded
@@ -324,10 +339,12 @@ function Resources({ course, lesson, onSaved, uploads, setUploads }) {
       {picking && (
         <CloudPicker
           only="any"
+          multiple
+          taken={resources.map((r) => r.fileId)}
           onCancel={() => setPicking(false)}
-          onPick={(asset) => {
+          onPick={(assets) => {
             setPicking(false);
-            attach(asset);
+            attachAll(assets);
           }}
         />
       )}
@@ -373,7 +390,7 @@ function UploadChoice({ onCancel, onComputer, onCloud }) {
           <button type="button" className="lx__choice" onClick={onCloud}>
             <Cloud size={32} aria-hidden="true" />
             <span className="lx__choice-label">Pick from Cloud Storage</span>
-            <span className="lx__choice-sub">Something you’ve already uploaded.</span>
+            <span className="lx__choice-sub">Files you’ve already uploaded. Pick several at once.</span>
           </button>
         </div>
       </div>

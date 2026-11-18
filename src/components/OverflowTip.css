@@ -1,0 +1,22 @@
+/* The whole name, over a name cut short with "…" (OverflowTip.jsx).
+   Our dark tooltip, floating over the page. */
+.oft {
+  position: fixed;
+  z-index: 1000;
+  max-width: 320px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #fff;
+  overflow-wrap: anywhere;
+  background: #1f1f22;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+
+.oft--below {
+  transform: translate(-50%, 0);
+}

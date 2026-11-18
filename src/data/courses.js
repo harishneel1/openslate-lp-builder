@@ -183,7 +183,7 @@ export const TESTIMONIAL_NAME_MAX = 60;
 export const TESTIMONIAL_TEXT_MAX = 400;
 
 // What a new section is called, until it's renamed
-export const NEW_SECTION_TITLE = 'Untitled';
+export const NEW_SECTION_TITLE = 'Untitled section';
 
 // The academy's Courses page, what students see (AcademyCoursesPage.jsx).
 // "View as student" on the coach's Courses page opens it in a new tab.
@@ -323,7 +323,7 @@ export function createCourse({ title, contractIds = [] }) {
     title: name,
     contractIds: cleanIds(contractIds),
     status: 'draft',
-    sections: [{ id: newId('sec'), title: NEW_SECTION_TITLE, lessons: [] }],
+    sections: [], // a new course opens on "No sections yet" and + Add your first section
     createdAt: at,
     updatedAt: at,
   };
