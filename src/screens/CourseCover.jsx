@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Check, Cloud, FileText, Link2, RefreshCw, Trash2, Upload, PlayCircle } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, Cloud, FileText, Link2, PlayCircle, Plus, Trash2, Upload } from 'lucide-react';
 import { addFile, assetsOf, fileById, formatBytes, formatOf, onStorageChange, uniqueName, usageOf } from '../data/cloudStorage';
-import { keepPreview, previewOf } from '../data/imagePreviews';
+import { keepPreview } from '../data/imagePreviews';
 import { readLink, readVideoLink, LINK_MAX } from '../data/courses';
 import { coverVideoOf } from '../data/courseExtras';
 import { servicePrice } from '../data/mockServices';
@@ -16,27 +16,33 @@ import './CourseExtras.css';
 //   CourseAccess: a list of linked contracts, with Link contracts and
 //     Remove (kept from before; not shown on any step now).
 //
-//   Cover (optional)
-//   An image or a short video. …
-//   ┌──────────────┐  Nothing yet:
-//   │    cover     │  [⇪ Upload] [☁ Pick from Cloud Storage] [▶ Paste video link]
-//   │      ▶       │  Set:  course-intro.mp4 · 48 MB
-//   └──────────────┘        [↻ Replace] [🗑 Remove]
-//   (with a video)
-//   Thumbnail (optional)
-//   Shown on course cards and before the video plays. …
-//   thumb.jpg · 240 KB     [⇪ Upload image] [☁ Pick from Cloud Storage] [🗑 Remove]
+// Kept short on purpose: a heading, one line, the picture, one button.
 //
-// Upload: an image (JPG, PNG, WEBP) or a video (MP4, MOV) from the
-//   computer. It goes into Cloud Storage first, with its progress here
-//   (it shows there, and counts towards the 20 GB); storage full, or too
-//   big for what's left, says so here.
+//   Cover (optional)
+//   An image or a video for your landing page.
+//   ┌──────────────┐   [+ Add cover ▾]             (nothing yet)
+//   │    cover     │     ⇪ Upload from computer
+//   │      ▶       │     ☁ Pick from Cloud Storage
+//   └──────────────┘     ▶ Paste a YouTube or Vimeo link
+//                        16:9 works best
+//
+//   ┌──────────────┐   course-intro.mp4 · Video      (set)
+//   │    cover     │   [Change ▾]   (the same menu, then 🗑 Remove)
+//   └──────────────┘
+//   Thumbnail (optional)                            (with a video only)
+//   Shown on course cards and before the video plays.
+//   [+ Add thumbnail ▾]   /   thumb.jpg  [Change ▾]
+//
+// Upload from computer: an image (JPG, PNG, WEBP) or a video (MP4, MOV).
+//   It goes into Cloud Storage first, with its progress here (it shows
+//   there, and counts towards the 20 GB). The file rules only show when
+//   a file doesn't fit them, as the reason it wasn't added.
 // Pick from Cloud Storage: their images and videos (CloudPicker, 'cover').
-// Paste video link: a YouTube or Vimeo link, checked as it's pasted, as
-//   for a lesson's embedded video.
-// Replace shows the three choices again (Cancel keeps what's there).
+// Paste a YouTube or Vimeo link: a box for the link, checked as it's
+//   pasted, as for a lesson's embedded video.
 // Remove takes the cover off the course (the video and its thumbnail);
 //   files stay in Cloud Storage.
+// No "No cover yet" sentence: the orange picture already says it.
 //
 // How it's saved (courseExtras.js): an image cover is course.cover. A
 // video cover is course.coverVideo, and course.cover is then its
@@ -46,9 +52,6 @@ import './CourseExtras.css';
 // Which picture shows (CoverArt.jsx): the thumbnail, else YouTube's own,
 // else our orange with the title. (Vimeo's own needs the server: the real
 // product fetches it; the prototype shows the orange.)
-//
-// The prototype keeps a small picture of images uploaded here
-// (imagePreviews.js), so they can be seen; videos keep only their name.
 //
 // CourseCover: course, onSave(change) → true if it saved (CoursePage.jsx's
 //   save: says "Saved")
@@ -190,7 +193,6 @@ const asImage = (a) => ({ fileId: a.id, name: a.name, ext: a.ext, bytes: a.bytes
 export default function CourseCover({ course, onSave }) {
   const image = course.cover ?? null;
   const video = coverVideoOf(course);
-  const [replacing, setReplacing] = useState(false);
   const [linking, setLinking] = useState(false);
   const [picking, setPicking] = useState(null); // 'cover' | 'thumb'
   const [, setTick] = useState(0);
@@ -201,22 +203,17 @@ export default function CourseCover({ course, onSave }) {
   useEffect(() => onStorageChange(() => setTick((n) => n + 1)), []);
 
   const has = Boolean(image || video);
-  const choosing = !has || replacing;
 
   // An image as the cover: takes a video off. A video as the cover: an
   // image that was the cover stays, as its thumbnail.
   const setAsCover = (asset, kind) => {
-    setReplacing(false);
     setLinking(false);
     if (kind === 'image') onSave({ cover: asImage(asset), coverVideo: null });
     else onSave({ coverVideo: { kind: 'video', fileId: asset.id, name: asset.name, ext: asset.ext, bytes: asset.bytes } });
   };
   const setLink = (url) => {
     const ok = onSave({ coverVideo: { kind: 'embed', url } });
-    if (ok) {
-      setReplacing(false);
-      setLinking(false);
-    }
+    if (ok) setLinking(false);
     return ok;
   };
   const setAsThumb = (asset) => onSave({ cover: asImage(asset) });
@@ -225,14 +222,25 @@ export default function CourseCover({ course, onSave }) {
   const videoMissing = video?.kind === 'video' && !fileById(video.fileId);
   const pct = (u) => Math.floor((u.sent / Math.max(1, u.bytes)) * 100);
 
+  const coverItems = [
+    { id: 'upload', icon: Upload, label: 'Upload from computer', onPick: () => coverInput.current?.click() },
+    { id: 'cloud', icon: Cloud, label: 'Pick from Cloud Storage', onPick: () => setPicking('cover') },
+    { id: 'link', icon: PlayCircle, label: 'Paste a YouTube or Vimeo link', onPick: () => setLinking(true) },
+    has && { id: 'remove', icon: Trash2, label: 'Remove cover', danger: true, onPick: () => onSave({ cover: null, coverVideo: null }) },
+  ].filter(Boolean);
+
+  const thumbItems = [
+    { id: 'upload', icon: Upload, label: 'Upload from computer', onPick: () => thumbInput.current?.click() },
+    { id: 'cloud', icon: Cloud, label: 'Pick from Cloud Storage', onPick: () => setPicking('thumb') },
+    image && { id: 'remove', icon: Trash2, label: 'Remove thumbnail', danger: true, onPick: () => onSave({ cover: null }) },
+  ].filter(Boolean);
+
   return (
     <section className="cst__part" aria-labelledby="cst-cover">
       <h3 className="cst__title" id="cst-cover">
         Cover <span className="crs-field__optional">(optional)</span>
       </h3>
-      <p className="cst__sub">
-        An image or a short video, shown on your landing page. Course cards show the image, or the video’s thumbnail.
-      </p>
+      <p className="cst__sub">An image or a video for your landing page.</p>
 
       <div className="cst__cover">
         <div className="cst__cover-art">
@@ -243,81 +251,43 @@ export default function CourseCover({ course, onSave }) {
           {main.upload ? (
             <Uploading upload={main.upload} pct={pct(main.upload)} onCancel={main.cancel} />
           ) : linking ? (
-            <LinkForm
-              initial={video?.kind === 'embed' ? video.url : ''}
-              onSave={setLink}
-              onCancel={() => setLinking(false)}
-            />
-          ) : choosing ? (
-            <>
-              {!has && <p className="cst__file">No cover yet: the card shows the course’s title on our orange.</p>}
-              {replacing && <p className="cst__file">What should replace it?</p>}
-              <div className="cst__actions">
-                <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => coverInput.current?.click()}>
-                  <Upload size={16} aria-hidden="true" /> Upload
-                </button>
-                <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setPicking('cover')}>
-                  <Cloud size={16} aria-hidden="true" /> Pick from Cloud Storage
-                </button>
-                <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setLinking(true)}>
-                  <PlayCircle size={16} aria-hidden="true" /> Paste video link
-                </button>
-                {replacing && (
-                  <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setReplacing(false)}>
-                    Cancel
-                  </button>
-                )}
-              </div>
-              <p className="cst__hint">
-                Images: JPG, PNG or WEBP, 16:9 (like 1280 × 720) looks best. Videos: MP4 or MOV, or a YouTube or Vimeo link.
-              </p>
-            </>
+            <LinkForm initial={video?.kind === 'embed' ? video.url : ''} onSave={setLink} onCancel={() => setLinking(false)} />
           ) : (
             <>
-              <p className={`cst__file ${imageMissing || videoMissing ? 'cst__file--missing' : ''}`}>
-                {video?.kind === 'embed' && (
-                  <>
-                    <strong>{PROVIDER[video.provider]} video</strong> ·{' '}
-                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="cvx__link">
-                      {video.url}
-                      <span className="sr-only"> (opens in a new tab)</span>
-                    </a>
-                  </>
-                )}
-                {video?.kind === 'video' &&
-                  (videoMissing ? (
-                    <>
-                      <AlertTriangle size={15} aria-hidden="true" /> <strong>{video.name}</strong> was deleted from your Cloud Storage. You can replace it.
-                    </>
-                  ) : (
-                    <>
-                      <strong>{video.name}</strong> · Video · {formatBytes(video.bytes)}
-                    </>
-                  ))}
-                {!video &&
-                  (imageMissing ? (
-                    <>
-                      <AlertTriangle size={15} aria-hidden="true" /> <strong>{image.name}</strong> was deleted from your Cloud Storage. You can replace it.
-                    </>
-                  ) : (
-                    <>
-                      <strong>{image.name}</strong> · Image{image.bytes ? ` · ${formatBytes(image.bytes)}` : ''}
-                      {!image.src && !previewOf(image.fileId) && ' · The prototype has no picture of this file, so the card shows the orange.'}
-                    </>
-                  ))}
-              </p>
-              <div className="cst__actions">
-                <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setReplacing(true)}>
-                  <RefreshCw size={15} aria-hidden="true" /> Replace
-                </button>
-                <button
-                  type="button"
-                  className="crs-btn crs-btn--quiet crs-btn--small lp__remove"
-                  onClick={() => onSave({ cover: null, coverVideo: null })}
-                >
-                  <Trash2 size={15} aria-hidden="true" /> Remove
-                </button>
-              </div>
+              {has && (
+                <p className={`cst__file ${imageMissing || videoMissing ? 'cst__file--missing' : ''}`}>
+                  {video?.kind === 'embed' && <strong>{PROVIDER[video.provider]} video</strong>}
+                  {video?.kind === 'video' &&
+                    (videoMissing ? (
+                      <>
+                        <AlertTriangle size={15} aria-hidden="true" /> <strong>{video.name}</strong> was deleted from your Cloud
+                        Storage.
+                      </>
+                    ) : (
+                      <>
+                        <strong>{video.name}</strong> · Video
+                      </>
+                    ))}
+                  {!video &&
+                    (imageMissing ? (
+                      <>
+                        <AlertTriangle size={15} aria-hidden="true" /> <strong>{image.name}</strong> was deleted from your Cloud
+                        Storage.
+                      </>
+                    ) : (
+                      <>
+                        <strong>{image.name}</strong> · Image
+                      </>
+                    ))}
+                </p>
+              )}
+              <ChoiceMenu
+                label={has ? 'Change' : 'Add cover'}
+                adding={!has}
+                items={coverItems}
+                hint="16:9 works best"
+                name="cover"
+              />
             </>
           )}
           {main.problem && (
@@ -334,36 +304,23 @@ export default function CourseCover({ course, onSave }) {
           <p className="cvx__thumb-title">
             Thumbnail <span className="crs-field__optional">(optional)</span>
           </p>
-          <p className="cst__hint">
-            Shown on course cards and before the video plays. YouTube and Vimeo videos use their own thumbnail if you don’t add one.
-          </p>
+          <p className="cst__hint">Shown on course cards and before the video plays.</p>
           {thumbUp.upload ? (
             <Uploading upload={thumbUp.upload} pct={pct(thumbUp.upload)} onCancel={thumbUp.cancel} />
           ) : (
             <div className="cvx__thumb-row">
-              <p className="cst__file">
-                {image ? (
-                  <>
-                    <strong>{image.name}</strong>
-                    {image.bytes ? ` · ${formatBytes(image.bytes)}` : ''}
-                  </>
-                ) : (
-                  'None yet'
-                )}
-              </p>
-              <div className="cst__actions">
-                <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => thumbInput.current?.click()}>
-                  <Upload size={16} aria-hidden="true" /> Upload image
-                </button>
-                <button type="button" className="crs-btn crs-btn--quiet crs-btn--small" onClick={() => setPicking('thumb')}>
-                  <Cloud size={16} aria-hidden="true" /> Pick from Cloud Storage
-                </button>
-                {image && (
-                  <button type="button" className="crs-btn crs-btn--quiet crs-btn--small lp__remove" onClick={() => onSave({ cover: null })}>
-                    <Trash2 size={15} aria-hidden="true" /> Remove
-                  </button>
-                )}
-              </div>
+              {image && (
+                <p className="cst__file">
+                  <strong>{image.name}</strong>
+                </p>
+              )}
+              <ChoiceMenu
+                label={image ? 'Change' : 'Add thumbnail'}
+                adding={!image}
+                items={thumbItems}
+                hint="16:9 works best"
+                name="thumbnail"
+              />
             </div>
           )}
           {thumbUp.problem && (
@@ -413,12 +370,93 @@ export default function CourseCover({ course, onSave }) {
   );
 }
 
+// One button, its choices in a small menu under it: "+ Add cover ▾" while
+// there's nothing, "Change ▾" once there is. The hint sits at the menu's
+// foot. Closes on a click outside or Escape; ↑ ↓ move between choices.
+// label, adding (shows +), items: [{ id, icon, label, onPick, danger }],
+// hint, name (for screen readers: "cover", "thumbnail")
+function ChoiceMenu({ label, adding, items, hint, name }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef(null);
+  const button = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (!wrap.current?.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        button.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    wrap.current?.querySelector('[role="menuitem"]')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const onMenuKey = (e) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const list = [...wrap.current.querySelectorAll('[role="menuitem"]')];
+    const at = list.indexOf(document.activeElement);
+    list[(at + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length]?.focus();
+  };
+
+  const removeAt = items.findIndex((x) => x.danger);
+
+  return (
+    <div className={`crs-menu cvx__menu ${open ? 'crs-menu--open' : ''}`} ref={wrap}>
+      <button
+        ref={button}
+        type="button"
+        className="crs-btn crs-btn--quiet crs-btn--small"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {adding && <Plus size={16} aria-hidden="true" />}
+        {label}
+        <span className="sr-only"> {name}</span>
+        <ChevronDown size={15} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="crs-menu__list" role="menu" aria-label={`${label} ${name}`} onKeyDown={onMenuKey}>
+          {items.map(({ id, icon: Icon, label: itemLabel, onPick, danger }, i) => (
+            <div key={id}>
+              {i === removeAt && i > 0 && <div className="crs-menu__divider" role="separator" />}
+              <button
+                type="button"
+                role="menuitem"
+                className={`crs-menu__item ${danger ? 'crs-menu__item--danger' : ''}`}
+                onClick={() => {
+                  setOpen(false);
+                  onPick();
+                }}
+              >
+                <Icon size={16} aria-hidden="true" />
+                {itemLabel}
+              </button>
+            </div>
+          ))}
+          {hint && <p className="cvx__menu-hint">{hint}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // A file on its way to Cloud Storage: its name, how far along, Cancel
 function Uploading({ upload, pct, onCancel }) {
   return (
     <div className="cst__uploading">
       <p className="cst__file">
-        <strong>{upload.name}</strong> · Uploading to Cloud Storage · {pct}%
+        <strong>{upload.name}</strong> · Uploading · {pct}%
       </p>
       <span className="lp__bar" role="progressbar" aria-label={`Uploading ${upload.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
         <span className="cst__bar-fill" style={{ width: `${pct}%` }} />
@@ -430,7 +468,7 @@ function Uploading({ upload, pct, onCancel }) {
   );
 }
 
-// Paste video link: one box for a YouTube or Vimeo link, checked as it's pasted
+// Paste a YouTube or Vimeo link: one box, checked as it's pasted
 function LinkForm({ initial, onSave, onCancel }) {
   const [text, setText] = useState(initial);
   const [tried, setTried] = useState(false);
@@ -473,7 +511,7 @@ function LinkForm({ initial, onSave, onCancel }) {
       <p id="cvx-link-said" className={video ? 'lp__ok' : 'lp__error'} aria-live="polite">
         {video ? (
           <>
-            <Check size={15} strokeWidth={3} aria-hidden="true" /> {PROVIDER[video.provider]} video. It plays on your landing page.
+            <Check size={15} strokeWidth={3} aria-hidden="true" /> {PROVIDER[video.provider]} video
           </>
         ) : (
           error

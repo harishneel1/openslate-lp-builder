@@ -92,7 +92,7 @@
 
 .trk__fields {
   display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   max-width: 760px;
   margin-top: 16px;
@@ -362,4 +362,58 @@
 
 .cld__cover-standin strong {
   color: #fff;
+}
+
+/* ================= Change 14: 🗑 Remove on an optional part ================= */
+/* Quiet, at the right of the part's heading; red when pointed at */
+.lnd__remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--crs-ink-3, #7a7a80);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lnd__remove:hover {
+  color: #c62828;
+  background: #fdecec;
+}
+
+.lnd__remove:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ================= Change 15: the cover's one button and its menu ================= */
+/* The menu opens under the button, lined up with its left edge */
+.cvx__menu {
+  align-self: flex-start;
+}
+
+.cvx__menu .crs-menu__list {
+  right: auto;
+  left: 0;
+  min-width: 260px;
+}
+
+/* "16:9 works best", at the menu's foot */
+.cvx__menu-hint {
+  margin: 4px 4px 2px;
+  padding: 8px 8px 4px;
+  font-size: 12.5px;
+  color: var(--crs-ink-3, #7a7a80);
+  border-top: 1px solid var(--crs-line, #ececee);
+}
+
+/* The thumbnail's name, then its button, on one line */
+.cvx__thumb .cvx__thumb-row {
+  justify-content: flex-start;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, Trash2, X } from 'lucide-react';
 import { TESTIMONIALS_MAX, TESTIMONIAL_NAME_MAX, TESTIMONIAL_TEXT_MAX, testimonialsOf } from '../data/courses';
 import { LINKEDIN_MAX, TESTIMONIAL_FROM_MAX, readLinkedIn } from '../data/courseExtras';
 import { ItemPicture } from '../components/ItemsInput';
@@ -36,7 +36,11 @@ import './CourseTestimonials.css';
 // optional. Never suggested by AI: they must be real. Each box saves when
 // they leave it; a picture saves as soon as it's picked.
 //
+// 🗑 Remove by the heading takes the whole part off (CourseLanding.jsx
+// asks first when there's something in it).
+//
 // course, onSave(change) → true if it saved
+// onRemove(count): Remove was pressed (count: testimonials with words in them)
 // ------------------------------------------------------------
 
 let seed = 0;
@@ -53,7 +57,7 @@ const toSaved = (r) => ({
   linkedin: readLinkedIn(r.linkedin) ?? '',
 });
 
-export default function TestimonialsField({ course, onSave }) {
+export default function TestimonialsField({ course, onSave, onRemove }) {
   const saved = testimonialsOf(course);
   const [rows, setRows] = useState(() => (saved.length ? saved.map((t) => ({ ...t })) : [blank()]));
   const [focusId, setFocusId] = useState(null);
@@ -97,6 +101,17 @@ export default function TestimonialsField({ course, onSave }) {
         <h3 className="lrn__title" id="lrn-testimonials">
           Testimonials
         </h3>
+        {onRemove && (
+          <button
+            type="button"
+            className="lnd__remove"
+            onClick={() => onRemove(rows.filter((r) => r.text.trim() || r.name.trim()).length)}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            Remove
+            <span className="sr-only"> testimonials</span>
+          </button>
+        )}
       </div>
       <p className="lrn__help">
         What past students have said, in their words: copy real reviews from Google, WhatsApp, LinkedIn or Instagram. Add their

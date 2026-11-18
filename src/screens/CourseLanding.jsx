@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, Trash2, X } from 'lucide-react';
 import {
   COURSE_TITLE_MAX,
   DESCRIPTION_MAX,
@@ -13,6 +13,7 @@ import {
   testimonialsOf,
 } from '../data/courses';
 import TextEditor from '../components/TextEditor';
+import ConfirmDialog from '../components/ConfirmDialog';
 import CourseCover from './CourseCover';
 import { DurationField, TrackRecordField } from './CourseLandingExtras';
 import TestimonialsField from './CourseTestimonials';
@@ -53,6 +54,11 @@ import TestimonialsField from './CourseTestimonials';
 // Only the next thing to do shows. The optional parts (requirements, who
 // it's for, testimonials) are one quiet link each, at the end; a click
 // opens that part. A part that already has something in it shows open.
+// Each open optional part has 🗑 Remove on the right of its heading:
+// empty, it closes straight away, back to its + Add link; with something
+// in it, it asks first ("Remove requirements? The 2 lines you've added
+// will be deleted."), then empties it (saved) and closes it. The parts
+// publishing needs have no Remove.
 //
 // Title: the course's name everywhere (the focus bar, the academy, its
 // own contract). Up to 100 characters; it can't be empty: clearing it
@@ -123,11 +129,14 @@ const LISTS = {
   },
 };
 
+// name: what Remove's question calls the part; unit: what one of its entries is
 const EXTRAS = [
-  { id: 'requirements', add: 'Add requirements', has: (c) => listOf(c, 'requirements').length > 0 },
-  { id: 'audience', add: 'Add who it’s for', has: (c) => listOf(c, 'audience').length > 0 },
-  { id: 'testimonials', add: 'Add testimonials', has: (c) => testimonialsOf(c).length > 0 },
+  { id: 'requirements', add: 'Add requirements', name: 'requirements', unit: 'line', has: (c) => listOf(c, 'requirements').length > 0 },
+  { id: 'audience', add: 'Add who it’s for', name: '“Who it’s for”', unit: 'line', has: (c) => listOf(c, 'audience').length > 0 },
+  { id: 'testimonials', add: 'Add testimonials', name: 'testimonials', unit: 'testimonial', has: (c) => testimonialsOf(c).length > 0 },
 ];
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 // Characters left, only when they're close to the end
 const Left = ({ text, max }) =>
@@ -142,10 +151,36 @@ export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChan
   const [opened, setOpened] = useState(() => new Set(EXTRAS.filter((x) => x.has(course)).map((x) => x.id)));
   const closed = EXTRAS.filter((x) => !opened.has(x.id));
 
+  const [removing, setRemoving] = useState(null); // { id, count }: the question is up
+
   const open = (id) => {
     setOpened((prev) => new Set([...prev, id]));
     requestAnimationFrame(() => document.querySelector(`.lrn--${id} .lrn__input, .lrn--${id} textarea`)?.focus());
   };
+
+  // Closes an optional part: back to its + Add link, the keyboard on it
+  const close = (id) => {
+    setOpened((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    requestAnimationFrame(() => document.querySelector(`.lnd__extra[data-guide="${id}"]`)?.focus());
+  };
+
+  // 🗑 Remove on an optional part: count is how many entries have words in them
+  const askRemove = (id, count) => {
+    if (count === 0) close(id);
+    else setRemoving({ id, count });
+  };
+
+  const confirmRemove = () => {
+    const { id } = removing;
+    setRemoving(null);
+    if (onSave({ [id]: [] })) close(id);
+  };
+
+  const removingPart = removing ? EXTRAS.find((x) => x.id === removing.id) : null;
 
   return (
     <div className="lnd">
@@ -159,9 +194,28 @@ export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChan
       </div>
       <TrackRecordField course={course} onSave={onSave} />
 
-      {opened.has('requirements') && <ListField id="requirements" course={course} onSave={onSave} />}
-      {opened.has('audience') && <ListField id="audience" course={course} onSave={onSave} />}
-      {opened.has('testimonials') && <TestimonialsField course={course} onSave={onSave} />}
+      {opened.has('requirements') && (
+        <ListField id="requirements" course={course} onSave={onSave} onRemove={(n) => askRemove('requirements', n)} />
+      )}
+      {opened.has('audience') && <ListField id="audience" course={course} onSave={onSave} onRemove={(n) => askRemove('audience', n)} />}
+      {opened.has('testimonials') && (
+        <TestimonialsField course={course} onSave={onSave} onRemove={(n) => askRemove('testimonials', n)} />
+      )}
+
+      {removing && removingPart && (
+        <ConfirmDialog
+          title={`Remove ${removingPart.name}?`}
+          confirmLabel="Remove"
+          danger
+          onCancel={() => setRemoving(null)}
+          onConfirm={confirmRemove}
+        >
+          <p>
+            The {plural(removing.count, removingPart.unit)} you’ve added will be deleted. You can add {removingPart.name} again
+            any time.
+          </p>
+        </ConfirmDialog>
+      )}
 
       {closed.length > 0 && (
         <div className="lnd__extras">
@@ -256,8 +310,10 @@ function Subtitle({ course, onSave }) {
 let keySeed = 0;
 const newKey = () => `row-${(keySeed += 1)}`;
 
-// One list: a line each, + Add another under them
-function ListField({ id, course, onSave }) {
+// One list: a line each, + Add another under them. onRemove(count): the
+// part is optional, so 🗑 Remove shows by its heading (count: the lines
+// with words in them)
+function ListField({ id, course, onSave, onRemove }) {
   const field = LISTS[id];
   const saved = listOf(course, id);
   const pad = (list) => {
@@ -312,6 +368,13 @@ function ListField({ id, course, onSave }) {
               {enough ? ' added, enough to publish' : `, at least ${OUTCOMES_MIN} needed to publish`}
             </span>
           </span>
+        )}
+        {onRemove && (
+          <button type="button" className="lnd__remove" onClick={() => onRemove(filled)}>
+            <Trash2 size={15} aria-hidden="true" />
+            Remove
+            <span className="sr-only"> {field.title}</span>
+          </button>
         )}
       </div>
       <p className="lrn__help">{field.help}</p>
