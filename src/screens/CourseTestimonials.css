@@ -1,0 +1,181 @@
+/* Testimonials: on the Landing page step (CourseTestimonials.jsx), and
+   their cards on the landing page (CourseLandingPage.jsx, Testimonials).
+   The picture and its menu are the webinar builder's own (ItemsInput.css). */
+
+/* ================= The Landing page step ================= */
+.ctm__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+  margin-top: 12px;
+  list-style: none;
+}
+
+.ctm__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--crs-line);
+  border-radius: var(--radius-md);
+}
+
+/* The picture beside Name and Who they are, as on a webinar's reviews */
+.ctm__person {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.ctm__person-fields {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.ctm__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ctm__label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--crs-ink);
+}
+
+.ctm__remove {
+  flex: none;
+  margin-top: 22px;
+}
+
+.ctm__field .lrn__box:has([aria-invalid='true']) {
+  border-color: #d92d20;
+}
+
+.ctm__ok,
+.ctm__error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ctm__ok {
+  color: var(--color-success);
+}
+
+.ctm__error {
+  color: #b42318;
+}
+
+.ctm__ok:empty,
+.ctm__error:empty {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .ctm__person-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ================= The landing page: a testimonial's card =================
+   As a webinar page's review: the quote, then the picture beside "Name,
+   Who they are", then View LinkedIn at the foot when there's a link. */
+.cld__testimonial.ctm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ctm-card__by {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.ctm-card__photo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pf-accent-ink, #b4520c);
+  background: var(--color-primary-tint, #fdeee2);
+  border-radius: 50%;
+}
+
+.ctm-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The Google icon: a white circle with a border, the icon smaller inside */
+.ctm-card__photo--icon {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+}
+
+.ctm-card__photo--icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.ctm-card__who {
+  min-width: 0;
+  font-size: 14px;
+  color: var(--pf-ink-2, #55555b);
+}
+
+.ctm-card__linkedin {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pf-ink, #141414);
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #dcdce0;
+  border-radius: 8px;
+}
+
+.ctm-card__linkedin:hover {
+  border-color: #0a66c2;
+}
+
+.ctm-card__linkedin:focus-visible {
+  outline: 2px solid #0a66c2;
+  outline-offset: 2px;
+}
+
+/* LinkedIn's "in", in its blue */
+.ctm-card__in {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  background: #0a66c2;
+  border-radius: 4px;
+}

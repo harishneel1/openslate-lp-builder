@@ -8,9 +8,6 @@ import {
   LIST_MAX,
   OUTCOMES_MIN,
   SUBTITLE_MAX,
-  TESTIMONIALS_MAX,
-  TESTIMONIAL_NAME_MAX,
-  TESTIMONIAL_TEXT_MAX,
   listOf,
   descriptionText,
   testimonialsOf,
@@ -18,6 +15,7 @@ import {
 import TextEditor from '../components/TextEditor';
 import CourseCover from './CourseCover';
 import { DurationField, TrackRecordField } from './CourseLandingExtras';
+import TestimonialsField from './CourseTestimonials';
 
 // ------------------------------------------------------------
 // A course's Landing page step (CoursePage.jsx): everything people see
@@ -27,6 +25,8 @@ import { DurationField, TrackRecordField } from './CourseLandingExtras';
 //   [AI Engineering Accelerator                                  ]
 //   Subtitle
 //   [Dinners for busy weeks, from shop to table                  ]
+//   Time to complete (optional)               (CourseLandingExtras.jsx)
+//   [ 6 ] [hours ▾]
 //
 //   Description                                                  ✓
 //   What the course covers, how it works, and what changes…
@@ -40,7 +40,9 @@ import { DurationField, TrackRecordField } from './CourseLandingExtras';
 //   [e.g. Batch-cook lunches that keep for the whole week        ]
 //   + Add another
 //
-//   Cover image (optional)                       (CourseSettings.jsx)
+//   Cover (optional): an image or a video          (CourseCover.jsx)
+//
+//   Your track record                          (CourseLandingExtras.jsx)
 //
 //   + Add requirements   + Add who it's for   + Add testimonials
 //
@@ -56,6 +58,7 @@ import { DurationField, TrackRecordField } from './CourseLandingExtras';
 // own contract). Up to 100 characters; it can't be empty: clearing it
 // puts the saved one back.
 // Subtitle: needed to publish, up to 120 characters.
+// Time to complete: optional, a number and hours, days or weeks.
 // What students will learn: 3 lines to start, each with an example in
 // it (one story: a cooking course), at least 3 needed to publish (the
 // count by its heading, grey, a green tick once there are enough).
@@ -66,11 +69,14 @@ import { DurationField, TrackRecordField } from './CourseLandingExtras';
 // ("Saved" in the page's bar), so moving to another step never loses
 // anything. How many characters are left shows only near the end (20 or
 // fewer).
-// Testimonials: what past students have said, in their words (from
-// WhatsApp, emails, reviews elsewhere), each a quote and, if they're
-// happy to be named, a name. Up to 6. The landing page shows them under
-// "What students say", as testimonials, never as star ratings: those come
-// only from students who took the course. Each saves when they leave it.
+// Your track record: the coach's own rating and student count, filled
+// with 125 and 4.7 to start, shown only once they turn it on.
+// Testimonials: what past students have said, made as a webinar's
+// reviews: a picture (photo or the Google icon), their name, who they
+// are, what they said, and an optional LinkedIn link
+// (CourseTestimonials.jsx). Up to 6. The landing page shows them under
+// "What students say", as testimonials, never as star ratings: those
+// come only from students who took the course.
 // Description: needed to publish, always open, written in the text
 // editor (TextEditor.jsx, autosave). It saves when they click away, like
 // the fields around it. It's also the description on the course's own
@@ -148,7 +154,7 @@ export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChan
       <DurationField course={course} onSave={onSave} />
       <Description course={course} onSave={onSave} onDirtyChange={onDirtyChange} />
       <ListField id="outcomes" course={course} onSave={onSave} />
-            <div className="cst lnd__cover" data-guide="cover">
+      <div className="cst lnd__cover" data-guide="cover">
         <CourseCover course={course} onSave={onSave} />
       </div>
       <TrackRecordField course={course} onSave={onSave} />
@@ -351,110 +357,6 @@ function ListField({ id, course, onSave }) {
       </ul>
 
       {rows.length < LIST_MAX && (
-        <button type="button" className="lnd__extra lrn__add" onClick={add}>
-          <Plus size={16} aria-hidden="true" />
-          Add another
-        </button>
-      )}
-    </section>
-  );
-}
-
-// Testimonials: a quote and a name each, + Add another under them
-function TestimonialsField({ course, onSave }) {
-  const saved = testimonialsOf(course);
-  const blank = () => ({ id: `tst-new-${newKey()}`, name: '', text: '' });
-  const [rows, setRows] = useState(() => (saved.length ? saved : [blank()]));
-  const [focusId, setFocusId] = useState(null);
-
-  useEffect(() => {
-    if (!focusId) return;
-    document.getElementById(`tst-text-${focusId}`)?.focus();
-    setFocusId(null);
-  }, [focusId]);
-
-  const commit = (next) => {
-    const list = next.filter((r) => r.text.trim()).map((r) => ({ id: r.id, name: r.name.trim(), text: r.text.trim() }));
-    const before = saved.map((r) => ({ id: r.id, name: r.name, text: r.text }));
-    if (JSON.stringify(list) !== JSON.stringify(before)) onSave({ testimonials: list });
-  };
-
-  const edit = (id, field, value) => setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
-
-  const add = () => {
-    const row = blank();
-    setRows((prev) => [...prev, row]);
-    setFocusId(row.id);
-  };
-
-  const remove = (id) => {
-    const next = rows.filter((r) => r.id !== id);
-    setRows(next.length ? next : [blank()]);
-    commit(next);
-  };
-
-  return (
-    <section className="lnd__part lrn--testimonials" aria-labelledby="lrn-testimonials" data-guide="testimonials">
-      <div className="lrn__head">
-        <h3 className="lrn__title" id="lrn-testimonials">
-          Testimonials
-        </h3>
-      </div>
-      <p className="lrn__help">
-        What past students have said, in their words: from WhatsApp, emails or reviews elsewhere. They show as
-        testimonials, not star ratings.
-      </p>
-
-      <ul className="tst__list">
-        {rows.map((row, i) => (
-          <li key={row.id} className="tst__row">
-            <div className="tst__fields">
-              <span className="lrn__box tst__quote">
-                <textarea
-                  id={`tst-text-${row.id}`}
-                  className="lrn__input tst__text"
-                  rows={3}
-                  value={row.text}
-                  maxLength={TESTIMONIAL_TEXT_MAX}
-                  placeholder="e.g. My back stopped hurting by week two. I finally have a routine I keep."
-                  aria-label={`Testimonial ${i + 1}: what they said`}
-                  onChange={(e) => edit(row.id, 'text', e.target.value)}
-                  onBlur={() => commit(rows)}
-                />
-                <Left text={row.text} max={TESTIMONIAL_TEXT_MAX} />
-              </span>
-              <span className="lrn__box tst__name">
-                <input
-                  className="lrn__input"
-                  value={row.name}
-                  maxLength={TESTIMONIAL_NAME_MAX}
-                  placeholder="Their name (optional), e.g. Ananya R."
-                  aria-label={`Testimonial ${i + 1}: their name`}
-                  autoComplete="off"
-                  onChange={(e) => edit(row.id, 'name', e.target.value)}
-                  onBlur={() => commit(rows)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') e.currentTarget.blur();
-                  }}
-                />
-              </span>
-            </div>
-            {(rows.length > 1 || row.text) && (
-              <button
-                type="button"
-                className="ilt__tool ilt__tool--delete lrn__remove"
-                title="Remove"
-                aria-label={`Remove testimonial ${i + 1}`}
-                onClick={() => remove(row.id)}
-              >
-                <X size={16} aria-hidden="true" />
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      {rows.length < TESTIMONIALS_MAX && (
         <button type="button" className="lnd__extra lrn__add" onClick={add}>
           <Plus size={16} aria-hidden="true" />
           Add another

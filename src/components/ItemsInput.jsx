@@ -32,7 +32,7 @@ const focusAtEnd = (id) => {
 // Clicking it opens a small menu: upload a photo, use the Google icon, remove.
 // photo: data URL for now; the real app should upload it and save the link.
 // source: 'google' when they chose the Google icon, otherwise ''.
-function ItemPicture({ name, photo, source, onChange }) {
+export function ItemPicture({ name, photo, source, onChange }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const wrapRef = useRef(null);

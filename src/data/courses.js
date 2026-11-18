@@ -1,7 +1,6 @@
 import { getService } from './mockServices';
 import { contractSignupsOf } from './contractSignupsStore';
-import { cleanCoverVideo, cleanDuration, cleanTrackRecord } from './courseExtras';
-
+import { TESTIMONIAL_FROM_MAX, cleanCoverVideo, cleanDuration, cleanPhoto, cleanTrackRecord, readLinkedIn } from './courseExtras';
 // ------------------------------------------------------------
 // Courses. A course doesn't own a contract: it keeps a list of the
 // contracts that give access to it, and only reads them. Linking never
@@ -251,13 +250,21 @@ const cleanList = (list) =>
     .map((item) => clean(item, LIST_ITEM_MAX))
     .filter(Boolean)
     .slice(0, LIST_MAX);
-// Testimonials as saved: only ones with words in them; a name is optional
+
+    // Testimonials as saved: only ones with words in them. Name, who they
+// are, their picture (photo, or the Google icon: source 'google') and
+// their LinkedIn link are all optional. The photo is kept with the
+// testimonial (the real product: in the database, not Cloud Storage).
 const cleanTestimonials = (list) =>
   (Array.isArray(list) ? list : [])
     .map((t) => ({
       id: typeof t?.id === 'string' && t.id ? t.id : newId('tst'),
       name: clean(t?.name, TESTIMONIAL_NAME_MAX),
+      from: clean(t?.from, TESTIMONIAL_FROM_MAX),
       text: clean(t?.text, TESTIMONIAL_TEXT_MAX),
+      photo: cleanPhoto(t?.photo),
+      source: t?.source === 'google' ? 'google' : '',
+      linkedin: readLinkedIn(t?.linkedin) ?? '',
     }))
     .filter((t) => t.text)
     .slice(0, TESTIMONIALS_MAX);

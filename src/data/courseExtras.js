@@ -1,4 +1,4 @@
-import { readVideoLink } from './courses';
+import { readLink, readVideoLink } from './courses';
 
 // ------------------------------------------------------------
 // The parts of a course added in Round 3, kept here so courses.js only
@@ -24,12 +24,23 @@ import { readVideoLink } from './courses';
 // trackRecordOf(course) → { students, rating, source, on }, defaults filled in
 // cleanCoverVideo(v) → the video as saved, null, or undefined (not a video: don't save)
 // cleanDuration(d), cleanTrackRecord(t) → as saved
+//
+// Testimonials (courses.js, cleanTestimonials), as the webinar's reviews:
+//   { id, name, from (who they are), text, photo, source, linkedin }
+//   photo   their picture, kept with the testimonial itself (a data URL
+//           in the prototype; the real product stores it in the database,
+//           not Cloud Storage), or ''
+//   source  'google' when the coach chose the Google icon, else ''
+//   linkedin  their LinkedIn profile link, or ''
+// readLinkedIn(text) → a LinkedIn profile link (linkedin.com/in/…), tidied
+//   to https://www.linkedin.com/in/…, or null
+// cleanPhoto(value) → a picture we can show (data:image/… or http(s)), or ''
 // ------------------------------------------------------------
 
 export const DURATION_UNITS = ['hours', 'days', 'weeks'];
 export const DURATION_MAX = 9999;
 
-export const TRACK_DEFAULTS = { students: 217, rating: 4.7, source: '' };
+export const TRACK_DEFAULTS = { students: 125, rating: 4.7, source: '' };
 export const TRACK_STUDENTS_MAX = 10000000;
 export const TRACK_SOURCE_MAX = 40;
 
@@ -89,3 +100,20 @@ export function cleanTrackRecord(t) {
 
 export const trackRecordOf = (course) =>
   course?.trackRecord ? cleanTrackRecord(course.trackRecord) : { ...TRACK_DEFAULTS, on: false };
+
+// ---------- Testimonials: who they are, their picture, LinkedIn ----------
+export const TESTIMONIAL_FROM_MAX = 60;
+export const LINKEDIN_MAX = 200;
+
+export function readLinkedIn(text) {
+  const href = readLink(text);
+  if (!href || href.length > LINKEDIN_MAX) return null;
+  const url = new URL(href);
+  const host = url.hostname.replace(/^(www\.|[a-z]{2}\.)/, '');
+  const path = url.pathname.split('/').filter(Boolean);
+  if (host !== 'linkedin.com' || path[0] !== 'in' || !path[1]) return null;
+  return `https://www.linkedin.com/in/${path[1]}`;
+}
+
+export const cleanPhoto = (value) =>
+  typeof value === 'string' && /^(data:image\/|https?:\/\/)/.test(value) ? value : '';

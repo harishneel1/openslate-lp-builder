@@ -39,6 +39,8 @@ import { KIND } from './lessonKinds';
 import { coverVideoOf, durationOf, durationText, trackRecordOf } from '../data/courseExtras';
 import { readVideoLink } from '../data/courses';
 import './CourseExtras.css';
+import './CourseTestimonials.css';
+import googleIcon from '../assets/google-g.svg';
 import '../styles/storeTheme.css';
 import './AcademyCoursesPage.css';
 import './CourseLandingPage.css';
@@ -310,37 +312,6 @@ export default function CourseLandingPage({ courseId, preview = false, region = 
           <Eye size={17} aria-hidden="true" />
           Example: a sample course by Meera Joshi, to show what a finished landing page looks like.
         </p>
-      )}
-            {preview && !example && (
-        <p className={`cpl__preview ${live ? '' : 'cpl__preview--draft'}`} role="status">
-          <Eye size={17} aria-hidden="true" />
-          {live
-            ? 'Preview: this is your live landing page.'
-            : 'Preview: this course is a draft. Only you can see this page. Buy now works once it’s published.'}
-        </p>
-      )}
-
-      {/* ---------- Scrolled past the band: title, price, Buy now ---------- */}
-      {offer.state === 'buy' && !embed && (
-        <div className={`cld__sticky ${pastHero ? 'cld__sticky--on' : ''}`} aria-hidden={!pastHero}>
-          <div className="cld__wrap cld__sticky-row">
-            <div className="cld__sticky-text">
-              <p className="cld__sticky-title">{course.title}</p>
-              {showRating && (
-                <p className="cld__sticky-rating">
-                  <strong>{rating.average.toFixed(1)}</strong>
-                  <Stars value={rating.average} size={13} />
-                  <span>({plural(rating.count, 'rating')})</span>
-                </p>
-              )}
-            </div>
-            <p className="cld__sticky-price">
-              <span className="cld__amount">{offer.amount}</span>
-              {offer.compare && <s className="cld__compare">{offer.compare}</s>}
-            </p>
-            <BuyButton href={offer.href} enabled={canBuy} label={buyLabel} tabbable={pastHero} />
-          </div>
-        </div>
       )}
 
       {/* ---------- The warm band ---------- */}
@@ -744,7 +715,9 @@ function Reviews({ rating, reviews }) {
   );
 }
 
-// What students say: testimonials the coach added, labelled as such (no stars)
+// What students say: testimonials the coach added, as a webinar page's
+// reviews: the quote, then their picture beside "Name, Who they are",
+// then View LinkedIn at the foot when there's a link. No stars.
 function Testimonials({ items }) {
   return (
     <section className="cld__part" aria-labelledby="cld-testimonials">
@@ -752,16 +725,59 @@ function Testimonials({ items }) {
         What students say
       </h2>
       <ul className="cld__reviews">
-        {items.map((t) => (
-          <li key={t.id} className="cld__review cld__testimonial">
-            <MessageSquareQuote size={20} className="cld__quote" aria-hidden="true" />
-            <p className="cld__review-text">“{t.text}”</p>
-            {t.name && <p className="cld__testimonial-name">{t.name}</p>}
-          </li>
-        ))}
+        {items.map((t) => {
+          const who = [t.name, t.from].filter(Boolean).join(', ');
+          return (
+            <li key={t.id} className="cld__review cld__testimonial ctm-card">
+              <p className="cld__review-text">“{t.text}”</p>
+              {(who || t.photo || t.source) && (
+                <div className="ctm-card__by">
+                  <ReviewerPicture testimonial={t} />
+                  {who && <p className="ctm-card__who">{who}</p>}
+                </div>
+              )}
+              {t.linkedin && (
+                <a className="ctm-card__linkedin" href={t.linkedin} target="_blank" rel="noopener noreferrer">
+                  <span className="ctm-card__in" aria-hidden="true">
+                    in
+                  </span>
+                  View LinkedIn
+                  <span className="sr-only">
+                    {t.name ? ` profile of ${t.name}` : ' profile'} (opens in a new tab)
+                  </span>
+                </a>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
+}
+
+// Their picture: their photo, else the Google icon, else their initials,
+// else nothing (as a webinar page's ReviewerPicture)
+function ReviewerPicture({ testimonial: t }) {
+  if (t.photo) {
+    return (
+      <span className="ctm-card__photo" aria-hidden="true">
+        <img src={t.photo} alt="" />
+      </span>
+    );
+  }
+  if (t.source === 'google') {
+    return (
+      <span className="ctm-card__photo ctm-card__photo--icon">
+        <img src={googleIcon} alt="Google review" />
+      </span>
+    );
+  }
+  const letters = initials(t.name);
+  return letters ? (
+    <span className="ctm-card__photo" aria-hidden="true">
+      {letters}
+    </span>
+  ) : null;
 }
 
 // The Buy box's cover: the picture, or, for a cover video, the picture
