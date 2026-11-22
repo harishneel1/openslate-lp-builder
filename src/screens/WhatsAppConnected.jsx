@@ -4,14 +4,25 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import Drawer from '../components/Drawer';
 import InfoTip from '../components/InfoTip';
 import TemplateDialog, { autoReplyRow } from './TemplateDialog';
-import { BusinessSummary } from './WhatsAppBusinessForm';
-import { useBusiness } from '../data/whatsappBusiness';
+import { BusinessDetails, BusinessSummary } from './WhatsAppBusinessForm';
+import {
+  META_COMMERCE_POLICY_URL,
+  REJECTION_REASONS,
+  SUPPORT_URL,
+  applyEdit,
+  businessTypeOf,
+  fixProblems,
+  flaggedParts,
+  isVerified,
+  needsFix,
+  notEligible,
+  resubmitBusiness,
+  useBusiness,
+} from '../data/whatsappBusiness';
 import {
   CONTACT_COUNTRIES,
-  DAILY_LIMIT,
-  MOCK_REJECTION,
-  dailyLimit,
   disconnectWhatsApp,
+  nameRejectionOf,
   isSetUp,
   markWelcomed,
   messageStatus,
@@ -33,17 +44,17 @@ import './WhatsAppConnected.css';
 //   WhatsApp  [● Connected]
 //   Used for every webinar and 1:1 call.
 //   ───────────────────────────────────────────────────────────────────
-//   ┃ Connected. Your reminders are being approved.  ┃  ┌ Default reminders, ┐
-//   ┃ It usually takes a few minutes, and up to 24 h. ┃  │ ready to use       │
-//   ┃ ✓ Connected → ◷ Meta approving · 5 of 8 → ○ Reminders live │ We've submitted … │
+//   ┃ Connected. Meta is verifying your business.    ┃  ┌ Default reminders, ┐
+//   ┃ It usually takes a few days. …                  ┃  │ ready to use       │
+//   ┃ ✓ Connected → ◷ Verifying your business → ◷ Meta approving · 5 of 8
+//   ┃   → ○ Add contact number → ○ Reminders live     ┃  │ We've submitted … │
 //   ┃ Where should students message you? …  [Add number] ┃  │ [See default messages]
 //                                                       └────────────────────┘
 //   No-reply number ⓘ  +91 98765 43210
 //   Contact number ⓘ   +91 91234 56789   Change   View message
 //                      (or: Not added   Add number   View message)
 //   Display name    Harish Neel  [In review]
-//   Business        Harish Neel Coaching  [Sent for verification]  View details
-//   Daily limit     250 students ⓘ   Get verified to raise it
+//   Business        Harish Neel Coaching  [In review]  View details
 //   Messages        8 reminders: 7 approved, 1 in review   See all
 //
 //   Disconnect WhatsApp
@@ -52,13 +63,20 @@ import './WhatsAppConnected.css';
 //   something wrong   most urgent first, each with the one thing to do
 //                     (it replaces the others):
 //     the number dropped by WhatsApp   paused, emails still go     Reconnect
-//     the display name rejected        Meta's reason               Choose another name
+//     Meta turned the business down    Meta's reasons, in plain    Fix and resubmit
+//       (FAILED, or REVOKED)           words, each with its fix
+//     Meta closed it unchecked         nothing to change           Send again
+//       (DISCARDED)
+//     the business not eligible        no fix changes it           Contact us
+//     the display name rejected        Meta's reason, and the fix  Choose another name
 //     a message rejected               where to see why            See which
-//   setup not finished  until Meta has approved the reminders and the
-//                     contact number is added (isSetUp): four steps,
-//                     Connected → Meta approving · 5 of 8 (or Meta approved)
-//                     → Add contact number → Reminders live, each marked on
-//                     its own. It can't be closed while it's true, and the
+//   setup not finished  until Meta has verified the business, approved the
+//                     reminders, and the contact number is added (isSetUp):
+//                     five steps, Connected → Verifying your business (or
+//                     Business verified) → Meta approving · 5 of 8 (or Meta
+//                     approved) → Add contact number → Reminders live, each
+//                     marked on its own. No WhatsApp message goes out until
+//                     the business is verified. It can't be closed while it's true, and the
 //                     pill at the top says "Not live yet" instead of
 //                     "Connected". Meanwhile webinars' and calls' Reminders
 //                     tabs show the same card as before connecting.
@@ -86,14 +104,19 @@ import './WhatsAppConnected.css';
 // goes; the Messages row stays as the way to Templates.
 //
 // Business: the details given before connecting (data/whatsappBusiness.js),
-// sent for verification with setup and read-only now. View details opens
-// them in a side panel. Meta's answer (verified, more info, rejected) comes
-// in a later round.
+// sent for verification with setup and read-only now, with Meta's check
+// in Meta's own values (whatsappBusiness.js): In review (PENDING),
+// Verified (APPROVED), Not verified (FAILED), Not checked (DISCARDED) or
+// Verification withdrawn (REVOKED). View details opens them in a side
+// panel. Once turned down, Fix and resubmit opens the details in a side
+// panel of their own (FixPanel), with what Meta flagged marked on each
+// part; sending them puts the business back in review. Meta has no "more
+// information needed": an unreadable document is FAILED with
+// MALFORMED_DOCUMENTS, fixed the same way.
 //
 // Messages' "See all", a rejected message's "See which", and the box's
-// button go to the Templates tab (onSeeAll). Side panels (Drawer): Get
-// verified (Coming soon), a new display name, the contact number, and the
-// business details. Disconnect asks first
+// button go to the Templates tab (onSeeAll). Side panels (Drawer): a new
+// display name, the contact number, the business details, and fixing them. Disconnect asks first
 // (ConfirmDialog); it's also how to change number: disconnect, then
 // connect the new one.
 //
@@ -106,6 +129,12 @@ const STATUS = {
   approved: { label: 'Approved', badge: 'good' },
   review: { label: 'In review', badge: 'wait' },
   rejected: { label: 'Not approved', badge: 'bad' },
+  // The business's verification (Business row), by Meta's status
+  PENDING: { label: 'In review', badge: 'wait' },
+  APPROVED: { label: 'Verified', badge: 'good' },
+  FAILED: { label: 'Not verified', badge: 'bad' },
+  DISCARDED: { label: 'Not checked', badge: 'bad' },
+  REVOKED: { label: 'Verification withdrawn', badge: 'bad' },
 };
 
 const fmt = (n) => n.toLocaleString('en-IN');
@@ -124,32 +153,33 @@ const CONTACT_TIP =
 // startPanel: a side panel to open on ('contact', from Templates' "Add
 //   number"), or null; onStarted() once it's open, so it opens only once
 export default function WhatsAppConnected({ connection, onSeeAll, startPanel = null, onStarted }) {
-  const [panel, setPanel] = useState(startPanel); // 'verify' | 'rename' | 'contact' | 'business'
+  const [panel, setPanel] = useState(startPanel); // 'rename' | 'contact' | 'business' | 'fix'
   const business = useBusiness();
+  const verified = isVerified(business);
   useEffect(() => {
     if (startPanel) onStarted?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [viewing, setViewing] = useState(false); // the automatic reply's pop-up
   const [disconnecting, setDisconnecting] = useState(false);
   const lost = connection.status === 'lost';
-  const problem = problemOf(connection);
+  const problem = problemOf(connection, business);
   const { approved, total, inReview } = approvalsOf(connection);
   const needsContact = needsContactNumber(connection);
-  // Setup finished: contact number added, Meta done reviewing (isSetUp)
-  const setUp = isSetUp(connection);
+  // Setup finished: business verified, contact number added, Meta done
+  // reviewing (isSetUp)
+  const setUp = isSetUp(connection, business);
 
-  // "You're all set": once every message is approved, shown once. Either
-  // the last approval comes in while they're here, or it had come in by
-  // their next visit (welcomed still false). It's marked seen as it shows,
-  // and stays for this visit until closed.
-  const [welcomeOpen, setWelcomeOpen] = useState(connection.welcomed === false && !inReview);
-  const wasInReview = useRef(inReview);
+  // "You're all set": once setup is finished, shown once. Either the last
+  // of it (verification, an approval, the contact number) comes in while
+  // they're here, or it had by their next visit (welcomed still false).
+  // It's marked seen as it shows, and stays for this visit until closed.
+  const [welcomeOpen, setWelcomeOpen] = useState(connection.welcomed === false && setUp);
+  const wasSetUp = useRef(setUp);
   useEffect(() => {
-    if (wasInReview.current && !inReview) setWelcomeOpen(true);
-    wasInReview.current = inReview;
-  }, [inReview]);
-  // "You're all set" waits for the contact number: it isn't, until then
-  const welcome = welcomeOpen && !problem && !inReview && !needsContact;
+    if (!wasSetUp.current && setUp) setWelcomeOpen(true);
+    wasSetUp.current = setUp;
+  }, [setUp]);
+  const welcome = welcomeOpen && !problem && setUp;
   useEffect(() => {
     if (welcome && connection.welcomed === false) markWelcomed();
   }, [welcome, connection.welcomed]);
@@ -175,12 +205,19 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
       <div className="settings__body settings__body--split">
         <div className="wcn">
           {problem ? (
-            <Problem problem={problem} connection={connection} onOpen={setPanel} onSeeAll={onSeeAll} />
+            <Problem
+              problem={problem}
+              connection={connection}
+              business={business}
+              onOpen={setPanel}
+              onSeeAll={onSeeAll}
+            />
           ) : !setUp ? (
             <SetupSteps
               approved={approved}
               total={total}
               inReview={inReview}
+              verified={verified}
               hasContact={!needsContact}
               onAddContact={() => setPanel('contact')}
             />
@@ -244,36 +281,13 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
                 <dt>Business</dt>
                 <dd>
                   {business.legalName}
-                  {business.status === 'sent' && <span className="wa-badge wcn-badge--wait">Sent for verification</span>}
+                  {business.status === 'sent' && <Badge status={business.verification ?? 'PENDING'} />}
                   <button type="button" className="wcn-link" onClick={() => setPanel('business')}>
                     View details
                   </button>
                 </dd>
               </div>
             )}
-            <div className="wcn-facts__row">
-              <dt>Daily limit</dt>
-              <dd>
-                <span className="wcn-facts__with-tip">
-                  {fmt(dailyLimit(connection))} students
-                  <InfoTip
-                    label="Daily limit"
-                    text={
-                      connection.verified
-                        ? 'Different students you can message each day, not messages.'
-                        : `Different students you can message each day, not messages. Verified businesses can reach ${fmt(DAILY_LIMIT.verified)}.`
-                    }
-                  />
-                </span>
-                {connection.verified ? (
-                  <span className="wa-badge wcn-badge--good">Verified</span>
-                ) : (
-                  <button type="button" className="wcn-link" onClick={() => setPanel('verify')}>
-                    Get verified to raise it
-                  </button>
-                )}
-              </dd>
-            </div>
             <div className="wcn-facts__row">
               <dt>Messages</dt>
               <dd>
@@ -290,11 +304,13 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
           </button>
         </div>
 
-        {explain && <DefaultsHelp onSeeAll={onSeeAll} needsContact={needsContact} />}
+        {explain && <DefaultsHelp onSeeAll={onSeeAll} needsContact={needsContact} verified={verified} />}
       </div>
 
-      {panel === 'verify' && <VerifyPanel onClose={() => setPanel(null)} />}
-      {panel === 'rename' && <RenamePanel current={connection.name} onClose={() => setPanel(null)} />}
+      {panel === 'fix' && <FixPanel business={business} onClose={() => setPanel(null)} />}
+      {panel === 'rename' && (
+        <RenamePanel connection={connection} legalName={business.legalName} onClose={() => setPanel(null)} />
+      )}
       {panel === 'business' && <BusinessPanel business={business} onClose={() => setPanel(null)} />}
       {viewing && (
         <TemplateDialog
@@ -328,15 +344,16 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
 }
 
 // ---------- What's wrong, most urgent first ----------
-function problemOf(c) {
+function problemOf(c, business) {
   if (c.status === 'lost') return { id: 'lost' };
+  if (needsFix(business)) return { id: notEligible(business) ? 'ineligible' : business.verification === 'DISCARDED' ? 'discarded' : 'business' };
   if (c.nameStatus === 'rejected') return { id: 'name' };
   const rejected = SHOWN_MESSAGE_IDS.filter((id) => messageStatus(c, id) === 'rejected');
   if (rejected.length) return { id: 'message', count: rejected.length };
   return null;
 }
 
-function Problem({ problem, connection, onOpen, onSeeAll }) {
+function Problem({ problem, connection, business, onOpen, onSeeAll }) {
   const heading = useRef(null);
   useEffect(() => heading.current?.focus(), [problem.id]);
 
@@ -347,9 +364,35 @@ function Problem({ problem, connection, onOpen, onSeeAll }) {
       action: 'Reconnect',
       onAction: reconnectWhatsApp,
     },
+    business: {
+      title:
+        business.verification === 'REVOKED'
+          ? 'Meta withdrew your business verification'
+          : 'Meta couldn’t verify your business',
+      reasons: business.rejectionReasons,
+      text:
+        business.verification === 'REVOKED'
+          ? `WhatsApp reminders have stopped. ${business.rejectionReasons.length ? 'Fix this and send your details again.' : 'Check your details and document, and send them again.'} Emails still go out.`
+          : 'Fix this and send your details again. WhatsApp reminders start once your business is verified. Emails still go out.',
+      action: 'Fix and resubmit',
+      onAction: () => onOpen('fix'),
+    },
+    discarded: {
+      title: 'Meta closed your verification without checking it',
+      text: 'This can happen when a request waits too long on Meta’s side. Nothing needs to change: send your details again. Emails still go out.',
+      action: 'Send again',
+      onAction: () => resubmitBusiness(business),
+    },
+    ineligible: {
+      title: 'Meta says your business can’t use WhatsApp',
+      text: 'Meta says it’s not allowed under its Commerce Policy, so WhatsApp reminders can’t go out. Changing your details won’t fix this. If you think it’s a mistake, contact us and we’ll ask Meta to look again. Your emails keep going out.',
+      action: 'Contact us',
+      href: SUPPORT_URL,
+      more: { label: 'Read Meta’s policy', href: META_COMMERCE_POLICY_URL },
+    },
     name: {
       title: `Meta didn’t approve “${connection.name}”`,
-      text: MOCK_REJECTION,
+      text: (({ text, fix }) => `${text} ${fix}`)(nameRejectionOf(connection)),
       action: 'Choose another name',
       onAction: () => onOpen('rename'),
     },
@@ -367,12 +410,41 @@ function Problem({ problem, connection, onOpen, onSeeAll }) {
         <h3 className="wcn-note__title" ref={heading} tabIndex={-1}>
           {content.title}
         </h3>
+        {content.reasons?.length > 0 && <ReasonList reasons={content.reasons} record={business} />}
         <p className="wcn-note__text">{content.text}</p>
+        {content.more && (
+          <a className="wcn-link wcn-note__more" href={content.more.href} target="_blank" rel="noreferrer">
+            {content.more.label}
+          </a>
+        )}
       </div>
-      <button type="button" className="oh__add" onClick={content.onAction}>
-        {content.action}
-      </button>
+      {content.href ? (
+        <a className="oh__add" href={content.href} target="_blank" rel="noreferrer">
+          {content.action}
+        </a>
+      ) : (
+        <button type="button" className="oh__add" onClick={content.onAction}>
+          {content.action}
+        </button>
+      )}
     </div>
+  );
+}
+
+// Meta's reasons, in plain words, each with what to do
+function ReasonList({ reasons, record }) {
+  return (
+    <ul className="wcn-reasons">
+      {reasons.map((id) => {
+        const r = REJECTION_REASONS[id];
+        if (!r) return null;
+        return (
+          <li key={id} className="wcn-reasons__item">
+            <span className="wcn-reasons__what">{r.text(record)}</span> {r.fix(record)}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -387,9 +459,11 @@ function approvalsOf(c) {
 }
 
 // ---------- Setup not finished: where it stands ----------
-// Until Meta has approved the reminders and the contact number is added.
-// Not closable: it stays while it's true. Each step is marked on its own:
-// the contact number can be added while Meta is still reviewing.
+// Until Meta has verified the business and approved the reminders, and
+// the contact number is added. Not closable: it stays while it's true.
+// Each step is marked on its own: the contact number can be added while
+// Meta is still checking. Verifying comes first, and leads the heading: it
+// takes the longest, and nothing can go out before it.
 //   done  ✓        now  in progress (Meta reviewing)
 //   todo  theirs to do now (the contact number: its note below has the button)
 //   next  waits for the others (Reminders live)
@@ -397,9 +471,12 @@ const STEP_SR = { done: ', done', now: ', in progress', todo: ', to do', next: '
 
 // onAddContact(): open the contact number panel (the step's own action,
 //   right under the steps while it's still to do)
-function SetupSteps({ approved, total, inReview, hasContact, onAddContact }) {
+function SetupSteps({ approved, total, inReview, verified, hasContact, onAddContact }) {
   const steps = [
     { id: 'connected', label: 'Connected', state: 'done' },
+    verified
+      ? { id: 'verify', label: 'Business verified', state: 'done' }
+      : { id: 'verify', label: 'Verifying your business', state: 'now' },
     inReview
       ? { id: 'meta', label: `Meta approving · ${approved} of ${total}`, state: 'now' }
       : { id: 'meta', label: 'Meta approved', state: 'done' },
@@ -412,12 +489,18 @@ function SetupSteps({ approved, total, inReview, hasContact, onAddContact }) {
     <div className="wcn-note wcn-note--wait" role="status">
       <div className="wcn-note__words">
         <h3 className="wcn-note__title">
-          {inReview ? 'Connected. Your reminders are being approved.' : 'Your reminders are approved.'}
+          {!verified
+            ? 'Connected. Meta is verifying your business.'
+            : inReview
+              ? 'Your business is verified. Your reminders are being approved.'
+              : 'Your business is verified and your reminders are approved.'}
         </h3>
         <p className="wcn-note__text">
-          {inReview
-            ? 'It usually takes a few minutes, and up to 24 hours.'
-            : 'Add your contact number to start sending them.'}
+          {!verified
+            ? 'It usually takes a few days. No WhatsApp message can go out until it’s done. Your emails keep going out meanwhile.'
+            : inReview
+              ? 'It usually takes a few minutes, and up to 24 hours.'
+              : 'Add your contact number to start sending them.'}
         </p>
         <ol className="wcn-steps">
           {steps.map((step) => (
@@ -454,7 +537,7 @@ function Welcome({ onClose }) {
     <div className="wcn-note wcn-note--done" role="status">
       <div className="wcn-note__words">
         <h3 className="wcn-note__title">You’re all set</h3>
-        <p className="wcn-note__text">Your reminders are approved and ready to go.</p>
+        <p className="wcn-note__text">Your business is verified and your reminders are approved and ready to go.</p>
       </div>
       <button type="button" className="wcn-note__close" onClick={onClose} aria-label="Close">
         <X size={18} aria-hidden="true" />
@@ -490,7 +573,9 @@ function ContactNeeded({ onAdd }) {
 // and that there's nothing to do. No count, and no calls or webinars they
 // may not have made yet.
 // needsContact: no contact number yet, so it's not "nothing to do"
-function DefaultsHelp({ onSeeAll, needsContact }) {
+// verified: Meta has verified the business (nothing goes out until then)
+function DefaultsHelp({ onSeeAll, needsContact, verified }) {
+  const waitingFor = [!verified && 'Meta has verified your business', needsContact && 'you’ve added your contact number'].filter(Boolean);
   return (
     <aside className="settings__help wcn-help" aria-labelledby="wcn-help-title">
       <h3 className="settings__help-title" id="wcn-help-title">
@@ -508,8 +593,8 @@ function DefaultsHelp({ onSeeAll, needsContact }) {
         .
       </p>
       <p>
-        {needsContact
-          ? 'Once they’re approved and you’ve added your contact number, they go out automatically, alongside your emails.'
+        {waitingFor.length
+          ? `Once they’re approved and ${waitingFor.join(' and ')}, they go out automatically, alongside your emails.`
           : 'Nothing to do. Once approved, they go out automatically, alongside your emails.'}
       </p>
       <button type="button" className="es__btn es__btn--quiet wcn-help__btn" onClick={onSeeAll}>
@@ -536,29 +621,6 @@ function messagesSummary(c) {
 }
 
 // ---------- Side panels ----------
-function VerifyPanel({ onClose }) {
-  return (
-    <Drawer
-      title="Get verified"
-      onClose={onClose}
-      footer={
-        <button type="button" className="es__btn es__btn--primary" onClick={onClose}>
-          Done
-        </button>
-      }
-    >
-      <div className="wcn-verify">
-        <span className="wa-badge wcn-badge--soon">Coming soon</span>
-        <p>
-          Verified businesses can message up to {fmt(DAILY_LIMIT.verified)} different students a day, instead of{' '}
-          {fmt(DAILY_LIMIT.unverified)}.
-        </p>
-        <p>Meta verifies your business by checking its documents. You’ll be able to start that here.</p>
-      </div>
-    </Drawer>
-  );
-}
-
 // The business details sent with setup, read-only
 function BusinessPanel({ business, onClose }) {
   return (
@@ -574,14 +636,105 @@ function BusinessPanel({ business, onClose }) {
     >
       <BusinessSummary record={business} />
       <p className="wcn-business__note">
-        Meta is checking these against your document. They can’t be changed while it does.
+        {business.verification === 'APPROVED'
+          ? 'Meta has verified your business.'
+          : notEligible(business)
+            ? 'Meta says this business can’t use WhatsApp. The note on this page says what you can do.'
+            : needsFix(business)
+              ? 'Meta didn’t verify these. Use Fix and resubmit, on this page, to change them and send them again.'
+              : 'Meta is checking these against your document. It usually takes a few days. They can’t be changed while it does.'}
       </p>
     </Drawer>
   );
 }
 
+// Meta turned the business down: the details as sent, to fix and send
+// again (resubmitBusiness). Meta's reasons at the top; each part Meta
+// flagged is marked, with what Meta said about it. The business type
+// can't change here. Kept in this panel until sent: Cancel leaves the
+// sent details as they were.
+function FixPanel({ business, onClose }) {
+  const [draft, setDraft] = useState(business);
+  const [dropped, setDropped] = useState(null);
+  const [tried, setTried] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const flagged = flaggedParts(business);
+  const problems = fixProblems(business, draft);
+  // What Meta said about each part, above that part
+  const flags = {};
+  for (const id of business.rejectionReasons) {
+    const r = REJECTION_REASONS[id];
+    for (const part of r?.fixes ?? []) flags[part] = [flags[part], r.text(business)].filter(Boolean).join(' ');
+  }
+  const edit = (changes) => {
+    const { next, dropped: gone } = applyEdit(draft, changes);
+    setDraft(next);
+    setDropped(gone);
+    setFailed(false);
+    return { saved: true };
+  };
+  const submit = () => {
+    setTried(true);
+    if (Object.keys(problems).length) {
+      // To the first part still to fix
+      requestAnimationFrame(() => document.querySelector('.wcn-fix [aria-invalid="true"], .wcn-fix .po-upload--error')?.focus());
+      return;
+    }
+    if (resubmitBusiness(draft)) onClose();
+    else setFailed(true);
+  };
+
+  return (
+    <Drawer
+      title="Fix and resubmit"
+      sub="Change what Meta flagged, then send it back for review."
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="es__btn es__btn--quiet" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="es__btn es__btn--primary" onClick={submit}>
+            Send to Meta
+          </button>
+        </>
+      }
+    >
+      <div className="wcn-fix">
+        {business.rejectionReasons.length > 0 && (
+          <div className="wcn-business__request">
+            <p className="wcn-fix__head">What Meta said</p>
+            <ReasonList reasons={business.rejectionReasons} record={business} />
+          </div>
+        )}
+        <p className="wcn-fix__type">
+          {businessTypeOf(business.type)?.label}. Meta checks these against your document, word for word.
+        </p>
+        <BusinessDetails
+          record={draft}
+          problems={problems}
+          dropped={dropped}
+          onEdit={edit}
+          flags={flags}
+          showAll={tried}
+          website={flagged.has('website') || Boolean(business.website)}
+        />
+        {failed && (
+          <p className="po-field__note" role="alert">
+            <span className="po-field__error">Couldn’t send it. Try again.</span>
+          </p>
+        )}
+      </div>
+    </Drawer>
+  );
+}
+
 // Meta rejected the display name: try another, which goes back for review
-function RenamePanel({ current, onClose }) {
+// Meta's reason and what to do sit at the top, and their legal business
+// name is one tap away: it's the name least likely to be turned down.
+function RenamePanel({ connection, legalName, onClose }) {
+  const current = connection.name;
+  const rejection = connection.nameStatus === 'rejected' ? nameRejectionOf(connection) : null;
   const [name, setName] = useState(current);
   const [error, setError] = useState(null);
   const submit = () => {
@@ -615,6 +768,14 @@ function RenamePanel({ current, onClose }) {
         }}
         noValidate
       >
+        {rejection && (
+          <div className="wcn-business__request">
+            <p className="wcn-fix__head">What Meta said</p>
+            <p>
+              <span className="wcn-reasons__what">{rejection.text}</span> {rejection.fix}
+            </p>
+          </div>
+        )}
         <label className="wcn-rename__label" htmlFor="wcn-rename-input">
           Display name
         </label>
@@ -634,6 +795,18 @@ function RenamePanel({ current, onClose }) {
         <p id="wcn-rename-hint" className={error ? 'wcn-rename__error' : 'wcn-rename__hint'}>
           {error ?? 'Your own name or your brand’s works best. Meta checks it again.'}
         </p>
+        {legalName && legalName !== current && name.trim() !== legalName && (
+          <button
+            type="button"
+            className="wcn-link wcn-rename__use"
+            onClick={() => {
+              setName(legalName);
+              setError(null);
+            }}
+          >
+            Use “{legalName}”
+          </button>
+        )}
       </form>
     </Drawer>
   );

@@ -301,6 +301,7 @@ export default function BookingDrawer({ booking, zone, today, now, notice, onClo
   // Why a WhatsApp message that should go can't, by messagePlan's reason
   const WHATSAPP_WHY = {
     paused: 'your number is paused',
+    unverified: 'Meta hasn’t verified your business yet',
     approval: 'Meta hasn’t approved the message yet',
     phone: 'their number isn’t on WhatsApp',
   };

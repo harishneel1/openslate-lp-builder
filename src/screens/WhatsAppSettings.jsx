@@ -5,7 +5,7 @@ import WhatsAppConnected from './WhatsAppConnected';
 import WhatsAppTemplates from './WhatsAppTemplates';
 import { BusinessDetails, BusinessSummary, BusinessType, IndividualNote } from './WhatsAppBusinessForm';
 import { REJECTIONS, clearTemplates, decideReviewsNow, nextOutcome, setNextOutcome, useTemplates } from '../data/whatsappTemplates';
-import { connectWhatsApp, demo, finishSetup, hasNumber, messageStatus } from '../data/whatsappConnection';
+import { NAME_REJECTIONS, connectWhatsApp, demo, finishSetup, hasNumber, messageStatus } from '../data/whatsappConnection';
 import { SHOWN_MESSAGE_IDS as MESSAGE_IDS } from '../data/whatsappMessages';
 import {
   BLOCK_CHANGED_EVENT,
@@ -20,6 +20,7 @@ import {
   willBlockPopup,
 } from '../data/metaSignup';
 import {
+  REJECTION_REASONS,
   businessDemo,
   businessProblems,
   businessReady,
@@ -506,8 +507,7 @@ function NotConnected({ onConnect, cancelled, error }) {
             ) : (
               <>
                 <p className="wac-step__lead">
-                  Meta checks these against your document, word for word. We fill them in for you in Meta’s window,
-                  so you only type them once.
+                  Meta checks these against your document, word for word. So please make sure the details are accurate.
                 </p>
                 <BusinessDetails record={business} problems={problems} dropped={dropped} />
               </>
@@ -863,28 +863,78 @@ export function WhatsAppControlRows() {
 
 // The business details (data/whatsappBusiness.js): empty, or a sample sole
 // proprietor with every field filled in, to skip typing. Once connected,
-// the sample counts as sent with the setup (read-only).
+// the sample counts as sent with the setup (read-only). Once sent, Meta's
+// check of it: in review (the stand-in verifies it after a short wait),
+// verified, turned down for each of Meta's reasons, discarded or revoked
+// (with a reason), as Meta's webhook would say it.
 function BusinessControlRow({ connected }) {
   const business = useBusiness();
   const empty = !business.type && !business.legalName && !business.doc;
   const filled = businessReady(business);
+  const sent = business.status === 'sent';
+  const check = business.verification;
   return (
-    <div className="proto__row">
-      <span className="proto__label">Business details</span>
-      <div className="proto__controls">
-        <button type="button" className="proto__btn" aria-pressed={empty} onClick={businessDemo.empty}>
-          Empty
-        </button>
-        <button
-          type="button"
-          className="proto__btn"
-          aria-pressed={filled}
-          onClick={() => businessDemo.fill(connected)}
-        >
-          Filled in
-        </button>
+    <>
+      <div className="proto__row">
+        <span className="proto__label">Business details</span>
+        <div className="proto__controls">
+          <button type="button" className="proto__btn" aria-pressed={empty} onClick={businessDemo.empty}>
+            Empty
+          </button>
+          <button
+            type="button"
+            className="proto__btn"
+            aria-pressed={filled}
+            onClick={() => businessDemo.fill(connected)}
+          >
+            Filled in
+          </button>
+        </div>
       </div>
-    </div>
+      {sent && (
+        <>
+          <div className="proto__row">
+            <span className="proto__label">Verification</span>
+            <div className="proto__controls">
+              {[
+                ['PENDING', 'In review'],
+                ['APPROVED', 'Verified'],
+                ['DISCARDED', 'Discarded'],
+                ['REVOKED', 'Revoked'],
+              ].map(([status, label]) => (
+                <button
+                  key={status}
+                  type="button"
+                  className="proto__btn"
+                  aria-pressed={check === status}
+                  onClick={() => businessDemo.setVerification(status, status === 'REVOKED' ? ['ADDRESS_NOT_MATCHING'] : [])}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="proto__row">
+            <span className="proto__label">Failed</span>
+            <div className="proto__controls">
+              {[...Object.entries(REJECTION_REASONS).map(([id, r]) => [[id], r.label]), [['LEGAL_NAME_NOT_MATCHING', 'ADDRESS_NOT_MATCHING'], 'Name and address']].map(
+                ([reasons, label]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="proto__btn"
+                    aria-pressed={check === 'FAILED' && reasons.join() === business.rejectionReasons.join()}
+                    onClick={() => businessDemo.setVerification('FAILED', reasons)}
+                  >
+                    {label}
+                  </button>
+                ),
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -958,15 +1008,24 @@ function ConnectedControlRows({ connection }) {
       <div className="proto__row">
         <span className="proto__label">Display name</span>
         <div className="proto__controls">
-          <Btn pressed={connection.nameStatus === 'review'} onClick={demo.nameInReview}>
+          <Btn pressed={connection.nameStatus === 'review' && !connection.nameDeferred} onClick={demo.nameInReview}>
             In review
           </Btn>
           <Btn pressed={connection.nameStatus === 'approved'} onClick={demo.approveName}>
             Approved
           </Btn>
-          <Btn pressed={connection.nameStatus === 'rejected'} onClick={demo.rejectName}>
-            Not approved
+          <Btn pressed={connection.nameStatus === 'review' && connection.nameDeferred} onClick={demo.deferName}>
+            Deferred
           </Btn>
+          {Object.entries(NAME_REJECTIONS).map(([id, r]) => (
+            <Btn
+              key={id}
+              pressed={connection.nameStatus === 'rejected' && connection.nameRejection?.reason === id}
+              onClick={() => demo.rejectName(id)}
+            >
+              Rejected: {r.label.toLowerCase()}
+            </Btn>
+          ))}
         </div>
       </div>
       <div className="proto__row">
@@ -991,17 +1050,6 @@ function ConnectedControlRows({ connection }) {
           </Btn>
           <Btn pressed={Boolean(connection.contactNumber)} onClick={demo.addContactNumber}>
             Added
-          </Btn>
-        </div>
-      </div>
-      <div className="proto__row">
-        <span className="proto__label">Business</span>
-        <div className="proto__controls">
-          <Btn pressed={!connection.verified} onClick={() => demo.setVerified(false)}>
-            Unverified
-          </Btn>
-          <Btn pressed={Boolean(connection.verified)} onClick={() => demo.setVerified(true)}>
-            Verified
           </Btn>
         </div>
       </div>

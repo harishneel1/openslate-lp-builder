@@ -6,7 +6,7 @@ import { payoutState } from '../data/payouts';
 import { loadInvoiceSettings } from '../data/invoiceSettings';
 import WhatsAppSettings, { WhatsAppControlRows } from './WhatsAppSettings';
 import { useWhatsApp } from '../components/WhatsAppTab';
-import { hasNumber, needsContactNumber } from '../data/whatsappConnection';
+import { hasNumber, needsContactNumber, verificationPending } from '../data/whatsappConnection';
 import './OfferingsHome.css'; // the page frame and panels
 import '../components/PrototypeControls.css';
 import './SettingsPage.css';
@@ -90,8 +90,16 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
   const steps = stepsOf(payout, invoices);
   const connection = useWhatsApp();
   const connected = hasNumber(connection);
-  // WhatsApp's red dot: not connected, or connected without a contact number
-  const attention = !connected ? 'not connected' : needsContactNumber(connection) ? 'contact number needed' : null;
+  // WhatsApp's red dot: not connected, Meta turned the business down, or
+  // connected without a contact number. (Meta checking the business
+  // isn't: there's nothing to do.)
+  const attention = !connected
+    ? 'not connected'
+    : ['fix', 'ineligible'].includes(verificationPending(connection))
+      ? 'business not verified'
+      : needsContactNumber(connection)
+        ? 'contact number needed'
+        : null;
   // Templates is locked until a number is connected: Connection instead
   // A Payment details step that's locked (the details were cleared while
   // it was open) gives way to the first step not done
@@ -165,7 +173,8 @@ const STEP_SUBS = {
 // on it opens its first page. Its icon lights up while one of them is open.
 // connected: a WhatsApp number is connected. Until it is, Templates is
 //   locked (LOCKED).
-// attention: why WhatsApp needs a look, or null: 'not connected', or
+// attention: why WhatsApp needs a look, or null: 'not connected',
+//   'more information needed' (Meta, about the business), or
 //   'contact number needed'. While there's one, WhatsApp has a red dot,
 //   and screen readers hear why.
 // steps: Payment details' steps, done and locked (stepsOf, PayoutSetup.jsx)

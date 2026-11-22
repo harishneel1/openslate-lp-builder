@@ -222,3 +222,78 @@
   line-height: 1.5;
   color: var(--color-text-muted);
 }
+
+/* What Meta asked for, at the top of the Upload document panel */
+.wcn-business__request {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Fixing what Meta turned down (WhatsAppConnected.jsx's FixPanel) ---------- */
+
+/* What Meta said about a part, right above it */
+.wab__flag {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  border-radius: var(--radius-sm);
+}
+
+.wab__flag-who {
+  font-weight: 600;
+}
+
+.wcn-fix__head {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.wcn-fix__type {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Meta's reasons, in the problem note and the fix panel */
+.wcn-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wcn-reasons__what,
+.wcn-business__request .wcn-reasons__what {
+  font-weight: 600;
+}
+
+.wcn-business__request .wcn-reasons {
+  margin: 0;
+}
+
+.wcn-business__request p {
+  margin: 0;
+}
+
+.wcn-note__more {
+  display: inline-block;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.wcn-rename__use {
+  margin: 8px 0 0;
+  padding: 0;
+}

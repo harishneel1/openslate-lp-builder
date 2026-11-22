@@ -33,12 +33,25 @@ import { mockAccount } from './myPage';
 //           The real product uploads the file to storage.)
 //     legalName: '',
 //     address: { line1, area, city, state, pin },  India only for now
+//     website: '',                only asked for when Meta says the
+//                                 website doesn't match (the fix panel)
 //     status: 'draft' | 'sent',   sent: went with a finished setup (locked)
 //     sentAt: ISO string or null,
+//     verification: null | 'PENDING' | 'APPROVED' | 'FAILED' | 'DISCARDED' | 'REVOKED'
+//                   Meta's check of the business, once sent, in Meta's own
+//                   values (see "Meta's check" below)
+//     rejectionReasons: [],       Meta's reasons, for FAILED or REVOKED
+//                                 (REJECTION_REASONS' ids; never 'NONE')
+//     reviewEndsAt: ISO string,   stand-in for Meta's check: approved once
+//                                 this has passed (settleVerification)
+//     decidedAt: ISO string or null,
+//     attempts: 1,                times sent to Meta (1 + resubmits)
 //   }
-// Once sent it's read-only. Round 3 reopens it when Meta asks for more or
-// rejects it. Separate from the WhatsApp connection (whatsappConnection.js):
-// it exists before a number is connected and stays after a disconnect.
+// Once sent it's read-only, except to fix what Meta turned down
+// (resubmitBusiness). No WhatsApp message goes out until it's APPROVED
+// (isSetUp in whatsappConnection.js). Separate from the WhatsApp
+// connection (whatsappConnection.js): it exists before a number is
+// connected and stays after a disconnect.
 //
 // ------------------------------------------------------------
 
@@ -184,9 +197,99 @@ export const EMPTY_BUSINESS = {
   doc: null,
   legalName: '',
   address: EMPTY_ADDRESS,
+  website: '',
   status: 'draft',
   sentAt: null,
+  verification: null,
+  rejectionReasons: [],
+  reviewEndsAt: null,
+  decidedAt: null,
+  attempts: 0,
 };
+
+// How long the stand-in's verification takes. Meta's real one usually
+// takes a few days.
+const VERIFY_MS = 30 * 1000;
+
+// ---------- Meta's check, in Meta's own values ----------
+// Meta tells its partner (AiSensy) through its webhook, which we assume
+// AiSensy passes through as it is (to confirm with AiSensy):
+//
+//   { "field": "account_update",
+//     "value": { "event": "PARTNER_CLIENT_CERTIFICATION_STATUS_UPDATE",
+//                "partner_client_certification_info": {
+//                  "client_business_id": "2729063490586005",
+//                  "status": "FAILED",
+//                  "rejection_reasons": ["ADDRESS_NOT_MATCHING"] } } }
+//
+// status, and what the coach sees:
+//   PENDING    In review. Nothing to do.
+//   APPROVED   Verified: WhatsApp can go live. (rejection_reasons: NONE)
+//   FAILED     Not verified, with Meta's reasons. Fix and resubmit.
+//   DISCARDED  Meta closed the request without a decision. Send again.
+//   REVOKED    Verified before, now withdrawn: WhatsApp stops. Fix and
+//              resubmit (with Meta's reasons when it gives any).
+// Meta has no "more information needed": an unreadable document comes
+// back as FAILED with MALFORMED_DOCUMENTS.
+export const META_STATUSES = ['PENDING', 'APPROVED', 'FAILED', 'DISCARDED', 'REVOKED'];
+
+// Meta's rejection reasons, each in plain words, with what to fix.
+//   label  short, for the prototype controls
+//   fixes  the parts of the details it points at: 'legalName',
+//          'address', 'doc', 'website'. A new document can fix any of
+//          the first three.
+//   text(record)  what went wrong, naming their document
+//   fix(record)   what to do about it
+// BUSINESS_NOT_ELIGIBLE can't be fixed by changing the details.
+const docOn = (r) => DOCUMENTS[r.docType]?.on ?? 'your document';
+export const REJECTION_REASONS = {
+  LEGAL_NAME_NOT_MATCHING: {
+    label: 'Name doesn’t match',
+    fixes: ['legalName'],
+    text: (r) => `The name on ${docOn(r)} doesn’t match the legal name you entered, “${r.legalName}”.`,
+    fix: () => 'Change the legal name to match your document exactly, or upload a document that shows this name.',
+  },
+  LEGAL_NAME_NOT_FOUND_IN_DOCUMENTS: {
+    label: 'Name not on document',
+    fixes: ['doc'],
+    text: (r) => `Meta couldn’t find your legal name, “${r.legalName}”, on ${docOn(r)}.`,
+    fix: () => 'Upload a document that shows your legal business name clearly.',
+  },
+  ADDRESS_NOT_MATCHING: {
+    label: 'Address doesn’t match',
+    fixes: ['address'],
+    text: (r) => `The address on ${docOn(r)} doesn’t match the address you entered.`,
+    fix: () => 'Change the address to match your document, word for word, or upload a document that shows this address.',
+  },
+  MALFORMED_DOCUMENTS: {
+    label: 'Document unreadable',
+    fixes: ['doc'],
+    text: (r) => `Meta couldn’t read ${docOn(r)}. It may be blurry, cut off, password-protected or out of date.`,
+    fix: () => 'Upload a clear copy of the whole page, or another accepted document.',
+  },
+  WEBSITE_NOT_MATCHING: {
+    label: 'Website doesn’t match',
+    fixes: ['website'],
+    text: (r) => `Meta couldn’t match your website to “${r.legalName}”.`,
+    fix: () => 'Add a working website that shows your legal business name. Your Open Slate page works if it shows it.',
+  },
+  BUSINESS_NOT_ELIGIBLE: {
+    label: 'Not eligible',
+    fixes: [],
+    text: () => 'Meta says your business can’t use WhatsApp Business under its Commerce Policy.',
+    fix: () => 'This can’t be fixed by changing your details. If you think it’s a mistake, contact us and we’ll ask Meta to look again.',
+  },
+};
+
+// Where to read Meta's policy, for BUSINESS_NOT_ELIGIBLE
+export const META_COMMERCE_POLICY_URL = 'https://www.whatsapp.com/legal/commerce-policy';
+// TODO: our support link
+export const SUPPORT_URL = '#';
+
+// A saved verification. Older saves used our own words: read as Meta's.
+// Sent before verification was tracked: in review.
+const OLDER = { review: 'PENDING', verified: 'APPROVED', 'needs-info': 'FAILED' };
+const verificationOf = (v) => (META_STATUSES.includes(v) ? v : (OLDER[v] ?? 'PENDING'));
 
 const isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
 const text = (v) => (typeof v === 'string' ? v : '');
@@ -211,8 +314,16 @@ export function loadBusiness() {
         state: STATES.includes(a.state) ? a.state : '',
         pin: text(a.pin),
       },
+      website: text(s.website),
       status: s.status === 'sent' ? 'sent' : 'draft',
       sentAt: typeof s.sentAt === 'string' ? s.sentAt : null,
+      verification: s.status === 'sent' ? verificationOf(s.verification) : null,
+      rejectionReasons: s.verification === 'needs-info'
+        ? ['MALFORMED_DOCUMENTS']
+        : Array.isArray(s.rejectionReasons) ? s.rejectionReasons.filter((id) => REJECTION_REASONS[id]) : [],
+      reviewEndsAt: typeof s.reviewEndsAt === 'string' ? s.reviewEndsAt : null,
+      decidedAt: typeof s.decidedAt === 'string' ? s.decidedAt : null,
+      attempts: Number.isInteger(s.attempts) ? s.attempts : s.status === 'sent' ? 1 : 0,
     };
   } catch {
     return EMPTY_BUSINESS;
@@ -220,10 +331,17 @@ export function loadBusiness() {
 }
 
 // true when saved. A full photo can be too big for this browser's storage.
+// Also fires the WhatsApp connection's own event ('whatsapp-changed',
+// WHATSAPP_CHANGED_EVENT in whatsappConnection.js), since whether WhatsApp
+// can send depends on verification: every place following the connection
+// (Reminders tabs, booking messages) follows this too.
+const WHATSAPP_CHANGED = 'whatsapp-changed';
+
 function saveBusiness(record) {
   try {
     localStorage.setItem(KEY, JSON.stringify(record));
     window.dispatchEvent(new Event(BUSINESS_CHANGED_EVENT));
+    window.dispatchEvent(new Event(WHATSAPP_CHANGED));
     return true;
   } catch {
     return false;
@@ -237,6 +355,7 @@ function clearBusiness() {
     // fine: nothing was saved
   }
   window.dispatchEvent(new Event(BUSINESS_CHANGED_EVENT));
+  window.dispatchEvent(new Event(WHATSAPP_CHANGED));
 }
 
 // What changes when a field does, as the coach types. Locked once sent.
@@ -246,6 +365,15 @@ function clearBusiness() {
 export function editBusiness(changes) {
   const current = loadBusiness();
   if (current.status === 'sent') return { saved: false, dropped: null };
+  const { next, dropped } = applyEdit(current, changes);
+  return { saved: saveBusiness(next), dropped };
+}
+
+// One change to a record, without saving it: editBusiness, and the fix
+// panel's own copy before it's resubmitted. Choosing another business
+// type drops a document that doesn't fit it; another kind of document
+// drops the file picked for the last one.
+export function applyEdit(current, changes) {
   const next = { ...current, ...changes, address: { ...current.address, ...(changes.address ?? {}) } };
   let dropped = null;
   if ('type' in changes && next.docType && !docsFor(next.type).includes(next.docType)) {
@@ -253,16 +381,130 @@ export function editBusiness(changes) {
     next.docType = null;
     next.doc = null;
   }
-  // A different kind of document: the file picked for the last one goes
   if ('docType' in changes && changes.docType !== current.docType) next.doc = null;
-  return { saved: saveBusiness(next), dropped };
+  return { next, dropped };
 }
 
-// Setup finished: the details went with it, to Meta and to AiSensy
+const inReview = (now = Date.now()) => ({
+  verification: 'PENDING',
+  rejectionReasons: [],
+  reviewEndsAt: new Date(now + VERIFY_MS).toISOString(),
+  decidedAt: null,
+});
+
+// Setup finished: the details went with it, to Meta and to AiSensy, and
+// Meta starts checking them
 export function markBusinessSent() {
   const current = loadBusiness();
   if (current.status === 'sent') return;
-  saveBusiness({ ...current, status: 'sent', sentAt: new Date().toISOString() });
+  saveBusiness({ ...current, status: 'sent', sentAt: new Date().toISOString(), attempts: 1, ...inReview() });
+}
+
+// ---------- Meta's check ----------
+
+export const isVerified = (record) => record?.verification === 'APPROVED';
+export const inMetaReview = (record) => record?.verification === 'PENDING';
+
+// Meta turned it down (or withdrew it, or closed it): something to do
+export const needsFix = (record) => ['FAILED', 'DISCARDED', 'REVOKED'].includes(record?.verification);
+
+// Turned down for a reason no change of details fixes
+export const notEligible = (record) => needsFix(record) && record.rejectionReasons.includes('BUSINESS_NOT_ELIGIBLE');
+
+// Can go back to Meta: anything turned down, unless it's not eligible
+export const canResubmit = (record) => needsFix(record) && !notEligible(record);
+
+// The parts of the details Meta's reasons point at, as a set
+export function flaggedParts(record) {
+  const parts = new Set();
+  for (const id of record.rejectionReasons ?? []) for (const f of REJECTION_REASONS[id]?.fixes ?? []) parts.add(f);
+  return parts;
+}
+
+const sameAddress = (a, b) =>
+  ['line1', 'area', 'city', 'state', 'pin'].every((k) => String(a[k] ?? '').trim() === String(b[k] ?? '').trim());
+const sameDoc = (a, b) => a?.name === b?.name && a?.size === b?.size && a?.preview === b?.preview;
+
+// What still stops a fix going back to Meta ({ part: message }): every
+// part Meta flagged has to change (a new document counts for the name and
+// the address too), and nothing can be missing. Empty when it can go.
+//   sent: the details as Meta saw them   draft: as the coach has fixed them
+export function fixProblems(sent, draft) {
+  const p = { ...businessProblems(draft) };
+  const flagged = flaggedParts(sent);
+  const newDoc = !sameDoc(sent.doc, draft.doc) || sent.docType !== draft.docType;
+  if (flagged.has('doc') && !newDoc && !p.doc) p.doc = 'Upload a new document. Meta couldn’t use this one.';
+  if (flagged.has('legalName') && !newDoc && draft.legalName.trim() === sent.legalName.trim() && !p.legalName) {
+    p.legalName = 'Change the name to match your document, or upload a different document.';
+  }
+  if (flagged.has('address') && !newDoc && sameAddress(sent.address, draft.address) && !p.line1) {
+    p.line1 = 'Change the address to match your document, or upload a different document.';
+  }
+  if (flagged.has('website')) {
+    const w = draft.website.trim();
+    if (!w) p.website = 'Enter your website.';
+    else if (!/^(https?:\/\/)?[^\s.]+\.[^\s]{2,}$/i.test(w)) p.website = 'Enter a website address, like coachname.com.';
+    else if (w === sent.website.trim()) p.website = 'Meta couldn’t match this one. Enter a website that shows your legal name.';
+  }
+  return p;
+}
+
+// The fixed details, back to Meta (through AiSensy) for another check.
+// Returns true if saved. The business type can't change here.
+// To confirm with AiSensy: that a resubmit also updates the name and
+// address on the coach's Meta business, so the two still match.
+export function resubmitBusiness(draft) {
+  const current = loadBusiness();
+  if (!canResubmit(current)) return false;
+  if (Object.keys(fixProblems(current, draft)).length) return false;
+  return saveBusiness({
+    ...current,
+    docType: draft.docType,
+    doc: draft.doc,
+    legalName: draft.legalName.trim(),
+    address: draft.address,
+    website: draft.website.trim(),
+    attempts: current.attempts + 1,
+    ...inReview(),
+  });
+}
+
+// Meta's webhook, as AiSensy passes it on (see "Meta's check" above):
+// the "value" of an account_update. Anything else is ignored.
+// Returns true if it changed the record.
+export function applyCertificationUpdate(value, now = Date.now()) {
+  if (value?.event !== 'PARTNER_CLIENT_CERTIFICATION_STATUS_UPDATE') return false;
+  const info = value.partner_client_certification_info ?? {};
+  if (!META_STATUSES.includes(info.status)) return false;
+  const r = loadBusiness();
+  if (r.status !== 'sent') return false;
+  const reasons = (info.rejection_reasons ?? []).filter((id) => REJECTION_REASONS[id]);
+  return saveBusiness({
+    ...r,
+    verification: info.status,
+    rejectionReasons: ['FAILED', 'REVOKED'].includes(info.status) ? reasons : [],
+    reviewEndsAt: info.status === 'PENDING' ? r.reviewEndsAt : null,
+    decidedAt: info.status === 'PENDING' ? null : new Date(now).toISOString(),
+  });
+}
+
+// What Meta's webhook would say: for the stand-in and Prototype controls
+export const certificationUpdate = (status, reasons = []) => ({
+  event: 'PARTNER_CLIENT_CERTIFICATION_STATUS_UPDATE',
+  partner_client_certification_info: {
+    client_business_id: '2729063490586005',
+    status,
+    rejection_reasons: reasons.length ? reasons : ['NONE'],
+  },
+});
+
+// The stand-in's check finishing: approved once its time has passed.
+// The real product hears this from AiSensy instead.
+export function settleVerification(now = Date.now()) {
+  const r = loadBusiness();
+  if (r.verification !== 'PENDING') return;
+  if (r.reviewEndsAt && now < Date.parse(r.reviewEndsAt)) return;
+  applyCertificationUpdate(certificationUpdate('APPROVED'), now);
 }
 
 // ---------- Checking ----------
@@ -319,6 +561,14 @@ export function useBusiness() {
       window.removeEventListener('storage', refresh);
     };
   }, []);
+  // While Meta is checking, see every second whether the stand-in is done
+  const checking = record.verification === 'PENDING';
+  useEffect(() => {
+    if (!checking) return undefined;
+    settleVerification();
+    const id = setInterval(() => settleVerification(), 1000);
+    return () => clearInterval(id);
+  }, [checking]);
   return record;
 }
 
@@ -345,10 +595,19 @@ export const businessDemo = {
   // Every field filled in. sent: as it would be after a finished setup.
   fill: (sent = false) =>
     saveBusiness({
+      ...EMPTY_BUSINESS,
       ...SAMPLE_BUSINESS,
-      status: sent ? 'sent' : 'draft',
-      sentAt: sent ? new Date().toISOString() : null,
+      ...(sent ? { status: 'sent', sentAt: new Date().toISOString(), attempts: 1, ...inReview() } : {}),
     }),
+  // Meta's check, set directly (once the details are sent), as Meta's
+  // webhook would: a status, and for FAILED or REVOKED its reasons.
+  // PENDING starts the stand-in's wait again.
+  setVerification: (status, reasons = []) => {
+    const r = loadBusiness();
+    if (r.status !== 'sent') return;
+    if (status === 'PENDING') saveBusiness({ ...r, ...inReview() });
+    else applyCertificationUpdate(certificationUpdate(status, reasons));
+  },
   // For the Connected shortcut: the sample, unless they've filled their own
   fillIfNotReady: () => {
     const r = loadBusiness();

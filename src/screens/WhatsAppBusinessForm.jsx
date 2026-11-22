@@ -47,6 +47,11 @@ import './WhatsAppBusinessForm.css';
 // Everything is saved as it's typed (editBusiness), so leaving and coming
 // back keeps it. Nothing comes from Payment details: this starts empty.
 // A problem shows once its field has been left.
+//
+// Once Meta has turned the details down, the connected screen's fix panel
+// (WhatsAppConnected.jsx) uses BusinessDetails too, on its own copy
+// (onEdit), with what Meta flagged marked on each part (flags) and a
+// website field when Meta asked about it.
 // ------------------------------------------------------------
 
 // ---------- What kind of business are you? ----------
@@ -128,14 +133,20 @@ export function IndividualNote() {
 // record: the saved details (a business, not an individual)
 // problems: businessProblems(record)
 // dropped: the label of a document just taken off by a change of type
-export function BusinessDetails({ record, problems, dropped }) {
+// The fix panel's extras:
+//   onEdit(changes): instead of saving (editBusiness)
+//   flags: { legalName, address, doc, website }: what Meta said about
+//          each part it turned down, shown above that part
+//   showAll: show every problem now (they pressed Send), not once left
+//   website: show the website field
+export function BusinessDetails({ record, problems, dropped, onEdit = editBusiness, flags = {}, showAll = false, website = false }) {
   const [left, setLeft] = useState({}); // fields they've been in and left
   const leave = (field) => () => setLeft((l) => ({ ...l, [field]: true }));
-  const show = (field) => (left[field] ? problems[field] : null);
+  const show = (field) => (showAll || left[field] ? problems[field] : null);
   const docs = docsFor(record.type);
   const doc = DOCUMENTS[record.docType];
-  const set = (field) => (e) => editBusiness({ [field]: e.target.value });
-  const setAddress = (field) => (e) => editBusiness({ address: { [field]: e.target.value } });
+  const set = (field) => (e) => onEdit({ [field]: e.target.value });
+  const setAddress = (field) => (e) => onEdit({ address: { [field]: e.target.value } });
   const inputClass = (field) => `po-input ${show(field) ? 'po-input--error' : ''}`;
 
   return (
@@ -148,6 +159,7 @@ export function BusinessDetails({ record, problems, dropped }) {
       )}
 
       {/* The document first: the name and address are copied from it */}
+      <Flag text={flags.doc} />
       <div className="po-field">
         <label className="po-field__label" htmlFor="wab-docType">
           Which document will you upload?
@@ -185,10 +197,14 @@ export function BusinessDetails({ record, problems, dropped }) {
           label={`Your ${doc.sentence ?? doc.label}`}
           value={record.doc}
           error={show('doc')}
-          onChange={(file) => editBusiness({ doc: file })}
+          onChange={(file) => {
+            const saved = onEdit({ doc: file });
+            return saved && typeof saved === 'object' ? saved : { saved: true };
+          }}
         />
       )}
 
+      <Flag text={flags.legalName} />
       <div className="po-field">
         <label className="po-field__label" htmlFor="wab-legalName">
           Legal business name
@@ -209,6 +225,7 @@ export function BusinessDetails({ record, problems, dropped }) {
         </p>
       </div>
 
+      <Flag text={flags.address} />
       <fieldset className="wab__address" aria-describedby="wab-address-note">
         <legend className="po-field__label">Registered address</legend>
         <p className="po-field__note wab__address-note" id="wab-address-note">
@@ -287,7 +304,49 @@ export function BusinessDetails({ record, problems, dropped }) {
           </Field>
         </div>
       </fieldset>
+
+      {website && (
+        <>
+          <Flag text={flags.website} />
+          <div className="po-field">
+            <label className="po-field__label" htmlFor="wab-website">
+              Website
+            </label>
+            <input
+              id="wab-website"
+              className={inputClass('website')}
+              value={record.website}
+              type="url"
+              inputMode="url"
+              placeholder="yourbusiness.com"
+              maxLength={200}
+              autoComplete="url"
+              onChange={set('website')}
+              onBlur={leave('website')}
+              aria-invalid={Boolean(show('website'))}
+              aria-describedby="wab-website-note"
+            />
+            <p className="po-field__note" id="wab-website-note">
+              {show('website') ? (
+                <span className="po-field__error">{show('website')}</span>
+              ) : (
+                `A working website that shows “${record.legalName}”.`
+              )}
+            </p>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+// What Meta said about a part it turned down, right above that part
+function Flag({ text }) {
+  if (!text) return null;
+  return (
+    <p className="wab__flag">
+      <span className="wab__flag-who">Meta:</span> {text}
+    </p>
   );
 }
 
@@ -325,7 +384,7 @@ const sizeLabel = (bytes) =>
 
 const NOTE = 'The whole page, with every corner and the name and address readable.';
 
-function DocumentUpload({ id, label, value, onChange, error }) {
+export function DocumentUpload({ id, label, value, onChange, error }) {
   const input = useRef(null);
   const [reading, setReading] = useState(false);
   const [readError, setReadError] = useState(null);
@@ -459,6 +518,12 @@ export function BusinessSummary({ record }) {
           {record.doc && <span className="wab-facts__file">{record.doc.name}</span>}
         </dd>
       </div>
+      {record.website && (
+        <div className="wab-facts__row">
+          <dt>Website</dt>
+          <dd>{record.website}</dd>
+        </div>
+      )}
       {sent && (
         <div className="wab-facts__row">
           <dt>Sent</dt>

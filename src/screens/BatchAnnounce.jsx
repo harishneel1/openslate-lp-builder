@@ -12,6 +12,7 @@ import {
   messageStatus,
   settleReview,
 } from '../data/whatsappConnection';
+import { isVerified, loadBusiness } from '../data/whatsappBusiness';
 import { initials } from '../utils/initials';
 import { todayIn, toInstant } from '../utils/slots';
 import './ReminderEditor.css';
@@ -101,8 +102,9 @@ export default function BatchAnnounce({ batch, change, members, hostName, now, g
   const sample = members[0] ?? null;
   const values = useMemo(() => noticeValues(batch, change, sample, hostName), [batch, change, sample, hostName]);
   const message = noticeWhatsApp();
-  // Nothing goes on WhatsApp until there's a contact number
-  const wa = !hasNumber(connection) || needsContactNumber(connection)
+  // Nothing goes on WhatsApp until there's a contact number and Meta has
+  // verified the business (whatsappBusiness.js)
+  const wa = !hasNumber(connection) || needsContactNumber(connection) || !isVerified(loadBusiness())
     ? 'off'
     : connection.status === 'lost'
       ? 'lost'

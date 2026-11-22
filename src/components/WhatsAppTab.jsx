@@ -10,7 +10,9 @@ import {
   loadWhatsApp,
   messageStatus,
   settleReview,
+  verificationPending,
 } from '../data/whatsappConnection';
+import { businessDemo, isVerified, settleVerification, loadBusiness } from '../data/whatsappBusiness';
 import { MESSAGES } from '../data/whatsappMessages';
 import '../screens/EditFrame.css'; // the buttons (es__btn), as in the calendar's drawer
 import './CalendarConnect.css'; // the notes (cal-note)
@@ -23,7 +25,15 @@ import './WhatsAppTab.css';
 // one for the whole account, connected and looked after in Settings →
 // WhatsApp (WhatsAppSettings.jsx). This tab only points there:
 //
-// Not connected:
+// Connected, while Meta verifies the business (verificationPending): no
+// WhatsApp message can go out yet, so instead of the reminders, one card
+// says so and that emails keep going:
+//   We're verifying your business                  (or, turned down:
+//   Meta checks it before any WhatsApp reminder     Meta couldn't verify
+//   can go. …                [ WhatsApp settings ]  your business, with
+//                                                   Fix it in Settings)
+//
+// Not connected (or setup not finished otherwise):
 //   Remind people on WhatsApp too
 //   Connect your number once in Settings, and every webinar and 1:1
 //   call can use it.
@@ -71,6 +81,16 @@ export function useWhatsApp() {
     return () => clearInterval(id);
   }, [inReview]);
 
+  // Meta checking the business: the stand-in's check, settled the same way.
+  // (Business changes fire the same event, so the connection re-reads.)
+  const verifying = verificationPending(connection) === 'review';
+  useEffect(() => {
+    if (!verifying) return undefined;
+    settleVerification();
+    const id = setInterval(() => settleVerification(), 1000);
+    return () => clearInterval(id);
+  }, [verifying]);
+
   return connection;
 }
 
@@ -81,12 +101,15 @@ export function useWhatsApp() {
 export default function WhatsAppTab({ kind, offering, offeringName, links }) {
   const connection = useWhatsApp();
 
-  // Until setup is finished (contact number added, Meta done reviewing), the
-  // same card as before connecting: what's left is shown in Settings
+  // Until setup is finished (business verified, contact number added, Meta
+  // done reviewing), a card instead: what's left is shown in Settings
+  const pending = verificationPending(connection);
   return (
     <div className="wa">
       {isSetUp(connection) ? (
         <Connected connection={connection} kind={kind} offering={offering} offeringName={offeringName} links={links} />
+      ) : pending ? (
+        <Verifying pending={pending} />
       ) : (
         <NotConnected />
       )}
@@ -105,6 +128,41 @@ function NotConnected() {
       <p className="wa-head__text">Connect your number once in Settings, and every webinar and 1:1 call can use it.</p>
       <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={() => goToWhatsAppSettings()}>
         Set up in Settings
+      </button>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Connected, while Meta verifies the business
+// pending: 'review' | 'fix' | 'ineligible' (verificationPending)
+// ------------------------------------------------------------
+const VERIFYING = {
+  review: {
+    title: 'We’re verifying your business',
+    text: 'Meta checks your business before any WhatsApp reminder can go. It usually takes a few days. Your emails keep going out meanwhile.',
+    action: 'WhatsApp settings',
+  },
+  fix: {
+    title: 'Meta couldn’t verify your business',
+    text: 'Settings shows why and what to change. WhatsApp reminders start once it’s verified. Your emails keep going out meanwhile.',
+    action: 'Fix it in Settings',
+  },
+  ineligible: {
+    title: 'Meta says your business can’t use WhatsApp',
+    text: 'WhatsApp reminders can’t go out. Your emails keep going out.',
+    action: 'See why in Settings',
+  },
+};
+
+function Verifying({ pending }) {
+  const c = VERIFYING[pending] ?? VERIFYING.review;
+  return (
+    <div className="wa-card wa-invite">
+      <h3 className="wa-head__title">{c.title}</h3>
+      <p className="wa-head__text">{c.text}</p>
+      <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={() => goToWhatsAppSettings()}>
+        {c.action}
       </button>
     </div>
   );
@@ -171,15 +229,23 @@ function DemoControls({ connection, kind }) {
   const connected = connection?.status === 'connected';
   const ids = MESSAGES[kind].map((m) => m.id);
   const toReject = connected ? ids.find((id) => messageStatus(connection, id) !== 'rejected') : null;
+  const verified = isVerified(loadBusiness());
 
   return (
     <details className="wa-demo">
       <summary>Prototype controls</summary>
       <div className="wa-demo__buttons">
+        <button
+          type="button"
+          onClick={() => businessDemo.setVerification('APPROVED')}
+          disabled={!connected || verified}
+        >
+          Verify business now
+        </button>
         <button type="button" onClick={demo.approveName} disabled={!connected || connection.nameStatus === 'approved'}>
           Approve name now
         </button>
-        <button type="button" onClick={demo.rejectName} disabled={!connected || connection.nameStatus === 'rejected'}>
+        <button type="button" onClick={() => demo.rejectName()} disabled={!connected || connection.nameStatus === 'rejected'}>
           Reject name
         </button>
         <button
