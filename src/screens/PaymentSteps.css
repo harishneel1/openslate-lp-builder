@@ -1,0 +1,67 @@
+/* ---------- Payment details' steps (PayoutSetup.jsx) ----------
+   A locked step's page: what's missing, and a button to go there.
+   The rest reuses Payment details' own styles (SettingsPage.css). */
+.ps-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.ps-locked__icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.ps-locked__title {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ps-locked__text {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.ps-locked .oh__add,
+.po-alert .oh__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The menu's steps: done ones get a tick */
+.smenu__tick {
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+
+/* The KYC declaration: one box per line, the text wrapping beside it */
+.po-declare__intro {
+  margin: 0 0 12px;
+}
+
+.po-declare__line {
+  align-items: flex-start;
+  margin-bottom: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.po-declare__line input {
+  flex-shrink: 0;
+  margin-top: 2px;
+}

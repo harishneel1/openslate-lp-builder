@@ -9,17 +9,21 @@
 //                 from Sales → Transactions. (The prototype sends no email.)
 //   displayName   the brand name at the top of the invoice
 //   address, pin  the address under it
+//   gstRegistered whether they're registered for GST. They say so here,
+//                 like TagMango; nothing is assumed. No: invoices say GST
+//                 isn't charged.
+//   gstin         GST only: their GSTIN. Its state comes from its first
+//                 two digits (gstStateOf), so there's no state to pick.
+//   gstName       GST only: the name it's registered to (legal name)
 //   regSame       GST only: the registered address is the one above
 //   regAddress, regPin  GST only: the registered address, when it isn't
 //   note          up to NOTE_MAX characters at the bottom of every invoice
 //
-// GST itself isn't kept here: the GSTIN, legal name and state come from
-// the verified business (payouts.js), so nothing is typed twice. Without
-// it, invoices say they're not registered for GST.
-//
 // Kept in this browser (localStorage) under KEY. With nothing saved, the
 // coach's own details: the ones the invoices used before this screen.
 // ------------------------------------------------------------
+
+import { gstStateOf, gstinProblem } from './payouts';
 
 const KEY = 'pagebuilder:invoice-settings';
 const CHANGED_EVENT = 'invoice-settings-changed';
@@ -31,6 +35,9 @@ export const DEFAULT_INVOICE_SETTINGS = {
   displayName: 'Harish Neel',
   address: '7/4, 6th street, 1st cross, Dr. Subbarayan nagar, Kodambakkam, Chennai',
   pin: '600024',
+  gstRegistered: false,
+  gstin: '',
+  gstName: '',
   regSame: true,
   regAddress: '',
   regPin: '',
@@ -75,6 +82,20 @@ export function onInvoiceSettingsChange(callback) {
 // Back to the coach's own details (Prototype controls)
 export const resetInvoiceSettings = () => saveInvoiceSettings(DEFAULT_INVOICE_SETTINGS);
 
+// A new coach: nothing on their invoices yet (Prototype controls'
+// "New coach, nothing added")
+export const clearInvoiceSettings = () =>
+  saveInvoiceSettings({ ...DEFAULT_INVOICE_SETTINGS, displayName: '', address: '', pin: '', gstRegistered: false, gstin: '', gstName: '' });
+
+// Their GST, when they've said they're registered: { gstin, name, state },
+// or null (invoices then say GST isn't charged)
+export const gstOfSettings = (s) =>
+  s.gstRegistered && s.gstin ? { gstin: s.gstin, name: s.gstName, state: gstStateOf(s.gstin) } : null;
+
+// Step 2 of Payment details is done: an address and PIN are saved.
+// Verify KYC unlocks then.
+export const hasAddress = (s) => !addressProblem(s.address) && !pinProblem(s.pin);
+
 // ---------- Checking what they type ----------
 
 export const cleanPin = (text) => String(text ?? '').replace(/\D/g, '').slice(0, 6);
@@ -87,6 +108,14 @@ export function pinProblem(pin) {
 
 export function displayNameProblem(name) {
   if (!String(name ?? '').trim()) return 'Enter the name to show on your invoices.';
+  return null;
+}
+
+// The PAN in it is checked against their KYC later, not here
+export const gstinSettingsProblem = (gstin) => gstinProblem(gstin, null);
+
+export function gstNameProblem(name) {
+  if (!String(name ?? '').trim()) return 'Enter the name your GST is registered to.';
   return null;
 }
 

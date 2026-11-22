@@ -3,7 +3,17 @@
 // withdrawn to (Settings → Payment details, screens/SettingsPage.jsx,
 // PayoutSetup.jsx and IdentitySetup.jsx).
 //
-// Two parts, each checked on its own; withdrawing needs both verified:
+// Set up in three steps, in this order (Settings → Payment details):
+//   1. Bank account     saved as they type it, nothing checked yet
+//   2. Address & invoice (data/invoiceSettings.js)
+//   3. Verify KYC       their documents. This is the one submission: our
+//                       payment partner (Razorpay's composite API) gets the
+//                       bank account, address and documents together, and
+//                       verifies them all at once.
+// When KYC is verified, the bank account is too. Withdrawing needs both.
+// (No ₹1 check on the bank account: nothing is verified before KYC is sent.)
+//
+// The two parts kept here:
 //
 //   Identity (kyc)  how they're paid, chosen once at the start:
 //                   individual  their PAN and Aadhaar, a photo or PDF of each
@@ -15,10 +25,8 @@
 //                   Our payment partner checks them against government
 //                   records: in real life a few hours, sometimes a person
 //                   looks at the documents.
-//   Bank (account)  IFSC, account number, the name on it. Checked by
-//                   sending ₹1 ("penny drop") to make sure it exists and
-//                   is in the payee's name (payeeOf: the person, or the
-//                   business), so it can be added once identity is sent.
+//   Bank (account)  IFSC, account number, the name on it. Saved first
+//                   ('added'), and verified with KYC.
 //
 // Until both pass the coach can still sell: their money waits in the
 // wallet. The prototype pretends each check takes KYC_CHECK_MS or
@@ -26,6 +34,7 @@
 //
 // Each part's status:
 //   none       not given yet
+//   added      bank only: saved, waiting to be sent with KYC
 //   checking   sent for checking (submittedAt)
 //   needs-fix  the check found a problem. Identity: problems, a list of
 //              { doc: 'pan' | 'aadhaar', part: 'number' | 'file', message },
@@ -289,6 +298,11 @@ function settle(s, now) {
         : { ...kyc, status: 'needs-fix' };
   }
 
+  // The bank account is verified along with KYC (one submission)
+  if (kyc.status === 'verified' && account.status === 'added') {
+    account = { ...account, status: 'verified', verifiedAt: kyc.verifiedAt };
+  }
+
   if (account.status === 'checking' && Number.isFinite(account.submittedAt) && now >= account.submittedAt + CHECK_MS) {
     account =
       account.outcome === 'approve'
@@ -475,6 +489,9 @@ export const businessPanNameOf = (pan, typeId) =>
 // GSTIN: 15 characters. The state's code (2 digits), the PAN it was
 // issued to, the registration's number, Z, then a check character that
 // catches nearly every mistyped one.
+// An example GSTIN, for placeholders
+export const GST_EXAMPLE = '33AAGCH4821K1ZM';
+
 export const cleanGstin = (text) => String(text ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
 
 const GST_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -645,24 +662,24 @@ export function submitKyc(details, now = Date.now()) {
   });
 }
 
-// Sends a bank account for checking (the first one, or a fix). Needs the
-// PAN in, for the name check.
+// Saves the bank account: step 1 of Payment details. Nothing is checked
+// now; it's verified along with KYC. Can be edited until KYC is sent.
+// false when it couldn't be saved, or KYC has been sent already.
 export function submitBank(bank, now = Date.now()) {
   const s = settle(load(), now);
-  if (s.kyc.status === 'none') return false;
+  if (s.kyc.status !== 'none') return false;
   return save({
     ...s,
     account: {
       ...s.account,
-      status: 'checking',
+      status: 'added',
       bank: { ...bank, ...lookupIfsc(bank.ifsc) },
       submittedAt: now,
       verifiedAt: null,
       changedAt: null,
-      outcome: s.next.bank ?? 'approve',
+      outcome: 'approve',
       pending: null,
     },
-    next: { ...s.next, bank: 'approve' },
   });
 }
 

@@ -4,6 +4,8 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import InfoTip from '../components/InfoTip';
 import { Pager, PeriodChoice, RangeButton, Segmented, Stat, Tile, useMoney } from './SalesShared';
 import { usePayout } from './PayoutSetup';
+import { useInvoiceSettings } from './InvoiceSettings';
+import { hasAddress } from '../data/invoiceSettings';
 import {
   MIN_WITHDRAWAL,
   PAYOUT_PROMISE,
@@ -50,8 +52,8 @@ import './SalesPage.css';
 //     way shows in the statement ("Processing"), not as a line here.
 //   - Until identity and bank account are both verified (data/payouts.js),
 //     the card offers what to do instead of Request withdrawal, with a
-//     line under the balances: nothing yet (Get started), no bank yet
-//     (Add bank account), being checked (View), or needs a fix (Fix it, in
+//     line under the balances: no bank account yet (Get started), no KYC
+//     yet (Continue), being verified (View), or needs a fix (Fix it, in
 //     amber, saying what's wrong). Each opens Settings → Payment details
 //     (onOpenPayouts), the one place they're set up.
 //   - Request withdrawal is greyed out, with the reason under it, while
@@ -125,11 +127,12 @@ export default function WithdrawalsTab({ webinars = [], onOpenPayouts }) {
 
 // ---------- The three balances ----------
 
-// What the card says and offers until they can withdraw: identity and
-// bank both verified (data/payouts.js). Every one opens Settings →
-// Payment details, the one place they're set up or fixed. A fix comes
-// first, then what's missing, then what's being checked.
-function blockerOf({ kyc, bank }) {
+// What the card says and offers until they can withdraw: KYC verified
+// (data/payouts.js), which verifies the bank account with it. Every one
+// opens Settings → Payment details, on the first step not done yet. A fix
+// comes first, then what's missing (in Payment details' order: bank
+// account, address, KYC), then what's being checked.
+function blockerOf({ kyc, bank }, invoices) {
   if (kyc.status === 'needs-fix') {
     return {
       tone: 'amber',
@@ -152,44 +155,33 @@ function blockerOf({ kyc, bank }) {
       urgent: true,
     };
   }
-  if (kyc.status === 'none') {
-    return {
-      tone: 'blue',
-      icon: Landmark,
-      title: 'Verify your identity and add your bank account to withdraw',
-      text: 'It takes a few minutes. Your money is safe here until you do.',
-      action: 'Get started',
-      primary: true,
-    };
-  }
   if (bank.status === 'none') {
     return {
       tone: 'blue',
       icon: Landmark,
-      title: 'Add your bank account to withdraw',
-      text:
-        kyc.status === 'checking'
-          ? 'We’re checking your identity documents meanwhile. Your money is safe here.'
-          : 'Your money is safe here until you do.',
-      action: 'Add bank account',
+      title: 'Add your bank account and verify your KYC to withdraw',
+      text: 'Three quick steps. Your money is safe here until you do.',
+      action: 'Get started',
+      primary: true,
+    };
+  }
+  if (kyc.status === 'none') {
+    return {
+      tone: 'blue',
+      icon: Landmark,
+      title: hasAddress(invoices) ? 'Verify your KYC to withdraw' : 'Add your address and verify your KYC to withdraw',
+      text: 'Your bank account is saved. Your money is safe here until you do.',
+      action: 'Continue',
       primary: true,
     };
   }
   if (kyc.status === 'checking' || bank.status === 'checking') {
-    const both = kyc.status === 'checking' && bank.status === 'checking';
     return {
       tone: 'blue',
       icon: Loader2,
       spin: true,
-      title: both
-        ? 'Checking your identity and bank account'
-        : kyc.status === 'checking'
-          ? 'Checking your identity documents'
-          : 'Checking your bank account',
-      text:
-        kyc.status === 'checking'
-          ? 'This usually takes a few hours. You can withdraw once it’s done.'
-          : 'This usually takes a few minutes. You can withdraw once it’s done.',
+      title: 'Verifying your KYC and bank account',
+      text: 'This usually takes a few hours. You can withdraw once it’s done.',
       action: 'View',
       primary: false,
     };
@@ -200,7 +192,8 @@ function blockerOf({ kyc, bank }) {
 function Balances({ ledger, failed, onWithdraw, onOpenPayouts }) {
   const { ready, total, entries } = ledger;
   const payout = usePayout();
-  const bankState = payout.ready ? null : blockerOf(payout);
+  const invoices = useInvoiceSettings();
+  const bankState = payout.ready ? null : blockerOf(payout, invoices);
   const canWithdraw = ready >= MIN_WITHDRAWAL;
   const why = canWithdraw
     ? null

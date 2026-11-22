@@ -25,15 +25,17 @@ import {
   panProblem,
 } from '../data/payouts';
 import { readPhoto } from '../utils/readPhoto';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 // ------------------------------------------------------------
-// Settings → Payment details → Identity: who the coach is paid as, for
-// KYC (data/payouts.js). Two pieces here:
+// Settings → Payment details → Verify KYC (step 3 of 3): who the coach is
+// paid as (data/payouts.js). Sending it sends the bank account and address
+// (steps 1 and 2) too, and they're verified together. Two pieces here:
 //
 //   IdentityCard   the part on the page, by status:
-//     none       "Verify your identity": what we need and why, and Start
-//     checking   we're matching them with government records, with
-//                what they sent
+//     none       "Verify your KYC": what we need and why, and Verify KYC
+//     checking   "KYC verification is in progress", an In progress pill,
+//                and what they sent
 //     needs-fix  amber: what's wrong with which document, and Fix it
 //     verified   what they sent, masked, with a green Verified pill
 //
@@ -51,7 +53,12 @@ import { readPhoto } from '../utils/readPhoto';
 //          PAN and Aadhaar, with a photo of each
 //       3. GST: registered (GSTIN, which must carry the business's PAN,
 //          and the certificate) or not
-//     → Send for verification
+//     → Send for verification, then the declaration (three boxes to tick,
+//       as TagMango has) and Submit
+//   The PAN asked for is the bank account holder's (the person, or the
+//   business), and the account is named beside it (bankHolder). A
+//   business registered for GST in Address & invoice starts with that
+//   GSTIN filled in (invoiceGstin).
 //   A fix opens on the screen with the document that failed, everything
 //   else as they left it; the problem stays on its field until it changes.
 //
@@ -70,7 +77,7 @@ const fullDate = (ms) =>
 
 // ---------- On the page ----------
 
-export function IdentityCard({ kyc, bankAdded = false, onStart, onFix }) {
+export function IdentityCard({ kyc, onStart, onFix }) {
   if (kyc.status === 'none') {
     return (
       <div className="po-part">
@@ -79,17 +86,17 @@ export function IdentityCard({ kyc, bankAdded = false, onStart, onFix }) {
             <ShieldCheck size={20} />
           </span>
           <div className="po-part__who">
-            <h4 className="po-part__title">Verify your identity</h4>
+            <h4 className="po-part__title">Verify your KYC</h4>
             <p className="po-part__sub">Not done yet</p>
           </div>
         </div>
         <div className="po-part__body">
           <p className="po-part__text">
             Your PAN and Aadhaar, or your business’s documents. We need them to pay you and to file TDS in the right
-            name. It takes a few minutes if you have them with you.
+            name.
           </p>
           <button type="button" className="oh__add" onClick={onStart}>
-            Start
+            Verify KYC
           </button>
         </div>
       </div>
@@ -102,7 +109,7 @@ export function IdentityCard({ kyc, bankAdded = false, onStart, onFix }) {
     kyc.status === 'verified' ? (
       <span className="po-pill po-pill--done">Verified</span>
     ) : kyc.status === 'checking' ? (
-      <span className="po-pill po-pill--processing">Checking</span>
+      <span className="po-pill po-pill--processing">In progress</span>
     ) : (
       <span className="po-pill po-pill--refund">Needs a fix</span>
     );
@@ -122,8 +129,9 @@ export function IdentityCard({ kyc, bankAdded = false, onStart, onFix }) {
 
       {kyc.status === 'checking' && (
         <p className="po-part__note po-part__note--checking" role="status">
-          We’re matching {business ? 'these documents' : 'your PAN and Aadhaar'} with government records. This usually
-          takes a few hours{bankAdded ? '.' : ', and you can add your bank account meanwhile.'}
+          <strong>KYC verification is in progress.</strong> Your bank account, address and{' '}
+          {business ? 'these documents' : 'your PAN and Aadhaar'} were sent together, and are being checked with
+          government records. This usually takes a few hours.
         </p>
       )}
 
@@ -221,9 +229,13 @@ const stepOfDoc = (doc, kind) =>
     : doc;
 
 // start: what they sent before (fixing), or null; problems: what to fix.
+// bankHolder: the bank account from step 1, { holder, bankName, account },
+//   named beside the PAN it must match
+// invoiceGstin: the GSTIN from Address & invoice, or '' (fills in a
+//   business's GST screen)
 // onSubmit({ type, businessType, business, pan, panName, aadhaar, gstin,
 // docs }) → false if it couldn't be saved
-export function IdentitySetup({ start, problems = [], onCancel, onSubmit }) {
+export function IdentitySetup({ start, problems = [], bankHolder = null, invoiceGstin = '', onCancel, onSubmit }) {
   const fixing = problems.length > 0;
   const [kind, setKind] = useState(start?.type ?? 'individual');
   const [businessType, setBusinessType] = useState(start?.businessType ?? null);
@@ -231,8 +243,11 @@ export function IdentitySetup({ start, problems = [], onCancel, onSubmit }) {
   const [businessName, setBusinessName] = useState(start?.business?.name ?? '');
   const [pan, setPan] = useState(start?.pan ?? '');
   const [aadhaar, setAadhaar] = useState(start?.aadhaar ?? '');
-  const [gstRegistered, setGstRegistered] = useState(start ? Boolean(start.gstin) : null);
-  const [gstin, setGstin] = useState(start?.gstin ?? '');
+  const [gstRegistered, setGstRegistered] = useState(start ? Boolean(start.gstin) : invoiceGstin ? true : null);
+  const [gstin, setGstin] = useState(start?.gstin || invoiceGstin);
+  // The declaration, open after Send for verification: which boxes are ticked
+  const [declaring, setDeclaring] = useState(false);
+  const [ticked, setTicked] = useState([false, false, false]);
   const [docs, setDocs] = useState(
     start?.docs ?? { pan: null, aadhaar: null, businessPan: null, certificate: null, gst: null },
   );
@@ -313,6 +328,13 @@ export function IdentitySetup({ start, problems = [], onCancel, onSubmit }) {
       setIndex(index + 1);
       return;
     }
+    // The last screen: the declaration first
+    setTicked([false, false, false]);
+    setDeclaring(true);
+  };
+
+  const submit = () => {
+    setDeclaring(false);
     const ok = onSubmit({
       type: kind,
       businessType,
@@ -325,6 +347,11 @@ export function IdentitySetup({ start, problems = [], onCancel, onSubmit }) {
     });
     setSaveFailed(ok === false);
   };
+
+  // Whose PAN, beside the bank account it must match
+  const account = bankHolder
+    ? `${bankHolder.holder}, ${bankHolder.bankName} ••${String(bankHolder.account ?? '').slice(-4)}`
+    : null;
 
   const back = () => {
     setTried(fixing);
@@ -353,7 +380,13 @@ export function IdentitySetup({ start, problems = [], onCancel, onSubmit }) {
         onEnter={next}
         error={show('pan-number')}
         ok={panName && `Registered to ${panName}`}
-        hint={bt ? 'Their personal PAN. Its 4th letter is P.' : 'It’s on your PAN card, under “Permanent Account Number”.'}
+        hint={
+          bt
+            ? 'Their personal PAN. Its 4th letter is P.'
+            : account
+              ? `The PAN of your bank account’s holder (${account}).`
+              : 'It’s on your PAN card, under “Permanent Account Number”.'
+        }
       />
       <DocUpload
         id="po-pan-file"
@@ -531,7 +564,9 @@ export function IdentitySetup({ start, problems = [], onCancel, onSubmit }) {
                 onEnter={next}
                 error={show('businessPan-number')}
                 ok={businessPanName && `Registered to ${businessPanName}`}
-                hint={`The business’s own PAN, not yours. Its 4th letter is ${bt.panLetter}.`}
+                hint={`The business’s own PAN, not yours. Its 4th letter is ${bt.panLetter}.${
+                  account ? ` It should match your bank account (${account}).` : ''
+                }`}
               />
               <DocUpload
                 id="po-businessPan-file"
@@ -628,13 +663,44 @@ export function IdentitySetup({ start, problems = [], onCancel, onSubmit }) {
       )}
       {last && !saveFailed && (
         <p className="po-setup__fine">
-          We check these with government records. It usually takes a few hours, and you can add your bank account
-          meanwhile.
+          Your bank account, address and these documents are sent together and verified at once. It usually takes a
+          few hours.
         </p>
+      )}
+
+      {declaring && (
+        <ConfirmDialog
+          title="KYC declaration"
+          confirmLabel="Submit"
+          confirmDisabled={!ticked.every(Boolean)}
+          closeButton
+          stayOpen
+          onCancel={() => setDeclaring(false)}
+          onConfirm={submit}
+        >
+          <p className="po-declare__intro">Please confirm each of these to send your KYC.</p>
+          {DECLARATIONS.map((line, i) => (
+            <label key={line} className="po-check po-declare__line">
+              <input
+                type="checkbox"
+                checked={ticked[i]}
+                onChange={(e) => setTicked((t) => t.map((v, j) => (j === i ? e.target.checked : v)))}
+              />
+              <span>{line}</span>
+            </label>
+          ))}
+        </ConfirmDialog>
       )}
     </div>
   );
 }
+
+// What they confirm before sending (as TagMango asks)
+const DECLARATIONS = [
+  'I confirm that all the details I’ve given are accurate, valid, and belong to me.',
+  'I understand that any change to my bank account details will need to be verified again.',
+  'I understand that giving false or misleading information may lead to my account being suspended, or legal action.',
+];
 
 // ---------- A typed field: PAN, Aadhaar, GSTIN, a name ----------
 // ok: a green line once it's right (who a PAN is registered to);

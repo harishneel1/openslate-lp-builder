@@ -6,16 +6,20 @@ import {
   addressProblem,
   cleanPin,
   displayNameProblem,
+  gstNameProblem,
+  gstOfSettings,
+  gstinSettingsProblem,
   loadInvoiceSettings,
   onInvoiceSettingsChange,
   pinProblem,
   saveInvoiceSettings,
 } from '../data/invoiceSettings';
-import { invoiceIdentity } from '../data/payouts';
+import { GST_EXAMPLE, cleanGstin, gstStateOf } from '../data/payouts';
 
 // ------------------------------------------------------------
-// Settings → Payment details → Your invoices: what buyers see on the
-// invoice for each purchase (data/invoiceSettings.js). Two pieces:
+// Settings → Payment details → Address & invoice (step 2 of 3): what
+// buyers see on the invoice for each purchase (data/invoiceSettings.js).
+// Saving an address and PIN here unlocks Verify KYC. Two pieces:
 //
 //   InvoicesCard   on the page: the name on invoices, whether they're
 //                  emailed (On / Off pill), the address, GST, the note,
@@ -23,16 +27,16 @@ import { invoiceIdentity } from '../data/payouts';
 //   InvoiceSetup   the form:
 //     Email buyers an invoice            [switch]
 //     Name on invoices, Address, PIN
-//     GST   from the verified business, nothing to type: GSTIN, legal
-//           name, state, and "Registered address is the same as above"
-//           (or its own address and PIN). Before the business is verified,
-//           or for an individual, a line saying what invoices do instead.
+//     GST   "Are you registered for GST?" Yes / No, nothing assumed.
+//           Yes: GSTIN (its state shows under it, from its first two
+//           digits), the name it's registered to, and "Registered address
+//           is the same as above" (or its own address and PIN).
+//           No: invoices say GST isn't charged.
 //     Note on invoices (up to 500 characters, with a count)
 //     → Save changes
 //
-// Unlike TagMango's, GST isn't typed a second time, and the name on
-// invoices can be a brand: when it differs from the business's legal
-// name, the invoice prints the legal name under it.
+// Unlike TagMango's, the name on invoices can be a brand: when it differs
+// from the name the GST is registered to, the invoice prints that under it.
 // ------------------------------------------------------------
 
 // The saved settings now, re-read when they change
@@ -42,19 +46,11 @@ export function useInvoiceSettings() {
   return loadInvoiceSettings();
 }
 
-// What the GST part says, from identity (kyc from payoutState)
-function gstOf(kyc) {
-  const business = invoiceIdentity();
-  if (business?.gstin) return { kind: 'registered', ...business };
-  if (kyc.type === 'business' && kyc.status !== 'verified' && kyc.gstin) return { kind: 'pending' };
-  return { kind: 'none' };
-}
-
 // ---------- On the page ----------
 
-export function InvoicesCard({ kyc, onEdit }) {
+export function InvoicesCard({ onEdit }) {
   const s = useInvoiceSettings();
-  const gst = gstOf(kyc);
+  const gst = gstOfSettings(s);
 
   return (
     <div className="po-part">
@@ -81,14 +77,10 @@ export function InvoicesCard({ kyc, onEdit }) {
         <div>
           <dt>GST</dt>
           <dd>
-            {gst.kind === 'registered'
-              ? `${gst.gstin} · ${gst.name}, ${gst.state}`
-              : gst.kind === 'pending'
-                ? 'Added once your business is verified'
-                : 'Not registered, so GST isn’t charged'}
+            {gst ? `${gst.gstin} · ${gst.name}, ${gst.state}` : 'Not registered, so GST isn’t charged'}
           </dd>
         </div>
-        {gst.kind === 'registered' && (
+        {gst && (
           <div>
             <dt>Registered address</dt>
             <dd>{s.regSame ? 'Same as above' : addressLine(s.regAddress, s.regPin)}</dd>
@@ -111,13 +103,17 @@ export function InvoicesCard({ kyc, onEdit }) {
 
 // ---------- The form ----------
 // onDone(): back to the page (saved or cancelled)
+// onSaved(): saved (before onDone), for Payment details' "Address saved"
 
-export function InvoiceSetup({ kyc, onDone }) {
+export function InvoiceSetup({ onDone, onSaved }) {
   const start = loadInvoiceSettings();
   const [send, setSend] = useState(start.send);
   const [displayName, setDisplayName] = useState(start.displayName);
   const [address, setAddress] = useState(start.address);
   const [pin, setPin] = useState(start.pin);
+  const [gstRegistered, setGstRegistered] = useState(start.gstRegistered);
+  const [gstin, setGstin] = useState(start.gstin);
+  const [gstName, setGstName] = useState(start.gstName);
   const [regSame, setRegSame] = useState(start.regSame);
   const [regAddress, setRegAddress] = useState(start.regAddress);
   const [regPin, setRegPin] = useState(start.regPin);
@@ -125,8 +121,8 @@ export function InvoiceSetup({ kyc, onDone }) {
   const [tried, setTried] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const first = useRef(null);
-  const gst = gstOf(kyc);
-  const ownReg = gst.kind === 'registered' && !regSame;
+  const ownReg = gstRegistered && !regSame;
+  const gstState = gstStateOf(gstin);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => first.current?.focus());
@@ -137,6 +133,8 @@ export function InvoiceSetup({ kyc, onDone }) {
     displayName: displayNameProblem(displayName),
     address: addressProblem(address),
     pin: pinProblem(pin),
+    gstin: gstRegistered ? gstinSettingsProblem(gstin) : null,
+    gstName: gstRegistered ? gstNameProblem(gstName) : null,
     regAddress: ownReg ? addressProblem(regAddress) : null,
     regPin: ownReg ? pinProblem(regPin) : null,
   };
@@ -154,13 +152,19 @@ export function InvoiceSetup({ kyc, onDone }) {
       displayName: displayName.trim(),
       address: address.trim(),
       pin,
+      gstRegistered,
+      gstin: gstRegistered ? gstin : '',
+      gstName: gstRegistered ? gstName.trim() : '',
       regSame,
       regAddress: regAddress.trim(),
       regPin,
       note: note.trim(),
     });
     setSaveFailed(!ok);
-    if (ok) onDone();
+    if (ok) {
+      onSaved?.();
+      onDone();
+    }
   };
 
   return (
@@ -171,8 +175,8 @@ export function InvoiceSetup({ kyc, onDone }) {
         </button>
       </div>
 
-      <h3 className="po-setup__title">Your invoices</h3>
-      <p className="po-setup__help">What buyers see on the invoice for each purchase.</p>
+      <h3 className="po-setup__title">Your address and invoices</h3>
+      <p className="po-setup__help">What buyers see on the invoice for each purchase. Your address and PIN are needed to verify your KYC.</p>
 
       <div className="po-switch-row">
         <div>
@@ -207,8 +211,8 @@ export function InvoiceSetup({ kyc, onDone }) {
         onChange={setDisplayName}
         error={show('displayName')}
         hint={
-          gst.kind === 'registered'
-            ? `Your brand, if you like. When it’s different, ${gst.name} is printed under it.`
+          gstRegistered
+            ? 'Your brand, if you like. When it’s different from your GST name, that’s printed under it.'
             : 'Your name or your brand.'
         }
         autoComplete="organization"
@@ -234,17 +238,45 @@ export function InvoiceSetup({ kyc, onDone }) {
       />
 
       <h4 className="po-setup__subtitle po-setup__subtitle--gap">GST</h4>
-      {gst.kind === 'registered' ? (
+      <fieldset className="po-field po-types">
+        <legend className="po-field__label">Are you registered for GST?</legend>
+        <div className="po-types__grid po-types__grid--two">
+          {[
+            [true, 'Yes, registered'],
+            [false, 'No, not registered'],
+          ].map(([value, label]) => (
+            <label key={label} className={`po-type ${gstRegistered === value ? 'po-type--on' : ''}`}>
+              <input
+                type="radio"
+                name="inv-gst"
+                checked={gstRegistered === value}
+                onChange={() => setGstRegistered(value)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {gstRegistered ? (
         <>
-          <div className="po-gst-box">
-            <Check size={16} aria-hidden="true" />
-            <div>
-              <p className="po-gst-box__id">GSTIN {gst.gstin}</p>
-              <p>
-                {gst.name}, {gst.state}. From your verified business, so invoices include GST.
-              </p>
-            </div>
-          </div>
+          <TextField
+            id="inv-gstin"
+            label="GSTIN"
+            value={gstin}
+            onChange={(v) => setGstin(cleanGstin(v))}
+            error={show('gstin')}
+            hint={gstState ? `Registered in ${gstState}.` : `15 characters, like ${GST_EXAMPLE}. It’s on your GST certificate.`}
+            placeholder={GST_EXAMPLE}
+          />
+          <TextField
+            id="inv-gstName"
+            label="Registered name"
+            value={gstName}
+            onChange={setGstName}
+            error={show('gstName')}
+            hint="As on your GST certificate."
+          />
           <label className="po-check">
             <input type="checkbox" checked={regSame} onChange={(e) => setRegSame(e.target.checked)} />
             Registered address is the same as above
@@ -272,11 +304,7 @@ export function InvoiceSetup({ kyc, onDone }) {
           )}
         </>
       ) : (
-        <p className="po-setup__help po-gst-none">
-          {gst.kind === 'pending'
-            ? 'Your GSTIN goes on invoices once your business is verified. Until then, invoices say GST isn’t charged.'
-            : 'You’re not registered for GST, so invoices say GST isn’t charged.'}
-        </p>
+        <p className="po-setup__help po-gst-none">Invoices will say GST isn’t charged.</p>
       )}
 
       <h4 className="po-setup__subtitle po-setup__subtitle--gap">Note on invoices</h4>
@@ -314,7 +342,7 @@ export function InvoiceSetup({ kyc, onDone }) {
   );
 }
 
-function TextField({ id, label, value, onChange, error, hint, numeric, short, autoComplete }) {
+function TextField({ id, label, value, onChange, error, hint, numeric, short, autoComplete, placeholder }) {
   return (
     <div className="po-field">
       <label className="po-field__label" htmlFor={id}>
@@ -324,6 +352,7 @@ function TextField({ id, label, value, onChange, error, hint, numeric, short, au
         id={id}
         className={`po-input ${short ? 'po-input--short' : ''} ${error ? 'po-input--error' : ''}`}
         value={value}
+        placeholder={placeholder}
         inputMode={numeric ? 'numeric' : undefined}
         autoComplete={autoComplete ?? 'off'}
         aria-invalid={Boolean(error) || undefined}

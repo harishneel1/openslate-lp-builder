@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Check, CircleCheck, Landmark, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CircleCheck, Landmark, Loader2, Lock, MapPin } from 'lucide-react';
 import {
-  BANK_OUTCOMES,
-  CHECK_MS,
   IFSC_EXAMPLE,
   KYC_CHECK_MS,
   KYC_OUTCOMES,
@@ -26,49 +24,80 @@ import {
   submitKyc,
 } from '../data/payouts';
 import { IdentityCard, IdentitySetup, titleCase } from './IdentitySetup';
-import { InvoiceSetup, InvoicesCard } from './InvoiceSettings';
-import { resetInvoiceSettings } from '../data/invoiceSettings';
+import { InvoiceSetup, InvoicesCard, useInvoiceSettings } from './InvoiceSettings';
+import { clearInvoiceSettings, gstOfSettings, hasAddress, resetInvoiceSettings } from '../data/invoiceSettings';
+import './PaymentSteps.css';
 
 // ------------------------------------------------------------
-// Settings → Payment details: who the coach is and where their money goes
-// (data/payouts.js). Two parts on the page, in the order they're done:
+// Settings → Payment details: where the coach's money goes and who they
+// are (data/payouts.js). Three steps, each its own page under Payment
+// details in the Settings menu, done in this order:
 //
-// Each is its own titled section ("Your identity", "Your bank account"),
-// so they read as separate settings rather than steps. A third, "Your
-// invoices" (InvoiceSettings.jsx), is what buyers see on their invoices;
-// it never stops a withdrawal.
+//   1. Bank account        BankStep: the account withdrawals go to. Saved
+//                          as typed; nothing is checked yet.
+//   2. Address & invoice   AddressStep: the name and address on invoices
+//                          (InvoiceSettings.jsx). Needs an address and PIN.
+//   3. Verify KYC          KycStep: PAN and Aadhaar, or the business's
+//                          documents (IdentitySetup.jsx). This is the one
+//                          submission: the bank account, address and
+//                          documents go to our payment partner together.
+//                          When it's verified, so is the bank account.
 //
-//   Identity   IdentityCard (IdentitySetup.jsx): PAN and Aadhaar, with a
-//              photo or PDF of each, checked against government records
-//   Bank       BankCard: the account withdrawals go to, checked by
-//              sending it ₹1. It must be in the payee's name (the coach,
-//              or their business; a proprietorship's can be either), so
-//              it can be added once identity is sent; before that it says so.
+// A step stays locked until the one before it is done (stepsOf): greyed
+// in the Settings menu, not clickable, with the reason on hover. (If one is
+// opened anyway, its page says what's missing, with a button to go there:
+// LockedStep.) Saving a step for the first time ends on "Saved" and a Next
+// button to the following step, so it's always clear what's next.
 //
-// Withdrawing needs both verified. When the last one passes while they're
-// here: "You're ready to withdraw" and a Withdraw money button back to
-// Sales.
+// Settings → Payment details on its own (the KYC banner's Complete KYC,
+// Sales' Get started) opens the first step that isn't done (currentStep).
+//
+// Withdrawing needs KYC verified. When it passes while they're here:
+// "You're ready to withdraw" and a Withdraw money button back to Sales.
 //
 // Bank card, by status:
 //   none       what it's for, and Add bank account
-//   checking   "Checking your bank account": we're sending ₹1 to it
-//   needs-fix  amber: what's wrong, and Fix it, which opens the setup on
-//              the field to fix, with everything they typed
-//   verified   their details, masked, with a green Verified pill, and
-//              Change bank account
-// Changing it (verified only) opens the setup alone ("Which account should
-// we pay into instead?"). The new one is checked while the old one keeps
-// working:
-//   checking   a blue line: "Checking SBI ••5894. Withdrawals keep going
-//              to HDFC Bank ••4521 until it's verified." and Cancel change
-//   needs-fix  amber: what's wrong, Fix it and Cancel change
-//   passed     green: "SBI ••5894 is verified. Withdrawals now go to it."
+//   added      their details, masked, with a grey Saved pill, and Edit
+//              (until KYC is sent; after that it's sent with it)
+//   verified   a green Verified pill, and Change bank account
+// Changing a verified account (bank.pending) is unchanged for now.
 //
 // Sales → Withdraw money's card (WithdrawalsTab.jsx) sends coaches here
-// for all of these, so this is the one place they're set up or fixed.
-//
-// onWithdraw(): go to Sales → Withdraw money
+// for all of these, so this is the one place they're set up.
 // ------------------------------------------------------------
+
+// The steps, in order: { id, label }. id is the Settings page's id.
+export const PAYMENT_STEPS = [
+  { id: 'payments-bank', label: 'Bank account', short: 'Bank account' },
+  { id: 'payments-address', label: 'Address & invoice', short: 'Address & invoice' },
+  { id: 'payments-kyc', label: 'Verify KYC', short: 'Verify KYC' },
+];
+
+// What's done, and what's locked and why: { done: { [id]: bool },
+// locked: { [id]: { reason, goTo } | null } }
+export function stepsOf(payout, invoices) {
+  const bankDone = payout.bank.status !== 'none';
+  const addressDone = hasAddress(invoices);
+  const kycDone = payout.kyc.status !== 'none';
+  return {
+    done: { 'payments-bank': bankDone, 'payments-address': addressDone, 'payments-kyc': kycDone },
+    locked: {
+      'payments-bank': null,
+      'payments-address': bankDone ? null : { reason: 'Add your bank account first', goTo: 'payments-bank' },
+      'payments-kyc': !bankDone
+        ? { reason: 'Add your bank account first', goTo: 'payments-bank' }
+        : !addressDone
+          ? { reason: 'Add your address and PIN first', goTo: 'payments-address' }
+          : null,
+    },
+  };
+}
+
+// The first step that isn't done (the last one once everything is)
+export function currentStep(payout, invoices) {
+  const { done } = stepsOf(payout, invoices);
+  return PAYMENT_STEPS.find((st) => !done[st.id])?.id ?? 'payments-kyc';
+}
 
 // The payout state now, re-read when it changes and every second while a
 // check is running, so it ends on screen as soon as it does
@@ -86,7 +115,7 @@ export function usePayout() {
   return state;
 }
 
-// Whose name the account must be in, as a sentence
+// Whose name the account must be in, as a sentence (changing a verified one)
 function payeeLine(kyc) {
   const payee = payeeOf(kyc);
   if (kyc.type !== 'business') return `It must be in your own name, ${titleCase(payee.name)}.`;
@@ -111,57 +140,82 @@ function useFocusOnChange(key) {
   return ref;
 }
 
-export default function PaymentDetails({ onWithdraw }) {
+// ---------- One step's page ----------
+// step: 'payments-bank' | 'payments-address' | 'payments-kyc'
+// onGo(step): open another step (Next, and a locked step's Go there)
+// onWithdraw(): go to Sales → Withdraw money
+export default function PaymentStep({ step, onGo, onWithdraw }) {
   const payout = usePayout();
+  const invoices = useInvoiceSettings();
+  const lock = stepsOf(payout, invoices).locked[step];
+
+  if (lock) return <LockedStep step={step} lock={lock} onGo={onGo} />;
+  if (step === 'payments-address') return <AddressStep payout={payout} invoices={invoices} onGo={onGo} />;
+  if (step === 'payments-kyc') return <KycStep payout={payout} invoices={invoices} onWithdraw={onWithdraw} />;
+  return <BankStep payout={payout} onGo={onGo} />;
+}
+
+// A step that can't be done yet: what's missing, and a button to go there
+function LockedStep({ step, lock, onGo }) {
+  const label = PAYMENT_STEPS.find((st) => st.id === step)?.label;
+  const there = PAYMENT_STEPS.find((st) => st.id === lock.goTo)?.label;
+  return (
+    <div className="po">
+      <div className="ps-locked" role="status">
+        <span className="ps-locked__icon" aria-hidden="true">
+          <Lock size={20} />
+        </span>
+        <h3 className="ps-locked__title">{label} is locked</h3>
+        <p className="ps-locked__text">{lock.reason}. It unlocks as soon as you have.</p>
+        <button type="button" className="oh__add" onClick={() => onGo(lock.goTo)}>
+          Go to {there} <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// "Saved" and the way on, after a step is saved for the first time
+function SavedNext({ title, text, nextLabel, onNext }) {
+  return (
+    <div className="po-alert po-alert--done" role="status">
+      <CircleCheck size={18} aria-hidden="true" />
+      <div className="po-alert__grow">
+        <p className="po-alert__title">{title}</p>
+        <p>{text}</p>
+      </div>
+      <button type="button" className="oh__add" onClick={onNext}>
+        Next: {nextLabel} <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+// ---------- Step 1: Bank account ----------
+function BankStep({ payout, onGo }) {
   const { kyc, bank } = payout;
-  // What's open: null (the page), 'identity', 'bank' (adding or fixing
-  // the account), 'change' (a new account), 'fix-change', 'invoices'
+  // What's open: null (the page), 'bank' (adding or editing), 'change' (a
+  // new account for a verified one), 'fix-change'
   const [editing, setEditing] = useState(null);
-  // Checks that end while they're here get a moment of their own
-  const [sawCheck, setSawCheck] = useState(kyc.status === 'checking' || bank.status === 'checking');
-  const [sawChange, setSawChange] = useState(bank.pending?.status === 'checking');
+  const [justSaved, setJustSaved] = useState(false);
   const pendingStatus = bank.pending?.status ?? null;
   const top = useFocusOnChange(editing);
 
   useEffect(() => {
-    if (kyc.status === 'checking' || bank.status === 'checking') setSawCheck(true);
-  }, [kyc.status, bank.status]);
-  useEffect(() => {
-    if (pendingStatus === 'checking') setSawChange(true);
-  }, [pendingStatus]);
-  useEffect(() => {
     if (editing === 'fix-change' && pendingStatus !== 'needs-fix') setEditing(null);
   }, [editing, pendingStatus]);
 
-  if (editing === 'identity') {
-    const fixing = kyc.status === 'needs-fix';
-    return (
-      <IdentitySetup
-        start={fixing ? kyc : null}
-        problems={fixing ? kyc.problems : []}
-        onCancel={() => setEditing(null)}
-        onSubmit={(details) => {
-          const ok = submitKyc(details);
-          if (ok) setEditing(null);
-          return ok;
-        }}
-      />
-    );
-  }
-
-  if (editing === 'invoices') return <InvoiceSetup kyc={kyc} onDone={() => setEditing(null)} />;
-
   if (editing === 'bank') {
-    const fixing = bank.status === 'needs-fix';
     return (
       <BankSetup
-        start={fixing ? bank.bank : { holder: titleCase(payeeOf(kyc).name) }}
-        problem={fixing ? bank.problem : null}
-        payeeLine={payeeLine(kyc)}
+        start={bank.bank}
         onCancel={() => setEditing(null)}
         onSubmit={(details) => {
-          submitBank(details);
-          setEditing(null);
+          const first = bank.status === 'none';
+          if (submitBank(details)) {
+            setJustSaved(first);
+            setEditing(null);
+          }
         }}
       />
     );
@@ -179,20 +233,129 @@ export default function PaymentDetails({ onWithdraw }) {
         onCancel={() => setEditing(null)}
         onSubmit={(details) => {
           submitBankChange(details);
-          setSawChange(true);
           setEditing(null);
         }}
       />
     );
   }
 
-  const justReady = sawCheck && payout.ready && !bank.pending;
-  const justChanged = !justReady && sawChange && !bank.pending && bank.changedAt;
+  return (
+    <div className="po">
+      <h3 className="oh__sr-only" tabIndex={-1} ref={top}>
+        Bank account
+      </h3>
+      {justSaved && bank.status === 'added' && (
+        <SavedNext
+          title="Bank account saved"
+          text="Now add the address for your invoices."
+          nextLabel="Address & invoice"
+          onNext={() => onGo('payments-address')} />
+      )}
+      <BankCard
+        payout={payout}
+        onAdd={() => setEditing('bank')}
+        onChange={() => setEditing('change')}
+        onFixChange={() => setEditing('fix-change')}
+      />
+    </div>
+  );
+}
+
+// ---------- Step 2: Address & invoice ----------
+function AddressStep({ payout, invoices, onGo }) {
+  const { kyc } = payout;
+  const [editing, setEditing] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const top = useFocusOnChange(editing);
+  const done = hasAddress(invoices);
+
+  if (editing) {
+    return (
+      <InvoiceSetup
+        onDone={() => setEditing(false)}
+        onSaved={() => {
+          if (!done) setJustSaved(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="po">
       <h3 className="oh__sr-only" tabIndex={-1} ref={top}>
-        Identity and bank account
+        Address and invoice
+      </h3>
+      {justSaved && done && kyc.status === 'none' && (
+        <SavedNext
+          title="Address saved"
+          text="Last step: verify your KYC."
+          nextLabel="Verify KYC"
+          onNext={() => onGo('payments-kyc')} />
+      )}
+      {done ? (
+        <InvoicesCard onEdit={() => setEditing(true)} />
+      ) : (
+        <div className="po-part">
+          <div className="po-part__head">
+            <span className="po-tile po-tile--inv" aria-hidden="true">
+              <MapPin size={20} />
+            </span>
+            <div className="po-part__who">
+              <h4 className="po-part__title">Add your address</h4>
+              <p className="po-part__sub">Not added yet</p>
+            </div>
+          </div>
+          <div className="po-part__body">
+            <p className="po-part__text">
+              The name and address on the invoices your buyers get. We need your address and PIN before you can verify
+              your KYC.
+            </p>
+            <button type="button" className="oh__add" onClick={() => setEditing(true)}>
+              Add address
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Step 3: Verify KYC ----------
+function KycStep({ payout, invoices, onWithdraw }) {
+  const { kyc, bank } = payout;
+  const [editing, setEditing] = useState(false);
+  // A check that ends while they're here gets a moment of its own
+  const [sawCheck, setSawCheck] = useState(kyc.status === 'checking');
+  const top = useFocusOnChange(editing);
+
+  useEffect(() => {
+    if (kyc.status === 'checking') setSawCheck(true);
+  }, [kyc.status]);
+
+  if (editing) {
+    const fixing = kyc.status === 'needs-fix';
+    return (
+      <IdentitySetup
+        start={fixing ? kyc : null}
+        problems={fixing ? kyc.problems : []}
+        bankHolder={bank.bank}
+        invoiceGstin={gstOfSettings(invoices)?.gstin ?? ''}
+        onCancel={() => setEditing(false)}
+        onSubmit={(details) => {
+          const ok = submitKyc(details);
+          if (ok) setEditing(false);
+          return ok;
+        }}
+      />
+    );
+  }
+
+  const justReady = sawCheck && payout.ready;
+
+  return (
+    <div className="po">
+      <h3 className="oh__sr-only" tabIndex={-1} ref={top}>
+        Verify KYC
       </h3>
 
       {justReady && (
@@ -201,7 +364,8 @@ export default function PaymentDetails({ onWithdraw }) {
           <div className="po-alert__grow">
             <p className="po-alert__title">You’re ready to withdraw</p>
             <p>
-              Your {kyc.type === 'business' ? 'business' : 'identity'} and {bank.bank.bankName} {maskAccount(bank.bank.account)} are verified.
+              Your {kyc.type === 'business' ? 'business' : 'identity'} and {bank.bank.bankName}{' '}
+              {maskAccount(bank.bank.account)} are verified.
             </p>
           </div>
           {onWithdraw && (
@@ -212,57 +376,7 @@ export default function PaymentDetails({ onWithdraw }) {
         </div>
       )}
 
-      {justChanged && (
-        <div className="po-alert po-alert--done" role="status">
-          <CircleCheck size={18} aria-hidden="true" />
-          <div className="po-alert__grow">
-            <p className="po-alert__title">
-              {bank.bank.bankName} {maskAccount(bank.bank.account)} is verified
-            </p>
-            <p>Withdrawals now go to it.</p>
-          </div>
-        </div>
-      )}
-
-      <section className="po-section" aria-labelledby="po-sec-identity">
-        <div className="po-section__head">
-          <h3 className="po-section__title" id="po-sec-identity">
-            Your identity
-          </h3>
-          <p className="po-section__sub">You, or your business, checked against government records.</p>
-        </div>
-        <IdentityCard
-          kyc={kyc}
-          bankAdded={bank.status !== 'none'}
-          onStart={() => setEditing('identity')}
-          onFix={() => setEditing('identity')}
-        />
-      </section>
-
-      <section className="po-section" aria-labelledby="po-sec-bank">
-        <div className="po-section__head">
-          <h3 className="po-section__title" id="po-sec-bank">
-            Your bank account
-          </h3>
-          <p className="po-section__sub">Where your withdrawals go.</p>
-        </div>
-        <BankCard
-          payout={payout}
-          onAdd={() => setEditing('bank')}
-          onChange={() => setEditing('change')}
-          onFixChange={() => setEditing('fix-change')}
-        />
-      </section>
-
-      <section className="po-section" aria-labelledby="po-sec-invoices">
-        <div className="po-section__head">
-          <h3 className="po-section__title" id="po-sec-invoices">
-            Your invoices
-          </h3>
-          <p className="po-section__sub">What buyers see on the invoice for each purchase.</p>
-        </div>
-        <InvoicesCard kyc={kyc} onEdit={() => setEditing('invoices')} />
-      </section>
+      <IdentityCard kyc={kyc} onStart={() => setEditing(true)} onFix={() => setEditing(true)} />
     </div>
   );
 }
@@ -273,39 +387,25 @@ function BankCard({ payout, onAdd, onChange, onFixChange }) {
   const { kyc, bank } = payout;
 
   if (bank.status === 'none') {
-    const locked = kyc.status === 'none';
     return (
-      <div className={`po-part ${locked ? 'po-part--locked' : ''}`}>
+      <div className="po-part">
         <div className="po-part__head">
           <span className="po-tile" aria-hidden="true">
             <Landmark size={20} />
           </span>
           <div className="po-part__who">
             <h4 className="po-part__title">Add your bank account</h4>
-            <p className="po-part__sub">{locked ? 'After your documents' : 'Not added yet'}</p>
+            <p className="po-part__sub">Not added yet</p>
           </div>
         </div>
         <div className="po-part__body">
-          {locked ? (
-            <p className="po-part__text">
-              You can add it once you’ve sent your documents above. The account must be in the same name, and we
-              check it is.
-            </p>
-          ) : (
-            <>
-              <p className="po-part__text">
-                {payeeLine(kyc)} We send it ₹1 to check.
-              </p>
-              {/* A fix to identity comes first, so this one waits quietly */}
-              <button
-                type="button"
-                className={kyc.status === 'needs-fix' ? 'oh__edit' : 'oh__add'}
-                onClick={onAdd}
-              >
-                Add bank account
-              </button>
-            </>
-          )}
+          <p className="po-part__text">
+            Where your withdrawals go. It should be in your own name, or your business’s: you’ll give the PAN that
+            matches it when you verify your KYC.
+          </p>
+          <button type="button" className="oh__add" onClick={onAdd}>
+            Add bank account
+          </button>
         </div>
       </div>
     );
@@ -316,6 +416,8 @@ function BankCard({ payout, onAdd, onChange, onFixChange }) {
   const pill =
     bank.status === 'verified' ? (
       <span className="po-pill po-pill--done">Verified</span>
+    ) : bank.status === 'added' ? (
+      <span className="po-pill po-pill--off">Saved</span>
     ) : bank.status === 'checking' ? (
       <span className="po-pill po-pill--processing">Checking</span>
     ) : (
@@ -416,6 +518,22 @@ function BankCard({ payout, onAdd, onChange, onFixChange }) {
         )}
       </dl>
 
+      {bank.status === 'added' && (
+        <p className="po-part__note">
+          {kyc.status === 'none'
+            ? 'Verified along with your KYC, so you can still edit it until then.'
+            : 'Sent with your KYC, and verified along with it.'}
+        </p>
+      )}
+
+      {bank.status === 'added' && kyc.status === 'none' && (
+        <div className="po-card__foot">
+          <button type="button" className="oh__edit" onClick={onAdd}>
+            Edit bank account
+          </button>
+        </div>
+      )}
+
       {bank.status === 'verified' && !pending && (
         <div className="po-card__foot">
           <button type="button" className="oh__edit" onClick={onChange}>
@@ -480,7 +598,9 @@ function BankSetup({ start, problem, payeeLine: whose, onCancel, onSubmit, chang
         {change ? 'Which account should we pay into instead?' : 'Which bank account should we pay into?'}
       </h3>
       <p className="po-setup__help">
-        {whose}
+        {change
+          ? whose
+          : 'It should be in your own name, or your business’s. You’ll give the PAN that matches it when you verify your KYC.'}
         {change && current
           ? ` Withdrawals keep going to ${current.bankName} ${maskAccount(current.account)} until the new one is checked.`
           : ''}
@@ -577,19 +697,19 @@ function BankSetup({ start, problem, payeeLine: whose, onCancel, onSubmit, chang
 
       <div className="po-actions">
         <button type="button" className="oh__add" onClick={next}>
-          {change ? 'Verify new account' : 'Verify account'}
+          {change ? 'Verify new account' : 'Save bank account'}
         </button>
       </div>
-      <p className="po-setup__fine">We’ll send ₹1 to this account to check it’s yours.</p>
+      {change && <p className="po-setup__fine">We’ll send ₹1 to this account to check it’s yours.</p>}
     </div>
   );
 }
 
 // ---------- Prototype controls (not part of the product) ----------
 // Rows for a Prototype controls panel (PrototypeControls.css): start as a
-// new coach or the demo's verified one, how the next identity and bank
-// checks end, and ending running checks now. Used on Settings and under
-// Sales.
+// new coach (no bank account, address or KYC) or the demo's verified one,
+// how the next KYC check ends, and ending a running check now. Used on
+// Settings and under Sales.
 export function PayoutControlRows() {
   const payout = usePayout();
   const fresh = payout.kyc.status === 'none' && payout.bank.status === 'none';
@@ -602,7 +722,15 @@ export function PayoutControlRows() {
       <div className="proto__row">
         <span className="proto__label">Payment details</span>
         <div className="proto__controls">
-          <button type="button" className="proto__btn" aria-pressed={fresh} onClick={startFresh}>
+          <button
+            type="button"
+            className="proto__btn"
+            aria-pressed={fresh}
+            onClick={() => {
+              startFresh();
+              clearInvoiceSettings();
+            }}
+          >
             New coach, nothing added
           </button>
           <button type="button" className="proto__btn" onClick={resetToDemo}>
@@ -619,7 +747,7 @@ export function PayoutControlRows() {
         </div>
       </div>
       <div className="proto__row">
-        <span className="proto__label">Next identity check</span>
+        <span className="proto__label">Next KYC check</span>
         <div className="proto__controls">
           {KYC_OUTCOMES.map((o) => (
             <button
@@ -632,25 +760,9 @@ export function PayoutControlRows() {
               {o.label}
             </button>
           ))}
-        </div>
-      </div>
-      <div className="proto__row">
-        <span className="proto__label">Next bank check</span>
-        <div className="proto__controls">
-          {BANK_OUTCOMES.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              className="proto__btn"
-              aria-pressed={(payout.next.bank ?? 'approve') === o.id}
-              onClick={() => setNextOutcome('bank', o.id)}
-            >
-              {o.label}
-            </button>
-          ))}
           <p className="proto__note">
-            In the prototype an identity check takes {KYC_CHECK_MS / 1000} seconds and a bank check {CHECK_MS / 1000}.
-            After a failed one, the next goes through unless you pick again.
+            In the prototype a KYC check takes {KYC_CHECK_MS / 1000} seconds. After a failed one, the next goes through
+            unless you pick again.
           </p>
         </div>
       </div>

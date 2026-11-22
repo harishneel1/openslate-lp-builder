@@ -6,9 +6,9 @@ import { funnelTypes } from './funnelTypes';
 import { webinarWhen } from './webinar';
 import { coachZone } from './buildBookingsJson';
 import { funnelName } from '../utils/funnelName';
-import { invoiceIdentity, onPayoutsChange, verifiedBank } from './payouts';
+import { onPayoutsChange, verifiedBank } from './payouts';
 import { initials } from '../utils/initials';
-import { addressLine, loadInvoiceSettings } from './invoiceSettings';
+import { addressLine, gstOfSettings, loadInvoiceSettings } from './invoiceSettings';
 
 // ------------------------------------------------------------
 // Earnings: the coach's money with us, as one ledger (Sales → Withdrawals,
@@ -141,21 +141,21 @@ export const BUSINESS = {
 // Who an invoice is from (Settings → Payment details → Your invoices):
 //   { name, legalName, initials, address, gstin, gstState, note, send,
 //     invoiceCode }
-// name: the name they chose for invoices. When they're paid as a
-// verified business, its GSTIN goes on too, and its legal name
-// (legalName) when that's different from name; a GST invoice's address is
-// the registered one. The prototype works this out when the invoice is
+// name: the name they chose for invoices. When they've said they're
+// registered for GST (Address & invoice), the GSTIN goes on too, and the
+// name it's registered to (legalName) when that's different from name; a
+// GST invoice's address is the registered one. The prototype works this out when the invoice is
 // opened, so old invoices change with it; the real product fixes each
 // invoice's details when it's issued.
 export function invoiceFrom(now = Date.now()) {
   const s = loadInvoiceSettings();
-  const business = invoiceIdentity(now);
+  const business = gstOfSettings(s);
   const name = s.displayName.trim() || BUSINESS.name;
   const gstin = business?.gstin || null;
   return {
     ...BUSINESS,
     name,
-    legalName: business && business.name.toLowerCase() !== name.toLowerCase() ? business.name : null,
+    legalName: business?.name && business.name.toLowerCase() !== name.toLowerCase() ? business.name : null,
     initials: initials(name),
     address: gstin && !s.regSame ? addressLine(s.regAddress, s.regPin) : addressLine(s.address, s.pin),
     gstin,

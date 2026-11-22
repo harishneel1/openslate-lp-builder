@@ -14,6 +14,7 @@ import { allClassesBetween, onBatchesChange } from '../data/batches';
 import { loadSaved } from '../utils/storage';
 import { formatTime, zoned } from '../utils/slots';
 import AccountMenu from './AccountMenu';
+import KycBanner from './KycBanner';
 import UpdatesBell from './UpdatesBell';
 import InlineTitle from './InlineTitle';
 import './AppLayout.css';
@@ -303,7 +304,9 @@ function CalendarCard({ active, onOpen }) {
 //   webinar session with its people showing
 // webinars: every webinar session, for the bell's sign-up lines
 // onOpenBatch(id, { tab }): a "joined" line in the bell was clicked; open that batch
-export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpenWebinar, onOpenBatch, webinars = [], focus = null, children }) {
+// onOpenPayments(): the KYC banner's Complete KYC; open Settings → Payment details
+// hideKycBanner: true on Payment details, where they're already doing it
+export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpenWebinar, onOpenBatch, onOpenPayments, hideKycBanner = false, webinars = [], focus = null, children }) {
   const hasStorefront = useHasStorefront();
 
   // One tree for both modes: the top bar and sidebar change, but the page
@@ -331,6 +334,9 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
           </div>
         </header>
       )}
+
+      {/* Until KYC is verified: across the app, under the top bar. Not in focus mode. */}
+      {!focus && <KycBanner onOpen={onOpenPayments} hidden={hideKycBanner} />}
 
       <div className="app__body">
         {!focus && (

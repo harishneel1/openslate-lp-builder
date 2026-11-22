@@ -518,6 +518,16 @@ function App() {
     closeFunnel();
   };
 
+  // The Settings page open now ('payments', 'whatsapp-connection', …), as
+  // SettingsPage reports it: the KYC banner hides on Payment details
+  const [settingsPage, setSettingsPage] = useState(null);
+
+  // The KYC banner's Complete KYC: Settings, on Payment details
+  const openPayments = () => {
+    handleNavigate('settings');
+    setSettingsRequest({ section: 'payments', n: Date.now() });
+  };
+
   // From the bell: go to Bookings with that call open. n makes a second
   // click on the same update open it again.
   const [bookingRequest, setBookingRequest] = useState(null);
@@ -1075,6 +1085,10 @@ function App() {
       webinars={funnels.filter((f) => f.type === 'webinar')}
       onOpenWebinar={openSignups}
       onOpenBatch={openBatch}
+      // The KYC banner, until KYC is verified: Complete KYC opens Payment details,
+      // and it hides while that page is open
+      onOpenPayments={openPayments}
+      hideKycBanner={activeNav === 'settings' && settingsPage === 'payments'}
       focus={
         activeNav === 'page-builder' && funnel
           ? {
@@ -1155,6 +1169,7 @@ function App() {
           key={settingsRequest?.n ?? 'settings'}
           startOn={settingsRequest?.section}
           startCreate={settingsRequest?.create}
+          onPageChange={setSettingsPage}
           onWithdraw={() => handleNavigate('sales')}
         />
       ) : activeNav === 'cloud-storage' ? (
