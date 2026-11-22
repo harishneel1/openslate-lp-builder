@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, AlertTriangle, Check, Clock, ExternalLink, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, Clock, ExternalLink, Loader2 } from 'lucide-react';
 import { useWhatsApp } from '../components/WhatsAppTab';
 import WhatsAppConnected from './WhatsAppConnected';
 import WhatsAppTemplates from './WhatsAppTemplates';
 import { BusinessDetails, BusinessSummary, BusinessType, IndividualNote } from './WhatsAppBusinessForm';
 import { REJECTIONS, clearTemplates, decideReviewsNow, nextOutcome, setNextOutcome, useTemplates } from '../data/whatsappTemplates';
 import { NAME_REJECTIONS, connectWhatsApp, demo, finishSetup, hasNumber, messageStatus } from '../data/whatsappConnection';
+import { keepUnlocked, lockSoon, setupCallDemo, useSetupCall } from '../data/whatsappSetupCall';
+import SetupCallGate, { UnlockedNote } from './WhatsAppSetupCall';
 import { SHOWN_MESSAGE_IDS as MESSAGE_IDS } from '../data/whatsappMessages';
 import {
   BLOCK_CHANGED_EVENT,
@@ -34,24 +36,28 @@ import './WhatsAppSettings.css';
 // Settings → WhatsApp: where the coach connects the one WhatsApp number
 // every webinar and 1:1 call sends reminders from.
 //
-// Not connected: setup, one step at a time, in one box. Meta has to verify
+// Not connected, before the setup call: no steps. Setup is done together
+// on a call with our team, so one card says so, with the way to book it
+// and the field for the code our team gives on the call (SetupCallGate,
+// WhatsAppSetupCall.jsx; data/whatsappSetupCall.js). The code unlocks the
+// steps below for that call. Leaving the steps (before or by connecting)
+// locks them again; what was filled in is kept.
+//
+// Not connected, unlocked: setup, one step at a time, in one box. Meta has to verify
 // the coach's business before any WhatsApp message can go out, so it
-// starts with the business. A bar across the top shows the four steps
+// starts with the business. A bar across the top shows the three steps
 // (StepBar); each step has Back and Continue, and Continue turns on only
 // once that step is done, with what's left beside it.
 //
 //   Automatic WhatsApp reminders from your number   [● Not connected]
 //   ─────────────────────────────────────────────────────────────────────
-//   ┌ ━━━━━━━━━━━━ ━━━━━━━━━━━━ ──────────── ──────────── ┐  ┌ ⚠ Number ──┐
-//   │ ✓ Your business ✓ Your document  Your number  Review │  │ already on │
-//   │                                                      │  │ WhatsApp   │
-//   │ STEP 3 OF 4                                          │  └────────────┘
-//   │ Your number                                          │
-//   │ ┌ Do you have a Facebook…        [✓ Yes] [No] ┐      │
-//   │ ┌ Is this a spare number…        [Yes] [No]   ┐      │
-//   │ │ Use a spare number, or a new SIM. See how to fix   │
-//   │ [Back] [Continue]  2 of 3 done                       │
-//   └──────────────────────────────────────────────────────┘
+//   ┌ ━━━━━━━━━━━━━━━━ ━━━━━━━━━━━━━━━━ ──────────────────── ┐
+//   │ ✓ Your business  ✓ Your document   Review and connect  │
+//   │ STEP 2 OF 3                                             │
+//   │ Your document                                           │
+//   │ …                                                       │
+//   │ [Back] [Continue]  Enter the city.                      │
+//   └─────────────────────────────────────────────────────────┘
 //
 //   1. Your business     “What kind of business are you?” (BusinessType,
 //                        WhatsAppBusinessForm.jsx), with the documents that
@@ -61,26 +67,16 @@ import './WhatsAppSettings.css';
 //   2. Your document     one of that type's documents (AiSensy accepts five),
 //                        the legal name and the registered address exactly as
 //                        on it (BusinessDetails). Saved as it's typed.
-//   3. Your number       the three yes/no questions (not saved: coming back,
-//                        they answer again)
-//   4. Review and connect  what goes to Meta (BusinessSummary), that it must
+//   3. Review and connect  what goes to Meta (BusinessSummary), that it must
 //                        match the document word for word, then Connect.
 // The details go to Meta's window as it opens, and to our WhatsApp partner
 // for verification once setup finishes (data/whatsappBusiness.js). Coming
 // back, it opens on the first step not done (firstStep). Steps already
 // passed can be gone back to from the bar.
 //
-// Step 3's questions exist because Meta's sign-up fails most often when a
-// coach arrives with the wrong kind of number. Each is worded so Yes is the
-// answer we need, and is a box of its own with two plain buttons, Yes and
-// No, side by side on every row. The answer shows on the row: green with a
-// tick on Yes, amber on No, with a short hint inside and "See how to fix",
-// which moves to that fix in the box on the right.
-//
-// The box on the right only shows once an answer is No: one fix for each
-// No, in amber, titled with the problem (in the place and look of Payment
-// details' "How payouts work"). Until then, and once they're all Yes
-// again, that space is empty, so the questions never change width.
+// The yes/no questions (Facebook, a SIM number, a spare number, a business
+// document) are asked before the call is booked instead, on the setup call
+// card (WhatsAppSetupCall.jsx): all Yes, or the call can't be booked.
 // The line under Connect (on Review) is the one coaches miss and regret. Clicking Connect is agreeing to it: no box to tick.
 //
 // Connect WhatsApp opens Meta's signup in a popup (the mock: metaSignup.js,
@@ -121,46 +117,6 @@ import './WhatsAppSettings.css';
 // as our server takes to save the number and send the templates for review.
 const FINISHING_MS = 3500;
 
-// The questions, each worded so Yes is the answer setup needs.
-//   no: what a No means and what to do about it: hint, the short line in
-//       the question's own box; title and text (and a link), its fix in
-//       the box on the right
-const QUESTIONS = [
-  {
-    id: 'facebook',
-    text: 'Do you have a Facebook account?',
-    no: {
-      hint: 'You’ll need one to connect.',
-      title: 'No Facebook account',
-      text: 'Meta, which owns WhatsApp, connects numbers through Facebook. Create a free account, then come back and answer Yes.',
-      link: { href: 'https://www.facebook.com/r.php', label: 'Create a Facebook account' },
-    },
-  },
-  {
-    id: 'sim',
-    text: 'Do you have a phone number with a SIM card (not a virtual number)?',
-    no: {
-      hint: 'Virtual and landline numbers can’t be used.',
-      title: 'No number with a SIM card',
-      text: 'WhatsApp only accepts regular mobile numbers with a SIM card. Virtual and landline numbers don’t work. A new prepaid SIM is enough.',
-    },
-  },
-  {
-    id: 'fresh',
-    text: 'Is this a spare number, not on WhatsApp or WhatsApp Business?',
-    no: {
-      hint: 'Numbers on WhatsApp or WhatsApp Business can’t be used.',
-      title: 'Already on WhatsApp or WhatsApp Business?',
-      text: 'Automated reminders run on WhatsApp Business API, which needs a number that isn’t on either app. Use a spare number, or get a new SIM.',
-      // The other way, kept quieter: free up this number by deleting its account
-      alt: {
-        text: 'Want to use this number anyway? First delete the WhatsApp account on this number. All its chats, groups and backups will also be deleted, so export any important chats first.',
-        link: { href: 'https://whatsapp.com/faq/en/iphone/21325453', label: 'How to delete a WhatsApp account' },
-      },
-    },
-  },
-];
-
 // Two pages, each with its own place in Settings' menu (SettingsPage.jsx):
 //   Connection   connecting the number, and what's connected
 //   Templates    the messages it sends, and Meta's review of each
@@ -199,6 +155,7 @@ export default function WhatsAppSettings({ view = 'connection', onView, startCre
 //   onAsked() once it has
 function Connection({ connection, onSeeAll, askContact, onAsked }) {
   const signup = useSignup();
+  const call = useSetupCall();
 
   // While finishing, the checklist stays under the dimmed page until it's done
   if (hasNumber(connection) && signup.phase === 'idle')
@@ -209,6 +166,20 @@ function Connection({ connection, onSeeAll, askContact, onAsked }) {
         startPanel={askContact ? 'contact' : null}
         onStarted={onAsked}
       />
+    );
+
+  // Before the setup call: the card, not the steps
+  if (!hasNumber(connection) && !call.unlocked && signup.phase === 'idle')
+    return (
+      <>
+        <Head
+          title="Automatic WhatsApp reminders from your number"
+          tag={<span className="wcn-state wcn-state--off">Not connected</span>}
+        />
+        <div className="settings__body settings__body--split">
+          <SetupCallGate booking={call.booking} answers={call.answers} />
+        </div>
+      </>
     );
 
   return (
@@ -389,25 +360,26 @@ function Head({ title, sub = null, tag = null }) {
 }
 
 // ---------- Not connected: setup, one step at a time ----------
-// The four steps, in order. done(state): whether Continue turns on.
+// The three steps, in order. done(state): whether Continue turns on.
 //   business   what kind of business (not an individual)
 //   documents  the document, legal name and address (businessReady)
-//   number     the three yes/no checks, all Yes
 //   review     what goes to Meta, then Connect
+// The yes/no checks (Facebook, a new number, a business document) come
+// before booking the call instead (WhatsAppSetupCall.jsx).
 const STEPS = [
   { id: 'business', label: 'Your business' },
   { id: 'documents', label: 'Your document' },
-  { id: 'number', label: 'Your number' },
   { id: 'review', label: 'Review and connect' },
 ];
+const REVIEW = STEPS.length - 1;
 
 // Where to start: the first step not done. The business is saved as it's
-// typed; the yes/no answers aren't, so a finished business starts at Your number.
+// typed, so a finished business starts at Review.
 function firstStep(business) {
-  if (business.status === 'sent') return 2;
+  if (business.status === 'sent') return REVIEW;
   if (!business.type || business.type === 'individual') return 0;
   if (!businessReady(business)) return 1;
-  return 2;
+  return REVIEW;
 }
 
 // onConnect(): Connect WhatsApp (Meta's window)
@@ -416,26 +388,29 @@ function firstStep(business) {
 function NotConnected({ onConnect, cancelled, error }) {
   const business = useBusiness();
   const [step, setStep] = useState(() => firstStep(business));
-  const [answers, setAnswers] = useState({}); // { facebook: 'yes' | 'no', ... }; none picked at first
   const [dropped, setDropped] = useState(null); // a document a change of type took off
   const heading = useRef(null);
   const sent = business.status === 'sent'; // went with an earlier setup: read-only
   const problems = businessProblems(business);
-  const yeses = QUESTIONS.filter((q) => answers[q.id] === 'yes').length;
-  const noes = QUESTIONS.filter((q) => answers[q.id] === 'no');
+
+  // Unlocked for this call only: leaving the steps locks them again,
+  // whether they left early or connected (a later setup, after a
+  // disconnect, needs a new call too)
+  useEffect(() => {
+    keepUnlocked();
+    return lockSoon;
+  }, []);
 
   // Whether each step is done, so Continue turns on (and the bar ticks it)
   const done = [
     sent || (Boolean(business.type) && business.type !== 'individual'),
     sent || businessReady(business),
-    yeses === QUESTIONS.length,
     false,
   ];
   // What's left on this step, beside a Continue that's off
   const left = [
     business.type === 'individual' ? 'Meta verifies businesses, not individuals' : 'Choose your business type',
     Object.values(problems)[0] ?? '',
-    yeses === 0 ? 'Answer Yes to all three' : `${yeses} of ${QUESTIONS.length} done`,
     '',
   ][step];
 
@@ -452,15 +427,8 @@ function NotConnected({ onConnect, cancelled, error }) {
 
   // An error from Meta's window, or leaving it: back on Review, where Connect is
   useEffect(() => {
-    if (error || cancelled) setStep(3);
+    if (error || cancelled) setStep(REVIEW);
   }, [error, cancelled]);
-
-  // "See how to fix": to that fix in the box on the right (below, on a narrow screen)
-  const showFix = (id) => {
-    const item = document.getElementById(`wac-fix-${id}`);
-    item?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'nearest' });
-    item?.focus({ preventScroll: true });
-  };
 
   const current = STEPS[step];
 
@@ -473,6 +441,7 @@ function NotConnected({ onConnect, cancelled, error }) {
       />
       <div className="settings__body settings__body--split">
         <section className="wac-card" aria-labelledby="wac-step-title">
+          <UnlockedNote />
           <StepBar step={step} done={done} onStep={setStep} />
 
           <div className="wac-card__head wac-step__head">
@@ -513,18 +482,9 @@ function NotConnected({ onConnect, cancelled, error }) {
               </>
             ))}
 
-          {step === 2 && (
-            <>
-              <p className="wac-step__lead">
-                Reminders go from a number of its own. Answer Yes to all three to continue.
-              </p>
-              <Questions answers={answers} onAnswer={setAnswers} onShowFix={showFix} />
-            </>
-          )}
+          {step === REVIEW && <Review business={business} onEdit={() => setStep(sent ? 0 : 1)} />}
 
-          {step === 3 && <Review business={business} onEdit={() => setStep(sent ? 0 : 1)} />}
-
-          {step < 3 ? (
+          {step < REVIEW ? (
             <div className="wac-step__nav">
               {step > 0 && (
                 <button type="button" className="es__btn es__btn--quiet" onClick={() => setStep(step - 1)}>
@@ -549,7 +509,7 @@ function NotConnected({ onConnect, cancelled, error }) {
           ) : error ? (
             <div className="wac__go">
               <SetupError id={error} onRetry={onConnect} />
-              <button type="button" className="es__btn es__btn--quiet wac-step__back" onClick={() => setStep(2)}>
+              <button type="button" className="es__btn es__btn--quiet wac-step__back" onClick={() => setStep(REVIEW - 1)}>
                 Back
               </button>
               <Disclaimer />
@@ -562,7 +522,7 @@ function NotConnected({ onConnect, cancelled, error }) {
                 </p>
               )}
               <div className="wac-step__nav">
-                <button type="button" className="es__btn es__btn--quiet" onClick={() => setStep(2)}>
+                <button type="button" className="es__btn es__btn--quiet" onClick={() => setStep(REVIEW - 1)}>
                   Back
                 </button>
                 <button type="button" className="oh__add wac__connect" onClick={onConnect} aria-describedby="wac-warn">
@@ -574,7 +534,8 @@ function NotConnected({ onConnect, cancelled, error }) {
           )}
         </section>
 
-        <Help noes={step === 2 ? noes : []} />
+        {/* The right-hand column stays, so the card keeps its width */}
+        <div className="wac-help-slot" />
       </div>
     </>
   );
@@ -614,53 +575,7 @@ function StepBar({ step, done, onStep }) {
   );
 }
 
-// ---------- Step 3: the three yes/no questions ----------
-function Questions({ answers, onAnswer, onShowFix }) {
-  return (
-    <ul className="wac__list">
-      {QUESTIONS.map((q) => {
-        const answer = answers[q.id] ?? 'none';
-        return (
-          <li key={q.id} className={`wac__q wac__q--${answer}`}>
-            <div className="wac__q-row">
-              <span className="wac__text" id={`wac-q-${q.id}`}>
-                {q.text}
-              </span>
-              <span className="wac__seg" role="radiogroup" aria-labelledby={`wac-q-${q.id}`}>
-                {['yes', 'no'].map((value) => (
-                  <label key={value} className={`wac__choice wac__choice--${value}`}>
-                    <input
-                      type="radio"
-                      name={`wac-${q.id}`}
-                      value={value}
-                      className="wac__radio"
-                      checked={answers[q.id] === value}
-                      onChange={() => onAnswer((a) => ({ ...a, [q.id]: value }))}
-                    />
-                    <span className="wac__pill">
-                      {value === 'yes' && answers[q.id] === 'yes' && <Check size={15} strokeWidth={3} aria-hidden="true" />}
-                      {value === 'yes' ? 'Yes' : 'No'}
-                    </span>
-                  </label>
-                ))}
-              </span>
-            </div>
-            {answer === 'no' && (
-              <p className="wac__hint">
-                {q.no.hint}{' '}
-                <button type="button" className="wac__hint-link" onClick={() => onShowFix(q.id)}>
-                  See how to fix
-                </button>
-              </p>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-// ---------- Step 4: what goes to Meta, then Connect ----------
+// ---------- Step 3: what goes to Meta, then Connect ----------
 // onEdit(): back to the details (Your document)
 function Review({ business, onEdit }) {
   const sent = business.status === 'sent';
@@ -711,46 +626,6 @@ function Disclaimer() {
       used to create a WhatsApp personal or business account, and will only be used for automatic reminders. Calls and
       SMS will work as usual.
     </p>
-  );
-}
-
-// ---------- The box on the right ----------
-// Only once an answer is No: one fix for each, in the questions' order,
-// titled with the problem. The live region stays, so the fix is read out
-// as it appears. Each fix can take focus, for "See how to fix".
-// noes: the questions answered No
-function Help({ noes }) {
-  return (
-    <div className="wac-help-slot" aria-live="polite">
-      {noes.length > 0 && (
-        <aside className="settings__help wac-help" aria-label="How to fix">
-          {noes.map((q) => (
-            <div key={q.id} className="wac-help__item" id={`wac-fix-${q.id}`} tabIndex={-1}>
-              <h3 className="wac-help__title">
-                <AlertTriangle size={17} aria-hidden="true" />
-                {q.no.title}
-              </h3>
-              <p>{q.no.text}</p>
-              {q.no.link && (
-                <a className="wac-help__link" href={q.no.link.href} target="_blank" rel="noreferrer">
-                  {q.no.link.label}
-                  <ExternalLink size={13} aria-hidden="true" />
-                </a>
-              )}
-              {q.no.alt && (
-                <div className="wac-help__alt">
-                  <p>{q.no.alt.text}</p>
-                  <a className="wac-help__link" href={q.no.alt.link.href} target="_blank" rel="noreferrer">
-                    {q.no.alt.link.label}
-                    <ExternalLink size={13} aria-hidden="true" />
-                  </a>
-                </div>
-              )}
-            </div>
-          ))}
-        </aside>
-      )}
-    </div>
   );
 }
 
@@ -825,6 +700,7 @@ export function WhatsAppControlRows() {
           </button>
         </div>
       </div>
+      {!connected && <SetupCallControlRow />}
       <BusinessControlRow connected={connected} />
       {connected && <ConnectedControlRows connection={connection} />}
       {/* Used once, by the next Connect, so Try again then goes through */}
@@ -858,6 +734,40 @@ export function WhatsAppControlRows() {
       )}
       <TemplateControlRows />
     </>
+  );
+}
+
+// The setup call (data/whatsappSetupCall.js): locked (nothing booked),
+// booked (tomorrow, 11 am), or unlocked as if the code was typed. The
+// code itself: 482915 (DEMO_CODE).
+function SetupCallControlRow() {
+  const call = useSetupCall();
+  return (
+    <div className="proto__row">
+      <span className="proto__label">Setup call</span>
+      <div className="proto__controls">
+        <button
+          type="button"
+          className="proto__btn"
+          aria-pressed={!call.unlocked && !call.booking}
+          onClick={setupCallDemo.locked}
+        >
+          Locked
+        </button>
+        <button
+          type="button"
+          className="proto__btn"
+          aria-pressed={!call.unlocked && Boolean(call.booking)}
+          onClick={setupCallDemo.booked}
+        >
+          Booked
+        </button>
+        <button type="button" className="proto__btn" aria-pressed={call.unlocked} onClick={setupCallDemo.unlocked}>
+          Unlocked
+        </button>
+        <span className="proto__hint">Code: 482915</span>
+      </div>
+    </div>
   );
 }
 

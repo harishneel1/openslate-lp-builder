@@ -1,0 +1,141 @@
+/* Settings → WhatsApp, before the setup call (WhatsAppSetupCall.jsx).
+   The card itself is the steps' card (wac-card in WhatsAppSettings.css). */
+
+.wsc {
+  max-width: 640px;
+  padding: 24px;
+}
+
+.wsc__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.wsc__text {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.wsc__sub {
+  margin: 20px 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wsc__book,
+.wsc__join {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+/* Once booked: the slot, and the way in */
+.wsc__booked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.wsc__booked-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.wsc__booked-words {
+  flex: 1;
+  min-width: 0;
+}
+
+.wsc__booked-label {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.wsc__booked-when {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.wsc__booked-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* The code, under a line: for once they're on the call */
+.wsc__code {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.wsc__code-row {
+  display: flex;
+  gap: 10px;
+}
+
+.wsc__code-input {
+  max-width: 180px;
+  font-size: 18px;
+  letter-spacing: 0.2em;
+}
+
+/* Above the steps, once unlocked */
+.wsc-on {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 640px) {
+  .wsc {
+    padding: 16px;
+  }
+
+  .wsc__booked {
+    flex-wrap: wrap;
+  }
+
+  .wsc__booked-actions {
+    width: 100%;
+  }
+}
+
+/* Prototype controls: the demo code, beside its row */
+.proto__hint {
+  align-self: center;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.wsc__sub-text {
+  margin: -6px 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* The questions' list, then Book: a little room between */
+.wsc .wac__list {
+  margin-bottom: 20px;
+}
+
+.wsc .wac-step__nav {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
