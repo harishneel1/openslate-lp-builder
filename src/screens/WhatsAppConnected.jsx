@@ -497,7 +497,7 @@ function SetupSteps({ approved, total, inReview, verified, hasContact, onAddCont
         </h3>
         <p className="wcn-note__text">
           {!verified
-            ? 'It usually takes a few days. No WhatsApp message can go out until it’s done. Your emails keep going out meanwhile.'
+            ? 'Verification approx takes 24 hours. Check back later.'
             : inReview
               ? 'It usually takes a few minutes, and up to 24 hours.'
               : 'Add your contact number to start sending them.'}

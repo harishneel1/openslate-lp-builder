@@ -441,7 +441,6 @@ function NotConnected({ onConnect, cancelled, error }) {
       />
       <div className="settings__body settings__body--split">
         <section className="wac-card" aria-labelledby="wac-step-title">
-          <UnlockedNote />
           <StepBar step={step} done={done} onStep={setStep} />
 
           <div className="wac-card__head wac-step__head">
@@ -584,7 +583,7 @@ function Review({ business, onEdit }) {
       <p className="wac-step__lead">
         {sent
           ? 'These went for verification with your last setup, and go with this one too.'
-          : 'This is what we send to Meta to verify your business. Meta usually takes a few days, and no WhatsApp message can go out until it’s done.'}
+          : 'This is what we send to Meta to verify your business. Meta usually takes a few days to verify.'}
       </p>
       <div className="wac-review__box">
         <BusinessSummary record={business} />
