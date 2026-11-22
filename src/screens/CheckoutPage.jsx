@@ -6,6 +6,7 @@ import { COUNTRY_CODES, COUPONS, GSTIN, HOLD_SECONDS, INDIAN_STATES, PAYMENT_MET
 import '../styles/storeTheme.css';
 import './CheckoutPage.css';
 import { getMyProfile, isMyCall, myMeetingLink, profileHrefFor } from '../data/myProfile';
+import { canTakePayments } from '../data/payouts';
 import { createBooking } from '../data/bookingsStore';
 import { ANSWER_MAX, EXAMPLE_QUESTIONS, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
 import LinkedText from '../components/LinkedText';
@@ -333,9 +334,11 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
         </span>
         <h1 className="co__notice-title">{title}</h1>
         <p className="co__notice-text">{text}</p>
-        <a className="co__notice-btn" href={href}>
-          {label}
-        </a>
+        {href && (
+          <a className="co__notice-btn" href={href}>
+            {label}
+          </a>
+        )}
       </main>
     </div>
   );
@@ -344,6 +347,16 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
     return notice(
       "This call isn't available",
       'It may have been removed, or the link may be wrong.',
+      profileHref,
+      `See ${creator.firstName}'s other services`,
+    );
+  }
+  // A paid call of the coach's own, before their KYC is verified (opened
+  // directly: the booking page already stops before here). Not on previews.
+  if (isMyCall(service.id) && !service.price?.isFree && !previewing && !draft && !canTakePayments()) {
+    return notice(
+      'Payments aren’t open yet',
+      `${creator.name} isn’t taking payments just yet. Please check back soon, or contact them directly.`,
       profileHref,
       `See ${creator.firstName}'s other services`,
     );

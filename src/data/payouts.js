@@ -429,6 +429,13 @@ export function payoutState(now = Date.now()) {
   };
 }
 
+// Whether buyers can pay this coach: once KYC is verified. Until then,
+// every paid checkout (a 1:1 call, a contract or course, a paid webinar, a
+// live class) shows PaymentsPaused instead of Pay. Free ones aren't
+// affected. In the real product the backend answers this when the page
+// loads; the prototype reads this browser's saved KYC.
+export const canTakePayments = (now = Date.now()) => payoutState(now).kyc.status === 'verified';
+
 // Who invoices are from, when the coach is paid as a verified business:
 // { name, gstin, state } (gstin and state '' when not registered), or null for an
 // individual or before the business is verified (invoices then keep the

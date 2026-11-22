@@ -8,7 +8,9 @@ import SlotPicker from '../components/booking/SlotPicker';
 import TimeZonePicker from '../components/booking/TimeZonePicker';
 import '../styles/storeTheme.css';
 import './BookingPage.css';
-import { hasPageFor, profileHrefFor } from '../data/myProfile';
+import { hasPageFor, isMyCall, profileHrefFor } from '../data/myProfile';
+import { canTakePayments } from '../data/payouts';
+import PaymentsPaused from '../components/PaymentsPaused';
 
 // ------------------------------------------------------------
 // One call's booking page: what the call is, and when to have it.
@@ -108,6 +110,10 @@ export default function BookingPage({ serviceId, state, slots, timeZone, draft =
     );
   }
 
+  // A paid call of the coach's own, before their KYC is verified: no times
+  // to pick, just "Payments aren't open yet" (not on a draft's preview)
+  const paused = isMyCall(service.id) && !service.price?.isFree && !draft && !canTakePayments();
+
   const chosenDay = availability.days.find((d) => d.date === date);
   const chosenSlot = chosenDay?.slots.find((s) => s.start === slot);
 
@@ -130,42 +136,48 @@ export default function BookingPage({ serviceId, state, slots, timeZone, draft =
 
         <aside id="bk-picker" className="bk__picker" aria-label="Pick a time">
           <div className="bk__picker-card">
-            <SlotPicker
-              key={zone}
-              availability={availability}
-              creatorName={creator.firstName}
-              profileHref={profileHref}
-              date={date}
-              slot={slot}
-              zonePicker={<TimeZonePicker zone={zone} onChange={setZone} />}
-              onDateChange={chooseDate}
-              onSlotChange={setSlot}
-            />
+            {paused ? (
+              <PaymentsPaused name={creator.name} />
+            ) : (
+              <>
+                <SlotPicker
+                  key={zone}
+                  availability={availability}
+                  creatorName={creator.firstName}
+                  profileHref={profileHref}
+                  date={date}
+                  slot={slot}
+                  zonePicker={<TimeZonePicker zone={zone} onChange={setZone} />}
+                  onDateChange={chooseDate}
+                  onSlotChange={setSlot}
+                />
 
-            {availability.firstAvailable && (
-              /* The chosen time and Continue: always in view on desktop.
-                 No price on this page: it's on the profile and at checkout. */
-              <div className="bk__go">
-                <p className={chosenSlot ? 'bk__go-when' : 'bk__go-when bk__go-when--empty'} aria-live="polite">
-                  {chosenSlot ? (
-                    <>
-                      <span className="bk__go-label">Your call</span>
-                      {when} to {ends}
-                    </>
-                  ) : (
-                    'Pick a time to continue'
-                  )}
-                </p>
-                {chosenSlot ? (
-                  <a className="bk__go-btn" href={checkoutHref}>
-                    Continue
-                  </a>
-                ) : (
-                  <button type="button" className="bk__go-btn" disabled>
-                    Continue
-                  </button>
+                {availability.firstAvailable && (
+                  /* The chosen time and Continue: always in view on desktop.
+                     No price on this page: it's on the profile and at checkout. */
+                  <div className="bk__go">
+                    <p className={chosenSlot ? 'bk__go-when' : 'bk__go-when bk__go-when--empty'} aria-live="polite">
+                      {chosenSlot ? (
+                        <>
+                          <span className="bk__go-label">Your call</span>
+                          {when} to {ends}
+                        </>
+                      ) : (
+                        'Pick a time to continue'
+                      )}
+                    </p>
+                    {chosenSlot ? (
+                      <a className="bk__go-btn" href={checkoutHref}>
+                        Continue
+                      </a>
+                    ) : (
+                      <button type="button" className="bk__go-btn" disabled>
+                        Continue
+                      </button>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </aside>
@@ -178,8 +190,9 @@ export default function BookingPage({ serviceId, state, slots, timeZone, draft =
           {chosenSlot ? 'Your call' : service.title}
           <span className="bk__bar-detail">{when ?? service.facts.map((f) => f.text).join(', ')}</span>
         </p>
-        <a className="bk__bar-cta" href={checkoutHref || '#bk-picker'}>
-          {chosenSlot ? 'Continue' : service.cta}
+        {/* Paused: the card in the picker says why, so this just takes them there */}
+        <a className="bk__bar-cta" href={(!paused && checkoutHref) || '#bk-picker'}>
+          {chosenSlot && !paused ? 'Continue' : paused ? 'See details' : service.cta}
         </a>
       </div>
     </div>

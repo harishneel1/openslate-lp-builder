@@ -1,0 +1,39 @@
+/* ---------- Payments aren't open yet ----------
+   A calm card in place of Pay on a buyer's page. Uses the public
+   pages' colours (storeTheme.css) when it's inside one, and the
+   product's tokens otherwise. */
+.paused {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--pf-panel-line, #f4dcc5);
+  border-radius: var(--radius-md, 12px);
+  background: var(--pf-panel, var(--color-primary-tint));
+  color: var(--pf-text, var(--color-text));
+  text-align: left;
+}
+
+.paused__icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--pf-surface, var(--color-surface));
+  color: var(--pf-accent-ink, #9a4a0f);
+}
+
+.paused__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.paused__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pf-body, var(--color-text-muted));
+}
