@@ -496,3 +496,166 @@
     width: 100%;
   }
 }
+/* ---------- Setup, one step at a time ---------- */
+/* The bar across the top: a line a step, its name under it */
+.wac-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.wac-bar__go {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+}
+
+button.wac-bar__go {
+  cursor: pointer;
+}
+
+button.wac-bar__go:hover .wac-bar__label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button.wac-bar__go:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.wac-bar__line {
+  display: block;
+  height: 4px;
+  background: #e6e6ea;
+  border-radius: 999px;
+}
+
+.wac-bar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+}
+
+.wac-bar__step--done .wac-bar__line {
+  background: var(--color-success);
+}
+
+.wac-bar__step--done .wac-bar__label {
+  color: var(--color-success);
+}
+
+.wac-bar__step--now .wac-bar__line {
+  background: var(--color-primary);
+}
+
+.wac-bar__step--now .wac-bar__label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* "Step 2 of 4" over the step's name */
+.wac-step__head {
+  align-items: flex-start;
+}
+
+.wac-step__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 20px;
+}
+
+.wac-step__title:focus {
+  outline: none;
+}
+
+.wac-step__count {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.wac-step__lead {
+  max-width: 560px;
+  margin: -4px 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Back and Continue (or Connect), under the step */
+.wac-step__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+
+.wac-step__nav .wac__progress {
+  margin-left: 4px;
+}
+
+.wac__go .wac-step__nav {
+  margin-top: 0;
+}
+
+.wac-step__back {
+  margin-top: 14px;
+}
+
+/* Review: what goes to Meta, in a quiet box */
+.wac-review__box {
+  padding: 4px 16px 12px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.wac-review__edit {
+  margin-top: 6px;
+}
+
+.wac-review .wac__match {
+  margin: 16px 0 0;
+}
+
+@media (max-width: 640px) {
+  .wac-bar {
+    gap: 6px;
+  }
+
+  /* Only the step they're on is named: the lines still show where they are */
+  .wac-bar__label {
+    display: none;
+  }
+
+  .wac-step__nav .oh__add,
+  .wac-step__nav .es__btn {
+    flex: 1;
+  }
+
+  .wac-step__nav .wac__progress {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}

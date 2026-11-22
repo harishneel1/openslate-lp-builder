@@ -1,0 +1,224 @@
+/* Settings → WhatsApp, before connecting: the business type and the
+   business details (WhatsAppBusinessForm.jsx). Fields, the type choices
+   and the upload use Payment details' look (po-field, po-kind, po-upload in
+   SettingsPage.css); only what's new is here. */
+
+/* ---------- What kind of business are you? ---------- */
+.wab-type {
+  min-width: 0;
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+}
+
+.wab-type__q {
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wab-type__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wab-type__option {
+  cursor: pointer;
+}
+
+/* "You'll need one of these: …", under the choices */
+.wab-type__docs {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.wab-type__docs:empty {
+  display: none;
+}
+
+.wab-type__docs strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+
+
+/* ---------- An individual: the way forward, in place of the rest ---------- */
+.wab-solo {
+  padding: 16px 18px;
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  border-radius: var(--radius-md);
+  box-shadow: inset 3px 0 0 #d97706;
+}
+
+.wab-solo__title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.wab-solo__text {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wab-solo__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 4px;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.wab-solo__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wab-solo__link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.wab-solo__why {
+  display: block;
+}
+
+/* ---------- Your business details ---------- */
+
+/* A document taken off by a change of type: calm, it's just news */
+.wab__dropped {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+/* A select in Payment details' input look, with room for its arrow */
+.wab__select {
+  padding-right: 36px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b6b73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
+}
+
+.wab__address {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.wab__address legend {
+  padding: 0;
+}
+
+.wab__address-note {
+  margin: 0 0 12px;
+}
+
+/* The address's own fields: smaller labels, under "Registered address" */
+.wab__sublabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.wab__row {
+  margin-bottom: 16px;
+}
+
+.wab .po-input[readonly] {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+/* Above Connect: the rule coaches break most, said once */
+.wac__match {
+  max-width: 560px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ---------- Once sent: read-only ---------- */
+.wab-facts {
+  margin: 0;
+}
+
+.wab-facts__row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 4px 16px;
+  padding: 10px 0;
+  font-size: 15px;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wab-facts__row:last-child {
+  border-bottom: 0;
+}
+
+.wab-facts__row dt {
+  color: var(--color-text-muted);
+}
+
+.wab-facts__row dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wab-facts__file {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.wab-sent__note {
+  margin: -6px 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+  .wab-type__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wab__row {
+    grid-template-columns: 1fr;
+  }
+
+  .wab-facts__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The connected screen's business side panel (WhatsAppConnected.jsx) */
+.wcn-business__note {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}

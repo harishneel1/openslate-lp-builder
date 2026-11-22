@@ -4,6 +4,8 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import Drawer from '../components/Drawer';
 import InfoTip from '../components/InfoTip';
 import TemplateDialog, { autoReplyRow } from './TemplateDialog';
+import { BusinessSummary } from './WhatsAppBusinessForm';
+import { useBusiness } from '../data/whatsappBusiness';
 import {
   CONTACT_COUNTRIES,
   DAILY_LIMIT,
@@ -40,6 +42,7 @@ import './WhatsAppConnected.css';
 //   Contact number ⓘ   +91 91234 56789   Change   View message
 //                      (or: Not added   Add number   View message)
 //   Display name    Harish Neel  [In review]
+//   Business        Harish Neel Coaching  [Sent for verification]  View details
 //   Daily limit     250 students ⓘ   Get verified to raise it
 //   Messages        8 reminders: 7 approved, 1 in review   See all
 //
@@ -82,9 +85,15 @@ import './WhatsAppConnected.css';
 // calls and webinars they may not have made yet. Once all are approved it
 // goes; the Messages row stays as the way to Templates.
 //
+// Business: the details given before connecting (data/whatsappBusiness.js),
+// sent for verification with setup and read-only now. View details opens
+// them in a side panel. Meta's answer (verified, more info, rejected) comes
+// in a later round.
+//
 // Messages' "See all", a rejected message's "See which", and the box's
 // button go to the Templates tab (onSeeAll). Side panels (Drawer): Get
-// verified (Coming soon), a new display name, and the contact number. Disconnect asks first
+// verified (Coming soon), a new display name, the contact number, and the
+// business details. Disconnect asks first
 // (ConfirmDialog); it's also how to change number: disconnect, then
 // connect the new one.
 //
@@ -115,7 +124,8 @@ const CONTACT_TIP =
 // startPanel: a side panel to open on ('contact', from Templates' "Add
 //   number"), or null; onStarted() once it's open, so it opens only once
 export default function WhatsAppConnected({ connection, onSeeAll, startPanel = null, onStarted }) {
-  const [panel, setPanel] = useState(startPanel); // 'verify' | 'rename' | 'contact'
+  const [panel, setPanel] = useState(startPanel); // 'verify' | 'rename' | 'contact' | 'business'
+  const business = useBusiness();
   useEffect(() => {
     if (startPanel) onStarted?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -229,6 +239,18 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
                 {connection.nameStatus !== 'approved' && <Badge status={connection.nameStatus} />}
               </dd>
             </div>
+            {business.legalName && (
+              <div className="wcn-facts__row">
+                <dt>Business</dt>
+                <dd>
+                  {business.legalName}
+                  {business.status === 'sent' && <span className="wa-badge wcn-badge--wait">Sent for verification</span>}
+                  <button type="button" className="wcn-link" onClick={() => setPanel('business')}>
+                    View details
+                  </button>
+                </dd>
+              </div>
+            )}
             <div className="wcn-facts__row">
               <dt>Daily limit</dt>
               <dd>
@@ -273,6 +295,7 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
 
       {panel === 'verify' && <VerifyPanel onClose={() => setPanel(null)} />}
       {panel === 'rename' && <RenamePanel current={connection.name} onClose={() => setPanel(null)} />}
+      {panel === 'business' && <BusinessPanel business={business} onClose={() => setPanel(null)} />}
       {viewing && (
         <TemplateDialog
           row={autoReplyRow(connection)}
@@ -532,6 +555,27 @@ function VerifyPanel({ onClose }) {
         </p>
         <p>Meta verifies your business by checking its documents. You’ll be able to start that here.</p>
       </div>
+    </Drawer>
+  );
+}
+
+// The business details sent with setup, read-only
+function BusinessPanel({ business, onClose }) {
+  return (
+    <Drawer
+      title="Business details"
+      sub="Sent to Meta for verification when you connected."
+      onClose={onClose}
+      footer={
+        <button type="button" className="es__btn es__btn--primary" onClick={onClose}>
+          Done
+        </button>
+      }
+    >
+      <BusinessSummary record={business} />
+      <p className="wcn-business__note">
+        Meta is checking these against your document. They can’t be changed while it does.
+      </p>
     </Drawer>
   );
 }

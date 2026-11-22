@@ -10,6 +10,7 @@ import {
   setNextError,
 } from '../data/metaSignup';
 import { mockAccount } from '../data/myPage';
+import { addressLine, loadBusiness } from '../data/whatsappBusiness';
 import { initials } from '../utils/initials';
 import './MetaSignupMock.css';
 
@@ -43,7 +44,11 @@ import './MetaSignupMock.css';
 // errors our server finds after Meta's window (connected elsewhere,
 // permissions) ride along on Finish, for our page to show.
 // Fields start filled from the coach's account where Meta's would, so a
-// walkthrough is mostly Next, Next, Next. The phone number and code are
+// walkthrough is mostly Next, Next, Next. The business's legal name and
+// address come from the details the coach gave in Settings → WhatsApp
+// (data/whatsappBusiness.js), as the real product passes them to Meta's
+// Embedded Signup as prefill (if AiSensy's setup allows it). The coach can
+// still change them here; comparing the two comes in a later round. The phone number and code are
 // left for them to type: those are the parts coaches really do.
 // ------------------------------------------------------------
 
@@ -67,10 +72,21 @@ const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+971', '+65'];
 
 const firstName = mockAccount.name.split(' ')[0];
 
+// What Settings → WhatsApp collected, read as the window opens
+function readPrefill() {
+  const saved = loadBusiness();
+  const legalName = saved.legalName.trim();
+  return { legalName, address: legalName ? addressLine(saved.address) : '' };
+}
+
 export default function MetaSignupMock() {
   const [step, setStep] = useState('login');
+  const [prefill] = useState(readPrefill);
   const [form, setForm] = useState({
-    portfolio: mockAccount.name,
+    // With business details from our page, a new portfolio for them
+    portfolio: prefill.legalName ? 'new' : mockAccount.name,
+    legalName: prefill.legalName || mockAccount.name,
+    address: prefill.address,
     accountName: mockAccount.name,
     displayName: mockAccount.name,
     category: 'Education',
@@ -118,7 +134,7 @@ export default function MetaSignupMock() {
     const sent = postFinish({
       number: fullNumber,
       displayName: form.displayName.trim(),
-      business: form.portfolio,
+      business: form.portfolio === 'new' ? form.legalName.trim() : form.portfolio,
       fail,
     });
     sentRef.current = sent;
@@ -188,11 +204,21 @@ export default function MetaSignupMock() {
             </Select>
           </Field>
           {form.portfolio === 'new' && (
-            <p className="mx__fine">A new portfolio named “{mockAccount.name}” will be created for you.</p>
+            <>
+              <Field label="Legal business name">
+                <input className="mx__input" value={form.legalName} onChange={set('legalName')} />
+              </Field>
+              <Field label="Business address">
+                <input className="mx__input" value={form.address} onChange={set('address')} />
+              </Field>
+              {prefill.legalName && (
+                <p className="mx__fine">Filled in by {PLATFORM_NAME}. They must match your business documents.</p>
+              )}
+            </>
           )}
         </>
       ),
-      ready: true,
+      ready: form.portfolio !== 'new' || Boolean(form.legalName.trim()),
     },
     profile: {
       title: 'Create a WhatsApp Business profile',
