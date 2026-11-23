@@ -1,209 +1,130 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  CalendarOff,
-  CalendarX,
-  Check,
-  Copy,
-  ExternalLink,
-  IndianRupee,
-  Link2,
-  MessageCircle,
-  Pencil,
-  Search,
-  UserCheck,
-  UserX,
-  Users,
-  Video,
-  X,
-} from 'lucide-react';
-import ConfirmDialog from '../components/ConfirmDialog';
+import { ArrowRight, CalendarClock, CalendarPlus, CalendarX, Check, Download, MessageCircle, Pencil, Search, Users, Video, X } from 'lucide-react';
 import RowMenu from '../components/RowMenu';
-import MemberDrawer from '../components/MemberDrawer';
 import PrototypeControls from '../components/PrototypeControls';
-import { useCopy } from './OfferingsHome';
-import {
-  classDay,
-  classMeetingHref,
-  classState,
-  classTime,
-  classesInRange,
-  dayOn,
-  offOn,
-  saveBatchDaysOff,
-  upcomingBreaks,
-  feeLine,
-  nextClasses,
-  scheduleLine,
-} from '../data/batches';
-import {
-  GRACE_DAYS,
-  NEEDS_ACTION,
-  membersOf,
-  nextRenewal,
-  noteRejoinLink,
-  noteReminder,
-  onMembersChange,
-  payRenewal,
-  removeMember,
-  restoreMember,
-  shortDate,
-  statusWords,
-  undoMarkedPayment,
-} from '../data/batchMembers';
-import { batchPayHref, rejoinHref, reminderHref } from '../data/renewalMessage';
-import { formatMoney } from '../data/contractPricing';
-import { rangeLine } from '../data/batchNotices';
-import DaysOffDrawer from '../components/DaysOffDrawer';
+import GuestInitials from '../components/GuestInitials';
+import ScheduleClassDialog from '../components/ScheduleClassDialog';
+import { classDay, classMeetingHref, classState, classTimeRange, dayOn, nextClasses, pastClasses, scheduleLine } from '../data/batches';
+import { onStudentsChange, studentsCsv, studentsOf } from '../data/classStudents';
+import { whatsappHref } from '../utils/whatsapp';
+import ReminderChannels from '../components/ReminderChannels';
+import WhatsAppTab from '../components/WhatsAppTab';
+import ClassEmails from './ClassEmails';
+import { classReminderById, saveReminderOn } from '../data/classReminders';
+import { classOffDefaults } from '../data/whatsappMessages';
 import { appNow, onTestDateChange } from '../utils/testClock';
-import { todayIn, weekdayOf } from '../utils/slots';
 import './OfferingsHome.css';
 import './CallOverview.css'; // the same head and tabs as a 1:1 call's page
-import './BookingsPage.css'; // initials and buttons (.bk-face, .bk-btn)
+import './BookingsPage.css'; // initials (.bk-face)
+import './SalesPage.css'; // the search box (.tx-search), as on a course's Students
 import './BatchOverview.css';
 
 // ------------------------------------------------------------
-// One batch's own page, opened from its row on Live classes.
+// One class's own page, opened from its row on Live classes.
 //
-//   [focus bar:  ← All batches ]   (App.jsx, from LiveClassesPage)
-//   Morning Yoga                        [Copy link] [Edit] [↗ View live page]
-//   Mon–Sat · 6:30–7:30 am · ₹2,000/month
+//   [focus bar:  ← All classes ]   (App.jsx, from LiveClassesPage)
+//   Morning Yoga                                [Join as host] [Edit]
+//   Next class Tue 24 Nov, 6:00–7:00 pm
 //
-//   Classes | Members 18
+//   Classes | Students 12 | Reminders
 //
-// Members: a row of tabs with every count, so the state of the batch is
-// clear at the top without scrolling, and a line under them saying what
-// the open one is. It opens on Pending payments when anyone is in it.
+// Classes (the first tab): its classes, scheduled one by one, on the fly
+// (+ Schedule a class, ScheduleClassDialog.jsx). The next one with Start
+// class (the mock Zoom room) and Cancel this class; then what's coming
+// up, each with ⋯ Change time or Cancel this class, or marked Cancelled;
+// then the ones that are over. Cancelling goes to the cancel page
+// (BatchAnnounce.jsx, through onAnnounce), where students are told.
 //
-//   [Pending payments 3]  Paid 14  Removed 1  All 18
-//   Not paid yet, or due in the next 3 days. Remind them on WhatsApp, or
-//   mark them paid if they paid you in cash or UPI.
-//   ⚠ Ravi hasn't paid for over 5 days. …
-//   Ravi Kumar                         8 days late  [Payment pending]  [💬 Remind] ⋯
-//   ravi@… · +91 98765 43210
+// Students: everyone who bought any of the class's linked contracts, one
+// row each (classStudents.js), newest first. Someone on two contracts
+// shows once, with a chip for each. A slim bar above: how many, search
+// and the contract filter (past 5 people), and Export CSV.
 //
-// The same kind of filter row as a 1:1 call's page (Upcoming, Past,
-// Cancelled), with plain names.
+//   [🔍 Name, email or phone]  [All contracts ▾]          [⤓ Export CSV]
+//   (PS) Priya Sharma              [Yoga monthly] [Yoga 6 months]  12 Nov 2026  💬
+//        priya@example.com · +91 98765 43210
 //
-// Rows are a webinar's "Manage people" rows: name with how to reach
-// them, what's happening on the right, and ⋯ for the rest. A click on a
-// row opens the member's panel (MemberDrawer.jsx), as a booking opens
-// from a 1:1 call. Search shows once there are more than 5 people.
+// 💬 opens a WhatsApp chat with them. Nothing here changes who's in: that
+// follows the contracts (buying one adds them; a refund or cancelled
+// booking takes them out). Export downloads what's shown, as a CSV.
 //
-// Nothing happens on its own. Remind opens WhatsApp with a message and
-// the batch's own link ready (renewalMessage.js), since every payment
-// happens on the batch's page; Mark as paid is for cash or
-// UPI paid to the coach directly; Remove ends their hold on the contract,
-// so the classes leave their feed; Restore is for someone who paid again.
-//
-// Classes (the first tab): Breaks, picked on the 1:1 calls' Days off
-// panel (DaysOffDrawer.jsx) with nothing sent (the coach tells members in
-// class); the next class with Start class (the mock Zoom room) and Cancel
-// this class; then what's coming up, each with ⋯ Cancel this class, or
-// marked Cancelled / Break. Cancelling goes to the cancel page
-// (BatchAnnounce.jsx, through onAnnounce), where members are told.
+// Reminders: the same Email | WhatsApp switch as a 1:1 call's page
+// (ReminderChannels.jsx). Email: the welcome and the reminders before each
+// class (ClassEmails.jsx), with switches that save straight away and a
+// pencil that opens the email editor (onEditEmail). WhatsApp: the same
+// list as a call's or webinar's (WhatsAppTab.jsx, kind 'class').
 //
 // At the bottom, Prototype controls (PrototypeControls.jsx): sample
-// members in every situation, and a pretend date. The date is appNow()
-// (utils/testClock.js) everywhere on this page.
+// students, a pretend date, and class shortcuts.
 //
-// batch: the batch (data/batches.js)
-// url: its link to share
-// tab: 'members' | 'classes'; onTab(tab)
+// batch: the class (data/batches.js)
+// tab: 'classes' | 'students' | 'emails' (Reminders, on Email) | 'whatsapp'
+//   (Reminders, on WhatsApp); onTab(tab)
+// onEditEmail(id): open one of its emails in the editor
+// onOpenContracts(): to the Contracts page, where contracts are shared
 // onEdit(): its editor
-// onAnnounce(change): cancel a class ({ kind: 'cancel', date }): the cancel page
+// onAnnounce(change): cancel a class ({ kind: 'cancel', sessionId, date }): the cancel page
+// scheduleOnOpen: open Schedule a class straight away (just after Create a class);
+//   onScheduleOpened() clears it
 // classNotice: a line to show on Classes after one ("Class cancelled…")
 // ------------------------------------------------------------
 
 const TICK_MS = 30_000; // the clock, for which class is next or on now
-const CLASSES_SHOWN = 14; // breaks and cancelled ones included, so a few more
+const CLASSES_SHOWN = 30; // coming up, cancelled ones included
+const PAST_SHOWN = 10;
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-const SEARCH_FROM = 5; // search shows past this many people, as on a webinar
+const SEARCH_FROM = 5; // search and the filter show past this many people
 
 const TABS = [
   { id: 'classes', label: 'Classes' },
-  { id: 'members', label: 'Members' },
+  { id: 'students', label: 'Students' },
+  { id: 'emails', label: 'Reminders' },
 ];
 
-// Who needs the coach first: the latest at the top
-const URGENCY = { 'past-grace': 0, overdue: 1, today: 2, soon: 3, paid: 4, removed: 5 };
+const joinedDay = (ms) =>
+  ms ? new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
-// The tabs over the members: what each holds, and the line under the
-// open one, written the way the coach would say it (short sentences,
-// everyday words: no "grace", "renew" or "overdue")
-const VIEWS = [
-  {
-    id: 'pending',
-    title: 'Pending payments',
-    sub:
-      'These people haven’t paid for this month yet, or their payment is due in the next 3 days. ' +
-      'Send them a reminder on WhatsApp. If someone has already paid you by cash or UPI, mark them as paid.',
-    has: (m) => NEEDS_ACTION.includes(m.status),
-    empty: 'Everyone has paid. People show up here 3 days before their next payment.',
-  },
-  {
-    id: 'paid',
-    title: 'Paid',
-    sub: 'These people have paid for this month. Nothing to do here.',
-    has: (m) => m.status === 'paid',
-    empty: 'Nobody here yet. People show up here once they’ve paid for this month.',
-  },
-  {
-    id: 'removed',
-    title: 'Removed',
-    sub:
-      'These people are no longer in this batch, so they can’t join your classes. ' +
-      'If someone wants to come back, send them their payment link. Once they pay, they come back automatically.',
-    has: (m) => m.status === 'removed',
-    empty: 'Nobody has been removed.',
-  },
-  {
-    id: 'all',
-    title: 'All',
-    sub: 'Everyone who has joined this batch.',
-    has: () => true,
-    empty: 'Nobody has joined yet.',
-  },
-];
-
-// The colour of each tab's count, so the batch's state reads at a glance:
-// pending is orange (red once someone is over 5 days late), paid green,
-// removed grey
-const countTone = (id, count, late) =>
-  id === 'pending' ? (count === 0 ? 'none' : late > 0 ? 'late' : 'pending') : id === 'all' ? 'none' : id;
-
-const matches = (m, q) => {
+const matches = (s, q) => {
   if (!q) return true;
   const digits = q.replace(/\D/g, '');
   return (
-    m.name.toLowerCase().includes(q) ||
-    String(m.email ?? '').toLowerCase().includes(q) ||
-    (digits.length > 2 && String(m.phone?.number ?? '').replace(/\D/g, '').includes(digits))
+    s.name.toLowerCase().includes(q) ||
+    s.email.toLowerCase().includes(q) ||
+    (digits.length >= 3 && s.phone.replace(/\D/g, '').includes(digits))
   );
 };
 
-export default function BatchOverview({ batch, url, tab, onTab, onEdit, onAnnounce, classNotice = null }) {
-  const [version, setVersion] = useState(0); // bumped when members change
+export default function BatchOverview({
+  batch,
+  tab,
+  onTab,
+  onEdit,
+  onOpenContracts,
+  onEditEmail,
+  onAnnounce,
+  classNotice = null,
+  scheduleOnOpen = false,
+  onScheduleOpened,
+}) {
+  const [version, setVersion] = useState(0); // bumped when students change
   const [now, setNow] = useState(appNow);
-  const [query, setQuery] = useState('');
-  // The open tab: Pending payments when anyone is in it, else Paid
-  const [view, setView] = useState(() =>
-    membersOf(batch, appNow()).some((m) => NEEDS_ACTION.includes(m.status)) ? 'pending' : 'paid',
-  );
-  const [openId, setOpenId] = useState(null); // the member in the panel
   const [menuFor, setMenuFor] = useState(null); // the row whose ⋯ is open
-  const [asking, setAsking] = useState(null); // { kind: 'paid' | 'remove' | 'restore', member }
-  const [notice, setNotice] = useState(null); // { text, undo?: memberId }
-  const [copy, copyLink] = useCopy();
-  const [payCopy, copyPayLink] = useCopy();
-
-  const refresh = () => {
-    setNow(appNow());
-    setVersion((v) => v + 1);
+  // Classes is the first tab: anything else from before (Members) opens it.
+  // Reminders' WhatsApp half has its own id ('whatsapp'), shown as Reminders.
+  const shownTab = tab === 'students' ? 'students' : tab === 'emails' || tab === 'whatsapp' ? 'emails' : 'classes';
+  // The Schedule a class pop-up: { c: null } to schedule, { c } to change one's time
+  const [scheduling, setScheduling] = useState(scheduleOnOpen ? { c: null } : null);
+  const [scheduled, setScheduled] = useState(null); // "Class scheduled for …"
+  useEffect(() => {
+    if (scheduleOnOpen) onScheduleOpened?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [said, setSaid] = useState('');
+  const toggleReminder = (id, on) => {
+    if (saveReminderOn(batch, id, on)) setSaid(`${on ? 'Turned on' : 'Turned off'} the email ${classReminderById(id).name}.`);
   };
 
-  // Someone joining or paying their renewal (another tab), or the pretend date changing
-  useEffect(() => onMembersChange(() => setVersion((v) => v + 1)), []);
+  // Someone buying a linked contract (another tab), samples, or the pretend date changing
+  useEffect(() => onStudentsChange(() => setVersion((v) => v + 1)), []);
   useEffect(() => onTestDateChange(() => setNow(appNow())), []);
   useEffect(() => {
     const id = setInterval(() => setNow(appNow()), TICK_MS);
@@ -213,84 +134,31 @@ export default function BatchOverview({ batch, url, tab, onTab, onEdit, onAnnoun
     document.title = batch.title;
   }, [batch.title]);
 
-  const members = useMemo(
-    () =>
-      membersOf(batch, now).sort(
-        (a, b) => URGENCY[a.status] - URGENCY[b.status] || String(a.renewsOn).localeCompare(String(b.renewsOn)),
-      ),
-    [batch, now, version], // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const q = query.trim().toLowerCase();
-  const found = members.filter((m) => matches(m, q));
-  const activeCount = members.filter((m) => m.status !== 'removed').length;
-  const late = members.filter((m) => m.status === 'past-grace');
-  const opened = members.find((m) => m.id === openId) ?? null;
-  const current = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
-  const shown = found.filter(current.has);
+  const students = useMemo(() => studentsOf(batch), [batch, version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const classes = useMemo(() => nextClasses(batch, now, CLASSES_SHOWN, { includeOff: true }), [batch, now]);
+  const past = useMemo(() => pastClasses(batch, now).slice(0, PAST_SHOWN), [batch, now]);
   const nextOn = classes.find((c) => !c.off) ?? null;
-  const breaks = upcomingBreaks(batch, dayOn(now, batch));
-  const [addingBreak, setAddingBreak] = useState(false);
   const today = dayOn(now, batch);
+  const notice = scheduled ?? classNotice;
+
+  const cancel = (c) => {
+    setMenuFor(null);
+    setScheduled(null);
+    onAnnounce({ kind: 'cancel', sessionId: c.id, date: c.date });
+  };
+  const change = (c) => {
+    setMenuFor(null);
+    setScheduled(null);
+    setScheduling({ c });
+  };
 
   const onKey = (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const next = TABS.find((t) => t.id !== tab).id;
+    const at = TABS.findIndex((t) => t.id === shownTab);
+    const next = TABS[(at + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length].id;
     onTab(next);
     requestAnimationFrame(() => document.getElementById(`bov-tab-${next}`)?.focus());
-  };
-
-  // ---------- What the coach does ----------
-  const ask = (kind, member) => {
-    setMenuFor(null);
-    setAsking({ kind, member });
-  };
-
-  const reminded = (m) => {
-    noteReminder(m.id, batch, now);
-    setVersion((v) => v + 1);
-  };
-
-  const copyPay = (m) => {
-    setMenuFor(null);
-    copyPayLink(batchPayHref(batch));
-    const first = m.name.split(/\s+/)[0];
-    setNotice({
-      text: m.email
-        ? `The batch’s payment link is copied. Ask ${first} to pay with ${m.email}, so it counts for ${first}.`
-        : `The batch’s payment link is copied. Paste it anywhere to send it to ${first}.`,
-    });
-  };
-
-  // A removed member's payment link, sent on WhatsApp to come back
-  const sentRejoin = (m) => {
-    noteRejoinLink(m.id, batch, now);
-    setVersion((v) => v + 1);
-  };
-
-  const confirm = () => {
-    const { kind, member } = asking;
-    const first = member.name.split(/\s+/)[0] || 'They';
-    setAsking(null);
-    if (kind === 'paid') {
-      const after = payRenewal(member.id, batch, 'marked', now);
-      if (after) setNotice({ text: `${first} is paid until ${shortDate(after.renewsOn)}.`, undo: member.id });
-    } else if (kind === 'remove') {
-      if (removeMember(member.id, batch, now)) {
-        setNotice({ text: `${first} is removed. You’ll find them under Removed.` });
-      }
-    } else if (kind === 'restore') {
-      const after = restoreMember(member.id, batch, now);
-      if (after) setNotice({ text: `${first} is back in ${batch.title}, paid until ${shortDate(after.renewsOn)}.` });
-    }
-    setVersion((v) => v + 1);
-  };
-
-  const undo = (memberId) => {
-    undoMarkedPayment(memberId, batch, now);
-    setNotice(null);
-    setVersion((v) => v + 1);
   };
 
   return (
@@ -299,227 +167,127 @@ export default function BatchOverview({ batch, url, tab, onTab, onEdit, onAnnoun
         <div className="cov__intro">
           <div className="cov__about">
             <h1 className="cov__title">{batch.title}</h1>
-            <p className="cov__detail">
-              {scheduleLine(batch)} · <span className="oh-row__price">{feeLine(batch)}</span>
-            </p>
+            <p className="cov__detail">{scheduleLine(batch, now)}</p>
           </div>
 
           <div className="cov__actions">
-            <button type="button" className="oh-card__copy" onClick={() => copyLink(url)}>
-              {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
-              {copy === 'copied' ? 'Copied' : 'Copy link'}
-            </button>
+            <a className="bov__join" href={classMeetingHref(batch.id)} target="_blank" rel="noopener" aria-label="Join as host (opens in a new tab)">
+              <Video size={15} aria-hidden="true" /> Join as host
+            </a>
             <button type="button" className="oh__edit" onClick={onEdit}>
               <Pencil size={15} aria-hidden="true" /> Edit
             </button>
-            <a className="oh__edit cov__live" href={url} target="_blank" rel="noopener" aria-label="View live page (opens in a new tab)">
-              <ExternalLink size={15} aria-hidden="true" /> View live page
-            </a>
           </div>
         </div>
         <span className="oh__sr-only" aria-live="polite">
-          {copy === 'copied' && 'Link copied'}
+          {said}
         </span>
-        {copy === 'failed' && (
-          <p className="oh__copy-error cov__copy-error" role="alert">
-            Couldn’t copy. Select the link and copy it yourself: <span className="oh-card__url">{url}</span>
-          </p>
-        )}
       </header>
 
       <section className="oh__panel cov__panel">
         {/* The tabs sit in the panel's head, their underline on its bottom line, as on a 1:1 call's page */}
         <div className="oh__panel-head cov__panel-head">
-          <div className="cov__tabs" role="tablist" aria-label="Batch" onKeyDown={onKey}>
+          <div className="cov__tabs" role="tablist" aria-label="Class" onKeyDown={onKey}>
             {TABS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 role="tab"
                 id={`bov-tab-${t.id}`}
-                aria-selected={tab === t.id}
+                aria-selected={shownTab === t.id}
                 aria-controls={`bov-panel-${t.id}`}
-                tabIndex={tab === t.id ? 0 : -1}
+                tabIndex={shownTab === t.id ? 0 : -1}
                 className="cov__tab"
-                onClick={() => onTab(t.id)}
+                onClick={() => {
+                  setScheduled(null);
+                  onTab(t.id);
+                }}
               >
                 {t.label}
-                {t.id === 'members' && activeCount > 0 && <span className="oh__count">{activeCount}</span>}
+                {t.id === 'students' && students.length > 0 && <span className="oh__count">{students.length}</span>}
               </button>
             ))}
           </div>
         </div>
 
-        {tab === 'members' ? (
-          <div id="bov-panel-members" role="tabpanel" aria-labelledby="bov-tab-members" className="bov__body">
-            {members.length === 0 ? (
-              <div className="bov__empty">
-                <span className="bov__empty-icon" aria-hidden="true">
-                  <Users size={22} />
-                </span>
-                <h2 className="bov__empty-title">Nobody has joined yet</h2>
-                <p className="bov__empty-text">Share your batch’s link. Everyone who pays shows here, with when they pay next.</p>
-                <button type="button" className="oh-card__copy" onClick={() => copyLink(url)}>
-                  <Link2 size={16} aria-hidden="true" /> {copy === 'copied' ? 'Copied' : 'Copy link'}
-                </button>
-              </div>
+        {shownTab === 'students' ? (
+          <div id="bov-panel-students" role="tabpanel" aria-labelledby="bov-tab-students" className="bov__body">
+            <StudentsTab batch={batch} students={students} onOpenContracts={onOpenContracts} />
+          </div>
+        ) : shownTab === 'emails' ? (
+          <div id="bov-panel-emails" role="tabpanel" aria-labelledby="bov-tab-emails">
+            <ReminderChannels
+              channel={tab === 'whatsapp' ? 'whatsapp' : 'email'}
+              kind="class"
+              offering={`class:${batch.id}`}
+              offDefaults={classOffDefaults(batch)}
+              onChannel={(c) => onTab(c === 'whatsapp' ? 'whatsapp' : 'emails')}
+            />
+            {tab === 'whatsapp' ? (
+              <WhatsAppTab
+                kind="class"
+                offering={`class:${batch.id}`}
+                offeringName={batch.title}
+                offDefaults={classOffDefaults(batch)}
+                links={{ batchId: batch.id }}
+              />
             ) : (
-              <>
-                <div className="cov__filters bov__views" role="group" aria-label="Show">
-                  {VIEWS.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      className="cov__filter"
-                      aria-pressed={view === v.id}
-                      onClick={() => {
-                        setView(v.id);
-                        setMenuFor(null);
-                      }}
-                    >
-                      {v.title}{' '}
-                      <span className={`cov__filter-count bov__count bov__count--${countTone(v.id, found.filter(v.has).length, late.length)}`}>
-                        {found.filter(v.has).length}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <p className="bov__view-sub">{current.sub}</p>
-
-                {members.length > SEARCH_FROM && (
-                  <label className="bov__search">
-                    <Search size={16} aria-hidden="true" />
-                    <span className="oh__sr-only">Search members</span>
-                    <input
-                      type="search"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search name, email or phone"
-                    />
-                  </label>
-                )}
-
-                {notice && (
-                  <p className="bov__notice" role="status">
-                    <Check size={16} strokeWidth={3} aria-hidden="true" /> {notice.text}
-                    {notice.undo && (
-                      <button type="button" className="bov__undo" onClick={() => undo(notice.undo)}>
-                        Undo
-                      </button>
-                    )}
-                    <button type="button" className="bov__notice-close" aria-label="Dismiss" onClick={() => setNotice(null)}>
-                      <X size={14} aria-hidden="true" />
-                    </button>
-                  </p>
-                )}
-
-
-                {(view === 'pending' || view === 'all') && late.length > 0 && (
-                  <div className="bov__alert" role="status">
-                    <AlertTriangle size={18} aria-hidden="true" />
-                    <p>
-                      {late.length === 1
-                        ? `${late[0].name.split(/\s+/)[0]} hasn’t paid for ${late[0].daysLate} days. Remove them from the batch, or mark them as paid if they paid you by cash or UPI.`
-                        : `${late.length} people haven’t paid for more than ${GRACE_DAYS} days. Remove them from the batch, or mark them as paid if they paid you by cash or UPI.`}
-                    </p>
-                  </div>
-                )}
-
-                {shown.length > 0 ? (
-                  <ul className="bov-people">
-                    {shown.map((m) => (
-                      <MemberRow
-                        key={m.id}
-                        member={m}
-                        batch={batch}
-                        menuOpen={menuFor === m.id}
-                        onMenu={(open) => setMenuFor(open ? m.id : null)}
-                        onOpen={() => setOpenId(m.id)}
-                        onReminded={() => reminded(m)}
-                        onAsk={(kind) => ask(kind, m)}
-                        onCopyLink={() => copyPay(m)}
-                        onSentRejoin={() => sentRejoin(m)}
-                        showPill={view !== 'pending'}
-                      />
-                    ))}
-                  </ul>
-                ) : q ? (
-                  <div className="bov__no-match">
-                    <p>No one here matches “{query.trim()}”</p>
-                    <button type="button" className="oh__edit" onClick={() => setQuery('')}>
-                      <X size={15} aria-hidden="true" /> Clear search
-                    </button>
-                  </div>
-                ) : (
-                  <p className="bov__view-empty">{current.empty}</p>
-                )}
-                <span className="oh__sr-only" aria-live="polite">
-                  {payCopy === 'failed' && 'Couldn’t copy the payment link'}
-                </span>
-              </>
+              <ClassEmails batch={batch} onToggle={toggleReminder} onEdit={(id) => onEditEmail?.(id)} />
             )}
           </div>
         ) : (
           <div id="bov-panel-classes" role="tabpanel" aria-labelledby="bov-tab-classes" className="bov__body">
-            {classNotice && (
+            {notice && (
               <p className="bov__notice" role="status">
-                <Check size={16} strokeWidth={3} aria-hidden="true" /> {classNotice}
+                <Check size={16} strokeWidth={3} aria-hidden="true" /> {notice}
               </p>
             )}
 
-            {/* Breaks: like Days off on the 1:1 calls page, and the same panel */}
-            <div className="bov__breaks">
-              <span className="bov__breaks-label">Breaks</span>
-              <div className="bov__breaks-value">
-                {breaks.length === 0 ? (
-                  <span className="bov__muted">None coming up</span>
-                ) : (
-                  <span className="bov__break-list">
-                    {breaks.map((x, i) => (
-                      <span key={x.from} className="bov__break">
-                        <span className="bov__break-dates">{rangeLine(x.from, x.to)}</span>
-                        <span className="bov__muted">
-                          {' '}
-                          ({plural(classesInRange(batch, x.from, x.to).length, 'class', 'classes')})
-                        </span>
-                        {i < breaks.length - 1 ? ', ' : ''}
-                      </span>
-                    ))}
-                  </span>
-                )}
-              </div>
-              <button type="button" className="oh__edit" onClick={() => setAddingBreak(true)}>
-                <CalendarOff size={15} aria-hidden="true" /> {breaks.length === 0 ? 'Add a break' : 'Manage'}
+            <div className="bov__classes-head">
+              <h2 className="bov__classes-title">Coming up</h2>
+              <button type="button" className="oh__edit bov__schedule" onClick={() => setScheduling({ c: null })}>
+                <CalendarPlus size={15} aria-hidden="true" /> Schedule a class
               </button>
             </div>
 
             {classes.length === 0 ? (
-              <p className="bov__empty-text">This batch has no days set. Edit it to pick the days it meets.</p>
+              <div className="bov__none">
+                <p className="bov__none-title">No classes scheduled</p>
+                <p className="bov__none-text">
+                  Pick a date and time for the next one. Everyone on the class’s contracts gets reminders before it.
+                </p>
+              </div>
             ) : (
               <>
-                {nextOn ? (
-                  <NextClass batch={batch} c={nextOn} today={today} now={now} onCancel={() => onAnnounce({ kind: 'cancel', date: nextOn.date })} />
-                ) : (
-                  <p className="bov__empty-text">No classes coming up in the next few weeks.</p>
+                {nextOn && (
+                  <NextClass batch={batch} c={nextOn} today={today} now={now} onCancel={() => cancel(nextOn)} onChange={() => change(nextOn)} />
                 )}
-                <h2 className="bov__subhead">Coming up</h2>
                 <ul className="bov__classes">
                   {classes
                     .filter((c) => c !== nextOn)
                     .map((c) => (
                       <ClassRow
-                        key={c.start}
+                        key={c.id}
                         c={c}
                         batch={batch}
                         today={today}
-                        menuOpen={menuFor === `class-${c.date}`}
-                        onMenu={(open) => setMenuFor(open ? `class-${c.date}` : null)}
-                        onCancel={() => {
-                          setMenuFor(null);
-                          onAnnounce({ kind: 'cancel', date: c.date });
-                        }}
+                        menuOpen={menuFor === c.id}
+                        onMenu={(open) => setMenuFor(open ? c.id : null)}
+                        onChange={() => change(c)}
+                        onCancel={() => cancel(c)}
                       />
                     ))}
+                </ul>
+              </>
+            )}
+
+            {past.length > 0 && (
+              <>
+                <h2 className="bov__subhead">Past</h2>
+                <ul className="bov__classes bov__classes--past">
+                  {past.map((c) => (
+                    <ClassRow key={c.id} c={c} batch={batch} today={today} past />
+                  ))}
                 </ul>
               </>
             )}
@@ -527,174 +295,180 @@ export default function BatchOverview({ batch, url, tab, onTab, onEdit, onAnnoun
         )}
       </section>
 
-      {/* The 1:1 calls' Days off panel, for this batch: tap the days off */}
-      {addingBreak && (
-        <DaysOffDrawer
-          value={Object.fromEntries((batch.daysOff ?? []).map((d) => [d, []]))}
-          zone={batch.timeZone}
-          words={{
-            title: 'Breaks',
-            sub: `Tap the days you’re away. There’s no ${batch.title} class on them, and the time opens up for 1:1 calls.`,
-            listTitle: 'No classes on',
-            empty: 'No breaks coming up. Tap a day on the calendar to add one.',
-            save: 'Save breaks',
-            offKey: 'No class',
-            unsaved: 'Your breaks aren’t saved.',
-          }}
-          // Only days the batch meets, and not a class that's already cancelled
-          canTap={(d) => batch.days.includes(weekdayOf(d)) && offOn(batch, d)?.kind !== 'cancelled'}
-          countOf={(range) => plural(classesInRange(batch, range.from, range.to).length, 'class', 'classes')}
-          bookings={false}
-          onSave={(clean) => saveBatchDaysOff(batch, Object.keys(clean))}
-          onSaved={() => setAddingBreak(false)}
-          onClose={() => setAddingBreak(false)}
-        />
-      )}
-
-      <PrototypeControls batch={batch} onChange={refresh} />
-
-      {opened && (
-        <MemberDrawer
-          member={opened}
+      {scheduling && (
+        <ScheduleClassDialog
           batch={batch}
-          onClose={() => setOpenId(null)}
-          onReminded={() => reminded(opened)}
-          onAsk={(kind) => ask(kind, opened)}
-          onCopyLink={() => copyPay(opened)}
-          onSentRejoin={() => sentRejoin(opened)}
+          c={scheduling.c}
+          onClose={() => setScheduling(null)}
+          onDone={(line) => {
+            setScheduling(null);
+            setScheduled(line);
+          }}
         />
       )}
 
-      {asking && <AskDialog asking={asking} batch={batch} now={now} onCancel={() => setAsking(null)} onConfirm={confirm} />}
+      <PrototypeControls batch={batch} onChange={() => setNow(appNow())} />
     </div>
   );
 }
 
-// ---------- One member: a webinar's "Manage people" row ----------
-// Name and how to reach them; on the right, their date (and status, except
-// on Pending payments, where every row would say the same), the WhatsApp
-// action that fits, and ⋯ for the rest. A click on the row (or the name)
-// opens their panel.
-//   pending or due soon → Remind (their payment link, as a reminder)
-//   removed             → Send payment link (to come back; paying brings them back)
-function MemberRow({ member: m, batch, menuOpen, onMenu, onOpen, onReminded, onAsk, onCopyLink, onSentRejoin, showPill = true }) {
-  const words = statusWords(m, batch.timeZone);
-  const needs = NEEDS_ACTION.includes(m.status);
-  const removed = m.status === 'removed';
-  const chat = needs ? reminderHref(m, batch) : removed ? rejoinHref(m, batch) : null;
-  const phone = m.phone?.number ? `${m.phone.code ?? ''} ${m.phone.number}`.trim() : null;
-  const zone = batch.timeZone;
+// ---------- Students ----------
+function StudentsTab({ batch, students, onOpenContracts }) {
+  const [query, setQuery] = useState('');
+  const [contract, setContract] = useState('all'); // a contract id, or 'all'
+  const linked = useMemo(() => {
+    // The linked contracts that anyone is on, for the filter (in the class's order)
+    const seen = new Map();
+    students.forEach((s) => s.contracts.forEach((c) => seen.set(c.id, c.title)));
+    return (batch.contractIds ?? []).filter((id) => seen.has(id)).map((id) => ({ id, title: seen.get(id) }));
+  }, [students, batch.contractIds]);
 
-  const items = removed
-    ? [
-        { label: 'Copy payment link', icon: Copy, onSelect: onCopyLink },
-        { label: 'Paid by cash or UPI? Restore', icon: UserCheck, onSelect: () => onAsk('restore') },
-      ]
-    : [
-        ...(needs ? [{ label: 'Mark as paid (cash or UPI)', icon: IndianRupee, onSelect: () => onAsk('paid') }] : []),
-        { label: 'Copy payment link', icon: Copy, onSelect: onCopyLink },
-        { label: 'Remove from batch', icon: UserX, danger: true, onSelect: () => onAsk('remove') },
-      ];
+  const q = query.trim().toLowerCase();
+  const shown = students.filter((s) => matches(s, q) && (contract === 'all' || s.contracts.some((c) => c.id === contract)));
+  const filtering = Boolean(q) || contract !== 'all';
 
-  // Under their date: when the coach last sent them something
-  const sent = needs && m.lastReminder
-    ? `Reminded ${shortDate(todayIn(zone, m.lastReminder.at))}`
-    : removed && m.lastRejoinLink
-      ? `Link sent ${shortDate(todayIn(zone, m.lastRejoinLink.at))}`
-      : null;
+  const download = () => {
+    const blob = new Blob([studentsCsv(shown)], { type: 'text/csv;charset=utf-8' });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = `${batch.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'class'}-students.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  };
+
+  if (students.length === 0) {
+    return (
+      <div className="bov__empty">
+        <span className="bov__empty-icon" aria-hidden="true">
+          <Users size={22} />
+        </span>
+        <h2 className="bov__empty-title">Nobody’s on these contracts yet</h2>
+        <p className="bov__empty-text">
+          {(batch.contractIds ?? []).length === 0
+            ? 'Edit the class to link a contract. Everyone who buys it shows here.'
+            : 'Share them from Contracts. Everyone who buys one shows here.'}
+        </p>
+        {(batch.contractIds ?? []).length > 0 && onOpenContracts && (
+          <button type="button" className="oh__edit bov__empty-go" onClick={onOpenContracts}>
+            Go to Contracts <ArrowRight size={15} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <li
-      className={`bov-person ${removed ? 'bov-person--removed' : ''} ${menuOpen ? 'bov-person--menu' : ''}`}
-      onClick={(e) => {
-        if (e.target.closest('button, a, [role="menu"], [role="dialog"]')) return;
-        onOpen();
-      }}
-    >
-      <div className="bov-person__text">
-        <p className="bov-person__name">
-          <button type="button" className="bov-person__open" onClick={onOpen}>
-            {m.name || 'Member'}
+    <>
+      {/* One slim bar: how many on the left, search and the filter (past a few people), Export on the right */}
+      <div className="bov-st__tools">
+        <span className="bov-st__total">{plural(students.length, 'student')}</span>
+        {students.length > SEARCH_FROM && (
+          <label className="tx-search">
+            <Search size={16} aria-hidden="true" />
+            <span className="oh__sr-only">Search students</span>
+            <input
+              type="search"
+              value={query}
+              placeholder="Name, email or phone"
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
+            />
+          </label>
+        )}
+        {students.length > SEARCH_FROM && linked.length > 1 && (
+          <label className="bov-st__filter">
+            <span className="oh__sr-only">Show students on</span>
+            <select className="call__select bov-st__select" value={contract} onChange={(e) => setContract(e.target.value)}>
+              <option value="all">All contracts ({students.length})</option>
+              {linked.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title} ({students.filter((s) => s.contracts.some((x) => x.id === c.id)).length})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <button type="button" className="bov-st__export" onClick={download} disabled={shown.length === 0}>
+          <Download size={14} aria-hidden="true" /> Export CSV
+        </button>
+      </div>
+
+      {shown.length === 0 ? (
+        <div className="bov__no-match">
+          <p>No one matches{q ? ` “${query.trim()}”` : ' that contract'}</p>
+          <button
+            type="button"
+            className="oh__edit"
+            onClick={() => {
+              setQuery('');
+              setContract('all');
+            }}
+          >
+            <X size={15} aria-hidden="true" /> Show everyone
           </button>
-        </p>
-        <p className="bov-person__contact">
-          {m.email}
-          {phone && <span> · {phone}</span>}
-        </p>
-      </div>
+        </div>
+      ) : (
+        <>
+          <ul className="bov-st">
+            {shown.map((s) => (
+              <StudentRow key={s.id} student={s} showContracts={(batch.contractIds ?? []).length > 1} />
+            ))}
+          </ul>
+          {filtering && (
+            <p className="bov-st__count" role="status">
+              {shown.length} of {plural(students.length, 'student')}
+            </p>
+          )}
+        </>
+      )}
+    </>
+  );
+}
 
-      <div className="bov-person__side">
-        <span className={`bov-person__when bov-person__when--${words.tone}`}>
-          {words.detail}
-          {sent && <span className="bov-person__reminded">{sent}</span>}
-        </span>
-        {showPill && <span className={`bov__pill bov__pill--${words.tone}`}>{words.pill}</span>}
+// One student: initials, name and how to reach them, their contracts,
+// when they joined, and a WhatsApp chat
+function StudentRow({ student: s, showContracts }) {
+  const name = s.name || s.email || s.phone || 'Student';
+  const first = name.split(/\s+/)[0];
+  const chat = s.phone ? whatsappHref(s.phone, `Hi ${first}, `) : null;
+  return (
+    <li className="bov-st__row">
+      <GuestInitials name={name} />
+      <div className="bov-st__who">
+        <p className="bov-st__name">
+          {name}
+          {s.sample && <span className="bov-st__sample">Sample</span>}
+        </p>
+        <p className="bov-st__contact">{[s.email, s.phone].filter(Boolean).join(' · ') || '—'}</p>
       </div>
-
-      <div className="bov-person__act">
-        {(needs || removed) &&
-          (chat ? (
-            <a
-              className="bov__remind"
-              href={chat}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={removed ? onSentRejoin : onReminded}
-            >
-              <MessageCircle size={15} aria-hidden="true" /> {removed ? 'Send payment link' : 'Remind'}
-              <span className="oh__sr-only"> {m.name} on WhatsApp</span>
-            </a>
-          ) : (
-            <span className="bov__no-phone">No phone</span>
+      <span className="bov-st__tags">
+        {showContracts &&
+          s.contracts.map((c) => (
+            <span key={c.id} className="bov-st__tag" title={c.title}>
+              {c.title}
+            </span>
           ))}
-      </div>
-
-      <RowMenu title={m.name} open={menuOpen} onOpenChange={onMenu} items={items} />
+      </span>
+      <span className="bov-st__joined">{joinedDay(s.joinedAt)}</span>
+      <span className="bov-st__act">
+        {chat ? (
+          <a className="bov-st__wa" href={chat} target="_blank" rel="noopener noreferrer" aria-label={`Message ${name} on WhatsApp`}>
+            <MessageCircle size={16} aria-hidden="true" />
+          </a>
+        ) : (
+          <span className="bov-st__wa bov-st__wa--none" title="No phone number" />
+        )}
+      </span>
     </li>
   );
 }
 
-// "Mark as paid?", "Remove?" and "Restore?": what will happen, in a line
-function AskDialog({ asking, batch, now, onCancel, onConfirm }) {
-  const { kind, member: m } = asking;
-  const first = m.name.split(/\s+/)[0] || 'them';
-  const fee = formatMoney(batch.price, 'INR');
-  if (kind === 'paid') {
-    const until = nextRenewal(m.renewsOn, m.payDay);
-    return (
-      <ConfirmDialog title={`Mark ${first} as paid?`} confirmLabel={`Yes, ${first} paid ${fee}`} onCancel={onCancel} onConfirm={onConfirm}>
-        <p>
-          Only do this if {first} has paid you {fee} by cash or UPI. It counts for {shortDate(m.renewsOn)} –{' '}
-          {shortDate(until)}, and their next payment is on {shortDate(until)}.
-        </p>
-      </ConfirmDialog>
-    );
-  }
-  if (kind === 'remove') {
-    return (
-      <ConfirmDialog title={`Remove ${first} from ${batch.title}?`} confirmLabel="Remove" danger onCancel={onCancel} onConfirm={onConfirm}>
-        <p>
-          They won’t be able to join this batch’s classes. Their details and payments are kept. If they want to come back
-          later, send them their payment link.
-        </p>
-      </ConfirmDialog>
-    );
-  }
-  const today = todayIn(batch.timeZone, now);
-  return (
-    <ConfirmDialog title={`Restore ${first}?`} confirmLabel={`Yes, ${first} paid ${fee}`} onCancel={onCancel} onConfirm={onConfirm}>
-      <p>
-        Only do this if {first} has paid you {fee} by cash or UPI. Their new month starts today: {shortDate(today)} –{' '}
-        {shortDate(nextRenewal(today))}. If they haven’t paid yet, send them their payment link instead. Paying it brings
-        them back automatically.
-      </p>
-    </ConfirmDialog>
-  );
-}
-
 // The next class that happens (or the one on now), with Start class,
-// and Cancel this class until it starts
-function NextClass({ batch, c, today, now, onCancel }) {
+// and Change time and Cancel this class until it starts
+function NextClass({ batch, c, today, now, onCancel, onChange }) {
   const state = classState(c, now);
   const live = state === 'live';
   return (
@@ -702,14 +476,19 @@ function NextClass({ batch, c, today, now, onCancel }) {
       <span className="bov__next-text">
         <span className="bov__next-label">{live ? 'Happening now' : 'Next class'}</span>
         <span className="bov__next-when">
-          {classDay(c.date, today)}, {classTime(c, batch)}
+          {classDay(c.date, today)}, {classTimeRange(c, batch)}
         </span>
       </span>
       <span className="bov__next-actions">
         {!live && (
-          <button type="button" className="bov__link-btn" onClick={onCancel}>
-            Cancel this class
-          </button>
+          <>
+            <button type="button" className="bov__link-btn" onClick={onChange}>
+              Change time
+            </button>
+            <button type="button" className="bov__link-btn" onClick={onCancel}>
+              Cancel this class
+            </button>
+          </>
         )}
         <a className="bov__start" href={classMeetingHref(batch.id)} target="_blank" rel="noopener">
           <Video size={16} aria-hidden="true" /> {live ? 'Rejoin class' : 'Start class'}
@@ -719,30 +498,32 @@ function NextClass({ batch, c, today, now, onCancel }) {
   );
 }
 
-// One class in "Coming up": its day and time, and either what's happening
-// to it (Cancelled, Break) or ⋯ with Cancel this class
-function ClassRow({ c, batch, today, menuOpen, onMenu, onCancel }) {
+// One class in "Coming up" or "Past": its day and time, and either
+// Cancelled or (coming up) ⋯ with Change time and Cancel this class
+function ClassRow({ c, batch, today, past = false, menuOpen, onMenu, onChange, onCancel }) {
   const off = c.off;
   return (
-    <li className={`bov__class ${off ? 'bov__class--off' : ''}`}>
+    <li className={`bov__class ${off ? 'bov__class--off' : ''} ${past ? 'bov__class--past' : ''}`}>
       <span className="bov__class-day">{classDay(c.date, today)}</span>
-      <span className="bov__class-time">{classTime(c, batch)}</span>
+      <span className="bov__class-time">{classTimeRange(c, batch)}</span>
       <span className="bov__class-state">
         {off?.kind === 'cancelled' && (
           <>
             <span className="bov__pill bov__pill--removed">Cancelled</span>
-            {off.told?.email > 0 && <span className="bov__muted"> {plural(off.told.email, 'member')} told</span>}
+            {off.told?.email > 0 && <span className="bov__muted"> {plural(off.told.email, 'student')} told</span>}
           </>
         )}
-        {off?.kind === 'break' && <span className="bov__pill bov__pill--soon">Break</span>}
       </span>
       <span className="bov__class-menu">
-        {!off && (
+        {!off && !past && (
           <RowMenu
             title={`${classDay(c.date, today)} class`}
             open={menuOpen}
             onOpenChange={onMenu}
-            items={[{ label: 'Cancel this class', icon: CalendarX, danger: true, onSelect: onCancel }]}
+            items={[
+              { label: 'Change time', icon: CalendarClock, onSelect: onChange },
+              { label: 'Cancel this class', icon: CalendarX, danger: true, onSelect: onCancel },
+            ]}
           />
         )}
       </span>

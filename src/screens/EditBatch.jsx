@@ -1,47 +1,49 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import EditFrame, { EditPanel, useEditDraft } from './EditFrame';
-import QuestionsInput from '../components/QuestionsInput';
-import { FeeField, ScheduleFields, feeProblem, scheduleProblem } from '../components/BatchFields';
-import { DESCRIPTION_MAX, TITLE_MAX } from '../data/batches';
+import ContractPicker from '../components/ContractPicker';
+import {
+  DescriptionField,
+  MeetingField,
+  CreateContractLink,
+  ThumbnailField,
+  TitleField,
+  WHO_CAN_JOIN,
+  classProblem,
+  contractsProblem,
+} from '../components/BatchFields';
+import { tidyMeeting } from '../data/batches';
 import { storeBatch } from '../data/batchSave';
-import { cleanQuestions, questionsProblem } from '../data/callQuestions';
 import '../components/QuestionInput.css';
 
 // ------------------------------------------------------------
-// A batch's editor, from Edit on its row or its page. Every section open,
-// in one column, with the save bar every editor has (EditFrame.jsx):
+// A class's editor, from Edit on its row or its page. The same fields as
+// Create a class (BatchFields.jsx), every section open, in one column,
+// with the save bar every editor has (EditFrame.jsx), as a 1:1 call's:
 //
-//   Name and description
-//   Schedule        days, start time, length (BatchFields.jsx)
-//   Monthly fee     what people who join from now pay
-//   Questions       what they're asked before joining
+//   Title and thumbnail
+//   Meeting         always Zoom (shown, nothing to change)
+//   Who can join    the linked contracts
+//   Description
 //
-// Saving writes the batch and its contract together (storeBatch), so the
-// batch's page, its join page and its contract all show the change.
+// Its classes' dates and times are on its page (Classes tab), not here.
+// Linking or unlinking a
+// contract changes who can join straight away; the contracts themselves
+// are changed on the Contracts page.
 //
-// A new fee is what people pay when they join from now on, and what
-// members already in the batch pay from their next renewal (their pay
-// link and reminder always use the fee as it is now).
-//
-// batch: the saved batch. exitRef: the focus bar's way back (asks first
-// about unsaved changes). onBack(): back to the batch's page.
+// batch: the saved class. exitRef: the focus bar's way back (asks first
+// about unsaved changes). onBack(): back to the class's page.
 // onSaved(batch): after a save.
 // ------------------------------------------------------------
 
-const FIELDS = ['title', 'description', 'days', 'startTime', 'durationMins', 'price', 'questions'];
+const FIELDS = ['title', 'thumbnail', 'meeting', 'contractIds', 'description'];
 
 export default function EditBatch({ batch, exitRef, onBack, onSaved }) {
-  // The fee is typed as text, so the saved one is text here too
-  const saved = useMemo(() => ({ ...batch, price: String(batch.price) }), [batch]);
-  const edit = useEditDraft(saved, FIELDS);
+  const edit = useEditDraft(batch, FIELDS);
   const { draft } = edit;
   const [failed, setFailed] = useState(false);
 
   const change = (field, value) => edit.handleChange(value, field);
-
-  const problem = !draft.title.trim()
-    ? 'Give your batch a name.'
-    : scheduleProblem(draft) ?? feeProblem(draft.price) ?? questionsProblem(draft.questions)?.text ?? null;
+  const problem = classProblem(draft);
 
   const save = () => {
     if (problem) return;
@@ -50,8 +52,7 @@ export default function EditBatch({ batch, exitRef, onBack, onSaved }) {
       ...draft,
       title: draft.title.trim(),
       description: draft.description.trim(),
-      price: Number(draft.price),
-      questions: cleanQuestions(draft.questions),
+      meeting: tidyMeeting(),
     });
     if (!stored) {
       setFailed(true);
@@ -66,56 +67,45 @@ export default function EditBatch({ batch, exitRef, onBack, onSaved }) {
     <EditFrame
       edit={edit}
       title={`Edit ${batch.title}`}
-      sub="Changes show on your batch’s page and its contract when you save."
+      sub="Changes show on your class’s page as soon as you save."
       onBack={onBack}
       onSave={save}
       problem={edit.dirty ? problem : null}
       message={failed ? 'We couldn’t save in this browser. Free up some space and try again.' : null}
-      backLabel="Your batch"
+      backLabel="Your class"
       exitRef={exitRef}
     >
-      <EditPanel id="eb-about" title="Name and description">
+      <EditPanel id="eb-about" title="Title and thumbnail">
         <div key={`about-${edit.formKey}`} className="es__fields">
-          <label className="qinput__field">
-            <span className="qinput__label">Name</span>
-            <input
-              className="qinput__text qinput__field-input"
-              value={draft.title}
-              maxLength={TITLE_MAX}
-              onChange={(e) => change('title', e.target.value)}
-            />
-          </label>
-          <label className="qinput__field">
-            <span className="qinput__label">Description</span>
-            <textarea
-              className="qinput__text qinput__field-input qinput__field-input--long"
-              rows={6}
-              value={draft.description}
-              maxLength={DESCRIPTION_MAX}
-              onChange={(e) => change('description', e.target.value)}
-            />
-          </label>
+          <TitleField value={draft} onChange={change} showProblem />
+          <ThumbnailField value={draft} onChange={change} />
         </div>
       </EditPanel>
 
-      <EditPanel id="eb-schedule" title="Schedule" sub="Classes from now on follow the new times.">
-        <ScheduleFields key={`schedule-${edit.formKey}`} value={draft} onChange={change} showProblem />
-      </EditPanel>
-
-      <EditPanel id="eb-fee" title="Monthly fee" sub="New members pay this when they join. Members already in pay it from their next renewal.">
-        <FeeField key={`fee-${edit.formKey}`} value={draft} onChange={change} showProblem />
+      <EditPanel id="eb-meeting" title="Meeting">
+        <MeetingField />
       </EditPanel>
 
       <EditPanel
-        id="eb-questions"
-        title="Questions before they join"
-        sub="We always ask their name, email and phone. Members who already joined keep the answers they gave."
+        id="eb-who"
+        title="Who can join"
+        sub={WHO_CAN_JOIN}
       >
-        <QuestionsInput
-          key={`questions-${edit.formKey}`}
-          value={draft.questions}
-          onChange={(list) => change('questions', list)}
-        />
+        <div key={`who-${edit.formKey}`} className="es__fields">
+          <CreateContractLink />
+          <ContractPicker value={draft.contractIds} onChange={(ids) => change('contractIds', ids)} />
+          {contractsProblem(draft) && (
+            <span className="qinput__error" role="alert">
+              {contractsProblem(draft)}
+            </span>
+          )}
+        </div>
+      </EditPanel>
+
+      <EditPanel id="eb-description" title="Description">
+        <div key={`description-${edit.formKey}`} className="es__fields">
+          <DescriptionField value={draft} onChange={change} />
+        </div>
       </EditPanel>
     </EditFrame>
   );

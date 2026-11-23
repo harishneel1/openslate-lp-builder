@@ -1,0 +1,52 @@
+/* A class's linked contracts as chips (ContractChips.jsx). The same tint
+   as the contract tags on the Students tab (BatchOverview.css, bov-st__tag). */
+
+.cchip__label {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.cchip__list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cchip__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-pill);
+  cursor: default;
+}
+
+.cchip__item svg {
+  flex: none;
+  opacity: 0.8;
+}
+
+.cchip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In a page's head (BatchOverview.jsx): to the left, beside the schedule */
+.cchip--head {
+  margin-top: 10px;
+}
+
+.cchip--head .cchip__list {
+  justify-content: flex-start;
+}

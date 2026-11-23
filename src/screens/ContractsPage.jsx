@@ -627,7 +627,7 @@ function RowMenu({ title, open, onOpenChange, onEdit, onCopyLink, onCopyId, onDe
 const KINDS = {
   call: { noun: '1:1 consultation', go: 'Go to 1:1 consultation' },
   webinar: { noun: 'webinar', go: 'Go to webinar' },
-  batch: { noun: 'batch', go: 'Go to batch' },
+  batch: { noun: 'live class', go: 'Go to class' },
 };
 
 // Delete, in one of two forms:

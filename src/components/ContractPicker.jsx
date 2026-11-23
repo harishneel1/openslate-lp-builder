@@ -19,7 +19,8 @@ import './ContractPicker.css';
 //   └──────────────────────────────────────────────────────┘
 //
 // The list opens in place, under the button (pushing what's below down),
-// so it's never cut off inside a pop-up. It reads the contracts again when
+// so it's never cut off inside a pop-up. A click anywhere outside the
+// picker, or Escape, closes it (the ticks stay). It reads the contracts again when
 // the window gets focus, so one made in another tab ("Create a new
 // contract") shows straight away.
 //
@@ -51,9 +52,33 @@ export default function ContractPicker({ value, onChange, startOpen = false }) {
   const [query, setQuery] = useState('');
   const search = useRef(null);
   const listId = useRef(`cpk-${Math.random().toString(36).slice(2)}`).current;
+  const wrap = useRef(null);
+  const toggleRef = useRef(null);
 
   useEffect(() => {
     if (open) search.current?.focus();
+  }, [open]);
+
+  // While open: a click outside closes it; Escape closes it and puts the
+  // keyboard back on the button (the search box handles its own Escape first)
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (wrap.current && !wrap.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   const byId = useMemo(() => new Map(contracts.map((c) => [c.id, c])), [contracts]);
@@ -70,7 +95,7 @@ export default function ContractPicker({ value, onChange, startOpen = false }) {
   };
 
   return (
-    <div className="cpk">
+    <div className="cpk" ref={wrap}>
       {picked.length > 0 && (
         <ul className="cpk__chips" aria-label="Linked contracts">
           {picked.map((c) => (
@@ -85,6 +110,7 @@ export default function ContractPicker({ value, onChange, startOpen = false }) {
       )}
 
       <button
+        ref={toggleRef}
         type="button"
         className={`cpk__toggle ${open ? 'cpk__toggle--open' : ''}`}
         aria-expanded={open}

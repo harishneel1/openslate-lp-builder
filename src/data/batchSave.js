@@ -1,20 +1,16 @@
 import { saveBatch } from './batches';
-import { saveBatchContract } from './mockServices';
 
 // ------------------------------------------------------------
-// Saving a batch: its contract first (made the first time, kept in step
-// after), then the batch with its contract's id. Every screen that saves
-// a batch (Create a batch, its editor) goes through here, so a batch and
-// its contract can't drift apart.
+// Saving a class. Every screen that saves one (Create a class, its
+// editor) goes through here.
 //
-// Kept apart from batches.js so the batch store doesn't load the
-// contracts store (which reads batches back, via tiedProducts.js).
+// A class no longer makes or changes a contract: it only links the
+// contracts the coach picked (contractIds), which are made and changed on
+// the Contracts page. A batch from before that still has its own
+// contract (contractId); it's left as it is.
 //
-// storeBatch(batch) → the saved batch, or null if storage failed
+// storeBatch(batch) → the saved class, or null if storage failed
 // ------------------------------------------------------------
 export function storeBatch(batch) {
-  const contractId = saveBatchContract(batch);
-  if (!contractId) return null;
-  const saved = { ...batch, contractId };
-  return saveBatch(saved) ? saved : null;
+  return saveBatch(batch) ? batch : null;
 }

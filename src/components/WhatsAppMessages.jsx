@@ -47,14 +47,15 @@ import './WhatsAppTab.css';
 // details, and why Meta said no if it did.
 //
 // connection: the connected (or lost) number
-// kind: 'call' | 'webinar'
-// offering: whose switches ('call:<id>' or 'webinar:<id>')
+// kind: 'call' | 'webinar' | 'class'
+// offering: whose switches ('call:<id>', 'webinar:<id>' or 'class:<id>')
+// offDefaults: messages that start off (a repeating class's 24 hours before)
 // offeringName: the call's or webinar's name, for the preview
 // links: where the preview's buttons lead: { meetingLink, callId } for a
-//        call, { webinarId } for a webinar
+//        call, { webinarId } for a webinar, { batchId } for a class
 // ------------------------------------------------------------
-export default function WhatsAppMessages({ connection, kind, offering, offeringName, links }) {
-  const switches = useSwitches(offering, kind);
+export default function WhatsAppMessages({ connection, kind, offering, offeringName, links, offDefaults }) {
+  const switches = useSwitches(offering, kind, offDefaults);
   const own = useTemplates();
   const { picks, fellBack, retired } = useChoices(offering);
   const [viewing, setViewing] = useState(null); // the message open in its preview: its id ('call-24h')
@@ -171,10 +172,11 @@ export default function WhatsAppMessages({ connection, kind, offering, offeringN
 }
 
 // The switches, kept up to date when they change anywhere
-export function useSwitches(offering, kind) {
-  const [switches, setSwitches] = useState(() => switchesOf(offering, kind));
+export function useSwitches(offering, kind, offDefaults = []) {
+  const offKey = offDefaults.join(',');
+  const [switches, setSwitches] = useState(() => switchesOf(offering, kind, offDefaults));
   useEffect(() => {
-    const refresh = () => setSwitches(switchesOf(offering, kind));
+    const refresh = () => setSwitches(switchesOf(offering, kind, offKey ? offKey.split(',') : []));
     refresh();
     window.addEventListener(WHATSAPP_SWITCHES_EVENT, refresh);
     window.addEventListener('storage', refresh);
@@ -182,7 +184,7 @@ export function useSwitches(offering, kind) {
       window.removeEventListener(WHATSAPP_SWITCHES_EVENT, refresh);
       window.removeEventListener('storage', refresh);
     };
-  }, [offering, kind]);
+  }, [offering, kind, offKey]);
   return switches;
 }
 
@@ -320,9 +322,11 @@ export const sampleValuesFor = (kind, connection, offeringName) => ({
   call: offeringName,
   webinar: offeringName,
   batch: offeringName,
+  class: offeringName,
+  schedule: 'Mon–Sat · 6:30–7:30 am',
   next: 'Thu 19 Nov',
   date: 'Thu 12 Nov',
-  time: kind === 'call' ? '4:00 pm' : '7:00 pm',
+  time: kind === 'call' ? '4:00 pm' : kind === 'class' ? '6:30 am' : '7:00 pm',
 });
 
 // The phone, showing one message as the student gets it. Also used by
@@ -477,10 +481,11 @@ export function AutoReplyPhone({ sender, values, contactNumber }) {
 
 // Where a button really goes, for the coach to open:
 //   manage, change   the booking page, in sample mode (never a real booking)
-//   join     a call's meeting link, or a webinar's room
+//   join     a call's meeting link, a webinar's room, or a class's
 //   details  a webinar's thank-you page
 //   links: { meetingLink, callId } for a call, { webinarId } for a webinar
 function hrefFor(kind, button, links = {}) {
+  if (kind === 'class') return `?mock=zoom&batch=${encodeURIComponent(links.batchId ?? '')}`;
   if (kind === 'call') {
     if (button === 'join') return links.meetingLink;
     return `?mock=manage&booking=sample&service=${encodeURIComponent(links.callId ?? '')}`;

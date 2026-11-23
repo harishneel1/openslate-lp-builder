@@ -214,7 +214,7 @@ export default function ZoomMeetingPage({ webinarId, batchId = null }) {
           <h1 className="zm__message-title">This meeting doesn’t exist</h1>
           <p className="zm__message-text">
             {batchId
-              ? 'Its batch may have been deleted. Open it again from Live classes.'
+              ? 'Its class may have been deleted. Open it again from Live classes.'
               : 'Its webinar may have been deleted. Open it again from your Webinars.'}
           </p>
           <a className="zm__primary" href={window.location.pathname}>

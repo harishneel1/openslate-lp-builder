@@ -94,11 +94,12 @@ export function useWhatsApp() {
   return connection;
 }
 
-// kind: 'call' | 'webinar'
-// offering: whose reminder switches ('call:<id>' or 'webinar:<id>')
+// kind: 'call' | 'webinar' | 'class'
+// offering: whose reminder switches ('call:<id>', 'webinar:<id>' or 'class:<id>')
+// offDefaults: messages that start off (a repeating class's 24 hours before)
 // offeringName: the call's or webinar's name, for message previews
 // links: where the previews' buttons lead ({ meetingLink, callId } or { webinarId })
-export default function WhatsAppTab({ kind, offering, offeringName, links }) {
+export default function WhatsAppTab({ kind, offering, offeringName, links, offDefaults }) {
   const connection = useWhatsApp();
 
   // Until setup is finished (business verified, contact number added, Meta
@@ -107,7 +108,14 @@ export default function WhatsAppTab({ kind, offering, offeringName, links }) {
   return (
     <div className="wa">
       {isSetUp(connection) ? (
-        <Connected connection={connection} kind={kind} offering={offering} offeringName={offeringName} links={links} />
+        <Connected
+          connection={connection}
+          kind={kind}
+          offering={offering}
+          offeringName={offeringName}
+          links={links}
+          offDefaults={offDefaults}
+        />
       ) : pending ? (
         <Verifying pending={pending} />
       ) : (
@@ -125,7 +133,7 @@ function NotConnected() {
   return (
     <div className="wa-card wa-invite">
       <h3 className="wa-head__title">Remind people on WhatsApp too</h3>
-      <p className="wa-head__text">Connect your number once in Settings, and every webinar and 1:1 call can use it.</p>
+      <p className="wa-head__text">Connect your number once in Settings, and every webinar, 1:1 call and class can use it.</p>
       <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={() => goToWhatsAppSettings()}>
         Set up in Settings
       </button>
@@ -171,7 +179,7 @@ function Verifying({ pending }) {
 // ------------------------------------------------------------
 // Connected (or lost)
 // ------------------------------------------------------------
-function Connected({ connection, kind, offering, offeringName, links }) {
+function Connected({ connection, kind, offering, offeringName, links, offDefaults }) {
   const lost = connection.status === 'lost';
   const nameRejected = !lost && connection.nameStatus === 'rejected';
 
@@ -217,6 +225,7 @@ function Connected({ connection, kind, offering, offeringName, links }) {
         offering={offering}
         offeringName={offeringName}
         links={links}
+        offDefaults={offDefaults}
       />
     </div>
   );

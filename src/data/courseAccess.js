@@ -1,6 +1,5 @@
 import { loadBookings } from './bookingsStore';
 import { isRemoved, peopleOf } from './webinarSignups';
-import { allMembers } from './batchMembers';
 import { contractSignupsOf, isRefunded } from './contractSignupsStore';
 
 // ------------------------------------------------------------
@@ -16,10 +15,7 @@ import { contractSignupsOf, isRefunded } from './contractSignupsStore';
 //   a webinar's contract    everyone who registered for that webinar,
 //                           unless they were removed, with or without a
 //                           refund (webinarSignups.js)
-//   a batch's contract      every member of that batch, unless they were
-//                           removed (batchMembers.js): a member whose fee
-//                           lapses and is removed loses the course too
-//   any other contract      everyone who signed up on its own checkout
+//   any other contract      (a live class's too) everyone who signed up on its own checkout
 //                           page (contractSignupsStore.js), unless that
 //                           sign-up was refunded, in full or in part
 // The made-up sign-up numbers on the sample contracts (mockServices.js)
@@ -51,11 +47,6 @@ export function holdersOf(contract) {
     return peopleOf(contract.webinarId)
       .filter((p) => !isRemoved(p))
       .map((p) => ({ email: p.email, phone: p.phone }));
-  }
-  if (contract.batchId) {
-    return allMembers()
-      .filter((m) => m.batchId === contract.batchId && m.status !== 'removed')
-      .map((m) => ({ email: m.email, phone: m.phone }));
   }
   return contractSignupsOf(contract.id)
     .filter((r) => !isRefunded(r))

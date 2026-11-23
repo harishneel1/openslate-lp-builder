@@ -1144,7 +1144,7 @@ function App() {
       ) : activeNav === 'calls' ? (
         <CallsPage openRequest={callRequest} onFocus={setCallFocus} />
       ) : activeNav === 'live-classes' ? (
-        <LiveClassesPage openRequest={batchRequest} onFocus={setBatchFocus} />
+        <LiveClassesPage openRequest={batchRequest} onFocus={setBatchFocus} onOpenContracts={() => handleNavigate('services')} />
       ) : activeNav === 'services' ? (
         <ContractsPage
           onGoToOfferings={() => handleNavigate('calls')}

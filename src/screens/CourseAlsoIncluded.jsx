@@ -38,7 +38,7 @@ import './CourseAlsoIncluded.css';
 // course; onSaved(ok): so the page's save status says Saved, or Couldn't save
 // ------------------------------------------------------------
 
-const KIND_WORDS = { webinar: 'Webinar', call: '1:1 call', batch: 'Batch' };
+const KIND_WORDS = { webinar: 'Webinar', call: '1:1 call' };
 const people = (n) => (n === 0 ? 'No one yet' : `${n.toLocaleString('en-IN')} ${n === 1 ? 'person' : 'people'}`);
 // 'Webinar · 42 people', or '42 people' for a plain contract
 const metaOf = (contract) => {

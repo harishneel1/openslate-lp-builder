@@ -1,26 +1,43 @@
+import { useRef, useState } from 'react';
+import { ExternalLink, ImagePlus, Trash2, Video } from 'lucide-react';
+import DatePicker, { todayISO } from './DatePicker';
 import TimePicker from './TimePicker';
-import { LENGTHS, PRICE_MAX, WEEKDAYS, scheduleLine } from '../data/batches';
+import { keepPreview, previewOf } from '../data/imagePreviews';
+import { CREATE_SERVICE_URL } from '../data/mockServices';
+import { toInstant } from '../utils/slots';
+import {
+  DESCRIPTION_MAX,
+  LENGTH_HOURS,
+  LENGTH_MINUTES,
+  NAME_EXAMPLES,
+  TITLE_MAX,
+  lengthLine,
+} from '../data/batches';
 import './QuestionInput.css';
 import './CallDetailsInput.css';
+import '../screens/WebinarReminders.css'; // the on/off switch (rm__switch)
 import './BatchFields.css';
 
 // ------------------------------------------------------------
-// A batch's fields, shared by "Create a batch" (CreateBatchFlow.jsx) and
-// its editor (EditBatch.jsx), so both look and check the same:
+// A live class's fields, shared by "Create a class" (CreateBatchFlow.jsx)
+// and its editor (EditBatch.jsx), so both look and check the same. The
+// same fields as TagMango's Create Workshop, in the same order:
 //
-//   ScheduleFields   which days, the start time, how long
-//     Days       [Mon][Tue][Wed][Thu][Fri][Sat][ Sun ]   (tap to switch)
-//     Starts at  [🕖 6:30 am IST ▾]
-//     Length     [45 min][1 hr][1 hr 15][1 hr 30]
-//     → "Every Mon–Sat, 6:30–7:30 am IST. Nobody can book a 1:1 call then."
+//   TitleField        [Add title                         0/100]
+//                     For example: Bharatanatyam for Beginners, …
+//   ThumbnailField    [ picture ]  Upload image · Remove
+//   MeetingField      🎥 Zoom · A meeting link is made for you   (fixed)
+//   DescriptionField  [                                  ]
 //
-//   FeeField         the monthly fee, in rupees
-//     [₹ 2000 ] a month
-//     → note: one plain line under it, or none (Create a batch: "Put in
-//        any amount. You can change it later.")
+// No date or time here: a class's sessions are scheduled one by one on
+// its page (Classes tab), with SessionFields below, in a pop-up.
 //
-// value: the batch draft ({ days, startTime, durationMins, timeZone, price })
+// The linked contracts (ContractPicker) sit between Meeting and Description
+// on both screens.
+//
+// value: the class draft (data/batches.js shape)
 // onChange(field, value)
+// showProblem: show what's wrong under a field (after they press Create or Save)
 // ------------------------------------------------------------
 
 // 'Asia/Kolkata' → 'IST' (or the zone's own short name)
@@ -35,143 +52,247 @@ export function zoneShort(timeZone) {
   }
 }
 
-const lengthWords = (mins) => {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h === 0) return { value: String(m), unit: 'min' };
-  if (m === 0) return { value: String(h), unit: h === 1 ? 'hr' : 'hrs' };
-  return { value: `${h} hr ${m}`, unit: 'min' };
-};
-
-// What's wrong with the schedule, or null
-export const scheduleProblem = (b) => (b.days.length === 0 ? 'Pick at least one day.' : null);
-
-// What's wrong with the fee, or null
-export function feeProblem(price) {
-  const n = Number(price);
-  if (!String(price ?? '').trim() || !Number.isFinite(n) || n <= 0) return 'Enter the monthly fee.';
-  if (n > PRICE_MAX) return 'That’s more than we can take in one payment.';
+// What's wrong with each part, or null
+export const titleProblem = (d) => (d.title.trim() ? null : 'Give your class a title.');
+// One session: { date, startTime, durationMins }, on the class's clock
+export const sessionProblem = (s, timeZone, now = Date.now()) => {
+  if (!s.date) return 'Pick a date.';
+  if (!s.startTime) return 'Pick a start time.';
+  if (s.durationMins < 15) return 'A class needs to be at least 15 minutes.';
+  if (toInstant(s.date, s.startTime, timeZone) <= now) return 'That time has passed. Pick a later one.';
   return null;
+};
+export const contractsProblem = (d) => (d.contractIds.length === 0 ? 'Link at least one contract, so people can join.' : null);
+
+// The first thing stopping a save, or null
+export const classProblem = (d) => titleProblem(d) ?? contractsProblem(d);
+
+function Problem({ show, text }) {
+  if (!show || !text) return null;
+  return (
+    <span className="qinput__error" role="alert">
+      {text}
+    </span>
+  );
 }
 
-export function ScheduleFields({ value, onChange, showProblem = false }) {
-  const toggle = (day) => {
-    const on = value.days.includes(day);
-    onChange('days', on ? value.days.filter((d) => d !== day) : [...value.days, day]);
+// ---------- Title ----------
+export function TitleField({ value, onChange, showProblem = false, autoFocus = false }) {
+  return (
+    <div className="qinput__field">
+      <label className="qinput__label" htmlFor="bfld-title">
+        Title
+      </label>
+      <span className="bfld__count-wrap">
+        <input
+          id="bfld-title"
+          className="qinput__text"
+          value={value.title}
+          maxLength={TITLE_MAX}
+          placeholder="Morning Yoga"
+          autoFocus={autoFocus}
+          onChange={(e) => onChange('title', e.target.value)}
+        />
+        <span className="bfld__count" aria-hidden="true">
+          {value.title.length}/{TITLE_MAX}
+        </span>
+      </span>
+      <p className="bfld__summary">For example: {NAME_EXAMPLES.join(', ')}</p>
+      <Problem show={showProblem} text={titleProblem(value)} />
+    </div>
+  );
+}
+
+// ---------- Thumbnail ----------
+// The picture is kept in this browser (imagePreviews.js), as a course's
+// cover is; the class keeps its id and the file's name.
+export function ThumbnailField({ value, onChange }) {
+  const input = useRef(null);
+  const [note, setNote] = useState(null);
+  const picture = value.thumbnail ? previewOf(value.thumbnail.previewId) : null;
+
+  const pick = async (file) => {
+    if (!file) return;
+    if (!String(file.type).startsWith('image/')) {
+      setNote('That isn’t an image. Pick a JPG, PNG or WEBP.');
+      return;
+    }
+    const previewId = `${value.id}-thumb-${Date.now().toString(36)}`;
+    const kept = await keepPreview(previewId, file);
+    setNote(kept ? null : 'Added. It’s too big to show here (over 1.5 MB), but it’s saved.');
+    onChange('thumbnail', { previewId, name: file.name });
   };
-  const problem = scheduleProblem(value);
+
+  return (
+    <div className="qinput__field">
+      <span className="qinput__label">
+        Thumbnail <span className="qinput__optional">· Optional</span>
+      </span>
+      <div className="bfld__thumb">
+        <div className="bfld__thumb-box" aria-hidden="true">
+          {picture ? <img src={picture} alt="" /> : <ImagePlus size={28} />}
+        </div>
+        <div className="bfld__thumb-side">
+          <p className="bfld__summary">Images should be horizontal. 1280 × 720 works best.</p>
+          {value.thumbnail && <p className="bfld__thumb-name">{value.thumbnail.name}</p>}
+          <div className="bfld__thumb-actions">
+            <button type="button" className="bfld__btn" onClick={() => input.current?.click()}>
+              <ImagePlus size={16} aria-hidden="true" /> {value.thumbnail ? 'Change image' : 'Upload image'}
+            </button>
+            {value.thumbnail && (
+              <button type="button" className="bfld__btn bfld__btn--plain" onClick={() => onChange('thumbnail', null)}>
+                <Trash2 size={16} aria-hidden="true" /> Remove
+              </button>
+            )}
+          </div>
+          {note && <p className="bfld__summary">{note}</p>}
+        </div>
+        <input
+          ref={input}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          hidden
+          onChange={(e) => {
+            pick(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ---------- Meeting ----------
+// Always Zoom, made for them: shown, nothing to pick
+export function MeetingField() {
+  return (
+    <div className="bfld__meeting">
+      <span className="bfld__meeting-icon" aria-hidden="true">
+        <Video size={18} />
+      </span>
+      <span>
+        <span className="bfld__meeting-name">Zoom</span>
+        <span className="bfld__summary"> · A meeting link is made for you for every class.</span>
+      </span>
+    </div>
+  );
+}
+
+// ---------- One class: date, time, length ----------
+// For Schedule a class and Change time (ScheduleClassDialog.jsx).
+// value: { date, startTime, durationMins }; timeZone: the class's
+// onChange(field, value). showProblem: after they press Schedule.
+export function SessionFields({ value, timeZone, onChange, showProblem = false, minDate = todayISO(), now = Date.now() }) {
+  const hours = Math.floor(value.durationMins / 60);
+  const minutes = value.durationMins % 60;
+  const setLength = (h, m) => onChange('durationMins', Number(h) * 60 + Number(m));
+  const zone = zoneShort(timeZone);
 
   return (
     <div className="bfld">
-      <div className="qinput__field">
-        <span className="qinput__label" id="bfld-days">
-          Days
-        </span>
-        <div className="call__chips bfld__days" role="group" aria-labelledby="bfld-days">
-          {WEEKDAYS.map(([id, label]) => {
-            const on = value.days.includes(id);
-            return (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={on}
-                className={`call__chip call__chip--big bfld__day ${on ? 'call__chip--on' : ''}`}
-                onClick={() => toggle(id)}
-              >
-                {label}
-              </button>
-            );
-          })}
+      <div className="bfld__pair">
+        <div className="qinput__field">
+          <label className="qinput__label" htmlFor="bfld-date">
+            Date
+          </label>
+          <DatePicker
+            id="bfld-date"
+            value={value.date ?? ''}
+            min={minDate}
+            onChange={(d) => onChange('date', d)}
+            className="qinput__text qinput__picker bfld__picker"
+          />
         </div>
-        {showProblem && problem && (
-          <span className="qinput__error" role="alert">
-            {problem}
-          </span>
-        )}
-      </div>
-
-      <div className="qinput__field">
-        <label className="qinput__label" htmlFor="bfld-start">
-          Starts at
-        </label>
-        <TimePicker
-          id="bfld-start"
-          value={value.startTime}
-          onChange={(t) => onChange('startTime', t)}
-          zone={zoneShort(value.timeZone)}
-          className="bfld__time"
-        />
+        <div className="qinput__field">
+          <label className="qinput__label" htmlFor="bfld-start">
+            Starts at
+          </label>
+          <TimePicker
+            id="bfld-start"
+            value={value.startTime}
+            onChange={(t) => onChange('startTime', t)}
+            zone={zone}
+            className="qinput__text qinput__picker bfld__picker"
+          />
+        </div>
       </div>
 
       <div className="qinput__field">
         <span className="qinput__label" id="bfld-length">
           Length
         </span>
-        <div className="call__lengths" role="radiogroup" aria-labelledby="bfld-length">
-          {LENGTHS.map((mins) => {
-            const on = value.durationMins === mins;
-            const { value: v, unit } = lengthWords(mins);
-            return (
-              <button
-                key={mins}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                className={`call__length ${on ? 'call__length--on' : ''}`}
-                onClick={() => onChange('durationMins', mins)}
-              >
-                <span className="call__length-value">{v}</span>
-                <span className="call__length-unit">{unit}</span>
-              </button>
-            );
-          })}
+        <div className="call__custom bfld__length" role="group" aria-labelledby="bfld-length">
+          <label className="call__custom-part">
+            <select className="call__select" value={hours} onChange={(e) => setLength(e.target.value, minutes)}>
+              {LENGTH_HOURS.map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))}
+            </select>
+            hr
+          </label>
+          <label className="call__custom-part">
+            <select className="call__select" value={minutes} onChange={(e) => setLength(hours, e.target.value)}>
+              {LENGTH_MINUTES.map((m) => (
+                <option key={m} value={m}>
+                  {String(m).padStart(2, '0')}
+                </option>
+              ))}
+            </select>
+            min
+          </label>
+          <span className="call__custom-total" aria-live="polite">
+            {value.durationMins >= 15 ? lengthLine(value.durationMins) : ''}
+          </span>
         </div>
       </div>
 
-      {!problem && (
-        <p className="bfld__summary">
-          Every {scheduleLine(value).replace(' · ', ', ')} {zoneShort(value.timeZone)}. Nobody can book a 1:1 call with
-          you then.
-        </p>
-      )}
+      <Problem show={showProblem} text={sessionProblem(value, timeZone, now)} />
     </div>
   );
 }
 
-export function FeeField({ value, onChange, showProblem = false, note = null }) {
-  const problem = feeProblem(value.price);
+// ---------- Who can join ----------
+// The line under "Who can join", and a way to make a contract when they
+// have none (opens Create contract in a new tab; the picker reads the
+// contracts again when they come back)
+export const WHO_CAN_JOIN = 'People who bought any of these contracts can join.';
+
+export function CreateContractLink() {
   return (
-    <div className="bfld">
-      <label className="qinput__field">
-        <span className="qinput__label">Monthly fee</span>
-        <span className="bfld__fee">
-          <span className="qinput__money">
-            <span className="qinput__currency" aria-hidden="true">
-              ₹
-            </span>
-            <input
-              inputMode="numeric"
-              className="qinput__text qinput__money-input"
-              value={value.price}
-              maxLength={6}
-              placeholder="2000"
-              aria-describedby={note ? 'bfld-fee-note' : undefined}
-              onChange={(e) => onChange('price', e.target.value.replace(/\D/g, ''))}
-            />
-          </span>
-          <span className="bfld__per">a month</span>
-        </span>
+    <p className="bfld__summary">
+      Don’t have one yet?{' '}
+      <a
+        className="bfld__link"
+        href={CREATE_SERVICE_URL}
+        target="_blank"
+        rel="noopener"
+        aria-label="Create a contract (opens in a new tab)"
+      >
+        Create a contract
+        <ExternalLink size={13} aria-hidden="true" />
+      </a>
+    </p>
+  );
+}
+
+// ---------- Description ----------
+export function DescriptionField({ value, onChange }) {
+  return (
+    <div className="qinput__field">
+      <label className="qinput__label" htmlFor="bfld-about">
+        Description <span className="qinput__optional">· Optional</span>
       </label>
-      {showProblem && problem && (
-        <span className="qinput__error" role="alert">
-          {problem}
-        </span>
-      )}
-      {note && (
-        <p className="bfld__summary" id="bfld-fee-note">
-          {note}
-        </p>
-      )}
+      <textarea
+        id="bfld-about"
+        className="qinput__text bfld__about"
+        rows={5}
+        value={value.description}
+        maxLength={DESCRIPTION_MAX}
+        placeholder="What happens in class, who it’s for, and anything they need (a mat, an empty stomach)."
+        onChange={(e) => onChange('description', e.target.value)}
+      />
     </div>
   );
 }

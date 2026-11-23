@@ -1,6 +1,5 @@
 import { getService, contractOf } from './mockServices';
 import { ownerOf } from './tiedProducts';
-import { batchPageHref } from './batches';
 import { accountHandle, mockAccount, offeringUrl } from './myPage';
 import { CURRENCIES, GST_RATE, REGIONS, currencyOf, payAmount, priceFor } from './contractPricing';
 import { initials } from '../utils/initials';
@@ -17,10 +16,11 @@ import { initials } from '../utils/initials';
 // main.jsx reads it before creator handles ("web" is kept back from
 // handles in myPage.js, so no coach can take it).
 //
-// Contracts a 1:1 call, webinar or batch owns already have a page of
-// their own (the call's booking page, the webinar's sign-up page, the
-// batch's join page): their address sends people there instead, since
-// a call needs a time picked first.
+// Contracts a 1:1 call or webinar owns already have a page of their own
+// (the call's booking page, the webinar's sign-up page): their address
+// sends people there instead, since a call needs a time picked first.
+// A live class's contracts are sold here, on this page: buying one is how
+// someone joins the class (there's no class page).
 //
 // Testing other countries: &region=IN, EU or ELSE on the address.
 // ------------------------------------------------------------
@@ -54,10 +54,6 @@ export function livePageOf(contract) {
   if (owner?.kind === 'webinar') {
     // This run's own sign-up page (its contract is this date's alone)
     const href = `${home}?preview=${encodeURIComponent(owner.id)}&page=signup`;
-    return { view: href, share: href };
-  }
-  if (owner?.kind === 'batch') {
-    const href = new URL(batchPageHref(owner.id), home).href;
     return { view: href, share: href };
   }
   // The live page itself: the coach sees exactly what people they share it with see

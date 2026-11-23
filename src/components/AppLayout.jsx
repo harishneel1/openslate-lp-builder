@@ -31,7 +31,7 @@ const sidebarItems = [
   // (LiveClassesPage.jsx). Repeat, for classes that come round every week.
   // hidden: left out of the sidebar for now. Everything else about live
   // classes still works; remove `hidden` to bring the item back.
-  { id: 'live-classes', label: 'Live classes', icon: Repeat, hidden: true },
+  { id: 'live-classes', label: 'Live classes', icon: Repeat, hidden: false },
   { id: 'services', label: 'Contracts', icon: Briefcase },
     { id: 'courses', label: 'Courses', icon: BookOpen },
   // The coach's money with us: what they can withdraw and the account

@@ -1,6 +1,7 @@
-/* A batch's schedule and fee fields (BatchFields.jsx), on the create
-   flow and in the editor. Chips, tiles and the money box come from the
-   1:1 call's fields (CallDetailsInput.css, QuestionInput.css). */
+/* A live class's fields (BatchFields.jsx), on Create a class and in the
+   editor. Chips, dropdowns and text boxes come from the 1:1 call's fields
+   (CallDetailsInput.css, QuestionInput.css); the switch from
+   WebinarReminders.css; the date and time fields from Pickers.css. */
 
 .bfld {
   display: flex;
@@ -17,28 +18,234 @@
   justify-content: center;
 }
 
-.bfld__time {
-  max-width: 280px;
-}
-
-.bfld__fee {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.bfld__fee .qinput__money {
-  max-width: 220px;
-}
-
-.bfld__per {
-  font-size: 16px;
-  color: var(--color-text-muted);
-}
-
 .bfld__summary {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-muted);
+}
+
+/* ---------- Title, with its count inside the box ---------- */
+.bfld__count-wrap {
+  position: relative;
+  display: block;
+}
+
+.bfld__count-wrap .qinput__text {
+  padding-right: 80px;
+}
+
+.bfld__count {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* ---------- Thumbnail ---------- */
+.bfld__thumb {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.bfld__thumb-box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 192px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.bfld__thumb-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bfld__thumb-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.bfld__thumb-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bfld__thumb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bfld__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.bfld__btn:hover {
+  border-color: var(--color-text-muted);
+}
+
+.bfld__btn--plain {
+  border-color: transparent;
+  background: none;
+  color: var(--color-text-muted);
+}
+
+.bfld__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Meeting: always Zoom, shown as one line ---------- */
+.bfld__meeting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  font-size: 15px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.bfld__meeting-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: #fff;
+  background: #2d8cff; /* Zoom's blue */
+  border-radius: 8px;
+}
+
+.bfld__meeting-name {
+  font-weight: 600;
+}
+
+/* ---------- Repeat: the switch and its days in one card ---------- */
+.bfld__repeat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.bfld__switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.bfld__repeat .bfld__days {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---------- When ---------- */
+/* Date and start time: boxes like the title's, with a chevron, so they
+   read as fields to click */
+.bfld__picker {
+  position: relative;
+  width: 100%;
+  padding-right: 44px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.bfld__picker::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.bfld__picker:hover {
+  border-color: var(--color-text-muted);
+}
+
+.bfld__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.bfld__length {
+  margin-top: 0;
+}
+
+.bfld__about {
+  min-height: 140px;
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+@media (max-width: 600px) {
+  .bfld__pair {
+    grid-template-columns: 1fr;
+  }
+
+  .bfld__thumb {
+    flex-direction: column;
+  }
+
+  .bfld__thumb-box {
+    width: 100%;
+  }
+}
+
+/* Length dropdowns as tall as the date and time boxes beside them */
+.bfld__length .call__select {
+  width: 88px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  font-size: 16px;
+}
+
+/* "Create a contract ↗" under Who can join */
+.bfld__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.bfld__link:hover {
+  text-decoration: underline;
 }

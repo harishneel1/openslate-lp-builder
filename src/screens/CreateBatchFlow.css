@@ -116,3 +116,35 @@
   line-height: 1.5;
   color: var(--color-text-muted);
 }
+/* ---------- Create a class: one form (CreateBatchFlow.jsx) ---------- */
+.bflow__form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.bflow__group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.bflow__group-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.bflow__group-sub {
+  margin: -6px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* The contracts people join on, under "… is live" (ContractChips.jsx) */
+.ready__who {
+  margin-top: 18px;
+}

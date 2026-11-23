@@ -67,10 +67,10 @@ import './WhatsAppTemplates.css';
 
 // Our ready-made templates, each with its template name (call_24h_reminder)
 // and what it's for, in words (1:1 call · 24 hours before)
-const KIND_NAME = { call: '1:1 call', webinar: 'Webinar', batch: 'Live class', reply: 'Automatic reply' };
+const KIND_NAME = { call: '1:1 call', webinar: 'Webinar', class: 'Live class', batch: 'Live class', reply: 'Automatic reply' };
 // (Live classes' only while they're in the sidebar: LIVE_CLASSES_SHOWN)
 const READY_MADE = Object.entries(MESSAGES)
-  .filter(([kind]) => kind !== 'batch' || LIVE_CLASSES_SHOWN)
+  .filter(([kind]) => (kind !== 'batch' && kind !== 'class') || LIVE_CLASSES_SHOWN)
   .flatMap(([kind, list]) =>
     list.map((message) => ({
       id: message.id,
@@ -106,6 +106,7 @@ const PRODUCT_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'call', label: '1:1 calls' },
   { id: 'webinar', label: 'Webinars' },
+  ...(LIVE_CLASSES_SHOWN ? [{ id: 'class', label: 'Live classes' }] : []),
 ];
 
 const EMPTY = {
@@ -122,7 +123,7 @@ const fmtDay = (iso) =>
 // they have no message to copy; nor ones for a message we no longer send),
 // and our 1:1 call and webinar messages
 const canDuplicate = (row) =>
-  row.own ? !isLegacy(row.template) && !isRetired(row.template) : ['call', 'webinar'].includes(row.readyMade?.kind);
+  row.own ? !isLegacy(row.template) && !isRetired(row.template) : ['call', 'webinar', 'class'].includes(row.readyMade?.kind);
 
 // A copy, ready for the editor: everything as it was (which message it's
 // for, the wording with its details), named <original>_duplicate. Nothing
@@ -192,7 +193,10 @@ export default function WhatsAppTemplates({ connection, onConnect, onAddContact,
   const taken = takenExcept(null);
 
   // The product picked first, then the status: the status counts are the product's
-  const ofProduct = rows.filter((r) => product === 'all' || r.product === product);
+  // (Live classes holds the class cancelled message too, kept as 'batch')
+  const ofProduct = rows.filter(
+    (r) => product === 'all' || r.product === product || (product === 'class' && r.product === 'batch'),
+  );
   const counts = Object.fromEntries(FILTERS.map((f) => [f.id, 0]));
   ofProduct.forEach((r) => {
     counts.all += 1;

@@ -46,6 +46,7 @@ import { BUTTONS, MESSAGES, RETIRED } from './whatsappMessages';
 export const PRODUCTS = [
   { id: 'call', label: '1:1 calls', one: '1:1 call', text: 'A confirmation when someone books, then reminders.' },
   { id: 'webinar', label: 'Webinars', one: 'Webinar', text: 'A confirmation when someone registers, then reminders.' },
+  { id: 'class', label: 'Live classes', one: 'Live class', text: 'A welcome when someone joins, then reminders before each class.' },
 ];
 export const productById = (id) => PRODUCTS.find((p) => p.id === id);
 
@@ -54,7 +55,7 @@ export const productById = (id) => PRODUCTS.find((p) => p.id === id);
 export const momentsOf = (product) => MESSAGES[product] ?? [];
 // Any moment, retired ones too, so an older template still says what it was for
 export const momentById = (id) =>
-  [...MESSAGES.call, ...MESSAGES.webinar, ...RETIRED.call, ...RETIRED.webinar].find((m) => m.id === id) ?? null;
+  [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.class, ...RETIRED.call, ...RETIRED.webinar].find((m) => m.id === id) ?? null;
 
 // Made for a message we no longer send (a 1:1 call's 1 hour before): it
 // still shows in Templates and can be deleted, but it can't be picked,
@@ -84,6 +85,14 @@ export const DETAILS = {
     { key: 'time', label: 'Time', hint: 'The webinar’s time, e.g. 7:00 pm' },
     { key: 'host', label: 'Coach name', hint: 'Your name as the coach' },
   ],
+  class: [
+    { key: 'first_name', label: 'First name', hint: 'Each student’s first name' },
+    { key: 'class', label: 'Class name', hint: 'The class’s title' },
+    { key: 'date', label: 'Date', hint: 'The class’s date, e.g. Thu 12 Nov' },
+    { key: 'time', label: 'Time', hint: 'The class’s time, e.g. 6:30 am' },
+    { key: 'schedule', label: 'Schedule', hint: 'When the class meets, e.g. Mon–Sat · 6:30–7:30 am' },
+    { key: 'host', label: 'Coach name', hint: 'Your name as the coach' },
+  ],
 };
 
 // What the sample booking fills in: the preview's, and the examples Meta asks for
@@ -93,9 +102,11 @@ export const sampleValues = (product, sender) => ({
   call: 'Discovery call',
   webinar: 'Grow your practice',
   batch: 'Morning yoga',
+  class: 'Morning yoga',
+  schedule: 'Mon–Sat · 6:30–7:30 am',
   date: 'Thu 12 Nov',
   next: 'Thu 19 Nov',
-  time: product === 'call' ? '4:00 pm' : '7:00 pm',
+  time: product === 'call' ? '4:00 pm' : product === 'class' ? '6:30 am' : '7:00 pm',
 });
 
 // The coach writes details by name, {First name}; they're kept by key, {first_name}

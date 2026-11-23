@@ -9,8 +9,10 @@
 //   1:1 calls   confirmation, 24 hours before, 2 hours before (asks them
 //               to confirm they're coming), 5 minutes before
 //   Webinars    confirmation, 24 hours before, 1 hour before, 5 minutes before
-//   Batches     a class cancelled (Live classes: sent once, when the
-//               coach cancels it, BatchAnnounce.jsx; no switches)
+//   Live classes  welcome (when someone buys a linked contract), 24 hours
+//               before, 1 hour before, 5 minutes before (class); and a
+//               class cancelled (batch: sent once, when the coach cancels
+//               it, BatchAnnounce.jsx; no switches)
 //
 // The emails go out as well, whatever happens here. A WhatsApp message
 // adds to its email; it never replaces it.
@@ -26,7 +28,8 @@
 // Which messages are on is kept per webinar session and per call, like
 // the emails' switches. All are on until switched off. The stand-in
 // keeps them in this browser:
-//   { 'call:<id>': { 'call-2h': false }, 'webinar:<id>': { ... } }
+//   { 'call:<id>': { 'call-2h': false }, 'webinar:<id>': { ... }, 'class:<id>': { ... } }
+// A class's messages all start on (classOffDefaults).
 // ------------------------------------------------------------
 
 const KEY = 'pagebuilder:mock-whatsapp-switches';
@@ -145,10 +148,54 @@ export const MESSAGES = {
       sentAt: '6:55 pm',
     },
   ],
-  // Live classes: sent once, to everyone in the batch, when the coach
-  // cancels a class. Fixed wording (Meta's rule), no buttons: members join
-  // from their feed as usual. (Breaks send nothing: the coach tells
-  // members in class.)
+  // Live classes: before each class, to every student (everyone who
+  // bought one of its linked contracts)
+  class: [
+    {
+      id: 'class-welcome',
+      template: 'class_welcome',
+      name: 'Welcome after joining',
+      when: 'Goes out as soon as someone buys one of the class’s contracts.',
+      example: 'right after she joins your class',
+      body: 'Hi {first_name}, welcome to *{class}* with {host}!\n\nYour next class is on {date} at {time}. We’ll remind you here before each class.',
+      buttons: ['join'],
+      sentAt: '10:12 am',
+    },
+    {
+      id: 'class-24h',
+      template: 'class_24h_reminder',
+      name: '24 hours before',
+      when: 'Goes out 24 hours before each class.',
+      example: '24 hours before your class at 6:30 am on Thu 12 Nov',
+      body: 'Hi {first_name}, *{class}* is tomorrow at {time}. See you there!',
+      buttons: ['join'],
+      sentAt: '6:30 am',
+    },
+    {
+      id: 'class-1h',
+      template: 'class_1h_reminder',
+      name: '1 hour before',
+      when: 'Goes out 1 hour before each class.',
+      example: '1 hour before your class at 6:30 am on Thu 12 Nov',
+      body: 'Hi {first_name}, *{class}* starts in 1 hour, at {time}.\n\nTap below to join when it’s time.',
+      buttons: ['join'],
+      sentAt: '5:30 am',
+    },
+    {
+      id: 'class-5m',
+      template: 'class_5min_reminder',
+      name: '5 minutes before',
+      when: 'Goes out 5 minutes before each class.',
+      example: '5 minutes before your class at 6:30 am on Thu 12 Nov',
+      body: 'Hi {first_name}, *{class}* starts in 5 minutes! Tap below to join.',
+      buttons: ['join'],
+      sentAt: '6:25 am',
+    },
+  ],
+  // Live classes: sent once, to every student, when the coach cancels a
+  // class. Fixed wording (Meta's rule), no buttons: students join from
+  // their reminders as usual. (Breaks send nothing: the coach tells
+  // students in class.)
   batch: [
     {
       id: 'batch-cancel',
@@ -175,6 +222,7 @@ export const MESSAGES = {
 //            student is coming.
 //   join     a call: the coach's meeting link. A webinar: its room.
 //   details  a webinar's thank-you page, with the date, time and how to join
+//   (a class's join: its Zoom room)
 // Labels are at most 25 characters (WhatsApp's limit). A button with no
 // type is a link.
 export const BUTTONS = {
@@ -187,6 +235,9 @@ export const BUTTONS = {
   webinar: {
     details: { label: 'View details', hint: 'The thank-you page, with the date and how to join' },
     join: { label: 'Join webinar', hint: 'The webinar room' },
+  },
+  class: {
+    join: { label: 'Join class', hint: 'The class’s Zoom room' },
   },
   batch: {},
 };
@@ -214,6 +265,7 @@ export const RETIRED = {
     },
   ],
   webinar: [],
+  class: [],
 };
 
 // ---------- The automatic reply ----------
@@ -247,14 +299,17 @@ export const AUTO_REPLY = {
 };
 
 // Every message we send Meta for review: the reminders, and the automatic reply
-export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.batch, AUTO_REPLY].map((m) => m.id);
+export const MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...MESSAGES.class, ...MESSAGES.batch, AUTO_REPLY].map((m) => m.id);
 
-// Live classes are left out of the sidebar for now (AppLayout.jsx, its
-// item's `hidden`). While they are, Settings doesn't count or list their
-// message either, so the numbers match what a coach can see. Turn this on
-// with the sidebar item.
-export const LIVE_CLASSES_SHOWN = false;
-export const SHOWN_MESSAGE_IDS = [...MESSAGES.call, ...MESSAGES.webinar, ...(LIVE_CLASSES_SHOWN ? MESSAGES.batch : [])].map(
+// Live classes' messages count and show in Settings while Live classes is
+// in the sidebar (AppLayout.jsx, its item's `hidden`). Turn this off if
+// the sidebar item is hidden again.
+export const LIVE_CLASSES_SHOWN = true;
+export const SHOWN_MESSAGE_IDS = [
+  ...MESSAGES.call,
+  ...MESSAGES.webinar,
+  ...(LIVE_CLASSES_SHOWN ? [...MESSAGES.class, ...MESSAGES.batch] : []),
+].map(
   (m) => m.id,
 );
 
@@ -272,15 +327,22 @@ function loadAll() {
   }
 }
 
-// { 'call-2h': true, ... } for one webinar session or call ('call:<id>', 'webinar:<id>').
+// { 'call-2h': true, ... } for one webinar session, call or class ('call:<id>', 'webinar:<id>', 'class:<id>').
+// offDefaults: ids that start off until switched on (a repeating class's 24 hours before)
 // A message that replaced another (replaces) starts from the old one's
 // switch, so a reminder switched off stays off.
-export function switchesOf(offering, kind) {
+export function switchesOf(offering, kind, offDefaults = []) {
   const saved = loadAll()[offering] ?? {};
   return Object.fromEntries(
-    MESSAGES[kind].map((m) => [m.id, (saved[m.id] ?? (m.replaces ? saved[m.replaces] : undefined)) !== false]),
+    MESSAGES[kind].map((m) => {
+      const value = saved[m.id] ?? (m.replaces ? saved[m.replaces] : undefined);
+      return [m.id, typeof value === 'boolean' ? value : !offDefaults.includes(m.id)];
+    }),
   );
 }
+
+// A class's switches start like its emails: all on
+export const classOffDefaults = () => [];
 
 export function setSwitch(offering, id, on) {
   const all = loadAll();

@@ -7,7 +7,8 @@ import './ReminderChannels.css';
 
 // ------------------------------------------------------------
 // The top of the Reminders tab, on a webinar's page (WebinarDetails.jsx)
-// and a 1:1 call's page (CallOverview.jsx): which reminders show below,
+// a 1:1 call's page (CallOverview.jsx) and a live class's page
+// (BatchOverview.jsx): which reminders show below,
 // the emails or WhatsApp. A toggle in the iPhone's way (a segmented
 // control): compact, a light grey track, and a white thumb under the
 // chosen side that slides across when the other is tapped. Just the two
@@ -29,8 +30,9 @@ import './ReminderChannels.css';
 // tab state ('whatsapp', beside the email tab's id).
 //
 // channel: 'email' | 'whatsapp'; onChannel(channel)
-// kind: 'call' | 'webinar'
-// offering: whose WhatsApp switches ('call:<id>' or 'webinar:<id>')
+// kind: 'call' | 'webinar' | 'class'
+// offering: whose WhatsApp switches ('call:<id>', 'webinar:<id>' or 'class:<id>')
+// offDefaults: messages that start off (classOffDefaults, for a class)
 // (emailOn and emailTotal, which the pages still pass, aren't shown now)
 // ------------------------------------------------------------
 
@@ -39,9 +41,9 @@ const CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
 ];
 
-export default function ReminderChannels({ channel, onChannel, kind, offering }) {
+export default function ReminderChannels({ channel, onChannel, kind, offering, offDefaults }) {
   const connection = useWhatsApp();
-  const switches = useSwitches(offering, kind);
+  const switches = useSwitches(offering, kind, offDefaults);
   // Only WhatsApp can need fixing; email always works
   const problems = { email: null, whatsapp: whatsAppSummary(connection, kind, switches) };
 

@@ -8,6 +8,7 @@ import {
   Italic,
   Lock,
   MonitorPlay,
+  Video,
   RotateCcw,
   Strikethrough,
   Users,
@@ -42,7 +43,7 @@ import './WhatsAppTemplateEditor.css';
 // Settings → WhatsApp → Templates → Create template: the coach's own
 // wording for one of our reminders. Two steps.
 //
-// 1. What it's for: a 1:1 call or a webinar, then which message.
+// 1. What it's for: a 1:1 call, a webinar or a live class, then which message.
 //
 //   ← New template
 //   What is it for?
@@ -96,7 +97,7 @@ import './WhatsAppTemplateEditor.css';
 // onDone():    back to the list
 // ------------------------------------------------------------
 
-const PRODUCT_ICON = { call: Users, webinar: MonitorPlay };
+const PRODUCT_ICON = { call: Users, webinar: MonitorPlay, class: Video };
 
 // What the buttons are for, in a sentence, by the moment's buttons. A
 // message that asks for an answer (a quick reply among its buttons) says
@@ -104,6 +105,7 @@ const PRODUCT_ICON = { call: Users, webinar: MonitorPlay };
 const BUTTONS_WHY = {
   call: 'Added to every reminder for a call, so students can always join or change their booking.',
   webinar: 'Added to every webinar message, so people can always find the details and join.',
+  class: 'Added to every class message, so students can always join.',
 };
 const ASKS_WHY =
   'This message asks students to confirm they’re coming, so its buttons stay as they are. Ask for their answer in your words too.';
