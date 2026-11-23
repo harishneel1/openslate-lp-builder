@@ -23,8 +23,8 @@ import './QuestionInput.css';
 // length, and Repeat weekly.
 //
 //   Schedule a class
-//   Date [📅 Tue 24 Nov ⌄]   Starts at [🕖 6:00 pm IST ⌄]
-//   Length [1 ▾] hr [00 ▾] min
+//   Date      [📅 Tue, 24 Nov 2026                    ⌄]
+//   Starts at [🕖 6:00 pm IST ⌄]   Length [1 hr 15 min ⌄]
 //   ┌ Repeat weekly                                  [━●] ┐
 //   │ [Mon] [Tue] [Wed] [Thu] [Fri] [Sat] [Sun]            │
 //   │ Until [📅 Tue 22 Dec ⌄]                              │
@@ -100,7 +100,7 @@ export default function ScheduleClassDialog({ batch, c = null, onDone, onClose }
         setFailed(true);
         return;
       }
-      const span = `${classDay(dates[0], today)} to ${classDay(dates.at(-1), today)}`;
+      const span = `${classDay(dates[0], null)} to ${classDay(dates.at(-1), null)}`;
       onDone(
         added === 0
           ? 'Those classes were already scheduled.'
@@ -113,7 +113,7 @@ export default function ScheduleClassDialog({ batch, c = null, onDone, onClose }
       setFailed(true);
       return;
     }
-    const when = `${classDay(value.date, today)}, ${timeLine(value.startTime)}`;
+    const when = `${classDay(value.date, null)}, ${timeLine(value.startTime)}`;
     onDone(c ? `Moved to ${when}.` : `Class scheduled for ${when}.`);
   };
 

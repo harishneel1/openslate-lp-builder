@@ -7,8 +7,7 @@ import { CREATE_SERVICE_URL } from '../data/mockServices';
 import { toInstant } from '../utils/slots';
 import {
   DESCRIPTION_MAX,
-  LENGTH_HOURS,
-  LENGTH_MINUTES,
+  LENGTHS,
   NAME_EXAMPLES,
   TITLE_MAX,
   WEEKDAYS,
@@ -196,26 +195,28 @@ export function MeetingField() {
 // value: { date, startTime, durationMins }; timeZone: the class's
 // onChange(field, value). showProblem: after they press Schedule.
 export function SessionFields({ value, timeZone, onChange, showProblem = false, minDate = todayISO(), now = Date.now() }) {
-  const hours = Math.floor(value.durationMins / 60);
-  const minutes = value.durationMins % 60;
-  const setLength = (h, m) => onChange('durationMins', Number(h) * 60 + Number(m));
+  // An odd length saved before (say 50 min) stays on the list, so it shows
+  const lengths = LENGTHS.includes(value.durationMins)
+    ? LENGTHS
+    : [...LENGTHS, value.durationMins].sort((x, y) => x - y);
   const zone = zoneShort(timeZone);
 
   return (
     <div className="bfld">
+      <div className="qinput__field">
+        <label className="qinput__label" htmlFor="bfld-date">
+          Date
+        </label>
+        <DatePicker
+          id="bfld-date"
+          value={value.date ?? ''}
+          min={minDate}
+          onChange={(d) => onChange('date', d)}
+          className="qinput__text qinput__picker bfld__picker"
+        />
+      </div>
+
       <div className="bfld__pair">
-        <div className="qinput__field">
-          <label className="qinput__label" htmlFor="bfld-date">
-            Date
-          </label>
-          <DatePicker
-            id="bfld-date"
-            value={value.date ?? ''}
-            min={minDate}
-            onChange={(d) => onChange('date', d)}
-            className="qinput__text qinput__picker bfld__picker"
-          />
-        </div>
         <div className="qinput__field">
           <label className="qinput__label" htmlFor="bfld-start">
             Starts at
@@ -228,36 +229,22 @@ export function SessionFields({ value, timeZone, onChange, showProblem = false, 
             className="qinput__text qinput__picker bfld__picker"
           />
         </div>
-      </div>
-
-      <div className="qinput__field">
-        <span className="qinput__label" id="bfld-length">
-          Length
-        </span>
-        <div className="call__custom bfld__length" role="group" aria-labelledby="bfld-length">
-          <label className="call__custom-part">
-            <select className="call__select" value={hours} onChange={(e) => setLength(e.target.value, minutes)}>
-              {LENGTH_HOURS.map((h) => (
-                <option key={h} value={h}>
-                  {h}
-                </option>
-              ))}
-            </select>
-            hr
+        <div className="qinput__field">
+          <label className="qinput__label" htmlFor="bfld-length">
+            Length
           </label>
-          <label className="call__custom-part">
-            <select className="call__select" value={minutes} onChange={(e) => setLength(hours, e.target.value)}>
-              {LENGTH_MINUTES.map((m) => (
-                <option key={m} value={m}>
-                  {String(m).padStart(2, '0')}
-                </option>
-              ))}
-            </select>
-            min
-          </label>
-          <span className="call__custom-total" aria-live="polite">
-            {value.durationMins >= 15 ? lengthLine(value.durationMins) : ''}
-          </span>
+          <select
+            id="bfld-length"
+            className="call__select bfld__length"
+            value={value.durationMins}
+            onChange={(e) => onChange('durationMins', Number(e.target.value))}
+          >
+            {lengths.map((m) => (
+              <option key={m} value={m}>
+                {lengthLine(m)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

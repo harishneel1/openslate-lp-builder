@@ -52,8 +52,8 @@ const MIN = 60_000;
 export const DEFAULT_START = '18:00';
 export const DEFAULT_LENGTH = 60;
 // Length, as two dropdowns (hours and minutes), like TagMango's
-export const LENGTH_HOURS = [0, 1, 2, 3, 4, 5];
-export const LENGTH_MINUTES = [0, 15, 30, 45];
+// Length: one list, every 15 minutes from 15 min to 5 hr
+export const LENGTHS = Array.from({ length: 20 }, (_, i) => (i + 1) * 15);
 export const TITLE_MAX = 100;
 export const DESCRIPTION_MAX = 1000;
 // How far ahead a weekly class from before is turned into classes

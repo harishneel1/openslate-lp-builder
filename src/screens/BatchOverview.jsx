@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarClock, CalendarPlus, CalendarX, Check, Download, MessageCircle, Pencil, Search, Users, Video, X } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarX, Check, ChevronRight, Download, Link2, MessageCircle, Pencil, Plus, Search, Users, X } from 'lucide-react';
 import RowMenu from '../components/RowMenu';
 import PrototypeControls from '../components/PrototypeControls';
 import GuestInitials from '../components/GuestInitials';
 import ScheduleClassDialog from '../components/ScheduleClassDialog';
-import { classDay, classMeetingHref, classState, classTimeRange, dayOn, nextClasses, pastClasses, scheduleLine } from '../data/batches';
+import { classDay, classMeetingHref, classState, classTimeRange, dayOn, nextClasses, pastClasses } from '../data/batches';
+import { zoneShort } from '../components/BatchFields';
 import { onStudentsChange, studentsCsv, studentsOf } from '../data/classStudents';
 import { whatsappHref } from '../utils/whatsapp';
 import ReminderChannels from '../components/ReminderChannels';
@@ -17,22 +18,39 @@ import './OfferingsHome.css';
 import './CallOverview.css'; // the same head and tabs as a 1:1 call's page
 import './BookingsPage.css'; // initials (.bk-face)
 import './SalesPage.css'; // the search box (.tx-search), as on a course's Students
+import './WebinarsPage.css'; // the badges and the meeting button's pulse, as on webinars
+import './WebinarDetails.css'; // the next-session card and the sessions table, as on a webinar's page
 import './BatchOverview.css';
 
 // ------------------------------------------------------------
 // One class's own page, opened from its row on Live classes.
 //
 //   [focus bar:  ← All classes ]   (App.jsx, from LiveClassesPage)
-//   Morning Yoga                                [Join as host] [Edit]
-//   Next class Tue 24 Nov, 6:00–7:00 pm
+//   Morning Yoga                                                 [Edit]
+//   ┌ 📅 Tue 24 Nov, 6:00–7:00 pm IST · Starts tomorrow [Join as host] ┐  light orange,
+//   └──────────────────────────────────────────────────────────────────┘  as a webinar's
+//                                                                          next session
 //
-//   Classes | Students 12 | Reminders
+//   Classes 9 | Students 12 | Reminders                    [+ Schedule]
+//   Class                 Status
+// ▌ Tue 24 Nov 6:00 pm    ● Next up                               ⋯
+//   Thu 26 Nov 6:00 pm    Scheduled                               ⋯
+//   Thu 19 Nov 6:00 pm    Ended
 //
-// Classes (the first tab): its classes, scheduled one by one, on the fly
-// (+ Schedule a class, ScheduleClassDialog.jsx). The next one with Start
-// class (the mock Zoom room) and Cancel this class; then what's coming
-// up, each with ⋯ Change time or Cancel this class, or marked Cancelled;
-// then the ones that are over. Cancelling goes to the cancel page
+// Laid out like a webinar's page (WebinarDetails.jsx), so the two read
+// the same: the next class is the one light-orange card in the header,
+// with the one filled orange button (Join as host; it pulses from 15
+// minutes before). The Students tab carries the head count. Nothing coming
+// up: a quiet white card with + Schedule class instead.
+//
+// Classes (the first tab): every class as a table, coming up first
+// (soonest at the top), then the ones that are over (latest first). The
+// next one is the only orange row and the only orange badge (● Next up,
+// or ● Live now). Later ones say Scheduled, cancelled ones Cancelled,
+// past ones Ended. With 10 or more, the rows come in groups: Next up,
+// Later · 8, Ended · 4 (folded away). ⋯ on a class to come: Change time,
+// Cancel this class. + Schedule, beside the tabs, opens Schedule a class
+// (ScheduleClassDialog.jsx). Cancelling goes to the cancel page
 // (BatchAnnounce.jsx, through onAnnounce), where students are told.
 //
 // Students: everyone who bought any of the class's linked contracts, one
@@ -68,8 +86,9 @@ import './BatchOverview.css';
 // ------------------------------------------------------------
 
 const TICK_MS = 30_000; // the clock, for which class is next or on now
-const CLASSES_SHOWN = 30; // coming up, cancelled ones included
-const PAST_SHOWN = 10;
+const CLASSES_SHOWN = 200; // coming up, cancelled ones included
+const GROUP_AT = 10; // from this many classes, the table comes in groups, as a webinar's does
+const MIN = 60_000;
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const SEARCH_FROM = 5; // search and the filter show past this many people
 
@@ -130,10 +149,11 @@ export default function BatchOverview({
   const students = useMemo(() => studentsOf(batch), [batch, version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const classes = useMemo(() => nextClasses(batch, now, CLASSES_SHOWN, { includeOff: true }), [batch, now]);
-  const past = useMemo(() => pastClasses(batch, now).slice(0, PAST_SHOWN), [batch, now]);
+  const past = useMemo(() => pastClasses(batch, now), [batch, now]);
   const nextOn = classes.find((c) => !c.off) ?? null;
   const today = dayOn(now, batch);
   const notice = scheduled ?? classNotice;
+  const allCount = (batch.sessions ?? []).length;
 
   const cancel = (c) => {
     setMenuFor(null);
@@ -160,19 +180,24 @@ export default function BatchOverview({
         <div className="cov__intro">
           <div className="cov__about">
             <h1 className="cov__title">{batch.title}</h1>
-            <p className="cov__detail">{scheduleLine(batch, now)}</p>
           </div>
 
           <div className="cov__actions">
-            {nextOn && (
-            <a className="bov__join" href={classMeetingHref(batch.id)} target="_blank" rel="noopener" aria-label="Join as host (opens in a new tab)">
-              <Video size={15} aria-hidden="true" /> Join as host
-            </a>
-            )}
             <button type="button" className="oh__edit" onClick={onEdit}>
               <Pencil size={15} aria-hidden="true" /> Edit
             </button>
           </div>
+        </div>
+        <div className="bov__next-wrap">
+          <NextClassCard
+            batch={batch}
+            c={nextOn}
+            now={now}
+            today={today}
+            onSchedule={() => setScheduling({ c: null })}
+            onChange={() => nextOn && change(nextOn)}
+            onCancel={() => nextOn && cancel(nextOn)}
+          />
         </div>
         <span className="oh__sr-only" aria-live="polite">
           {said}
@@ -200,9 +225,16 @@ export default function BatchOverview({
               >
                 {t.label}
                 {t.id === 'students' && students.length > 0 && <span className="oh__count">{students.length}</span>}
+                {t.id === 'classes' && allCount > 0 && <span className="oh__count">{allCount}</span>}
               </button>
             ))}
           </div>
+          {/* At the top, so it's in reach however long the list gets (as Add session on a webinar) */}
+          {shownTab === 'classes' && (
+            <button type="button" className="wd__st-new" onClick={() => setScheduling({ c: null })}>
+              <Plus size={16} aria-hidden="true" /> Schedule
+            </button>
+          )}
         </div>
 
         {shownTab === 'students' ? (
@@ -231,67 +263,27 @@ export default function BatchOverview({
             )}
           </div>
         ) : (
-          <div id="bov-panel-classes" role="tabpanel" aria-labelledby="bov-tab-classes" className="bov__body">
+          <div id="bov-panel-classes" role="tabpanel" aria-labelledby="bov-tab-classes">
             {notice && (
-              <p className="bov__notice" role="status">
+              <p className="bov__notice bov__notice--table" role="status">
                 <Check size={16} strokeWidth={3} aria-hidden="true" /> {notice}
               </p>
             )}
-
-            {/* Nothing coming up: one clear call to schedule, in the middle. Otherwise the list, with Schedule a class above it */}
-            {classes.length > 0 && (
-              <div className="bov__classes-head">
-                <h2 className="bov__classes-title">Coming up</h2>
-                <button type="button" className="oh__edit bov__schedule" onClick={() => setScheduling({ c: null })}>
-                  <CalendarPlus size={15} aria-hidden="true" /> Schedule a class
-                </button>
-              </div>
-            )}
-
-            {classes.length === 0 ? (
-              <div className="bov__none">
-                <span className="bov__empty-icon" aria-hidden="true">
-                  <CalendarPlus size={22} />
-                </span>
-                <h2 className="bov__none-title">{past.length === 0 ? 'Schedule your first class' : 'Schedule your next class'}</h2>
-                <p className="bov__none-text">Students get a reminder before it starts.</p>
-                <button type="button" className="oh__add bov__none-go" onClick={() => setScheduling({ c: null })}>
-                  <CalendarPlus size={16} aria-hidden="true" /> Schedule a class
-                </button>
-              </div>
+            {classes.length === 0 && past.length === 0 ? (
+              <p className="bov__table-empty">Classes you schedule show here.</p>
             ) : (
-              <>
-                {nextOn && (
-                  <NextClass batch={batch} c={nextOn} today={today} now={now} onCancel={() => cancel(nextOn)} onChange={() => change(nextOn)} />
-                )}
-                <ul className="bov__classes">
-                  {classes
-                    .filter((c) => c !== nextOn)
-                    .map((c) => (
-                      <ClassRow
-                        key={c.id}
-                        c={c}
-                        batch={batch}
-                        today={today}
-                        menuOpen={menuFor === c.id}
-                        onMenu={(open) => setMenuFor(open ? c.id : null)}
-                        onChange={() => change(c)}
-                        onCancel={() => cancel(c)}
-                      />
-                    ))}
-                </ul>
-              </>
-            )}
-
-            {past.length > 0 && (
-              <>
-                <h2 className="bov__subhead">Past</h2>
-                <ul className="bov__classes bov__classes--past">
-                  {past.map((c) => (
-                    <ClassRow key={c.id} c={c} batch={batch} today={today} past />
-                  ))}
-                </ul>
-              </>
+              <ClassesTable
+                batch={batch}
+                upcoming={classes}
+                past={past}
+                next={nextOn}
+                now={now}
+                today={today}
+                menuFor={menuFor}
+                onMenu={setMenuFor}
+                onChange={change}
+                onCancel={cancel}
+              />
             )}
           </div>
         )}
@@ -468,67 +460,274 @@ function StudentRow({ student: s, showContracts }) {
   );
 }
 
-// The next class that happens (or the one on now), with Start class,
-// and Change time and Cancel this class until it starts
-function NextClass({ batch, c, today, now, onCancel, onChange }) {
+// Copies text to the clipboard, with a hidden textarea where the
+// Clipboard API isn't allowed (as FunnelOverview.jsx does). True if copied.
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+}
+
+// ---------- The next class: a card in the header, as a webinar's next session ----------
+// Light orange, the same every day: one line, the date with Join as
+// host, the one filled
+// orange button on the page. Share Zoom link sits by it (copies the
+// class's one Zoom link, the same every class, for the coach's own
+// groups; turns green, "Zoom link copied", for 3 seconds), and Change
+// time and Cancel this class do until it starts. Nothing coming up: a quiet white card with + Schedule class.
+function NextClassCard({ batch, c, now, today, onSchedule, onChange, onCancel }) {
+  const [copied, setCopied] = useState(false);
+  if (!c) {
+    return (
+      <section className="wd__next wd__next--none" aria-labelledby="bov-next-title">
+        <div className="wd__next-none-text">
+          <h2 className="wd__next-title wd__next-title--none" id="bov-next-title">
+            No upcoming class
+          </h2>
+          <p className="wd__next-text">Schedule one. Students get a reminder before it starts.</p>
+        </div>
+        <button type="button" className="oh__add wd__next-add" onClick={onSchedule}>
+          <Plus size={16} aria-hidden="true" /> Schedule class
+        </button>
+      </section>
+    );
+  }
   const state = classState(c, now);
   const live = state === 'live';
+  const copyLink = async () => {
+    if (await copyText(`${window.location.origin}${classMeetingHref(batch.id)}`)) {
+      setCopied(true);
+      window.clearTimeout(copyLink.t);
+      copyLink.t = window.setTimeout(() => setCopied(false), 3000);
+    }
+  };
   return (
-    <div className={`bov__next ${state !== 'later' ? 'bov__next--now' : ''}`}>
-      <span className="bov__next-text">
-        <span className="bov__next-label">{live ? 'Happening now' : 'Next class'}</span>
-        <span className="bov__next-when">
-          {classDay(c.date, today)}, {classTimeRange(c, batch)}
+    <section className="wd__next" aria-label="Next class">
+      <div className="wd__next-foot bov__next-foot">
+        <div className="wd__next-when">
+          <CalendarClock size={16} aria-hidden="true" />
+          <span>
+            {classDay(c.date, null)}, {classTimeRange(c, batch)} {zoneShort(batch.timeZone)}
+          </span>
+          <StartsIn c={c} now={now} batch={batch} />
+        </div>
+        <span className="bov__next-actions">
+          {!live && (
+            <>
+              <button type="button" className="bov__link-btn" onClick={onChange}>
+                Change time
+              </button>
+              <button type="button" className="bov__link-btn" onClick={onCancel}>
+                Cancel this class
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className={`bov__link-btn bov__share ${copied ? 'bov__share--done' : ''}`}
+            onClick={copyLink}
+          >
+            {/* Both labels share one spot, so the button keeps its width */}
+            <span className="bov__share-label" aria-hidden={copied}>
+              <Link2 size={14} aria-hidden="true" /> Share Zoom link
+            </span>
+            <span className="bov__share-label" aria-hidden={!copied}>
+              <Check size={14} aria-hidden="true" /> Zoom link copied
+            </span>
+            <span className="oh__sr-only" aria-live="polite">
+              {copied ? 'Zoom link copied' : ''}
+            </span>
+          </button>
+          <a
+            className={`oh__add wb-row__start bov__start-class`}
+            href={classMeetingHref(batch.id)}
+            target="_blank"
+            rel="noopener"
+            aria-label={`Join ${batch.title} as host (opens Zoom in a new tab)`}
+          >
+            {state !== 'later' && <span className="wb-row__pulse" aria-hidden="true" />}
+            Join as host
+          </a>
         </span>
+      </div>
+    </section>
+  );
+}
+
+// "· Starts tomorrow" in green, or on the day the countdown pill, as on a webinar's card
+function StartsIn({ c, now, batch }) {
+  const mins = Math.ceil((c.start - now) / MIN);
+  if (now >= c.start) {
+    const at = Math.min(1, (now - c.start) / (c.end - c.start));
+    const inMins = Math.floor((now - c.start) / MIN);
+    return <Pill phase="live" text={inMins < 1 ? 'Live · just started' : `Live · ${countdown(inMins)} in`} at={at} />;
+  }
+  const days = dayDiff(dayOn(c.start, batch), dayOn(now, batch));
+  if (days === 0) {
+    const from = Math.min(now, c.start - 30 * MIN);
+    return <Pill phase={mins <= 15 ? 'soon' : 'today'} text={`Starts in ${countdown(mins)}`} at={(now - from) / (c.start - from)} />;
+  }
+  return (
+    <span className="wd__next-soon">
+      <span aria-hidden="true">· </span>
+      {days === 1 ? 'Starts tomorrow' : `Starts in ${days} days`}
+    </span>
+  );
+}
+
+function Pill({ phase, text, at }) {
+  return (
+    <p className="wd__status">
+      <span className={`wd__count wd__count--${phase}`}>
+        {phase === 'live' && <span className="wd__count-dot" aria-hidden="true" />}
+        {text}
+        <span className="wd__count-fill" style={{ width: `${Math.min(Math.max(at, 0), 1) * 100}%` }} aria-hidden="true" />
       </span>
-      <span className="bov__next-actions">
-        {!live && (
-          <>
-            <button type="button" className="bov__link-btn" onClick={onChange}>
-              Change time
-            </button>
-            <button type="button" className="bov__link-btn" onClick={onCancel}>
-              Cancel this class
-            </button>
-          </>
-        )}
-        <a className="bov__start" href={classMeetingHref(batch.id)} target="_blank" rel="noopener">
-          <Video size={16} aria-hidden="true" /> {live ? 'Rejoin class' : 'Start class'}
-        </a>
-      </span>
+    </p>
+  );
+}
+
+// 95 → '1 hr 35 min'; 40 → '40 min'
+const countdown = (mins) => (mins >= 60 ? `${Math.floor(mins / 60)} hr${mins % 60 ? ` ${mins % 60} min` : ''}` : `${mins} min`);
+// Whole days between two 'YYYY-MM-DD' dates
+const dayDiff = (a, b) => Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000);
+
+// ---------- Classes: every class, as a webinar's sessions table ----------
+// Coming up first (soonest at the top), then the ones that are over
+// (latest first). The next one is the light-orange row with the only
+// orange badge. With GROUP_AT or more: Next up, Later · n, Ended · n (folded).
+function ClassesTable({ batch, upcoming, past, next, now, today, menuFor, onMenu, onChange, onCancel }) {
+  const [endedOpen, setEndedOpen] = useState(false);
+  const live = next ? classState(next, now) === 'live' : false;
+  const later = upcoming.filter((c) => c !== next);
+  const grouped = upcoming.length + past.length >= GROUP_AT;
+
+  const row = (c) => (
+    <ClassRow
+      key={c.id}
+      c={c}
+      batch={batch}
+      today={today}
+      now={now}
+      isNext={c === next}
+      past={past.includes(c)}
+      menuOpen={menuFor === c.id}
+      onMenu={(open) => onMenu(open ? c.id : null)}
+      onChange={() => onChange(c)}
+      onCancel={() => onCancel(c)}
+    />
+  );
+
+  return (
+    <div className="wd__st bov-ct">
+      <div className="wd__st-row wd__st-row--head" aria-hidden="true">
+        <span>Class</span>
+        <span>Status</span>
+        <span />
+      </div>
+
+      {grouped ? (
+        <>
+          {next && (
+            <section aria-label={live ? 'Happening now' : 'Next up'}>
+              <h3 className="wd__st-group">{live ? 'Happening now' : 'Next up'}</h3>
+              <ul className="wd__st-list">{row(next)}</ul>
+            </section>
+          )}
+          {later.length > 0 && (
+            <section aria-label="Later">
+              <h3 className="wd__st-group">
+                Later <span className="wd__st-group-count">· {later.length}</span>
+              </h3>
+              <ul className="wd__st-list">{later.map(row)}</ul>
+            </section>
+          )}
+          {past.length > 0 && (
+            <section aria-label="Ended">
+              <h3 className="wd__st-group wd__st-group--toggle">
+                <button
+                  type="button"
+                  className="wd__st-group-btn"
+                  aria-expanded={endedOpen}
+                  aria-controls="bov-ct-ended"
+                  onClick={() => setEndedOpen((o) => !o)}
+                >
+                  Ended <span className="wd__st-group-count">· {past.length}</span>
+                  <ChevronRight
+                    size={15}
+                    aria-hidden="true"
+                    className={`wd__st-group-chev ${endedOpen ? 'wd__st-group-chev--open' : ''}`}
+                  />
+                </button>
+              </h3>
+              {endedOpen && (
+                <ul className="wd__st-list" id="bov-ct-ended">
+                  {past.map(row)}
+                </ul>
+              )}
+            </section>
+          )}
+        </>
+      ) : (
+        <ul className="wd__st-list">{[...upcoming, ...past].map(row)}</ul>
+      )}
     </div>
   );
 }
 
-// One class in "Coming up" or "Past": its day and time, and either
-// Cancelled or (coming up) ⋯ with Change time and Cancel this class
-function ClassRow({ c, batch, today, past = false, menuOpen, onMenu, onChange, onCancel }) {
-  const off = c.off;
+// One class: its day and time, its status badge, and ⋯ (Change time,
+// Cancel this class) while it's still to come
+function ClassRow({ c, batch, today, now, isNext, past, menuOpen, onMenu, onChange, onCancel }) {
+  const cancelled = c.off?.kind === 'cancelled';
+  const live = !cancelled && classState(c, now) === 'live';
+  const label = cancelled ? 'Cancelled' : live ? 'Live now' : past ? 'Ended' : isNext ? 'Next up' : 'Scheduled';
+  const orange = !cancelled && (live || isNext);
+  const day = classDay(c.date, null);
   return (
-    <li className={`bov__class ${off ? 'bov__class--off' : ''} ${past ? 'bov__class--past' : ''}`}>
-      <span className="bov__class-day">{classDay(c.date, today)}</span>
-      <span className="bov__class-time">{classTimeRange(c, batch)}</span>
-      <span className="bov__class-state">
-        {off?.kind === 'cancelled' && (
-          <>
-            <span className="bov__pill bov__pill--removed">Cancelled</span>
-            {off.told?.email > 0 && <span className="bov__muted"> {plural(off.told.email, 'student')} told</span>}
-          </>
-        )}
-      </span>
-      <span className="bov__class-menu">
-        {!off && !past && (
-          <RowMenu
-            title={`${classDay(c.date, today)} class`}
-            open={menuOpen}
-            onOpenChange={onMenu}
-            items={[
-              { label: 'Change time', icon: CalendarClock, onSelect: onChange },
-              { label: 'Cancel this class', icon: CalendarX, danger: true, onSelect: onCancel },
-            ]}
-          />
-        )}
-      </span>
+    <li>
+      <div className={`wd__st-row ${orange ? 'wd__st-row--link' : ''} ${cancelled ? 'bov-ct__row--off' : ''}`}>
+        <span className="wd__st-when">
+          <span className="wd__st-day">{day}</span>
+          <span className="wd__st-time">{classTimeRange(c, batch)}</span>
+        </span>
+        <span className="wd__st-status">
+          <span className={`wb-badge ${orange ? 'wd__st-badge--link' : ''}`}>
+            {orange && <span className="wb-badge__dot" aria-hidden="true" />}
+            {label}
+          </span>
+          {cancelled && c.off.told?.email > 0 && <span className="bov-ct__told">{plural(c.off.told.email, 'student')} told</span>}
+        </span>
+        <span className="bov-ct__menu">
+          {!past && !cancelled && !live && (
+            <RowMenu
+              title={`${day} class`}
+              open={menuOpen}
+              onOpenChange={onMenu}
+              items={[
+                { label: 'Change time', icon: CalendarClock, onSelect: onChange },
+                { label: 'Cancel this class', icon: CalendarX, danger: true, onSelect: onCancel },
+              ]}
+            />
+          )}
+        </span>
+      </div>
     </li>
   );
 }

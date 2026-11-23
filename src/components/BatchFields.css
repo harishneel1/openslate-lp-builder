@@ -204,9 +204,7 @@
   gap: 16px;
 }
 
-.bfld__length {
-  margin-top: 0;
-}
+
 
 .bfld__about {
   min-height: 140px;
@@ -229,12 +227,14 @@
   }
 }
 
-/* Length dropdowns as tall as the date and time boxes beside them */
-.bfld__length .call__select {
-  width: 88px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+/* Length: one dropdown, the same box as Starts at beside it */
+.bfld__length {
+  width: 100%;
+  padding: 14px 44px 14px 16px;
   font-size: 16px;
+  border-color: #d6d6d6;
+  border-radius: var(--radius-md);
+  background-position: right 18px center;
 }
 
 /* "Create a contract ↗" under Who can join */
