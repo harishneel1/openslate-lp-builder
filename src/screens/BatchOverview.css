@@ -663,3 +663,172 @@
     justify-content: flex-start;
   }
 }
+
+/* ---------- Contracts tab (ClassContracts.jsx) ---------- */
+.bov-cc .wd__st-row {
+  grid-template-columns: minmax(0, 2.4fr) minmax(100px, 1fr) minmax(70px, 0.7fr) 180px;
+}
+
+.bov-cc__name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bov-cc__cover {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.bov-cc__cover--none {
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #9a4a0f;
+  background: #fbe9dc;
+}
+
+.bov-cc__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bov-cc__cell {
+  font-size: 14px;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.bov-cc__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Share link: a quiet outlined button; both labels in one cell, so it
+   keeps its width when it turns green ("Link copied") */
+.bov-cc__share {
+  display: inline-grid;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.bov-cc__share:hover {
+  border-color: var(--color-text-muted);
+}
+
+.bov-cc__share:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.bov-cc__share .bov__share-label {
+  justify-content: center;
+}
+
+.bov-cc__share .bov__share-label:nth-child(2),
+.bov-cc__share--done .bov__share-label:first-child {
+  visibility: hidden;
+}
+
+.bov-cc__share--done .bov__share-label:nth-child(2) {
+  visibility: visible;
+}
+
+.bov-cc__share--done,
+.bov-cc__share--done:hover {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.bov-cc__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.bov-cc__empty-text {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.bov-cc__lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.bov-cc__phone {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  /* Name and ⋯ on top; under them "₹2,000 · 9 sign-ups" and Share link */
+  .bov-cc .wd__st-row--head {
+    display: none;
+  }
+
+  .bov-cc .wd__st-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 6px;
+    row-gap: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .bov-cc__name {
+    grid-row: 1;
+    grid-column: 1 / 3;
+  }
+
+  .bov-cc__actions {
+    display: contents;
+  }
+
+  .bov-cc__actions > :last-child {
+    grid-row: 1;
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .bov-cc__share {
+    grid-row: 2;
+    grid-column: 3;
+  }
+
+  .bov-cc__cell {
+    grid-row: 2;
+    font-size: 13px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .bov-cc__phone {
+    display: inline;
+  }
+
+  .bov-cc__title {
+    white-space: normal;
+  }
+}

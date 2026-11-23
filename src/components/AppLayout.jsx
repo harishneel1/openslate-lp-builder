@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Search, ChevronDown, ChevronRight, ArrowLeft, Check, AlertTriangle,
+  ChevronDown, ChevronRight, ArrowLeft, Check, AlertTriangle,
   LayoutGrid, Sparkles, BarChart3, Briefcase, ShoppingCart,
   ArrowLeftRight, User, TrendingUp, SlidersHorizontal, MonitorPlay,
   CalendarCheck, Users, Store, Video, Repeat, Cloud, Settings,BookOpen
@@ -342,11 +342,6 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
         {!focus && (
           <div className="sidebar-rail">
             <aside className="sidebar">
-              <div className="sidebar__search">
-                <Search size={16} />
-                <input placeholder="Search..." />
-              </div>
-
               <CalendarCard active={activeNav === 'bookings'} onOpen={() => onNavigate('bookings')} />
 
               <nav className="sidebar__nav">

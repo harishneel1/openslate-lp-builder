@@ -4,16 +4,19 @@ import RowMenu from '../components/RowMenu';
 import PrototypeControls from '../components/PrototypeControls';
 import GuestInitials from '../components/GuestInitials';
 import ScheduleClassDialog from '../components/ScheduleClassDialog';
+import { ContractsTab, LinkContractsDialog } from './ClassContracts';
 import { classDay, classMeetingHref, classState, classTimeRange, dayOn, nextClasses, pastClasses } from '../data/batches';
 import { zoneShort } from '../components/BatchFields';
 import { onStudentsChange, studentsCsv, studentsOf } from '../data/classStudents';
 import { whatsappHref } from '../utils/whatsapp';
+import { getAllServices } from '../data/mockServices';
 import ReminderChannels from '../components/ReminderChannels';
 import WhatsAppTab from '../components/WhatsAppTab';
 import ClassEmails from './ClassEmails';
 import { classReminderById, saveReminderOn } from '../data/classReminders';
 import { classOffDefaults } from '../data/whatsappMessages';
 import { appNow, onTestDateChange } from '../utils/testClock';
+import { copyText } from '../utils/copyText';
 import './OfferingsHome.css';
 import './CallOverview.css'; // the same head and tabs as a 1:1 call's page
 import './BookingsPage.css'; // initials (.bk-face)
@@ -31,7 +34,7 @@ import './BatchOverview.css';
 //   └──────────────────────────────────────────────────────────────────┘  as a webinar's
 //                                                                          next session
 //
-//   Classes 9 | Students 12 | Reminders                    [+ Schedule]
+//   Classes 9 | Students 12 | Reminders | Contracts 2      [+ Schedule]
 //   Class                 Status
 // ▌ Tue 24 Nov 6:00 pm    ● Next up                               ⋯
 //   Thu 26 Nov 6:00 pm    Scheduled                               ⋯
@@ -58,6 +61,9 @@ import './BatchOverview.css';
 // shows once, with a chip for each. A slim bar above: how many, search
 // and the contract filter (past 5 people), and Export CSV.
 //
+// Contracts: the ones people buy to join, each with Share link, and
+// + Link contract beside the tabs (ClassContracts.jsx).
+//
 //   [🔍 Name, email or phone]  [All contracts ▾]          [⤓ Export CSV]
 //   (PS) Priya Sharma              [Yoga monthly] [Yoga 6 months]  12 Nov 2026  💬
 //        priya@example.com · +91 98765 43210
@@ -76,7 +82,7 @@ import './BatchOverview.css';
 // students, a pretend date, and class shortcuts.
 //
 // batch: the class (data/batches.js)
-// tab: 'classes' | 'students' | 'emails' (Reminders, on Email) | 'whatsapp'
+// tab: 'classes' | 'students' | 'emails' (Reminders, on Email) | 'whatsapp' | 'contracts'
 //   (Reminders, on WhatsApp); onTab(tab)
 // onEditEmail(id): open one of its emails in the editor
 // onOpenContracts(): to the Contracts page, where contracts are shared
@@ -92,10 +98,17 @@ const MIN = 60_000;
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const SEARCH_FROM = 5; // search and the filter show past this many people
 
+// How many of its contracts still exist (one deleted since doesn't count)
+const linkedCount = (batch) => {
+  const ids = new Set(getAllServices().map((c) => c.id));
+  return (batch.contractIds ?? []).filter((id) => ids.has(id)).length;
+};
+
 const TABS = [
   { id: 'classes', label: 'Classes' },
   { id: 'students', label: 'Students' },
   { id: 'emails', label: 'Reminders' },
+  { id: 'contracts', label: 'Contracts' },
 ];
 
 const joinedDay = (ms) =>
@@ -126,10 +139,17 @@ export default function BatchOverview({
   const [menuFor, setMenuFor] = useState(null); // the row whose ⋯ is open
   // Classes is the first tab: anything else from before (Members) opens it.
   // Reminders' WhatsApp half has its own id ('whatsapp'), shown as Reminders.
-  const shownTab = tab === 'students' ? 'students' : tab === 'emails' || tab === 'whatsapp' ? 'emails' : 'classes';
+  const shownTab =
+    tab === 'students' || tab === 'contracts'
+      ? tab
+      : tab === 'emails' || tab === 'whatsapp'
+        ? 'emails'
+        : 'classes';
   // The Schedule a class pop-up: { c: null } to schedule, { c } to change one's time
   const [scheduling, setScheduling] = useState(null);
   const [scheduled, setScheduled] = useState(null); // "Class scheduled for …"
+  const [linking, setLinking] = useState(false); // the Link contracts pop-up
+  const [contractNote, setContractNote] = useState(null); // "Contract linked."
   const [said, setSaid] = useState('');
   const toggleReminder = (id, on) => {
     if (saveReminderOn(batch, id, on)) setSaid(`${on ? 'Turned on' : 'Turned off'} the email ${classReminderById(id).name}.`);
@@ -154,6 +174,7 @@ export default function BatchOverview({
   const today = dayOn(now, batch);
   const notice = scheduled ?? classNotice;
   const allCount = (batch.sessions ?? []).length;
+  const contractCount = linkedCount(batch);
 
   const cancel = (c) => {
     setMenuFor(null);
@@ -220,12 +241,14 @@ export default function BatchOverview({
                 className="cov__tab"
                 onClick={() => {
                   setScheduled(null);
+                  setContractNote(null);
                   onTab(t.id);
                 }}
               >
                 {t.label}
                 {t.id === 'students' && students.length > 0 && <span className="oh__count">{students.length}</span>}
                 {t.id === 'classes' && allCount > 0 && <span className="oh__count">{allCount}</span>}
+                {t.id === 'contracts' && contractCount > 0 && <span className="oh__count">{contractCount}</span>}
               </button>
             ))}
           </div>
@@ -235,9 +258,38 @@ export default function BatchOverview({
               <Plus size={16} aria-hidden="true" /> Schedule
             </button>
           )}
+          {shownTab === 'contracts' && contractCount > 0 && (
+            <button
+              type="button"
+              className="wd__st-new"
+              onClick={() => {
+                setContractNote(null);
+                setLinking(true);
+              }}
+            >
+              <Plus size={16} aria-hidden="true" /> Link contract
+            </button>
+          )}
         </div>
 
-        {shownTab === 'students' ? (
+        {shownTab === 'contracts' ? (
+          <div id="bov-panel-contracts" role="tabpanel" aria-labelledby="bov-tab-contracts">
+            {contractNote && (
+              <p className="bov__notice bov__notice--table" role="status">
+                <Check size={16} strokeWidth={3} aria-hidden="true" /> {contractNote}
+              </p>
+            )}
+            <ContractsTab
+              batch={batch}
+              students={students}
+              onLink={() => {
+                setContractNote(null);
+                setLinking(true);
+              }}
+              onSaid={setContractNote}
+            />
+          </div>
+        ) : shownTab === 'students' ? (
           <div id="bov-panel-students" role="tabpanel" aria-labelledby="bov-tab-students" className="bov__body">
             <StudentsTab batch={batch} students={students} onOpenContracts={onOpenContracts} />
           </div>
@@ -297,6 +349,17 @@ export default function BatchOverview({
           onDone={(line) => {
             setScheduling(null);
             setScheduled(line);
+          }}
+        />
+      )}
+
+      {linking && (
+        <LinkContractsDialog
+          batch={batch}
+          onClose={() => setLinking(false)}
+          onDone={(line) => {
+            setLinking(false);
+            setContractNote(line);
           }}
         />
       )}
@@ -458,31 +521,6 @@ function StudentRow({ student: s, showContracts }) {
       </span>
     </li>
   );
-}
-
-// Copies text to the clipboard, with a hidden textarea where the
-// Clipboard API isn't allowed (as FunnelOverview.jsx does). True if copied.
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const area = document.createElement('textarea');
-    area.value = text;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    let ok = false;
-    try {
-      ok = document.execCommand('copy');
-    } catch {
-      ok = false;
-    }
-    area.remove();
-    return ok;
-  }
 }
 
 // ---------- The next class: a card in the header, as a webinar's next session ----------
