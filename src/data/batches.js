@@ -6,7 +6,9 @@ import { addDays, formatTime, todayIn, toInstant, weekdayOf, zoned } from '../ut
 // join, its students and its reminders. Its sessions ("classes") are
 // scheduled one at a time, on the fly, from the Classes tab of its page:
 // tomorrow at 6 pm, Friday at 7:30 am, each with its own length. There's
-// no weekly repeat: every class is scheduled by hand.
+// no repeat on the class itself: Schedule a class can make a run of them
+// at once (Repeat weekly, on picked days, until a date), and each is saved
+// as its own class, to change or cancel on its own.
 //
 // Who's in a class comes from its linked contracts (contractIds), as a
 // TagMango workshop's "linked service": anyone who signed any of them.
@@ -56,6 +58,21 @@ export const TITLE_MAX = 100;
 export const DESCRIPTION_MAX = 1000;
 // How far ahead a weekly class from before is turned into classes
 const MIGRATE_WEEKS = 4;
+
+// For Repeat weekly in Schedule a class: the day chips, Monday first
+export const WEEKDAYS = [
+  ['mon', 'Mon'],
+  ['tue', 'Tue'],
+  ['wed', 'Wed'],
+  ['thu', 'Thu'],
+  ['fri', 'Fri'],
+  ['sat', 'Sat'],
+  ['sun', 'Sun'],
+];
+// The most classes one Repeat weekly can make, so a far-off end date can't make hundreds
+export const REPEAT_MAX = 60;
+// The end date Repeat weekly starts with: 4 weeks after the first class
+export const REPEAT_WEEKS = 4;
 
 // Examples under the title box, from different kinds of classes, so it
 // works for any coach. Shown, not offered to tap.
@@ -329,6 +346,29 @@ export function scheduleClass(batch, { date, startTime, durationMins }) {
   const id = newSessionId();
   const ok = saveBatch({ ...batch, sessions: [...(batch.sessions ?? []), { id, date, startTime, durationMins }] });
   return ok ? id : null;
+}
+
+// Every date from `from` to `until` (both 'YYYY-MM-DD', inclusive) that
+// falls on one of `days` (['mon', 'wed', …]), up to REPEAT_MAX
+export function repeatDates(from, days, until) {
+  const out = [];
+  if (!from || !until || days.length === 0) return out;
+  for (let d = from, guard = 0; d <= until && guard < 800 && out.length < REPEAT_MAX; d = addDays(d, 1), guard += 1) {
+    if (days.includes(weekdayOf(d))) out.push(d);
+  }
+  return out;
+}
+
+// Many classes at once (Repeat weekly), all at one time and length. A date
+// that already has a class at that time is skipped. Returns how many were
+// added, or null if it couldn't save.
+export function scheduleClasses(batch, dates, { startTime, durationMins }) {
+  const taken = new Set((batch.sessions ?? []).map((s) => `${s.date} ${s.startTime}`));
+  const added = dates
+    .filter((date) => !taken.has(`${date} ${startTime}`))
+    .map((date) => ({ id: newSessionId(), date, startTime, durationMins }));
+  if (added.length === 0) return 0;
+  return saveBatch({ ...batch, sessions: [...(batch.sessions ?? []), ...added] }) ? added.length : null;
 }
 
 // A class's new date, time or length. Students aren't messaged; reminders follow the new time.

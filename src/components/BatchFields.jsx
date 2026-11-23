@@ -11,6 +11,7 @@ import {
   LENGTH_MINUTES,
   NAME_EXAMPLES,
   TITLE_MAX,
+  WEEKDAYS,
   lengthLine,
 } from '../data/batches';
 import './QuestionInput.css';
@@ -73,6 +74,18 @@ function Problem({ show, text }) {
     <span className="qinput__error" role="alert">
       {text}
     </span>
+  );
+}
+
+// An on/off row, as TagMango's toggles
+function SwitchRow({ id, label, on, onChange }) {
+  return (
+    <div className="bfld__switch-row">
+      <span id={id}>{label}</span>
+      <button type="button" role="switch" aria-checked={on} aria-labelledby={id} className="rm__switch" onClick={() => onChange(!on)}>
+        <span className="rm__switch-thumb" aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 
@@ -249,6 +262,62 @@ export function SessionFields({ value, timeZone, onChange, showProblem = false, 
       </div>
 
       <Problem show={showProblem} text={sessionProblem(value, timeZone, now)} />
+    </div>
+  );
+}
+
+// ---------- Repeat weekly ----------
+// Under SessionFields in Schedule a class: off, just the switch. On, the
+// days it repeats on and the date it runs until.
+// value: { repeat, days: ['mon', …], until: 'YYYY-MM-DD' }; minDate: the first class's date
+export const repeatProblem = (r, from) => {
+  if (!r.repeat) return null;
+  if (r.days.length === 0) return 'Pick at least one day.';
+  if (!r.until || r.until < from) return 'Pick an end date after the first class.';
+  return null;
+};
+
+export function RepeatFields({ value, onChange, minDate, showProblem = false }) {
+  const toggleDay = (day) => {
+    const on = value.days.includes(day);
+    onChange('days', on ? value.days.filter((d) => d !== day) : [...value.days, day]);
+  };
+  return (
+    <div className={`bfld__repeat ${value.repeat ? 'bfld__repeat--on' : ''}`}>
+      <SwitchRow id="bfld-repeat" label="Repeat weekly" on={value.repeat} onChange={(on) => onChange('repeat', on)} />
+      {value.repeat && (
+        <div className="bfld__repeat-body">
+          <div className="call__chips bfld__days" role="group" aria-label="Repeat on">
+            {WEEKDAYS.map(([id, label]) => {
+              const on = value.days.includes(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={on}
+                  className={`call__chip bfld__day bfld__day--small ${on ? 'call__chip--on' : ''}`}
+                  onClick={() => toggleDay(id)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="bfld__until">
+            <label className="qinput__label" htmlFor="bfld-until">
+              Until
+            </label>
+            <DatePicker
+              id="bfld-until"
+              value={value.until ?? ''}
+              min={minDate}
+              onChange={(d) => onChange('until', d)}
+              className="qinput__text qinput__picker bfld__picker"
+            />
+          </div>
+          <Problem show={showProblem} text={repeatProblem(value, minDate)} />
+        </div>
+      )}
     </div>
   );
 }

@@ -249,3 +249,43 @@
 .bfld__link:hover {
   text-decoration: underline;
 }
+
+/* Repeat weekly, in Schedule a class: small day chips that fit the pop-up, then Until */
+.bfld__repeat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.bfld__repeat-body .bfld__days {
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 0;
+  border-top: 0;
+}
+
+/* Seven in one row, even on a phone */
+.bfld__day--small {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 13px;
+}
+
+.bfld__until {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Schedule a class (ScheduleClassDialog.jsx): Repeat weekly under the fields, then the line under it all */
+.sched__repeat {
+  margin-top: 16px;
+}
+
+.sched__note {
+  margin: 12px 0 0;
+}

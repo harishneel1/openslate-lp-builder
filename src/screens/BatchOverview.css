@@ -546,8 +546,3 @@
 .bov__class--past .bov__class-time {
   color: var(--color-text-muted);
 }
-
-/* Schedule a class: the line under its fields */
-.sched__note {
-  margin: 12px 0 0;
-}
