@@ -41,7 +41,8 @@ import { loadSaved } from './utils/storage'
 //   (data/exampleCourse.js), to show what a finished landing page looks like. &embed=1 is
 //   the guide beside the course editor's Landing page and Pricing (courseAnnotations.js).
 // /web/courses → the academy's Courses page, what students see (AcademyCoursesPage).
-//   "View as student" on the Courses page opens it.
+//   "View as student" on the Courses page opens it. /web/community → its Community tab
+//   (CommunityPage): the student's next live class.
 // ?go=<seriesId> → a webinar's shared link: the landing page of whichever of its runs
 //   is current (on now, else the soonest to come, else the latest over; data/webinar.js).
 //   Stays the same when it's run again. Any run's id works here too.
@@ -105,7 +106,7 @@ function Root() {
   if (courseLanding) {
     return <CourseLandingPage courseId={courseLanding} preview={params.get('preview') === '1'} region={params.get('region')} />
   }
-  if (segments[0] === 'web' && (segments[1] === 'courses' || segments[1] === 'account')) return <AcademyCoursesPage />
+  if (segments[0] === 'web' && ['courses', 'account', 'community'].includes(segments[1])) return <AcademyCoursesPage />
   if (contractCheckout) {
     return contractCheckout.done ? (
       <ContractDonePage contractId={contractCheckout.contractId} orderId={params.get('order')} />

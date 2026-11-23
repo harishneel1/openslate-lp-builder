@@ -1,0 +1,440 @@
+/* The academy's Community page (CommunityPage.jsx): its next class card,
+   as TagMango's next session, in our light theme. */
+.cm {
+  max-width: 880px;
+}
+
+.cm-next {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
+}
+
+/* The class's picture, 16:9; without one, our orange tint with a camera */
+.cm-next__pic {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  color: #b4520c;
+  background: var(--color-primary-tint);
+  border-radius: 10px;
+}
+
+.cm-next__pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cm-next__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cm-next__date {
+  margin-bottom: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #55555b;
+  background: #f2f2f4;
+  border-radius: var(--radius-pill);
+}
+
+.cm-next__title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #141414;
+}
+
+.cm-next__by,
+.cm-next__when {
+  font-size: 14px;
+  color: #6b6b72;
+}
+
+.cm-next__in--soon {
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.cm-next__join {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Join: our orange, as Join as host on the coach's side */
+.cm-join {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+}
+
+.cm-join:hover {
+  filter: brightness(0.95);
+}
+
+.cm-join:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* Until 15 minutes before: there, but greyed */
+.cm-join--off,
+.cm-join--off:hover {
+  color: #9a9aa1;
+  background: #f2f2f4;
+  filter: none;
+  cursor: not-allowed;
+}
+
+.cm-next__opens {
+  font-size: 12px;
+  color: #6b6b72;
+  white-space: nowrap;
+}
+
+/* While it's on: a soft ring, as the coach's button */
+.cm-join__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(242, 140, 56, 0.5);
+  animation: cm-pulse 1.6s ease-out infinite;
+}
+
+@keyframes cm-pulse {
+  to {
+    box-shadow: 0 0 0 10px rgba(242, 140, 56, 0);
+  }
+}
+
+@media (max-width: 640px) {
+  .cm-next {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .cm-next__join {
+    align-items: stretch;
+  }
+
+  .cm-join {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-join__pulse {
+    animation: none;
+  }
+}
+
+/* ---------- Upcoming classes: a row of cards that scrolls sideways ---------- */
+.cm-up {
+  margin-top: 20px;
+  padding: 20px 0 20px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
+}
+
+.cm-up__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 20px;
+}
+
+.cm-up__title {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 600;
+  color: #141414;
+}
+
+.cm-up__all {
+  font-size: 14px;
+  font-weight: 600;
+  color: #b4520c;
+  text-decoration: none;
+}
+
+.cm-up__all:hover {
+  text-decoration: underline;
+}
+
+.cm-up__arrows {
+  display: flex;
+  gap: 6px;
+}
+
+.cm-up__arrow {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #141414;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.cm-up__arrow:disabled {
+  color: #c4c4c9;
+  cursor: default;
+}
+
+.cm-up__strip {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0 20px 4px 0;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.cm-up__card {
+  flex: 0 0 340px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  scroll-snap-align: start;
+}
+
+/* NOV / 25 / WED */
+.cm-date {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 56px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.cm-date__month {
+  align-self: stretch;
+  padding: 3px 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  color: #b4520c;
+  background: var(--color-primary-tint);
+}
+
+.cm-date__day {
+  padding-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #141414;
+}
+
+.cm-date__week {
+  padding-bottom: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b6b72;
+}
+
+.cm-up__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cm-up__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  color: #141414;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-up__by {
+  font-size: 13px;
+  color: #6b6b72;
+}
+
+.cm-up__when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #55555b;
+}
+
+.cm-up__when > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .cm-up {
+    padding: 16px 0 16px 16px;
+  }
+
+  .cm-up__head {
+    padding-right: 16px;
+  }
+
+  /* A phone scrolls with a swipe: no arrows */
+  .cm-up__arrows {
+    display: none;
+  }
+
+  .cm-up__card {
+    flex-basis: 82%;
+  }
+}
+
+/* ---------- See all: every class coming up, by date ---------- */
+.cm-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #55555b;
+  text-decoration: none;
+}
+
+.cm-back:hover {
+  color: #141414;
+}
+
+.cm-day {
+  margin-top: 28px;
+}
+
+.cm-day__title {
+  margin-bottom: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #141414;
+}
+
+.cm-day__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cm-row {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.cm-row__pic {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  color: #b4520c;
+  background: var(--color-primary-tint);
+  border-radius: 8px;
+}
+
+.cm-row__pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cm-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cm-row__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #141414;
+}
+
+.cm-row__when {
+  font-size: 14px;
+  color: #3a3a40;
+}
+
+.cm-row__by {
+  font-size: 13px;
+  color: #6b6b72;
+}
+
+.cm-row__join {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .cm-row {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .cm-row__join {
+    grid-column: 1 / -1;
+    align-items: stretch;
+  }
+
+  .cm-row__join .cm-join {
+    justify-content: center;
+  }
+}

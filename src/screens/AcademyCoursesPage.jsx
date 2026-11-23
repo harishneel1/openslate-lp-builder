@@ -18,6 +18,7 @@ import CoursePlayerPage from './CoursePlayerPage';
 import StudentSignIn from './StudentSignIn';
 import AccountPage from './AccountPage';
 import UpdateContactPage from './UpdateContactPage';
+import CommunityPage from './CommunityPage';
 import './AcademyCoursesPage.css';
 import './CoursePlayerPage.css';
 
@@ -27,6 +28,9 @@ import './CoursePlayerPage.css';
 //   /web/courses                         the Courses page (below)
 //   /web/courses/<course>/learn?lesson=  one course in the player
 //                                        (CoursePlayerPage.jsx)
+//   /web/community                       Community: their next live class
+//                                        and the ones after (CommunityPage.jsx)
+//   /web/community/classes               its See all: every class coming up
 //   /web/account                         My account (AccountPage.jsx)
 //   /web/account/change-number-email     Update number/email
 //                                        (UpdateContactPage.jsx)
@@ -82,6 +86,14 @@ function accountPage() {
   return parts[2] === 'change-number-email' ? 'contact' : 'account';
 }
 
+// /web/community: the Community tab (CommunityPage.jsx); /web/community/classes
+// is its See all
+function onCommunity() {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return parts[0] === 'web' && parts[1] === 'community';
+}
+const communityPage = () => (window.location.pathname.split('/').filter(Boolean)[2] === 'classes' ? 'classes' : null);
+
 const previewing = () => new URLSearchParams(window.location.search).get('preview') === '1';
 
 export default function AcademyCoursesPage() {
@@ -98,6 +110,7 @@ export default function AcademyCoursesPage() {
 
   if (!preview && !student) return <StudentSignIn />;
   const me = preview ? null : student;
+  if (onCommunity()) return <CommunityPage key={me?.id ?? 'preview'} student={me} preview={preview} page={communityPage()} />;
   const courseId = playerCourseId();
   if (courseId) return <CoursePlayerPage key={me?.id ?? 'preview'} courseId={courseId} student={me} preview={preview} />;
   return <CourseList key={me?.id ?? 'preview'} student={me} preview={preview} />;
@@ -152,7 +165,7 @@ function CourseList({ student, preview }) {
 
   return (
     <div className="acd">
-      <AcademyTop student={student} home={academyHome(preview)} />
+      <AcademyTop student={student} home={academyHome(preview)} preview={preview} />
 
       <main className="acd__main">
         <h1 className="acd__title">Courses</h1>

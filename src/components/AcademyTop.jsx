@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, KeyRound, LogOut, User } from 'lucide-react';
+import { BookOpen, ChevronRight, KeyRound, LogOut, User, Users } from 'lucide-react';
 import { academyCoursesPath } from '../data/courses';
+import { communityPath } from '../data/studentClasses';
 import { mockAccount } from '../data/myPage';
 import { accountPath, contactPath, showPhone, signOut } from '../data/students';
 import { initials } from '../utils/initials';
@@ -9,8 +10,8 @@ import { initials } from '../utils/initials';
 // The academy's own top bar, on every page students see (Courses, the
 // course player, My account), laid out as TagMango's: the coach's logo on
 // the left, the academy's tabs in the middle as icon-and-name pills (the
-// one you're on filled), and the student's picture on the right. Only
-// Courses for now; more as they're built.
+// one you're on filled), and the student's picture on the right. Courses
+// and Community (CommunityPage.jsx) for now; more as they're built.
 //
 // The picture opens their menu, as TagMango's (without Appearance and the
 // other links), in Cloud Storage's look: a white panel, rows split by
@@ -31,9 +32,13 @@ import { initials } from '../utils/initials';
 // home: where the logo and Courses go (academyHome in courses.js)
 // onCourses: false on pages that aren't Courses (My account), so the tab
 //   isn't filled
+// on: the tab that's filled, 'courses' or 'community' (else from onCourses)
+// preview: the coach's preview (?preview=1), kept on Community's link
 // Its look is in AcademyCoursesPage.css (.acd__top, .acd-me, .acd-photo).
 // ------------------------------------------------------------
-export default function AcademyTop({ student = null, home = academyCoursesPath, onCourses = true }) {
+export default function AcademyTop({ student = null, home = academyCoursesPath, onCourses = true, on = null, preview = false }) {
+  const active = on ?? (onCourses ? 'courses' : null);
+  const community = preview ? `${communityPath}?preview=1` : communityPath;
   return (
     <header className="acd__top">
       <a className="acd__logo" href={home} aria-label={`${mockAccount.name}, Courses`}>
@@ -41,12 +46,20 @@ export default function AcademyTop({ student = null, home = academyCoursesPath, 
       </a>
       <nav className="acd__nav" aria-label="Academy">
         <a
-          className={`acd__tab ${onCourses ? 'acd__tab--on' : ''}`}
+          className={`acd__tab ${active === 'courses' ? 'acd__tab--on' : ''}`}
           href={home}
-          aria-current={onCourses ? 'page' : undefined}
+          aria-current={active === 'courses' ? 'page' : undefined}
         >
           <BookOpen size={19} aria-hidden="true" />
           Courses
+        </a>
+        <a
+          className={`acd__tab ${active === 'community' ? 'acd__tab--on' : ''}`}
+          href={community}
+          aria-current={active === 'community' ? 'page' : undefined}
+        >
+          <Users size={19} aria-hidden="true" />
+          Community
         </a>
       </nav>
       <div className="acd__right">{student && <StudentMenu student={student} />}</div>
