@@ -18,75 +18,97 @@
   white-space: nowrap;
 }
 
-/* ---------- Top bar ---------- */
+/* ---------- Top bar ----------
+   Slim and quiet: the logo and name on the left, the tabs as small text
+   in the middle (the one you're on dark, with a thin orange line on the
+   bar's bottom edge), the student's picture on the right. */
 .acd__top {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  height: 72px;
+  align-items: stretch;
+  height: 56px;
   padding: 0 24px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+}
+
+.acd__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  justify-self: start;
+  color: #141414;
+  text-decoration: none;
 }
 
 /* The coach's logo: the same mark as in their own app (.topnav__logo in
    AppLayout.css), a dark square with small rounded corners */
 .acd__logo {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  font-size: 15px;
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
-  text-decoration: none;
   background: #111;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
 }
 
-.acd__logo:focus-visible {
+.acd__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acd__brand:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
 .acd__nav {
   display: flex;
-  gap: 6px;
+  gap: 28px;
 }
 
-/* A tab: its icon beside its name, in a pill */
+/* A tab: small text with its icon; the bar's full height, so the line
+   under the one you're on sits on the bar's bottom edge */
 .acd__tab {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 18px;
-  font-size: 16px;
+  gap: 7px;
+  margin-bottom: -1px;
+  font-size: 14px;
   font-weight: 500;
-  color: #55555b;
+  color: #6b6b72;
   text-decoration: none;
-  border-radius: var(--radius-pill);
-  transition: color 0.15s, background 0.15s;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
 }
 
 .acd__tab:hover {
   color: #141414;
-  background: #f2f2f4;
 }
 
 .acd__tab--on,
 .acd__tab--on:hover {
   font-weight: 600;
-  color: #b4520c;
-  background: var(--color-primary-tint);
+  color: #141414;
+  border-bottom-color: var(--color-primary);
 }
 
 .acd__tab:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: -2px;
+  border-radius: 4px;
 }
 
 /* ---------- The student's picture and menu, top right ----------
@@ -96,6 +118,7 @@
    Storage's video tiles. */
 .acd__right {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
 }
 
@@ -439,30 +462,25 @@
 /* ---------- Phones ---------- */
 @media (max-width: 720px) {
   .acd__top {
-    height: 62px;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    height: 52px;
     padding: 0 14px;
   }
 
-  .acd__logo {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+  /* A phone: the logo alone, the tabs beside it */
+  .acd__name {
+    display: none;
   }
 
-  .acd-me__button .acd-photo {
-    width: 34px !important;
-    height: 34px !important;
+  .acd__nav {
+    gap: 20px;
   }
 
   .acd-me__menu {
     width: min(300px, calc(100vw - 28px));
   }
 
-  .acd__tab {
-    height: 40px;
-    padding: 0 14px;
-    font-size: 15px;
-  }
 
   .acd__main {
     padding: 28px 16px 48px;

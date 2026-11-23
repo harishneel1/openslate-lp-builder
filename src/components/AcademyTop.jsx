@@ -7,11 +7,17 @@ import { accountPath, contactPath, showPhone, signOut } from '../data/students';
 import { initials } from '../utils/initials';
 
 // ------------------------------------------------------------
-// The academy's own top bar, on every page students see (Courses, the
-// course player, My account), laid out as TagMango's: the coach's logo on
-// the left, the academy's tabs in the middle as icon-and-name pills (the
-// one you're on filled), and the student's picture on the right. Courses
-// and Community (CommunityPage.jsx) for now; more as they're built.
+// The academy's own top bar, on every page students see (Courses,
+// Community, My account): a slim 56px bar, quiet so the page's own orange
+// buttons (Continue, Join) stand out.
+//
+//   (HN) Harish Neel        📖 Courses   👥 Community                (AR)
+//                           ━━━━━━━━━━
+//
+// The coach's logo and name on the left; the tabs in the middle as plain
+// small text with an icon, the one you're on dark with a thin orange line
+// under it (on the bar's bottom edge); the student's picture on the
+// right. Courses and Community (CommunityPage.jsx) for now.
 //
 // The picture opens their menu, as TagMango's (without Appearance and the
 // other links), in Cloud Storage's look: a white panel, rows split by
@@ -41,8 +47,11 @@ export default function AcademyTop({ student = null, home = academyCoursesPath, 
   const community = preview ? `${communityPath}?preview=1` : communityPath;
   return (
     <header className="acd__top">
-      <a className="acd__logo" href={home} aria-label={`${mockAccount.name}, Courses`}>
-        {initials(mockAccount.name)}
+      <a className="acd__brand" href={home} aria-label={`${mockAccount.name}, Courses`}>
+        <span className="acd__logo" aria-hidden="true">
+          {initials(mockAccount.name)}
+        </span>
+        <span className="acd__name">{mockAccount.name}</span>
       </a>
       <nav className="acd__nav" aria-label="Academy">
         <a
@@ -144,7 +153,7 @@ function StudentMenu({ student }) {
         aria-label={`Your account: ${name}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <StudentPhoto student={student} />
+        <StudentPhoto student={student} size={32} />
       </button>
 
       {open && (
