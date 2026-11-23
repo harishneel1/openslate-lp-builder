@@ -19,16 +19,16 @@
 }
 
 /* ---------- Top bar ----------
-   Slim and quiet: the logo and name on the left, the tabs as small text
-   in the middle (the one you're on dark, with a thin orange line on the
-   bar's bottom edge), the student's picture on the right. */
+   Slim and quiet: the logo and name on the left, the tabs as compact
+   pills in the middle (the one you're on in our orange tint, a soft grey
+   on hover), the student's picture on the right. */
 .acd__top {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
+  align-items: center;
   height: 56px;
   padding: 0 24px;
   background: var(--color-surface);
@@ -76,39 +76,41 @@
 
 .acd__nav {
   display: flex;
-  gap: 28px;
+  align-items: center;
+  gap: 4px;
 }
 
-/* A tab: small text with its icon; the bar's full height, so the line
-   under the one you're on sits on the bar's bottom edge */
+/* A tab: a compact pill. The one you're on in our orange tint, as
+   TagMango's filled tab; the others show a soft grey on hover. */
 .acd__tab {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: -1px;
+  height: 36px;
+  padding: 0 14px;
   font-size: 14px;
   font-weight: 500;
-  color: #6b6b72;
+  color: #55555b;
   text-decoration: none;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  border-radius: var(--radius-pill);
+  transition: color 0.15s, background 0.15s;
 }
 
 .acd__tab:hover {
   color: #141414;
+  background: #f2f2f4;
 }
 
 .acd__tab--on,
 .acd__tab--on:hover {
   font-weight: 600;
-  color: #141414;
-  border-bottom-color: var(--color-primary);
+  color: #b4520c;
+  background: var(--color-primary-tint);
 }
 
 .acd__tab:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-  border-radius: 4px;
+  outline-offset: 2px;
 }
 
 /* ---------- The student's picture and menu, top right ----------
@@ -474,7 +476,11 @@
   }
 
   .acd__nav {
-    gap: 20px;
+    gap: 2px;
+  }
+
+  .acd__tab {
+    padding: 0 12px;
   }
 
   .acd-me__menu {
