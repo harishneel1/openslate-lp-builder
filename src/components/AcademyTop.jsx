@@ -11,13 +11,13 @@ import { initials } from '../utils/initials';
 // Community, My account): a slim 56px bar, quiet so the page's own orange
 // buttons (Continue, Join) stand out.
 //
-//   (HN) Harish Neel        📖 Courses   👥 Community                (AR)
-//                           ━━━━━━━━━━
+//   (HN) Harish Neel        👥 Community   📖 Courses                (AR)
+//                                          ━━━━━━━━━━
 //
 // The coach's logo and name on the left; the tabs in the middle as plain
 // small text with an icon, the one you're on dark with a thin orange line
 // under it (on the bar's bottom edge); the student's picture on the
-// right. Courses and Community (CommunityPage.jsx) for now.
+// right. Community (CommunityPage.jsx) first, then Courses.
 //
 // The picture opens their menu, as TagMango's (without Appearance and the
 // other links), in Cloud Storage's look: a white panel, rows split by
@@ -55,20 +55,20 @@ export default function AcademyTop({ student = null, home = academyCoursesPath, 
       </a>
       <nav className="acd__nav" aria-label="Academy">
         <a
-          className={`acd__tab ${active === 'courses' ? 'acd__tab--on' : ''}`}
-          href={home}
-          aria-current={active === 'courses' ? 'page' : undefined}
-        >
-          <BookOpen size={19} aria-hidden="true" />
-          Courses
-        </a>
-        <a
           className={`acd__tab ${active === 'community' ? 'acd__tab--on' : ''}`}
           href={community}
           aria-current={active === 'community' ? 'page' : undefined}
         >
           <Users size={19} aria-hidden="true" />
           Community
+        </a>
+        <a
+          className={`acd__tab ${active === 'courses' ? 'acd__tab--on' : ''}`}
+          href={home}
+          aria-current={active === 'courses' ? 'page' : undefined}
+        >
+          <BookOpen size={19} aria-hidden="true" />
+          Courses
         </a>
       </nav>
       <div className="acd__right">{student && <StudentMenu student={student} />}</div>
