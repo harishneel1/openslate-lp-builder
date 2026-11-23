@@ -360,7 +360,7 @@ function ClassList({ batches, notice, onSchedule, justAddedId, menuFor, setMenuF
       <div className="lc__head">
         <div>
           <h1 className="oh__title">Live classes</h1>
-          <p className="calls__lead">Classes on Zoom, scheduled when it suits you. Everyone on the contracts you link can join.</p>
+          <p className="calls__lead">Group classes on Zoom.</p>
         </div>
         {batches.length > 0 && (
           <button type="button" className="oh__add" onClick={onCreate}>
@@ -378,7 +378,7 @@ function ClassList({ batches, notice, onSchedule, justAddedId, menuFor, setMenuF
               </span>
               <h2 className="calls__empty-title">Create your first class</h2>
               <p className="calls__empty-text">
-                Name it and link the contracts people buy. Then schedule its classes whenever suits you.
+                Schedule sessions whenever you like.
               </p>
               <button type="button" className="oh__add" onClick={onCreate}>
                 <Plus size={16} strokeWidth={2.5} aria-hidden="true" /> Create a class
