@@ -34,8 +34,8 @@ import './CreateBatchFlow.css';
 //
 // then: a short "setting it up" checklist, and "… is ready". No date or
 // time here: classes are scheduled one by one, on the fly, from the
-// Classes tab of its page (Schedule a class), where "Go to your class"
-// lands.
+// Classes tab of its page, where "Go to your class" lands on
+// "Schedule your first class".
 //
 // No fee here: how people pay is on the contracts (Contracts page), so a
 // coach who charges monthly, or 6 months up front, links those contracts.
@@ -104,8 +104,6 @@ export default function CreateBatchFlow({ onExit, onDone }) {
       <h1 className="bflow__title" id="bflow-title" tabIndex={-1}>
         Create a class
       </h1>
-      <p className="bflow__sub">Everyone on the contracts you link can join. You’ll schedule its classes next, whenever suits you.</p>
-
       <div className="bflow__body bflow__form">
         <TitleField value={draft} onChange={change} showProblem={tried} />
         <ThumbnailField value={draft} onChange={change} />
@@ -210,10 +208,8 @@ function BatchReady({ batch, onDone }) {
         </div>
       )}
 
-      <p className="ready__text ready__in">Next, schedule its first class.</p>
-
       <button type="button" className="ready__done ready__later" onClick={onDone}>
-        Schedule a class
+        Go to your class
         <ArrowRight size={16} aria-hidden="true" />
       </button>
     </div>

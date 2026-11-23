@@ -90,8 +90,6 @@ export default function LiveClassesPage({ openRequest = null, onFocus, onOpenCon
   const [view, setView] = useState(openRequest ? 'details' : 'list');
   const [openId, setOpenId] = useState(openRequest?.id ?? null);
   const [tab, setTab] = useState(openRequest?.tab ?? 'classes'); // Classes is the first tab
-  // Just made: its page opens with Schedule a class
-  const [scheduleOnOpen, setScheduleOnOpen] = useState(false);
   const [justAddedId, setJustAddedId] = useState(null);
   const [menuFor, setMenuFor] = useState(null);
   const [schedulingId, setSchedulingId] = useState(null); // the class Schedule was pressed on
@@ -178,7 +176,6 @@ export default function LiveClassesPage({ openRequest = null, onFocus, onOpenCon
           setJustAddedId(id);
           setOpenId(id);
           setTab('classes');
-          setScheduleOnOpen(true);
           setView('details');
         }}
       />
@@ -273,8 +270,6 @@ export default function LiveClassesPage({ openRequest = null, onFocus, onOpenCon
           setView('announce');
         }}
         classNotice={tab === 'classes' ? classNotice : null}
-        scheduleOnOpen={scheduleOnOpen}
-        onScheduleOpened={() => setScheduleOnOpen(false)}
       />
     );
   }

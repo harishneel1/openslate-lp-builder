@@ -64,8 +64,6 @@ import './BatchOverview.css';
 // onOpenContracts(): to the Contracts page, where contracts are shared
 // onEdit(): its editor
 // onAnnounce(change): cancel a class ({ kind: 'cancel', sessionId, date }): the cancel page
-// scheduleOnOpen: open Schedule a class straight away (just after Create a class);
-//   onScheduleOpened() clears it
 // classNotice: a line to show on Classes after one ("Class cancelled…")
 // ------------------------------------------------------------
 
@@ -103,8 +101,6 @@ export default function BatchOverview({
   onEditEmail,
   onAnnounce,
   classNotice = null,
-  scheduleOnOpen = false,
-  onScheduleOpened,
 }) {
   const [version, setVersion] = useState(0); // bumped when students change
   const [now, setNow] = useState(appNow);
@@ -113,11 +109,8 @@ export default function BatchOverview({
   // Reminders' WhatsApp half has its own id ('whatsapp'), shown as Reminders.
   const shownTab = tab === 'students' ? 'students' : tab === 'emails' || tab === 'whatsapp' ? 'emails' : 'classes';
   // The Schedule a class pop-up: { c: null } to schedule, { c } to change one's time
-  const [scheduling, setScheduling] = useState(scheduleOnOpen ? { c: null } : null);
+  const [scheduling, setScheduling] = useState(null);
   const [scheduled, setScheduled] = useState(null); // "Class scheduled for …"
-  useEffect(() => {
-    if (scheduleOnOpen) onScheduleOpened?.();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [said, setSaid] = useState('');
   const toggleReminder = (id, on) => {
     if (saveReminderOn(batch, id, on)) setSaid(`${on ? 'Turned on' : 'Turned off'} the email ${classReminderById(id).name}.`);
@@ -171,9 +164,11 @@ export default function BatchOverview({
           </div>
 
           <div className="cov__actions">
+            {nextOn && (
             <a className="bov__join" href={classMeetingHref(batch.id)} target="_blank" rel="noopener" aria-label="Join as host (opens in a new tab)">
               <Video size={15} aria-hidden="true" /> Join as host
             </a>
+            )}
             <button type="button" className="oh__edit" onClick={onEdit}>
               <Pencil size={15} aria-hidden="true" /> Edit
             </button>
@@ -243,19 +238,26 @@ export default function BatchOverview({
               </p>
             )}
 
-            <div className="bov__classes-head">
-              <h2 className="bov__classes-title">Coming up</h2>
-              <button type="button" className="oh__edit bov__schedule" onClick={() => setScheduling({ c: null })}>
-                <CalendarPlus size={15} aria-hidden="true" /> Schedule a class
-              </button>
-            </div>
+            {/* Nothing coming up: one clear call to schedule, in the middle. Otherwise the list, with Schedule a class above it */}
+            {classes.length > 0 && (
+              <div className="bov__classes-head">
+                <h2 className="bov__classes-title">Coming up</h2>
+                <button type="button" className="oh__edit bov__schedule" onClick={() => setScheduling({ c: null })}>
+                  <CalendarPlus size={15} aria-hidden="true" /> Schedule a class
+                </button>
+              </div>
+            )}
 
             {classes.length === 0 ? (
               <div className="bov__none">
-                <p className="bov__none-title">No classes scheduled</p>
-                <p className="bov__none-text">
-                  Pick a date and time for the next one. Everyone on the class’s contracts gets reminders before it.
-                </p>
+                <span className="bov__empty-icon" aria-hidden="true">
+                  <CalendarPlus size={22} />
+                </span>
+                <h2 className="bov__none-title">{past.length === 0 ? 'Schedule your first class' : 'Schedule your next class'}</h2>
+                <p className="bov__none-text">Students get a reminder before it starts.</p>
+                <button type="button" className="oh__add bov__none-go" onClick={() => setScheduling({ c: null })}>
+                  <CalendarPlus size={16} aria-hidden="true" /> Schedule a class
+                </button>
               </div>
             ) : (
               <>

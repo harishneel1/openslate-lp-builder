@@ -512,25 +512,30 @@
   white-space: nowrap;
 }
 
-/* Nothing scheduled yet */
+/* Nothing coming up: icon, one line, and the button under it */
 .bov__none {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 16px 32px;
   text-align: center;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .bov__none-title {
-  margin: 0 0 4px;
-  font-size: 15px;
+  margin: 4px 0 0;
+  font-size: 17px;
   font-weight: 600;
 }
 
 .bov__none-text {
-  max-width: 420px;
-  margin: 0 auto;
+  margin: 0;
   font-size: 14px;
   color: var(--color-text-muted);
+}
+
+.bov__none-go {
+  margin-top: 8px;
 }
 
 .bov__next + .bov__classes {
