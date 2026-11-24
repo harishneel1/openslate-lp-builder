@@ -473,6 +473,10 @@ export default function CourseContent({ course, onSaved, guard, onDirtyChange, o
               const isFolded = folded.has(section.id);
               const lessonDrop = drag?.type === 'lesson' && drop?.sectionId === section.id ? drop : null;
               const tabOn = showing && view?.type === 'section' && view.id === section.id;
+              // While something is open in the panel, only its section's bar
+              // stays orange; the others turn grey (CourseCurriculum.css)
+              const isCurrent = tabOn || (showing && open?.section.id === section.id);
+              const isMuted = showing && !isCurrent;
               return (
                 <li
                   key={section.id}
@@ -494,6 +498,7 @@ export default function CourseContent({ course, onSaved, guard, onDirtyChange, o
                     className={[
                       'cct__tab',
                       tabOn && 'cct__tab--on',
+                      isMuted && 'cct__tab--muted',
                       isFolded && lessonDrop && 'cct__tab--drop',
                     ]
                       .filter(Boolean)

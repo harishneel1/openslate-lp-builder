@@ -49,6 +49,26 @@
   border-color: var(--color-primary);
 }
 
+/* Something is open in the panel: only its section's bar is orange. The
+   other sections' bars go a quiet grey, so it's clear where you are. */
+.cct--folders .cct__tab--muted {
+  background: #efeff1;
+  border-bottom-color: var(--cct-line);
+  box-shadow: inset 4px 0 0 #c8c8cd;
+}
+
+.cct--folders .cct__tab--muted .cct__tab-eyebrow,
+.cct--folders .cct__tab--muted .cct__grip {
+  color: var(--crs-ink-3, #8a8a90);
+}
+
+.cct--folders .cct__tab--muted .cct__fold:hover,
+.cct--folders .cct__tab--muted .cct__tab-name:hover,
+.cct--folders .cct__tab--muted .cct__grip:hover {
+  color: inherit;
+  background: rgba(0, 0, 0, 0.05);
+}
+
 /* A lesson dragged over a folded section's bar: it'll go to that section's end */
 .cct--folders .cct__tab--drop {
   outline: 2px dashed var(--color-primary);
