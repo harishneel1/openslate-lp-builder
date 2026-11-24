@@ -163,7 +163,7 @@ export default function LessonPanel({ course, lesson, onSaved, onDirtyChange }) 
     if (!upload || upload.sent < upload.bytes) return;
     const { name, bytes, file } = upload;
     setUpload(null);
-    const asset = addFile({ name, bytes });
+    const asset = addFile({ name, bytes, blob: file });
     if (!asset) {
       setProblem('We couldn’t upload that just now. Try again.');
       setMode('pick');

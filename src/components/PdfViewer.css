@@ -1,0 +1,176 @@
+/* A PDF lesson, read in the course player (PdfViewer.jsx): a thin bar
+   (page, Read only, zoom) over the pages on grey, scrolling on their own.
+   Nothing in it can be selected or dragged out. */
+
+.pdfv {
+  display: flex;
+  flex-direction: column;
+  height: min(80vh, 900px);
+  overflow: hidden;
+  background: #ececef;
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-lg);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.pdfv__bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 12px 0 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid #e3e3e7;
+}
+
+.pdfv__pages {
+  min-width: 56px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2b2b30;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdfv__lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: #8a8a90;
+}
+
+.pdfv__zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.pdfv__btn,
+.pdfv__level {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  font: inherit;
+  color: #2b2b30;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.pdfv__btn {
+  width: 32px;
+}
+
+.pdfv__level {
+  min-width: 52px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdfv__btn:hover:not(:disabled),
+.pdfv__level:hover {
+  background: #f0f0f2;
+}
+
+.pdfv__btn:disabled {
+  color: #c4c4c9;
+  cursor: default;
+}
+
+.pdfv__btn:focus-visible,
+.pdfv__level:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.pdfv__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+}
+
+.pdfv__page {
+  margin: 0 auto 16px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(20, 20, 20, 0.12);
+}
+
+.pdfv__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pdfv__loading {
+  padding: 48px 0;
+  font-size: 14px;
+  color: #6b6b72;
+  text-align: center;
+}
+
+/* No file to show */
+.pdfv--note {
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: auto;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--color-surface);
+}
+
+.pdfv__note-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.pdfv__note-text {
+  max-width: 420px;
+  font-size: 14px;
+  color: #6b6b72;
+}
+
+/* Printing the page prints a note, never the PDF */
+.pdfv__print-note {
+  display: none;
+}
+
+@media print {
+  .pdfv__bar,
+  .pdfv__scroll {
+    display: none !important;
+  }
+
+  .pdfv {
+    height: auto;
+    border: 0;
+  }
+
+  .pdfv__print-note {
+    display: block;
+    padding: 24px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pdfv {
+    height: 75vh;
+  }
+
+  .pdfv__scroll {
+    padding: 12px;
+  }
+
+  .pdfv__lock {
+    display: none;
+  }
+}

@@ -4,6 +4,7 @@ import { webinarWhen } from './webinar';
 import { funnelName } from '../utils/funnelName';
 import { coachZone, exactDay } from './buildBookingsJson';
 import { zoned } from '../utils/slots';
+import { deleteBlob, saveBlob } from './fileBlobs';
 
 // ------------------------------------------------------------
 // Cloud Storage: everything a coach keeps with us, and how much of their
@@ -284,7 +285,9 @@ export function setPretendStorage(percent, now = Date.now()) {
 export function deleteAsset(asset) {
   if (asset.kind === 'recording') return deleteRecording(asset.webinarId);
   const fileId = asset.id.replace(/^file:/, '');
-  return saveFiles(loadFiles().filter((f) => f.id !== fileId));
+  const gone = saveFiles(loadFiles().filter((f) => f.id !== fileId));
+  if (gone) deleteBlob(fileId);
+  return gone;
 }
 
 // Calls back when anything stored changes: a file deleted (here or in
@@ -355,7 +358,9 @@ export function uniqueName(name, taken = []) {
 
 // An upload finished: it's stored. Returns the stored file as an asset
 // (as fileById gives it), or null if it couldn't be saved.
-export function addFile({ name, bytes }, now = Date.now()) {
+// blob: the file itself (a File from the picker). A PDF's is kept
+// (fileBlobs.js), so a PDF lesson can be read in the player.
+export function addFile({ name, bytes, blob = null }, now = Date.now()) {
   const format = formatOf(name);
   if (!format) return null;
   const file = {
@@ -366,7 +371,9 @@ export function addFile({ name, bytes }, now = Date.now()) {
     bytes: Math.max(0, Math.round(bytes)),
     at: now,
   };
-  return saveFiles([...loadFiles(), file]) ? fileAsset(file, coachZone()) : null;
+  if (!saveFiles([...loadFiles(), file])) return null;
+  if (blob && file.ext === 'PDF') saveBlob(file.id, blob);
+  return fileAsset(file, coachZone());
 }
 
 // ---------- Demo only ----------

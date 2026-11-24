@@ -196,6 +196,7 @@ function newUpload(file, name) {
     id: `u-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     name,
     bytes: file.size,
+    file, // kept with it once it's done (a PDF's, for the course player)
     type: format.type,
     ext: format.ext,
     sent: 0,
@@ -293,7 +294,7 @@ export default function CloudStoragePage({ webinars = [], onOpenRecording }) {
   useEffect(() => {
     const done = uploads.filter((u) => u.sent >= u.bytes);
     if (done.length === 0) return;
-    done.forEach((u) => addFile({ name: u.name, bytes: u.bytes }));
+    done.forEach((u) => addFile({ name: u.name, bytes: u.bytes, blob: u.file }));
     setUploads((prev) => prev.filter((u) => u.sent < u.bytes));
   }, [uploads]);
 

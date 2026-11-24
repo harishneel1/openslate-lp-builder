@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extensions';
@@ -15,6 +15,8 @@ import './TextEditor.css';
 //   │ Write this lesson here…                                  │
 //   └──────────────────────────────────────────────────────────┘
 //   Unsaved changes                              [Cancel] [Save]
+//
+// Empty lines are tidied when it's saved and shown (tidyHtml).
 //
 // Normal text, two heading sizes (Heading, Subheading), bold, italic,
 // bulleted and numbered lists, and links. Nothing else, on purpose: the
@@ -42,6 +44,39 @@ import './TextEditor.css';
 // autosave; onChange(html): as they type; canSave(html) → false keeps it
 //   from saving (too long, say), still unsaved
 // ------------------------------------------------------------
+
+// Empty lines tidied away, so students never see big blank gaps: empty
+// paragraphs at the start and end go, and a run of them in between
+// shrinks to one. Line breaks (Shift+Enter) at a paragraph's start or end
+// go too, and three or more in a row shrink to two. Used when the text is
+// saved and when it's shown, so text saved before this reads tidy too.
+const isBlank = (el) =>
+  /^(P|H2|H3)$/.test(el.tagName) && !el.textContent.replace(/\u00a0/g, ' ').trim() && !el.querySelector('img');
+
+export function tidyHtml(html) {
+  if (!html || typeof DOMParser === 'undefined') return html ?? '';
+  const root = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html').body.firstElementChild;
+  // Line breaks at a paragraph's edges, and long runs of them
+  root.querySelectorAll('p, h2, h3, li').forEach((el) => {
+    while (el.firstChild?.nodeName === 'BR') el.firstChild.remove();
+    while (el.lastChild?.nodeName === 'BR') el.lastChild.remove();
+    let run = 0;
+    Array.from(el.childNodes).forEach((n) => {
+      run = n.nodeName === 'BR' ? run + 1 : 0;
+      if (run > 2) n.remove();
+    });
+  });
+  // Empty paragraphs: none at the ends, at most one in a row
+  const blocks = Array.from(root.children);
+  let lastBlank = true; // drops the ones at the start
+  blocks.forEach((el) => {
+    const blank = isBlank(el);
+    if (blank && lastBlank) el.remove();
+    lastBlank = blank;
+  });
+  while (root.lastElementChild && isBlank(root.lastElementChild)) root.lastElementChild.remove();
+  return root.innerHTML;
+}
 
 // The same set of things the editor and the read-only view understand
 export function textExtensions({ forView = false, placeholder = 'Write this lesson here…' } = {}) {
@@ -95,7 +130,7 @@ export default function TextEditor({
     if (html === baseline.current) return;
     const { onSave: save, canSave: can } = latest.current;
     if (can && !can(html)) return;
-    if (save(e.isEmpty ? '' : html)) {
+    if (save(e.isEmpty ? '' : tidyHtml(html))) {
       baseline.current = html;
       setDirty(false);
     }
@@ -163,7 +198,7 @@ export default function TextEditor({
 
   const save = () => {
     if (!dirty || state.empty) return;
-    if (onSave(editor.getHTML())) {
+    if (onSave(tidyHtml(editor.getHTML()))) {
       baseline.current = editor.getHTML();
       setDirty(false);
     }
@@ -314,7 +349,8 @@ function LinkBar({ editor, current, onDone }) {
 }
 
 // The text as students will read it, read-only: links open in a new tab
-export function TextView({ html }) {
+export function TextView({ html: raw }) {
+  const html = useMemo(() => tidyHtml(raw), [raw]);
   const editor = useEditor({
     extensions: textExtensions({ forView: true }),
     content: html,

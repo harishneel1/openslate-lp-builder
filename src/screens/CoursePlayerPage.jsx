@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, FolderOpen, Link2, Play } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Download, ExternalLink, FolderOpen, Link2, Play } from 'lucide-react';
 import {
   academyHome,
   coursePlayerPath,
@@ -13,6 +13,7 @@ import { onProgressChange, progressOf, setDone, setLast } from '../data/coursePr
 import { canSee, onStudentChange } from '../data/students';
 import { fileById, formatBytes, onStorageChange } from '../data/cloudStorage';
 import { TextView } from '../components/TextEditor';
+import PdfViewer from '../components/PdfViewer';
 import { KIND, KindTile, tileKindOf } from './lessonKinds';
 import './AcademyCoursesPage.css';
 import './CoursePlayerPage.css';
@@ -65,7 +66,8 @@ import './CoursePlayerPage.css';
 // The lesson: its section and title, then the lesson itself:
 //   Embedded video  the YouTube or Vimeo player
 //   Video           a player (in the prototype, a stand-in: no files kept)
-//   PDF             the file, to read and download (a stand-in for now)
+//   PDF             the file, read in a protected viewer (PdfViewer):
+//                   no download, print or copying
 //   Text            the text
 // Under it, one row: ‹ Previous on the left, and the way forward on the
 // right: Next › (plain text like Previous, only its arrow orange), the
@@ -648,20 +650,8 @@ function LessonBody({ lesson }) {
     );
   }
 
-  // PDF
-  return (
-    <div className="cpl__doc">
-      <span className="cpl__doc-icon cpl__doc-icon--pdf" aria-hidden="true">
-        <FileText size={26} />
-      </span>
-      <p className="cpl__doc-name">{c.name}</p>
-      <p className="cpl__doc-note">PDF · {formatBytes(c.bytes)}</p>
-      <button type="button" className="cpl__doc-btn" disabled title="The prototype keeps only the file’s name">
-        <Download size={16} aria-hidden="true" /> Download PDF
-      </button>
-      <p className="cpl__doc-note">The PDF shows here to read once files are kept. The prototype keeps only its name.</p>
-    </div>
-  );
+  // PDF: read here, never downloaded (PdfViewer)
+  return <PdfViewer fileId={c.fileId} name={c.name} />;
 }
 
 // ---------- About this lesson, Resources: only when there's something ----------
