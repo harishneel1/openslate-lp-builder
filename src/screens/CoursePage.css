@@ -521,11 +521,23 @@
 
 .lrn__row {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* ✕ lines up with the box, not the box and its count */
   gap: 6px;
 }
 
-/* A line to type in; how many characters are left shows at its end only near the limit */
+/* A line and its count under it */
+.lrn__field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lrn__row .lrn__remove {
+  margin-top: 5px; /* centred on the 48px box */
+}
+
+/* A line to type in; its count (used / max) sits under it */
 .lrn__box {
   display: flex;
   flex: 1;
@@ -564,12 +576,26 @@
   color: #a4a4aa;
 }
 
+/* Under a field, on the right: characters used out of the most, "18 / 60".
+   Grey; orange near the limit; red past it (the description only) */
 .lrn__count {
-  flex: none;
-  padding-left: 12px;
+  display: block;
+  max-width: 760px;
+  margin-top: 6px;
   font-size: 13px;
-  color: var(--crs-orange-ink);
+  line-height: 18px;
+  text-align: right;
+  color: var(--crs-ink-3);
   font-variant-numeric: tabular-nums;
+}
+
+.lrn__count--near {
+  color: var(--crs-orange-ink);
+}
+
+.lrn__count--over {
+  font-weight: 500;
+  color: #b42318;
 }
 
 .lrn__remove {
@@ -687,9 +713,23 @@
   box-shadow: 0 0 0 3px #fdecec;
 }
 
-.lnd__desc-note {
+/* Under the description: what needs doing on the left, the count on the right */
+.lnd__desc-under {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
   max-width: 820px;
   margin-top: 8px;
+}
+
+.lnd__desc-under .lrn__count {
+  flex: none;
+  margin-top: 0;
+}
+
+.lnd__desc-note {
+  margin: 0;
   font-size: 13.5px;
   color: var(--crs-ink-3);
   font-variant-numeric: tabular-nums;

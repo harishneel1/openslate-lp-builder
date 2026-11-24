@@ -89,9 +89,9 @@ import TestimonialsField from './CourseTestimonials';
 // contract, the checkout page's (as plain text: CoursePage.jsx keeps it
 // in step), so it has the contract's limit: 2,000 characters of text, and
 // at least 50 to publish (DESCRIPTION_MAX, DESCRIPTION_MIN in courses.js,
-// counted as descriptionText counts them). Under it, only when it
-// matters: how many more are needed to publish, how many are left (from
-// 100), or how far over the limit it is (it doesn't save until it's
+// counted as descriptionText counts them). Under it: characters used out
+// of 2,000, always, and only when it matters, how many more are needed to
+// publish or how far over the limit it is (it doesn't save until it's
 // shorter, and the page asks before they leave, through onDirtyChange).
 // A green tick by its heading once it's long enough.
 //
@@ -102,7 +102,7 @@ import TestimonialsField from './CourseTestimonials';
 // ------------------------------------------------------------
 
 const NEAR_LIMIT = 20;
-const DESCRIPTION_NEAR = 100; // the description's count shows from here
+const DESCRIPTION_NEAR = 100; // the description's count turns orange from here
 
 const LISTS = {
   outcomes: {
@@ -138,13 +138,21 @@ const EXTRAS = [
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-// Characters left, only when they're close to the end
-const Left = ({ text, max }) =>
-  max - text.length <= NEAR_LIMIT ? (
-    <span className="lrn__count" aria-live="polite">
-      {max - text.length}
+// Under a field: characters used out of the most it takes, like "18 / 60".
+// Always there, so it reads as a count, not a number that seems to fall on
+// its own. Orange from NEAR_LIMIT characters before the end, red past it.
+// The field points to it with aria-describedby, so a screen reader hears
+// it with the field rather than on every key.
+const num = (n) => n.toLocaleString('en-IN');
+const Count = ({ id, used, max, near = NEAR_LIMIT }) => {
+  const tone = used > max ? 'lrn__count--over' : max - used <= near ? 'lrn__count--near' : '';
+  return (
+    <span id={id} className={`lrn__count ${tone}`}>
+      {num(used)} / {num(max)}
+      <span className="sr-only"> characters</span>
     </span>
-  ) : null;
+  );
+};
 
 export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChange }) {
   // The optional parts open: those with something in them, and any clicked open
@@ -253,6 +261,7 @@ function Title({ course, onSave }) {
           className="lrn__input"
           value={text}
           maxLength={COURSE_TITLE_MAX}
+          aria-describedby="lnd-title-count"
           autoComplete="off"
           onChange={(e) => setText(e.target.value)}
           onBlur={commit}
@@ -261,8 +270,8 @@ function Title({ course, onSave }) {
             if (e.key === 'Escape') setText(saved);
           }}
         />
-        <Left text={text} max={COURSE_TITLE_MAX} />
       </span>
+      <Count id="lnd-title-count" used={text.length} max={COURSE_TITLE_MAX} />
     </section>
   );
 }
@@ -292,7 +301,7 @@ function Subtitle({ course, onSave }) {
           value={text}
           maxLength={SUBTITLE_MAX}
           placeholder="e.g. Dinners for busy weeks, from shop to table"
-          aria-describedby="lnd-subtitle-help"
+          aria-describedby="lnd-subtitle-help lnd-subtitle-count"
           autoComplete="off"
           onChange={(e) => setText(e.target.value)}
           onBlur={commit}
@@ -301,8 +310,8 @@ function Subtitle({ course, onSave }) {
             if (e.key === 'Escape') setText(saved);
           }}
         />
-        <Left text={text} max={SUBTITLE_MAX} />
       </span>
+      <Count id="lnd-subtitle-count" used={text.length} max={SUBTITLE_MAX} />
     </section>
   );
 }
@@ -382,27 +391,30 @@ function ListField({ id, course, onSave, onRemove }) {
       <ul className="lrn__rows">
         {rows.map((row, i) => (
           <li key={row.key} className="lrn__row">
-            <span className="lrn__box">
-              <input
-                ref={(el) => {
-                  inputs.current[row.key] = el;
-                }}
-                className="lrn__input"
-                value={row.text}
-                maxLength={LIST_ITEM_MAX}
-                placeholder={field.examples[i] ?? ''}
-                aria-label={`${field.title}, line ${i + 1}`}
-                autoComplete="off"
-                onChange={(e) => {
-                  const text = e.target.value;
-                  setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, text } : r)));
-                }}
-                onBlur={() => commit(rows)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.currentTarget.blur();
-                }}
-              />
-              <Left text={row.text} max={LIST_ITEM_MAX} />
+            <span className="lrn__field">
+              <span className="lrn__box">
+                <input
+                  ref={(el) => {
+                    inputs.current[row.key] = el;
+                  }}
+                  className="lrn__input"
+                  value={row.text}
+                  maxLength={LIST_ITEM_MAX}
+                  placeholder={field.examples[i] ?? ''}
+                  aria-label={`${field.title}, line ${i + 1}`}
+                  aria-describedby={`${headId}-count-${row.key}`}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    const text = e.target.value;
+                    setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, text } : r)));
+                  }}
+                  onBlur={() => commit(rows)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                  }}
+                />
+              </span>
+              <Count id={`${headId}-count-${row.key}`} used={row.text.length} max={LIST_ITEM_MAX} />
             </span>
             {rows.length > field.rows && (
               <button
@@ -466,15 +478,18 @@ function Description({ course, onSave, onDirtyChange }) {
           onDirtyChange={onDirtyChange}
         />
       </div>
-      {(over || short || left <= DESCRIPTION_NEAR) && (
+      {/* Under it: what needs doing on the left (only when something does),
+          characters used out of the limit on the right, always */}
+      <div className="lnd__desc-under">
         <p className={`lnd__desc-note ${over ? 'lnd__desc-note--error' : ''}`} aria-live="polite">
           {over
-            ? `${(-left).toLocaleString('en-IN')} characters over the ${DESCRIPTION_MAX.toLocaleString('en-IN')} limit. Shorten it to save.`
+            ? `${num(-left)} characters over the limit. Shorten it to save.`
             : short
               ? `${DESCRIPTION_MIN - count} more character${DESCRIPTION_MIN - count === 1 ? '' : 's'} needed to publish`
-              : `${left} character${left === 1 ? '' : 's'} left`}
+              : ''}
         </p>
-      )}
+        <Count used={count} max={DESCRIPTION_MAX} near={DESCRIPTION_NEAR} />
+      </div>
     </section>
   );
 }

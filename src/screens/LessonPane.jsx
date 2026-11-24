@@ -11,17 +11,17 @@ import LessonPanel from './LessonPanel';
 // This is the one place a lesson is renamed or deleted.
 //
 //   ┌──────────────────────────────────────────────────────────┐
-//   │ INTRODUCTION · LESSON 2                       ‹  ›  │ 🗑 │
-//   │ How servers work ✎                                        │
+//   │ INTRODUCTION · LESSON 2                                   │
+//   │ How servers work ✎        [+ Add next lesson] │ ‹ › │ 🗑  │
 //   ├──────────────────────────────────────────────────────────┤
 //   │ What goes in this lesson? Pick one.                       │
 //   │ [Cloud] [Upload video] [PDF] [Embedded video] │ [Text]    │
 //   │ …its description and resources, once it has content       │
-//   ├──────────────────────────────────────────────────────────┤
-//   │                                     [+ Add next lesson]   │
 //   └──────────────────────────────────────────────────────────┘
 //
-// The head stays put; only the body scrolls, so a long text lesson
+// The head is one compact block (CoursesPage.css): the where-line and
+// name on the left, the buttons on the right beside both. It stays put;
+// only the body scrolls, so a long text lesson
 // never pushes ‹ › away. On most screens it's the right column of the
 // Curriculum workspace, the full height of the step's card, beside the
 // outline (CoursesPage.css, CourseCurriculum.css). On short screens it
@@ -42,9 +42,10 @@ import LessonPanel from './LessonPanel';
 // then the content, its description and resources. Keyed by the lesson,
 // so each lesson starts fresh, scrolled to the top.
 //
-// Foot: + Add next lesson, the one solid button: a new "Untitled lesson"
-// right after this one, opened here with its name selected
-// (CourseContent.jsx). Whether things are saved is said once, in the
+// No foot, so the body gets the height. + Add next lesson sits in the
+// head, before ‹ ›: the one solid button, a new "Untitled lesson" right
+// after this one, opened here with its name selected (CourseContent.jsx).
+// Whether things are saved is said once, in the
 // course page's steps row, not here.
 //
 // course; entry: { lesson, section, sectionNumber, number } (CourseContent)
@@ -113,6 +114,11 @@ export default function LessonPane({
             <span className="cct__pane-num">Lesson {number}</span>
           </p>
           <div className="cct__pane-tools">
+            <button type="button" className="crs-btn crs-btn--primary crs-btn--small cct__pane-add" onClick={onAddNext}>
+              <Plus size={16} aria-hidden="true" />
+              Add next lesson
+            </button>
+            <span className="cct__pane-sep" aria-hidden="true" />
             <button
               type="button"
               className="cct__pane-btn"
@@ -167,12 +173,6 @@ export default function LessonPane({
         <LessonPanel key={lesson.id} course={course} lesson={lesson} onSaved={onSaved} onDirtyChange={onDirtyChange} />
       </div>
 
-      <footer className="cct__pane-foot">
-        <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={onAddNext}>
-          <Plus size={16} aria-hidden="true" />
-          Add next lesson
-        </button>
-      </footer>
     </aside>
   );
 }
