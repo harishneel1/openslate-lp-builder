@@ -971,6 +971,23 @@
   margin-top: 0;
 }
 
+/* Under the price: where it lives (a contract made for the course), quiet */
+.prc__contract {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  max-width: 760px;
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--crs-ink-3);
+}
+
+.prc__contract svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 .prc__note {
   font-size: 13.5px;
   line-height: 1.5;

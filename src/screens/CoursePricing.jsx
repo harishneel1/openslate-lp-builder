@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, ExternalLink, IndianRupee } from 'lucide-react';
+import { AlertTriangle, ExternalLink, IndianRupee, Info } from 'lucide-react';
 import { buyContractOf, descriptionText } from '../data/courses';
 import { contractEditUrl, contractOf, createContract, servicePrice, updateContract } from '../data/mockServices';
 import { formatMoney } from '../data/contractPricing';
@@ -30,6 +30,16 @@ import '../components/QuestionInput.css'; // the price boxes and "On your page" 
 //   [₹ 4999     ]    [₹          ]
 //   ON YOUR PAGE  ₹4,999 crossed out  ₹2,499  50% off
 //                                              [Cancel] [Set price]
+//
+// A quiet grey line under the price says where it lives (ContractLine):
+//   no price yet      ⓘ Setting a price creates a contract for this course,
+//                       named after it. Its description comes from your
+//                       landing page.
+//   price set         ⓘ This price is on a contract made for this course,
+//                       named after it. Its description comes from your
+//                       landing page.
+//   changing it       ⓘ This changes the price on your course's contract.
+// (A course sold through an older contract has its own note instead.)
 //
 // Price: setting one makes a contract for the course, named after it and
 // with its description (createContract in mockServices.js), links it, and
@@ -177,6 +187,11 @@ export default function CoursePricing({ course, onSave, onSaved, showAccess = fa
         )}
 
         {buy && !editing && <PriceCard contract={buy} own={own} onChange={() => setEditing(true)} />}
+        {buy && !editing && own && (
+          <ContractLine>
+            This creates a contract named after your course, with this price. Its description comes from your landing page.
+          </ContractLine>
+        )}
 
         {showForm && (
           <PriceForm
@@ -193,10 +208,27 @@ export default function CoursePricing({ course, onSave, onSaved, showAccess = fa
             error={error}
           />
         )}
+        {showForm && !buy && (
+          <ContractLine>
+            Setting a price creates a contract for this course, named after it. Its description comes from your
+            landing page.
+          </ContractLine>
+        )}
+        {showForm && own && <ContractLine>This changes the price on your course’s contract.</ContractLine>}
       </section>
 
       {showAccess && <CourseAlsoIncluded course={course} onSaved={onSaved} />}
     </div>
+  );
+}
+
+// Where the price lives: one quiet grey line under it
+function ContractLine({ children }) {
+  return (
+    <p className="prc__contract">
+      <Info size={15} aria-hidden="true" />
+      <span>{children}</span>
+    </p>
   );
 }
 
