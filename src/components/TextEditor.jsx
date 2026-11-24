@@ -29,8 +29,9 @@ import './TextEditor.css';
 // asks first if there are changes. The page hears about unsaved changes
 // (onDirtyChange), so leaving the lesson can ask too.
 //
-// autosave: no Save or Cancel. It saves when they click away from it
-// (and when it closes), like the fields around it: a course's
+// autosave: no Save or Cancel. It saves a second after they stop typing
+// (AUTOSAVE_MS), when they click away from it, and when it closes, like
+// the fields around it: a course's
 // description (CourseLanding.jsx). Emptying it saves too. The page shows
 // its own count and messages under it (onChange).
 //
@@ -64,6 +65,8 @@ export function textExtensions({ forView = false, placeholder = 'Write this less
   ];
 }
 
+const AUTOSAVE_MS = 1000; // autosave: this long after the last key
+
 export default function TextEditor({
   initialHtml = '',
   onSave,
@@ -82,9 +85,11 @@ export default function TextEditor({
   // The latest callbacks, for the editor's own events
   const latest = useRef({});
   latest.current = { onSave, onChange, canSave, autosave };
+  const pause = useRef(null); // autosave: the save waiting for them to stop typing
 
   // Autosave: what's changed, saved (unless canSave says no)
   const commit = (e) => {
+    clearTimeout(pause.current);
     if (!e || e.isDestroyed || baseline.current === null) return;
     const html = e.getHTML();
     if (html === baseline.current) return;
@@ -109,6 +114,10 @@ export default function TextEditor({
     onUpdate: ({ editor: e }) => {
       setDirty(e.getHTML() !== baseline.current);
       latest.current.onChange?.(e.getHTML());
+      if (latest.current.autosave) {
+        clearTimeout(pause.current);
+        pause.current = setTimeout(() => commit(e), AUTOSAVE_MS);
+      }
     },
     onBlur: ({ editor: e }) => {
       if (latest.current.autosave) commit(e);

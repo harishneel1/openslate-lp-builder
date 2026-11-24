@@ -576,6 +576,51 @@
   color: #a4a4aa;
 }
 
+/* After Continue with a field missing: a red border, and what it needs
+   in red under it (CourseLanding.jsx, CoursePricing.jsx). Both go as
+   soon as it's right. */
+.lrn__box--error,
+.lrn__box--error:hover,
+.lrn__box--error:focus-within {
+  border-color: #d92d20;
+}
+
+.lrn__box--error:focus-within,
+.prc__prices--error .qinput__money-input:focus {
+  box-shadow: 0 0 0 3px #fdecec;
+}
+
+.prc__prices--error .qinput__money-input {
+  border-color: #d92d20;
+}
+
+.lrn__error {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 18px;
+  color: #b42318;
+}
+
+.lrn__error--list,
+.prc__error {
+  margin-top: 8px;
+}
+
+/* Under a single-line field: its error on the left, its count on the right */
+.lrn__under {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  max-width: 760px;
+  margin-top: 6px;
+}
+
+.lrn__under .lrn__count {
+  flex: none;
+  margin: 0 0 0 auto;
+}
+
 /* Under a field, on the right: characters used out of the most, "18 / 60".
    Grey; orange near the limit; red past it (the description only) */
 .lrn__count {

@@ -231,6 +231,39 @@
   opacity: 1;
 }
 
+/* 🗑 on a lesson's row, before ⋮⋮: deletes it (asks first). Shows on
+   hover, or with the keyboard in the row; red when pointed at, as the
+   panel's 🗑 */
+.cct--folders .cct__lesson-del {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 34px;
+  color: #8a8a90;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cct--folders .cct__lesson:hover .cct__lesson-del,
+.cct--folders .cct__lesson:focus-within .cct__lesson-del {
+  opacity: 1;
+}
+
+.cct--folders .cct__lesson-del:hover {
+  color: #c62828;
+  background: #fdecec;
+}
+
+.cct--folders .cct__lesson-del:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
 /* + Add lesson, inside the folder under its last lesson */
 .cct--folders .cct__add-lesson {
   margin-top: 2px;
@@ -315,7 +348,8 @@
 
   /* No hover on touch screens: ⋮⋮ always shows there */
   .cct--folders .cct__tab .cct__grip,
-  .cct--folders:not(.cct--split) .cct__lesson .cct__grip {
+  .cct--folders:not(.cct--split) .cct__lesson .cct__grip,
+  .cct--folders .cct__lesson-del {
     opacity: 1;
   }
 }

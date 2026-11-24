@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { ChevronDown, ChevronRight, GripVertical, Layers, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, GripVertical, Layers, Plus, Trash2 } from 'lucide-react';
 import {
   addLesson,
   addSection,
@@ -552,6 +552,7 @@ export default function CourseContent({ course, onSaved, guard, onDirtyChange, o
                                 onDragOver={(e) => overLesson(e, section, j)}
                                 grip={grip('lesson', lesson.id, `lesson ${j + 1}, ${lesson.title}`, (e) => keyLesson(e, lesson.id))}
                                 onSelect={() => openLesson(lesson.id)}
+                                onDelete={() => setDeletingLesson(lesson)}
                               />
                             </Fragment>
                           ))}
@@ -664,11 +665,12 @@ export default function CourseContent({ course, onSaved, guard, onDirtyChange, o
 // name in a tooltip); on the right, "+ Content" while it's empty and the
 // panel isn't open ("Empty" by the name while it is), then ⋮⋮. A click
 // anywhere on the row but ⋮⋮ opens it in the panel; the one in the panel
-// is lit. Nothing here edits it: that's the panel's.
+// is lit. 🗑 (on hover, or with the keyboard in the row) deletes it,
+// asking first, the same as the panel's 🗑. Editing it is the panel's.
 // split: the panel is open; dragging: it's being dragged; dropBefore: a
 // dragged lesson would land just above it; dragProps, onDragOver, grip:
 // from the list (see above)
-function LessonRow({ number, lesson, selected, split, dragging, dropBefore, dragProps, onDragOver, grip, onSelect }) {
+function LessonRow({ number, lesson, selected, split, dragging, dropBefore, dragProps, onDragOver, grip, onSelect, onDelete }) {
   const kind = lessonKind(lesson);
 
   return (
@@ -704,6 +706,15 @@ function LessonRow({ number, lesson, selected, split, dragging, dropBefore, drag
               <span className="sr-only"> for {lesson.title}</span>
             </button>
           )}
+          <button
+            type="button"
+            className="cct__lesson-del"
+            aria-label={`Delete lesson: ${lesson.title}`}
+            title="Delete lesson"
+            onClick={onDelete}
+          >
+            <Trash2 size={17} aria-hidden="true" />
+          </button>
           {grip}
         </span>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
   publishCourse,
   unpublishCourse,
   updateCourse,
+  DESCRIPTION_MIN,
 } from '../data/courses';
 import { STEPS, courseSteps, missingToPublish } from '../data/courseSteps';
 import { coverVideoOf, trackRecordOf } from '../data/courseExtras';
@@ -184,19 +185,26 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const inWords = (parts) =>
   parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 
-// Where the cursor goes for each missing field
+// Where the cursor goes for each missing field (the first empty one)
 const FIELD_TARGET = {
   subtitle: '#lnd-subtitle-input',
   description: '.lnd__desc .tte__content',
   outcomes: '.lrn--outcomes .lrn__input',
-  price: '.prc__prices input',
+  price: '.prc__prices input, .prc__form [type="submit"]',
 };
+
+// What a missing field says under itself, in red, after Continue
+const fieldError = (m) =>
+  m.text === 'add a description'
+    ? `Add a description of at least ${DESCRIPTION_MIN} characters`
+    : m.text.charAt(0).toUpperCase() + m.text.slice(1);
 
 // The save status: how long "Saving…" shows, then how long "Saved" stays lit
 const SAVING_MS = 450;
 const FRESH_MS = 1800;
 // After leaving a field they typed in: if nothing saved by then, nothing changed
 const TYPING_SETTLE_MS = 600;
+const LANDING_SAVE_MS = 1000; // CourseLanding.jsx saves this long after the last key
 
 function useCourse(id) {
   const [course, setCourse] = useState(() => getCourse(id));
@@ -247,10 +255,18 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const [step, setStep] = useState(() => firstStepOf(course));
   const [needs, setNeeds] = useState(false); // Publish was pressed with something missing
   const [focusField, setFocusField] = useState(null); // { field, n }: put the cursor there
+  // The step whose missing fields show their errors: Continue (or Publish)
+  // was pressed there with something missing. Leaving the step hides them.
+  const [checked, setChecked] = useState(null);
   const [dirty, setDirty] = useState(false); // something open isn't saved yet
   const [pending, setPending] = useState(null); // what to do once they agree to leave it
   const [saveState, setSaveState] = useState({ kind: 'saved', fresh: false }); // 'saving' | 'saved' | 'failed'
-  const [typing, setTyping] = useState(false); // typed in a field that saves when they leave it
+  const [typing, setTyping] = useState(false); // typed in a field that hasn't saved yet
+  // Landing page: what's typed there and maybe not saved yet ({ subtitle,
+  // description, outcomes }), so what's missing (Continue, its tip) follows
+  // the typing, not only the saves. In this tab only: nothing is sent.
+  const [draft, setDraft] = useState({});
+  const onDraft = useCallback((patch) => setDraft((prev) => (patch ? { ...prev, ...patch } : {})), []);
   const [notice, setNotice] = useState(null); // { text, tone }, at the foot of the screen
   const [publishing, setPublishing] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
@@ -279,8 +295,11 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
     [],
   );
 
-  // A new step: its guide starts on its first part
-  useEffect(() => setGuide(GUIDE_START[step] ?? null), [step]);
+  // A new step: its guide starts on its first part, and no errors show yet
+  useEffect(() => {
+    setGuide(GUIDE_START[step] ?? null);
+    setChecked((c) => (c === step ? c : null));
+  }, [step]);
 
   // The field they're in (focused or pressed) picks the guide's part
   const pickGuide = (e) => {
@@ -302,6 +321,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const title = course?.title ?? 'Course';
   const liveNow = isPublished(course);
   const setupNow = !course || (!liveNow && !course.publishedAt);
+  const justPublished = Boolean(published);
   useEffect(() => {
     onFocus?.({
       title,
@@ -312,8 +332,9 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
       onRename: course ? (next) => rename.current?.(next) : null,
       titleMax: COURSE_TITLE_MAX,
       renameHint: liveNow ? 'Students and your landing page will show the new name straight away.' : null,
-      // Editing: the course's own buttons, on the right of the bar
-      actions: setupNow ? null : (
+      // Editing: the course's own buttons, on the right of the bar. Not on
+      // "Your course is live": that screen has its own link to share.
+      actions: setupNow || justPublished ? null : (
         <CourseBarActions
           live={liveNow}
           courseId={course.id}
@@ -323,7 +344,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         />
       ),
     });
-  }, [title, liveNow, setupNow, course?.id, onFocus]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [title, liveNow, setupNow, justPublished, course?.id, onFocus]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onFocus?.(null), [onFocus]);
 
   // After Publish with something missing: the cursor in the field that needs it
@@ -333,7 +354,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
       const selector = FIELD_TARGET[focusField.field];
       const fields = selector ? [...document.querySelectorAll(selector)] : [];
       const target = fields.find((el) => !el.value) ?? fields[0] ?? document.getElementById('ced-step-title');
-      target?.focus();
+      target?.focus({ preventScroll: true }); // the smooth scroll below does the moving
       target?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
     });
     return () => cancelAnimationFrame(id);
@@ -367,9 +388,14 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   }
 
   const live = isPublished(course);
-  const steps = courseSteps(course);
-  const missing = missingToPublish(course);
+  const typed = { ...course, ...draft }; // the course as it reads on screen
+  const steps = courseSteps(typed);
+  const missing = missingToPublish(typed);
   const missingHere = missing.filter((m) => m.step === step);
+  // After Continue: what each missing field still needs. Worked out from what's
+  // typed (draft), so each one goes the moment its field is right.
+  const fieldErrors =
+    checked === step ? Object.fromEntries(missingHere.map((m) => [m.field, fieldError(m)])) : {};
   // Setting up: never published. A step opens once every step before it is done.
   const setup = !live && !course.publishedAt;
   // Editing: the steps as tabs, and Students after them
@@ -418,9 +444,12 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
 
   // Typing in a field that saves when they leave it: "Unsaved changes"
   // until it saves. Left without a change, nothing saves: it settles back.
+  // The landing page saves a second after they stop typing (CourseLanding.jsx):
+  // if that pause brings no change to save, it settles back on its own.
   const onTyped = () => {
     clearTimeout(typingTimer.current);
     setTyping(true);
+    if (step === 'landing') typingTimer.current = setTimeout(() => setTyping(false), LANDING_SAVE_MS + TYPING_SETTLE_MS);
   };
   const onLeftField = () => {
     clearTimeout(typingTimer.current);
@@ -446,9 +475,17 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
       }
       const first = missing[0];
       setNeeds(true);
+      setChecked(first.step);
       setStep(first.step);
       setFocusField({ field: first.field, n: Date.now() });
     });
+
+  // Continue (or Publish) with something missing on this step: to the first
+  // missing field, the cursor in it, and each missing field says what it needs
+  const showMissing = () => {
+    setChecked(step);
+    setFocusField({ field: missingHere[0].field, n: Date.now() });
+  };
 
   const publish = () => {
     setPublishing(false);
@@ -479,9 +516,19 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const workspace = step === 'curriculum';
 
   const landingFields = (
-    <CourseLanding key={course.id} course={course} onSave={save} onSaveTitle={saveTitle} onDirtyChange={setDirty} />
+    <CourseLanding
+      key={course.id}
+      course={course}
+      onSave={save}
+      onSaveTitle={saveTitle}
+      onDirtyChange={setDirty}
+      onDraft={onDraft}
+      errors={fieldErrors}
+    />
   );
-  const pricingFields = <CoursePricing course={course} onSave={save} onSaved={onSaved} showAccess={!setup} />;
+  const pricingFields = (
+    <CoursePricing course={course} onSave={save} onSaved={onSaved} showAccess={!setup} error={fieldErrors.price} />
+  );
 
   // Just published: the publish screen, in place of the steps. Go to your
   // course comes back on the Curriculum tab.
@@ -574,13 +621,14 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
                 courseId={course.id}
                 hasLesson={hasLesson}
                 onBack={() => go(STEPS[stepIndex - 1].id)}
+                onMissing={showMissing}
                 onNext={() =>
                   guard(() => {
                     setStep(STEPS[stepIndex + 1].id);
                     window.scrollTo?.({ top: 0 });
                   })
                 }
-                onPublish={() => guard(() => setPublishing(true))}
+                onPublish={askPublish}
               />
             </>
           ) : (
@@ -631,7 +679,10 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
         <section
           className="crs__panel ced__panel"
           aria-labelledby="ced-step-title"
-          onInputCapture={onTyped}
+          // onInput, not onInputCapture: heard after the field's own
+          // onChange, so the "Unsaved changes" re-render can't undo the
+          // first letter typed over a selected name
+          onInput={onTyped}
           onBlurCapture={onLeftField}
         >
           <h2 className="sr-only" id="ced-step-title" tabIndex={-1}>
@@ -779,9 +830,11 @@ function SaveStatus({ status, fresh, live, canRetry, onRetry }) {
 // main button, so the two that move between steps sit together:
 // Continue to the next step, or Publish course on the last. Left to
 // right, each look means one thing: soft orange (look), white (go back),
-// solid orange (go forward). It works once this step's minimum is
-// done; until then it says what's left as a hint on hover or focus (and
-// to screen readers).
+// solid orange (go forward). On Landing page and Pricing it always works:
+// with something missing, it takes them to the first missing field and
+// each missing field says in red what it needs (onMissing). On Curriculum,
+// which has no field to point to, it waits until a lesson has something
+// in it, and says so as a hint on hover or focus (and to screen readers).
 //   Curriculum     👁 See it as a student ↗ (once a lesson has something
 //                  in it) · Continue to Landing page →
 //   Landing page   👁 Preview landing page ↗ · ← Back · Continue to Pricing →
@@ -789,14 +842,20 @@ function SaveStatus({ status, fresh, live, canRetry, onRetry }) {
 // The main button is always solid orange: the way forward stays obvious,
 // even while a lesson's own Add next lesson is on screen (far apart, each
 // for its own area).
-function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onNext, onPublish }) {
+function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onMissing, onNext, onPublish }) {
   const last = index === STEPS.length - 1;
   const next = STEPS[index + 1];
   const preview =
     index === 0
       ? hasLesson && { href: coursePlayerUrl(courseId, null, true), label: 'See it as a student' }
       : { href: courseLandingUrl(courseId, true), label: 'Preview landing page' };
-  const hint = done ? null : `To ${last ? 'publish' : 'continue'}, ${inWords(missing.map((m) => m.text))}.`;
+  const pointsToFields = index > 0; // Landing page, Pricing
+  const hint =
+    done || pointsToFields ? null : `To ${last ? 'publish' : 'continue'}, ${inWords(missing.map((m) => m.text))}.`;
+  const press = () => {
+    if (done) (last ? onPublish : onNext)();
+    else if (pointsToFields) onMissing();
+  };
 
   return (
     <>
@@ -818,9 +877,9 @@ function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onNex
         <button
           type="button"
           className="crs-btn crs-btn--primary crs-btn--small ced__next"
-          aria-disabled={!done || undefined}
+          aria-disabled={Boolean(hint) || undefined}
           aria-describedby={hint ? 'ced-next-hint' : undefined}
-          onClick={() => done && (last ? onPublish() : onNext())}
+          onClick={press}
         >
           {last ? (
             <>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, Copy, ExternalLink, MessageCircle, PartyPopper } from 'lucide-react';
+import { ArrowRight, Check, Copy, MessageCircle, PartyPopper } from 'lucide-react';
 import { buyContractOf, courseLandingUrl, publishCheck } from '../data/courses';
 import { copyText } from '../utils/copyText';
 import { whatsappShareHref } from '../utils/whatsapp';
@@ -28,12 +28,17 @@ import './CoursePublished.css';
 //
 //   🎉 Your course is live
 //   Share the link and people can buy it straight away.
-//   [ their landing page: Open preview ]
-//   ┌──────────────────────────────────────────────────────────┐
-//   │ openslate…/web/course/ai-engineering   [Copy link] [↗]   │
-//   └──────────────────────────────────────────────────────────┘
-//   [Share on WhatsApp]   [Go to your course →]
+//   [ their landing page: the whole card opens it ↗ ]
+//   ┌──────────────────────────────────────────────────────┐
+//   │ openslate…/web/course/ai-engineering   [Copy link]   │
+//   └──────────────────────────────────────────────────────┘
+//               [Share on WhatsApp]
+//               Go to your course →
 //
+// One of each: the card is the one way to open the page, Copy link the
+// one filled button, Share on WhatsApp the one other button, and Go to
+// your course a quiet link. The top bar keeps only ← All courses and the
+// name here (CoursePage.jsx).
 // The picture is their real landing page as buyers see it (it's live by
 // now), small and still.
 // Share on WhatsApp opens WhatsApp with a message ready to send, and
@@ -112,8 +117,8 @@ export default function CoursePublished({ course, animate = true, onDone }) {
               Share on WhatsApp
               <span className="sr-only"> (opens WhatsApp)</span>
             </a>
-            <button type="button" className="cpub__btn" onClick={onDone}>
-              Go to your course <ArrowRight size={17} aria-hidden="true" />
+            <button type="button" className="cpub__quiet" onClick={onDone}>
+              Go to your course <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
         </>
@@ -140,7 +145,7 @@ export default function CoursePublished({ course, animate = true, onDone }) {
 }
 
 // Their landing page, small and still (it can't be clicked into): once
-// it's live, the whole picture opens it in a new tab
+// it's live, the whole card opens it in a new tab. Hovering lifts it.
 function Shot({ ready, href }) {
   const page = (
     <span className="thumb cpub__thumb" aria-hidden="true">
@@ -157,16 +162,11 @@ function Shot({ ready, href }) {
       aria-label="Open your landing page (opens in a new tab)"
     >
       {page}
-      <span className="building__overlay" aria-hidden="true">
-        <span className="building__overlay-btn">
-          <ExternalLink size={16} /> Open preview
-        </span>
-      </span>
     </a>
   );
 }
 
-// The link, with Copy link (the one filled button) and Open ↗
+// The link, with Copy link (the one filled button)
 function LiveLink({ url }) {
   const [state, setState] = useState('idle'); // 'idle' | 'copied' | 'failed'
   const timer = useRef(null);
@@ -189,9 +189,6 @@ function LiveLink({ url }) {
           {state === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
           {state === 'copied' ? 'Copied' : 'Copy link'}
         </button>
-        <a className="cpub__open" href={url} target="_blank" rel="noopener" title="Open" aria-label="Open your landing page (opens in a new tab)">
-          <ExternalLink size={17} aria-hidden="true" />
-        </a>
       </div>
       <span className="sr-only" aria-live="polite">
         {state === 'copied' && 'Link copied'}

@@ -63,6 +63,8 @@ import '../components/QuestionInput.css'; // the price boxes and "On your page" 
 //
 // course; onSave(change) → true if the course saved; onSaved(ok): after a
 //   change to the contract alone, so the page can say "Saved"
+// error: what the price still needs, after Publish was pressed without one
+//   (CoursePage.jsx): in red under the form, with a red border on the price
 // showAccess: show Give access to people from other contracts (editing a published course)
 // syncContractTitle(course, title), syncContractDescription(course, html):
 //   keep the course's own contract in step with it
@@ -112,7 +114,7 @@ export function syncContractDescription(course, html) {
   }
 }
 
-export default function CoursePricing({ course, onSave, onSaved, showAccess = false }) {
+export default function CoursePricing({ course, onSave, onSaved, showAccess = false, error = null }) {
   const [editing, setEditing] = useState(false);
   const [, setTick] = useState(0); // the contract changed, not the course: read it again
   const buy = buyContractOf(course);
@@ -188,6 +190,7 @@ export default function CoursePricing({ course, onSave, onSaved, showAccess = fa
             }
             onSubmit={submitPrice}
             onCancel={buy ? () => setEditing(false) : null}
+            error={error}
           />
         )}
       </section>
@@ -244,7 +247,7 @@ function PriceCard({ contract, own, onChange }) {
 }
 
 // Paid or Free; for Paid, the price and an optional discounted price
-function PriceForm({ initial, submitLabel, note, onSubmit, onCancel }) {
+function PriceForm({ initial, submitLabel, note, onSubmit, onCancel, error }) {
   const [free, setFree] = useState(initial.free);
   // PriceWithDiscount's answers: price is what people pay; oldPrice, the
   // full price crossed out (empty without a discount)
@@ -255,6 +258,9 @@ function PriceForm({ initial, submitLabel, note, onSubmit, onCancel }) {
   const [tried, setTried] = useState(false);
   const pay = Number(answers.price) || 0;
   const was = Number(answers.oldPrice) || 0;
+  // After Publish with no price: what's typed but not set yet says so
+  const typed = free || pay > 0;
+  const pageError = error && (typed ? `Press ${submitLabel} to save it` : error);
   let problem = null;
   if (!free) {
     if (was > 0 && pay === 0) problem = 'Add the discounted price, or untick it.';
@@ -294,7 +300,7 @@ function PriceForm({ initial, submitLabel, note, onSubmit, onCancel }) {
       </fieldset>
 
       {!free && (
-        <div className="prc__prices">
+        <div className={`prc__prices ${error && !typed ? 'prc__prices--error' : ''}`}>
           <PriceWithDiscount
             answers={answers}
             onChange={(value, id) => setAnswers((a) => ({ ...a, [id]: value }))}
@@ -309,6 +315,12 @@ function PriceForm({ initial, submitLabel, note, onSubmit, onCancel }) {
       {tried && problem && pay === 0 && was === 0 && (
         <p className="lp__error" role="alert">
           {problem}
+        </p>
+      )}
+
+      {pageError && !(tried && problem) && (
+        <p className="lrn__error prc__error" role="alert">
+          {pageError}
         </p>
       )}
 

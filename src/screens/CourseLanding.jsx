@@ -98,10 +98,49 @@ import TestimonialsField from './CourseTestimonials';
 // course, onSave(change) → true if it saved
 // onSaveTitle(title) → true if it saved (CoursePage.jsx: renames its contract too)
 // onDirtyChange(dirty): the description has (or no longer has) unsaved changes
-//   (only while it's too long to save, or before they've clicked away)
+//   (only while it's too long to save, or before it's saved)
+// errors: { subtitle, description, outcomes }: what each still needs, after
+//   Continue was pressed with it missing (CoursePage.jsx). Each shows in red
+//   under its field, with a red border, and goes as soon as it's fixed.
+// onDraft(patch): what's typed so far, as they type ({ subtitle },
+//   { description }, { outcomes }...), so the page can say what's still
+//   missing before anything saves; onDraft(null) when this closes
+//
+// Saving: each field saves a second after they stop typing (SAVE_AFTER_MS,
+// one save per pause), when they leave it, and when this closes.
 // ------------------------------------------------------------
 
 const NEAR_LIMIT = 20;
+const SAVE_AFTER_MS = 1000;
+
+// A save that waits for a pause in typing: later(fn) runs fn SAVE_AFTER_MS
+// after the last call; now() cancels the wait. One waiting at close runs then.
+function useLater() {
+  const timer = useRef(null);
+  const waiting = useRef(null);
+  const run = () => {
+    clearTimeout(timer.current);
+    const fn = waiting.current;
+    waiting.current = null;
+    fn?.();
+  };
+  useEffect(() => run, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return {
+    later: (fn) => {
+      clearTimeout(timer.current);
+      waiting.current = fn;
+      timer.current = setTimeout(run, SAVE_AFTER_MS);
+    },
+    cancel: () => {
+      clearTimeout(timer.current);
+      waiting.current = null;
+    },
+  };
+}
+
+// Text saved from what they typed: the same but for spaces at the ends.
+// A save mustn't take away a space they've just typed.
+const keepTyped = (saved) => (typed) => (typed.trim() === saved ? typed : saved);
 const DESCRIPTION_NEAR = 100; // the description's count turns orange from here
 
 const LISTS = {
@@ -144,6 +183,19 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 // The field points to it with aria-describedby, so a screen reader hears
 // it with the field rather than on every key.
 const num = (n) => n.toLocaleString('en-IN');
+// Under a single-line field: what it still needs (red, only after Continue)
+// on the left, its count on the right
+const Under = ({ errorId, error, countId, used, max }) => (
+  <div className="lrn__under">
+    {error && (
+      <p className="lrn__error" id={errorId}>
+        {error}
+      </p>
+    )}
+    <Count id={countId} used={used} max={max} />
+  </div>
+);
+
 const Count = ({ id, used, max, near = NEAR_LIMIT }) => {
   const tone = used > max ? 'lrn__count--over' : max - used <= near ? 'lrn__count--near' : '';
   return (
@@ -154,7 +206,10 @@ const Count = ({ id, used, max, near = NEAR_LIMIT }) => {
   );
 };
 
-export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChange }) {
+export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChange, onDraft, errors = {} }) {
+  // Closing: the page goes back to what's saved
+  useEffect(() => () => onDraft?.(null), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // The optional parts open: those with something in them, and any clicked open
   const [opened, setOpened] = useState(() => new Set(EXTRAS.filter((x) => x.has(course)).map((x) => x.id)));
   const closed = EXTRAS.filter((x) => !opened.has(x.id));
@@ -193,10 +248,16 @@ export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChan
   return (
     <div className="lnd">
       <Title course={course} onSave={onSaveTitle ?? ((title) => onSave({ title }))} />
-      <Subtitle course={course} onSave={onSave} />
+      <Subtitle course={course} onSave={onSave} onDraft={onDraft} error={errors.subtitle} />
       <DurationField course={course} onSave={onSave} />
-      <Description course={course} onSave={onSave} onDirtyChange={onDirtyChange} />
-      <ListField id="outcomes" course={course} onSave={onSave} />
+      <Description
+        course={course}
+        onSave={onSave}
+        onDirtyChange={onDirtyChange}
+        onDraft={onDraft}
+        error={errors.description}
+      />
+      <ListField id="outcomes" course={course} onSave={onSave} onDraft={onDraft} error={errors.outcomes} />
       <div className="cst lnd__cover" data-guide="cover">
         <CourseCover course={course} onSave={onSave} />
       </div>
@@ -242,12 +303,18 @@ export default function CourseLanding({ course, onSave, onSaveTitle, onDirtyChan
 function Title({ course, onSave }) {
   const saved = course.title ?? '';
   const [text, setText] = useState(saved);
-  useEffect(() => setText(saved), [saved]); // changed in another tab
+  useEffect(() => setText(keepTyped(saved)), [saved]); // saved here, or changed in another tab
+  const { later, cancel } = useLater();
 
+  // Leaving it empty puts the saved one back; a pause while it's empty waits
+  const save = (value) => {
+    const next = value.trim();
+    if (next && next !== saved) onSave(next);
+  };
   const commit = () => {
-    const next = text.trim();
-    if (!next) setText(saved);
-    else if (next !== saved) onSave(next);
+    cancel();
+    if (!text.trim()) setText(saved);
+    else save(text);
   };
 
   return (
@@ -263,27 +330,40 @@ function Title({ course, onSave }) {
           maxLength={COURSE_TITLE_MAX}
           aria-describedby="lnd-title-count"
           autoComplete="off"
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setText(value);
+            later(() => save(value));
+          }}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
-            if (e.key === 'Escape') setText(saved);
+            if (e.key === 'Escape') {
+              cancel();
+              setText(saved);
+            }
           }}
         />
       </span>
-      <Count id="lnd-title-count" used={text.length} max={COURSE_TITLE_MAX} />
+      <Under countId="lnd-title-count" used={text.length} max={COURSE_TITLE_MAX} />
     </section>
   );
 }
 
-function Subtitle({ course, onSave }) {
+function Subtitle({ course, onSave, onDraft, error }) {
   const saved = course.subtitle ?? '';
   const [text, setText] = useState(saved);
-  useEffect(() => setText(saved), [saved]); // changed in another tab
+  useEffect(() => setText(keepTyped(saved)), [saved]); // saved here, or changed in another tab
+  useEffect(() => onDraft?.({ subtitle: text.trim() }), [text]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { later, cancel } = useLater();
 
-  const commit = () => {
-    const next = text.trim();
+  const save = (value) => {
+    const next = value.trim();
     if (next !== saved) onSave({ subtitle: next });
+  };
+  const commit = () => {
+    cancel();
+    save(text);
   };
 
   return (
@@ -294,24 +374,38 @@ function Subtitle({ course, onSave }) {
       <p className="lrn__help" id="lnd-subtitle-help">
         One line under the title that says what it’s about.
       </p>
-      <span className="lrn__box lnd__subtitle">
+      <span className={`lrn__box lnd__subtitle ${error ? 'lrn__box--error' : ''}`}>
         <input
           id="lnd-subtitle-input"
           className="lrn__input"
           value={text}
           maxLength={SUBTITLE_MAX}
           placeholder="e.g. Dinners for busy weeks, from shop to table"
-          aria-describedby="lnd-subtitle-help lnd-subtitle-count"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={`${error ? 'lnd-subtitle-error ' : ''}lnd-subtitle-help lnd-subtitle-count`}
           autoComplete="off"
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setText(value);
+            later(() => save(value));
+          }}
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
-            if (e.key === 'Escape') setText(saved);
+            if (e.key === 'Escape') {
+              cancel();
+              setText(saved);
+            }
           }}
         />
       </span>
-      <Count id="lnd-subtitle-count" used={text.length} max={SUBTITLE_MAX} />
+      <Under
+        errorId="lnd-subtitle-error"
+        error={error}
+        countId="lnd-subtitle-count"
+        used={text.length}
+        max={SUBTITLE_MAX}
+      />
     </section>
   );
 }
@@ -322,7 +416,7 @@ const newKey = () => `row-${(keySeed += 1)}`;
 // One list: a line each, + Add another under them. onRemove(count): the
 // part is optional, so 🗑 Remove shows by its heading (count: the lines
 // with words in them)
-function ListField({ id, course, onSave, onRemove }) {
+function ListField({ id, course, onSave, onRemove, onDraft, error }) {
   const field = LISTS[id];
   const saved = listOf(course, id);
   const pad = (list) => {
@@ -341,10 +435,14 @@ function ListField({ id, course, onSave, onRemove }) {
   }, [focusKey]);
 
   // Saves the lines with words in them, when they're not what's saved
+  const listFrom = (next) => next.map((r) => r.text.trim()).filter(Boolean);
+  const { later, cancel } = useLater();
   const commit = (next) => {
-    const list = next.map((r) => r.text.trim()).filter(Boolean);
+    cancel();
+    const list = listFrom(next);
     if (JSON.stringify(list) !== JSON.stringify(saved)) onSave({ [id]: list });
   };
+  useEffect(() => onDraft?.({ [id]: listFrom(rows) }), [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filled = rows.filter((r) => r.text.trim()).length;
   const isOutcomes = id === 'outcomes';
@@ -392,7 +490,7 @@ function ListField({ id, course, onSave, onRemove }) {
         {rows.map((row, i) => (
           <li key={row.key} className="lrn__row">
             <span className="lrn__field">
-              <span className="lrn__box">
+              <span className={`lrn__box ${error && !row.text.trim() ? 'lrn__box--error' : ''}`}>
                 <input
                   ref={(el) => {
                     inputs.current[row.key] = el;
@@ -402,11 +500,14 @@ function ListField({ id, course, onSave, onRemove }) {
                   maxLength={LIST_ITEM_MAX}
                   placeholder={field.examples[i] ?? ''}
                   aria-label={`${field.title}, line ${i + 1}`}
-                  aria-describedby={`${headId}-count-${row.key}`}
+                  aria-invalid={error && !row.text.trim() ? true : undefined}
+                  aria-describedby={`${error ? `${headId}-error ` : ''}${headId}-count-${row.key}`}
                   autoComplete="off"
                   onChange={(e) => {
                     const text = e.target.value;
-                    setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, text } : r)));
+                    const next = rows.map((r) => (r.key === row.key ? { ...r, text } : r));
+                    setRows(next);
+                    later(() => commit(next));
                   }}
                   onBlur={() => commit(rows)}
                   onKeyDown={(e) => {
@@ -431,6 +532,12 @@ function ListField({ id, course, onSave, onRemove }) {
         ))}
       </ul>
 
+      {error && (
+        <p className="lrn__error lrn__error--list" id={`${headId}-error`}>
+          {error}
+        </p>
+      )}
+
       {rows.length < LIST_MAX && (
         <button type="button" className="lnd__extra lrn__add" onClick={add}>
           <Plus size={16} aria-hidden="true" />
@@ -441,7 +548,7 @@ function ListField({ id, course, onSave, onRemove }) {
   );
 }
 
-function Description({ course, onSave, onDirtyChange }) {
+function Description({ course, onSave, onDirtyChange, onDraft, error }) {
   const saved = course.description ?? '';
   const [count, setCount] = useState(() => descriptionText(saved).length);
   const left = DESCRIPTION_MAX - count;
@@ -450,7 +557,7 @@ function Description({ course, onSave, onDirtyChange }) {
   const enough = count >= DESCRIPTION_MIN && !over;
 
   return (
-    <section className={`lnd__part lnd__desc ${over ? 'lnd__desc--over' : ''}`} aria-labelledby="lnd-description" data-guide="description">
+    <section className={`lnd__part lnd__desc ${over || error ? 'lnd__desc--over' : ''}`} aria-labelledby="lnd-description" data-guide="description">
       <div className="lrn__head">
         <h3 className="lrn__title" id="lnd-description">
           Description
@@ -473,7 +580,10 @@ function Description({ course, onSave, onDirtyChange }) {
           label="Course description"
           placeholder="e.g. Over four weeks, you’ll plan, shop for and cook a week of dinners in one afternoon. Each lesson is a short video with a recipe card to print…"
           onSave={(html) => onSave({ description: html })}
-          onChange={(html) => setCount(descriptionText(html).length)}
+          onChange={(html) => {
+            setCount(descriptionText(html).length);
+            onDraft?.({ description: html });
+          }}
           canSave={(html) => descriptionText(html).length <= DESCRIPTION_MAX}
           onDirtyChange={onDirtyChange}
         />
@@ -481,10 +591,12 @@ function Description({ course, onSave, onDirtyChange }) {
       {/* Under it: what needs doing on the left (only when something does),
           characters used out of the limit on the right, always */}
       <div className="lnd__desc-under">
-        <p className={`lnd__desc-note ${over ? 'lnd__desc-note--error' : ''}`} aria-live="polite">
+        <p className={`lnd__desc-note ${over || error ? 'lnd__desc-note--error' : ''}`} aria-live="polite">
           {over
             ? `${num(-left)} characters over the limit. Shorten it to save.`
-            : short
+            : error
+              ? error
+              : short
               ? `${DESCRIPTION_MIN - count} more character${DESCRIPTION_MIN - count === 1 ? '' : 's'} needed to publish`
               : ''}
         </p>

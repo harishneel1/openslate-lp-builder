@@ -135,23 +135,6 @@
   background: var(--color-success);
 }
 
-.cpub__open {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: border-color 0.15s;
-}
-
-.cpub__open:hover {
-  border-color: #c9c9ce;
-}
-
 .cpub__error {
   margin-top: 8px;
   font-size: 13px;
@@ -159,9 +142,57 @@
   color: #b45309;
 }
 
-/* ---------- Share on WhatsApp, Go to your course: outlined ---------- */
+/* ---------- The card: it opens the landing page ----------
+   No button on it: hovering lifts it a little, so it reads as clickable */
+.cpub__shot.building__shot--link {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cpub__shot.building__shot--link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* ---------- Share on WhatsApp (outlined), Go to your course (a quiet link) ---------- */
 .cpub__actions {
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   margin-top: 20px;
+}
+
+.cpub__quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--color-text-muted, #5f5f66);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.cpub__quiet:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cpub__quiet:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cpub__shot.building__shot--link,
+  .cpub__shot.building__shot--link:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 .cpub__btn {
@@ -188,7 +219,6 @@
 }
 
 .cpub__copy:focus-visible,
-.cpub__open:focus-visible,
 .cpub__btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

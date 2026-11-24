@@ -16,7 +16,8 @@ import './InlineTitle.css';
 //
 // The box is as wide as the words in it (up to the room there is), so
 // the pencil always sits at the end of the title. A click on the words or
-// the pencil puts the cursor in it, with the words selected; the pencil
+// the pencil puts the cursor in it, with all the words selected (the
+// first click only: after that clicks place the cursor); the pencil
 // and bin hide while it's being edited.
 // Saves on leaving it or Enter; Escape, or an empty box, puts the saved
 // one back.
@@ -56,6 +57,13 @@ export default function InlineTitle({
   const edit = () => {
     input.current?.focus();
     input.current?.select();
+    // Again once the click is done: the browser can put back where the
+    // cursor last was in it (unless they've already typed)
+    const before = input.current?.value;
+    requestAnimationFrame(() => {
+      const el = input.current;
+      if (el && document.activeElement === el && el.value === before) el.select();
+    });
   };
 
   useEffect(() => {
@@ -94,6 +102,14 @@ export default function InlineTitle({
           maxLength={maxLength}
           autoComplete="off"
           aria-describedby={hint ? `${id}-hint` : undefined}
+          // The first click in selects the whole name, so typing replaces
+          // it; once in, clicks place the cursor as usual
+          onMouseDown={(e) => {
+            if (document.activeElement === e.currentTarget) return;
+            e.preventDefault();
+            edit();
+          }}
+          onFocus={(e) => e.currentTarget.select()} // Tab in: the whole name too
           onChange={(e) => setText(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
