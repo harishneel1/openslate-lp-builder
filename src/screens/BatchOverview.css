@@ -860,3 +860,8 @@
     white-space: normal;
   }
 }
+
+/* Link contracts: the list sits flat in the pop-up, without the dropdown shadow */
+.cpk__panel.bov-cc__pick {
+  box-shadow: none;
+}
