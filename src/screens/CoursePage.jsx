@@ -61,7 +61,7 @@ import './CoursePage.css';
 // status. It works once that step's minimum is done:
 //   ① Curriculum ✓  ② Landing page  ③ Pricing
 //             ✓ Saved as draft │ [👁 Preview landing page ↗]  [← Back]  [Continue to Pricing →]
-//   Curriculum     See it as a student ↗ (once a lesson has something in
+//   Curriculum     Preview lessons ↗ (once a lesson has something in
 //                  it), Continue to Landing page →
 //   Landing page   ← Back, Preview landing page ↗, Continue to Pricing →,
 //                  once it has a subtitle, a description (50 characters
@@ -76,9 +76,10 @@ import './CoursePage.css';
 //
 // Editing (published, or published before and unpublished since): the
 // steps are plain tabs (no numbers, no ticks: it's managing the course
-// now, not making it), every one open, any time.
-//   ← All courses     AI Engineering ✎     [Copy link] [View landing page ↗] [● Published ▾]   (focus bar)
-//   Curriculum  Landing page  Price & access  Students        [👁 See it as a student ↗] ✓ Saved · live for students
+// now, not making it), every one open, any time. Students comes first, and
+// the course opens on it; then Curriculum, Landing page, Price & access.
+//   ← All courses     AI Engineering ✎            [Copy link] [View landing page ↗]   (focus bar)
+//   Students  Curriculum  Landing page  Price & access   ✓ Saved  [👁 Preview lessons ↗]  [● Live for students ▾]
 //   ┌────────────────────────────────────────────────────────────────────┐
 //   │ the open tab                                                       │
 //   └────────────────────────────────────────────────────────────────────┘
@@ -90,7 +91,7 @@ import './CoursePage.css';
 //                                text not saved, an upload under way)
 //   ⟳ Saving…                    for a moment after each change
 //   ✓ Saved as draft             (green; a short highlight, then it stays)
-//   ✓ Saved · live for students  the same, once published: changes are live
+//   ✓ Saved          the same, once published: changes are live
 //   ⚠ Couldn't save · Retry      Retry runs the change again, when this
 //                                page knows what it was (the landing page's
 //                                fields, the title); otherwise it asks them
@@ -108,7 +109,7 @@ import './CoursePage.css';
 //                  scrolling on its own. While the lesson's open the page
 //                  widens to make room (ced--split), as it does for the
 //                  guide. Smaller screens: the page scrolls as the other
-//                  steps do. While editing, "See it as a student ↗" sits
+//                  steps do. While editing, "Preview lessons ↗" sits
 //                  in the steps row: the lessons in the player
 //   Landing page   the title, subtitle, description, what students will
 //                  learn, cover, and, behind "+ Add", requirements, who
@@ -128,7 +129,8 @@ import './CoursePage.css';
 // Moving between steps, or leaving, asks first if something isn't saved
 // ("Leave without saving?": an open lesson, a description too long to save).
 //
-// The actions, while editing, in the focus bar on the right (CourseBarActions):
+// The actions, while editing, in the focus bar on the right (CourseBarActions),
+// and Publish at the end of the tabs row:
 //   Copy link            once published: the landing page link to share
 //   View landing page ↗  what buyers see (CourseLandingPage.jsx)
 //   Publish              only on a course unpublished since: with something
@@ -136,10 +138,10 @@ import './CoursePage.css';
 //                        tab that needs work, puts the cursor in the
 //                        field, and says in one line at the top of that
 //                        tab what's left there. Else it asks once.
-//   ● Published ▾        once live, in Publish's place: Unpublish (asks
-//                        first; progress is kept)
+//   (Publish, and ● Live for students ▾ in its place once live, are at the
+//   end of the tabs row: Unpublish asks first; progress is kept)
 // Changes go live as they're made once it's published. The tabs row keeps
-// only what belongs to the open tab: See it as a student on Curriculum, and
+// only what belongs to the open tab: Preview lessons on Curriculum, and
 // the save status on every tab but Students (nothing there is edited).
 //
 // The title: renamed in the focus bar (here), on the Landing page step's
@@ -244,8 +246,8 @@ const GUIDE_START = { landing: 'title', pricing: 'price' };
 
 const firstStepOf = (course) => {
   if (!course) return 'curriculum';
-  // Once it's been published, the tabs open on Curriculum
-  if (isPublished(course) || course.publishedAt) return 'curriculum';
+  // Once it's been published, the tabs open on Students, the first of them
+  if (isPublished(course) || course.publishedAt) return 'students';
   const steps = courseSteps(course);
   return STEPS.find(({ id }) => !steps[id].done)?.id ?? 'curriculum';
 };
@@ -322,6 +324,7 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
   const liveNow = isPublished(course);
   const setupNow = !course || (!liveNow && !course.publishedAt);
   const justPublished = Boolean(published);
+  // (The publish control, ● Live for students ▾ or Publish, is in the tabs row)
   useEffect(() => {
     onFocus?.({
       title,
@@ -339,8 +342,6 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
           live={liveNow}
           courseId={course.id}
           onCopy={() => bar.current.copyLink?.()}
-          onPublish={() => bar.current.askPublish?.()}
-          onUnpublish={() => setUnpublishing(true)}
         />
       ),
     });
@@ -398,11 +399,11 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
     checked === step ? Object.fromEntries(missingHere.map((m) => [m.field, fieldError(m)])) : {};
   // Setting up: never published. A step opens once every step before it is done.
   const setup = !live && !course.publishedAt;
-  // Editing: the steps as tabs, and Students after them
+  // Editing: Students first (managing the course now), then the steps as tabs
   // (Pricing is Price & access once it's published: it holds Also included with too)
   const tabs = setup
     ? STEPS
-    : [...STEPS.map((s) => (s.id === 'pricing' ? { ...s, label: PRICING_TAB_LABEL } : s)), STUDENTS_TAB];
+    : [STUDENTS_TAB, ...STEPS.map((s) => (s.id === 'pricing' ? { ...s, label: PRICING_TAB_LABEL } : s))];
   const onStudents = !setup && step === 'students';
   const stepIndex = STEPS.findIndex((s) => s.id === step);
   const reachable = (i) => !setup || STEPS.slice(0, i).every((s) => steps[s.id].done);
@@ -633,21 +634,10 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
             </>
           ) : (
             <>
-              {/* Editing: only what belongs to the open tab. The course's own
-                  buttons are in the focus bar (CourseBarActions). */}
-              {step === 'curriculum' && (
-                <a
-                  className="crs-btn crs-btn--small ced__preview"
-                  href={coursePlayerUrl(course.id, null, true)}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  <Eye size={16} aria-hidden="true" />
-                  See it as a student
-                  <ExternalLink size={14} aria-hidden="true" />
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
-              )}
+              {/* Editing, left to right: whether it's saved, what belongs to
+                  the open tab (Preview lessons on Curriculum), then the
+                  publish control. Copy link and View landing page are in
+                  the focus bar (CourseBarActions). */}
               {/* Nothing to edit on Students, so nothing to say about saving */}
               {!onStudents && (
                 <SaveStatus
@@ -657,6 +647,27 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
                   canRetry={Boolean(retry.current)}
                   onRetry={() => retry.current?.()}
                 />
+              )}
+              {step === 'curriculum' && (
+                <a
+                  className="crs-btn crs-btn--small ced__preview"
+                  href={coursePlayerUrl(course.id, null, true)}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <Eye size={16} aria-hidden="true" />
+                  Preview lessons
+                  <ExternalLink size={14} aria-hidden="true" />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              )}
+              {live ? (
+                <PublishedMenu onUnpublish={() => setUnpublishing(true)} />
+              ) : (
+                <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={askPublish}>
+                  <Rocket size={16} aria-hidden="true" />
+                  Publish
+                </button>
               )}
             </>
           )}
@@ -785,8 +796,8 @@ export default function CoursePage({ courseId, onBack, onFocus }) {
 }
 
 // Whether changes are saved, in the steps row, before the actions:
-//   ● Unsaved changes · ⟳ Saving… · ✓ Saved as draft (✓ Saved · live for
-//   students) · ⚠ Couldn't save · Retry
+//   ● Unsaved changes · ⟳ Saving… · ✓ Saved as draft (✓ Saved once it's
+//   live: ● Live for students beside it says so) · ⚠ Couldn't save · Retry
 // "Saved" lights up green for a moment after each save (fresh), then
 // stays, quieter. On narrower screens only the icon shows (CoursePage.css);
 // the words are in its tooltip and still read out.
@@ -796,7 +807,7 @@ function SaveStatus({ status, fresh, live, canRetry, onRetry }) {
   const text = {
     unsaved: 'Unsaved changes',
     saving: 'Saving…',
-    saved: live ? 'Saved · live for students' : 'Saved as draft',
+    saved: live ? 'Saved' : 'Saved as draft',
     failed: canRetry ? 'Couldn’t save' : 'Couldn’t save your last change. Make it again.',
   }[status];
   const icon = {
@@ -835,7 +846,7 @@ function SaveStatus({ status, fresh, live, canRetry, onRetry }) {
 // each missing field says in red what it needs (onMissing). On Curriculum,
 // which has no field to point to, it waits until a lesson has something
 // in it, and says so as a hint on hover or focus (and to screen readers).
-//   Curriculum     👁 See it as a student ↗ (once a lesson has something
+//   Curriculum     👁 Preview lessons ↗ (once a lesson has something
 //                  in it) · Continue to Landing page →
 //   Landing page   👁 Preview landing page ↗ · ← Back · Continue to Pricing →
 //   Pricing        👁 Preview landing page ↗ · ← Back · Publish course
@@ -847,7 +858,7 @@ function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onMis
   const next = STEPS[index + 1];
   const preview =
     index === 0
-      ? hasLesson && { href: coursePlayerUrl(courseId, null, true), label: 'See it as a student' }
+      ? hasLesson && { href: coursePlayerUrl(courseId, null, true), label: 'Preview lessons' }
       : { href: courseLandingUrl(courseId, true), label: 'Preview landing page' };
   const pointsToFields = index > 0; // Landing page, Pricing
   const hint =
@@ -903,17 +914,15 @@ function SetupActions({ index, done, missing, courseId, hasLesson, onBack, onMis
   );
 }
 
-// The course's own buttons, while editing: in the app's focus bar, on the
-// right (AppLayout.jsx, focus.actions), so the tabs row under it holds only
-// the tabs and what belongs to the open tab.
-//   [🔗 Copy link] [View landing page ↗] [● Published ▾]
+// The course's links, while editing: in the app's focus bar, on the right
+// (AppLayout.jsx, focus.actions). Publish / ● Live for students ▾ is in
+// the tabs row, after the save status and Preview lessons.
+//   [🔗 Copy link] [View landing page ↗]
 //   Copy link            once published: the landing page link to share
 //   View landing page ↗  what buyers see (CourseLandingPage.jsx)
-//   Publish              only on a course unpublished since (askPublish)
-//   ● Published ▾        once live, in Publish's place: Unpublish
 // Where the bar gets tight (CoursePage.css), Copy link and View landing
 // page shrink to their icons, with the words in their hint.
-function CourseBarActions({ live, courseId, onCopy, onPublish, onUnpublish }) {
+function CourseBarActions({ live, courseId, onCopy }) {
   return (
     <div className="focusbar__actions">
       {live && (
@@ -940,20 +949,12 @@ function CourseBarActions({ live, courseId, onCopy, onPublish, onUnpublish }) {
         <ExternalLink size={15} aria-hidden="true" />
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
-      {live ? (
-        <PublishedMenu onUnpublish={onUnpublish} />
-      ) : (
-        <button type="button" className="crs-btn crs-btn--primary crs-btn--small" onClick={onPublish}>
-          <Rocket size={16} aria-hidden="true" />
-          Publish
-        </button>
-      )}
     </div>
   );
 }
 
-// ● Published ▾, in Publish's place once it's live: Unpublish. Closes on a
-// click outside or Escape.
+// ● Live for students ▾, in Publish's place once it's live, at the end of
+// the tabs row: Unpublish. Closes on a click outside or Escape.
 function PublishedMenu({ onUnpublish }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef(null);
@@ -990,11 +991,11 @@ function PublishedMenu({ onUnpublish }) {
         onClick={() => setOpen((o) => !o)}
       >
         <span className="ced__live-dot" aria-hidden="true" />
-        Published
+        Live for students
         <ChevronDown size={15} aria-hidden="true" />
       </button>
       {open && (
-        <div className="crs-menu__list" role="menu" aria-label="Published">
+        <div className="crs-menu__list" role="menu" aria-label="Live for students">
           <button
             type="button"
             role="menuitem"
