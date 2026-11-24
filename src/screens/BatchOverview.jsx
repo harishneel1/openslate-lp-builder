@@ -806,7 +806,7 @@ function ClassRow({ c, batch, today, now, isNext, past, menuOpen, onMenu, onChan
             {orange && <span className="wb-badge__dot" aria-hidden="true" />}
             {label}
           </span>
-          {cancelled && c.off.told?.email > 0 && <span className="bov-ct__told">{plural(c.off.told.email, 'student')} told</span>}
+          {cancelled && c.off.told?.email > 0 && <span className="bov-ct__told">{plural(c.off.told.email, 'student')} notified</span>}
         </span>
         <span className="bov-ct__menu">
           {!past && !cancelled && !live && (

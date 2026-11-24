@@ -213,7 +213,7 @@ export default function LiveClassesPage({ openRequest = null, onFocus, onOpenCon
         onConfirm={(told) => {
           const fresh = getBatch(open.id) ?? open;
           const ok = cancelClass(fresh, announce.sessionId, told, now);
-          const who = told.email > 0 ? ` ${told.email} ${told.email === 1 ? 'student was' : 'students were'} told.` : '';
+          const who = told.email > 0 ? ` ${told.email} ${told.email === 1 ? 'student was' : 'students were'} notified.` : '';
           setClassNotice(
             ok ? `The class on ${classDay(announce.date, null)} is cancelled.${who}` : 'That couldn’t be saved. Try again.',
           );
