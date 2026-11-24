@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import './Pickers.css';
 
@@ -74,6 +74,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // from reaching a pop-up around it, so it closes the panel, not the pop-up.
 export function usePanel() {
   const [open, setOpen] = useState(false);
+  const [up, setUp] = useState(false);
   const wrapRef = useRef(null);
   const triggerRef = useRef(null);
 
@@ -95,6 +96,21 @@ export function usePanel() {
     };
   }, [open]);
 
+  // Open upward when the panel would run past the bottom of the screen
+  // and there's more room above the field than below it.
+  useLayoutEffect(() => {
+    if (!open) {
+      setUp(false);
+      return;
+    }
+    const panel = wrapRef.current?.querySelector('.pk__panel');
+    const trigger = triggerRef.current;
+    if (!panel || !trigger || window.matchMedia('(max-width: 600px)').matches) return;
+    const box = trigger.getBoundingClientRect();
+    const below = window.innerHeight - box.bottom;
+    setUp(panel.offsetHeight + 16 > below && box.top > below);
+  }, [open]);
+
   const onPanelKeyDown = (e) => {
     if (e.key !== 'Escape') return;
     e.preventDefault();
@@ -102,7 +118,7 @@ export function usePanel() {
     close();
   };
 
-  return { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown };
+  return { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown, up };
 }
 
 export default function DatePicker({
@@ -116,7 +132,7 @@ export default function DatePicker({
 }) {
   // Keeps a day between min and max
   const clamp = (iso) => (iso < min ? min : max && iso > max ? max : iso);
-  const { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown } = usePanel();
+  const { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown, up } = usePanel();
   const [focus, setFocus] = useState(min); // the day the keyboard is on
   const gridRef = useRef(null);
   const moved = useRef(false); // focus the day only after the keyboard moves (or on open)
@@ -200,7 +216,7 @@ export default function DatePicker({
         <>
           {/* Phones only: dims the page behind the sheet; a tap closes it */}
           <div className="pk__scrim" onClick={() => close()} aria-hidden="true" />
-          <div className="pk__panel pk__panel--date" role="dialog" aria-label="Choose a date" onKeyDown={onPanelKeyDown}>
+          <div className={`pk__panel pk__panel--date${up ? ' pk__panel--up' : ''}`} role="dialog" aria-label="Choose a date" onKeyDown={onPanelKeyDown}>
             <div className="pk__head">
               <button
                 type="button"

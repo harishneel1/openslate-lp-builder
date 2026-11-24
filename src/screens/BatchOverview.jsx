@@ -4,8 +4,11 @@ import RowMenu from '../components/RowMenu';
 import PrototypeControls from '../components/PrototypeControls';
 import GuestInitials from '../components/GuestInitials';
 import ScheduleClassDialog from '../components/ScheduleClassDialog';
+import CancelClassDialog from '../components/CancelClassDialog';
+import CoverArt from '../components/CoverArt';
+import { previewOf } from '../data/imagePreviews';
 import { ContractsTab, LinkContractsDialog } from './ClassContracts';
-import { classDay, classMeetingHref, classState, classTimeRange, dayOn, nextClasses, pastClasses } from '../data/batches';
+import { cancelClass, classDay, classMeetingHref, classState, classTimeRange, dayOn, nextClasses, pastClasses } from '../data/batches';
 import { zoneShort } from '../components/BatchFields';
 import { onStudentsChange, studentsCsv, studentsOf } from '../data/classStudents';
 import { whatsappHref } from '../utils/whatsapp';
@@ -29,10 +32,13 @@ import './BatchOverview.css';
 // One class's own page, opened from its row on Live classes.
 //
 //   [focus bar:  ← All classes ]   (App.jsx, from LiveClassesPage)
-//   Morning Yoga                                                 [Edit]
-//   ┌ 📅 Tue 24 Nov, 6:00–7:00 pm IST · Starts tomorrow [Join as host] ┐  light orange,
-//   └──────────────────────────────────────────────────────────────────┘  as a webinar's
-//                                                                          next session
+//   Morning Yoga                              ┌──────────────────────┐
+//   [🔗 Copy Zoom link]                       │  the class's picture │
+//   ┌ 📅 Tue 24 Nov, 6:00–7:00 pm IST      ┐  │  (or the orange      │
+//   │ · Starts tomorrow                    │  │   cover with its     │
+//   │ Change time · Cancel  [Join as host] │  │   name)              │
+//   └──────────────────────────────────────┘  │   [✎ Edit class]     │
+//                                             └──────────────────────┘
 //
 //   Classes 9 | Students 12 | Reminders | Contracts 2      [+ Schedule]
 //   Class                 Status
@@ -53,7 +59,7 @@ import './BatchOverview.css';
 // past ones Ended. With 10 or more, the rows come in groups: Next up,
 // Later · 8, Ended · 4 (folded away). ⋯ on a class to come: Change time,
 // Cancel this class. + Schedule, beside the tabs, opens Schedule a class
-// (ScheduleClassDialog.jsx). Cancelling goes to the cancel page
+// (ScheduleClassDialog.jsx). Cancelling asks first (CancelClassDialog.jsx), then goes to the cancel page
 // (BatchAnnounce.jsx, through onAnnounce), where students are told.
 //
 // Students: everyone who bought any of the class's linked contracts, one
@@ -176,10 +182,17 @@ export default function BatchOverview({
   const allCount = (batch.sessions ?? []).length;
   const contractCount = linkedCount(batch);
 
+  // Cancel first asks: tell the students (the cancel page) or cancel quietly
+  const [cancelling, setCancelling] = useState(null);
   const cancel = (c) => {
     setMenuFor(null);
     setScheduled(null);
-    onAnnounce({ kind: 'cancel', sessionId: c.id, date: c.date });
+    setCancelling(c);
+  };
+  const cancelQuietly = (c) => {
+    setCancelling(null);
+    const ok = cancelClass(batch, c.id, { email: 0, whatsapp: 0 }, appNow());
+    setScheduled(ok ? `The class on ${classDay(c.date, null)} is cancelled. No one was notified.` : 'That couldn’t be saved. Try again.');
   };
   const change = (c) => {
     setMenuFor(null);
@@ -197,19 +210,12 @@ export default function BatchOverview({
 
   return (
     <div className="oh cov bov">
-      <header className="cov__head">
-        <div className="cov__intro">
-          <div className="cov__about">
-            <h1 className="cov__title">{batch.title}</h1>
-          </div>
-
-          <div className="cov__actions">
-            <button type="button" className="oh__edit" onClick={onEdit}>
-              <Pencil size={15} aria-hidden="true" /> Edit
-            </button>
-          </div>
-        </div>
-        <div className="bov__next-wrap">
+      {/* As a webinar's page: name, Copy Zoom link and the next class on
+          the left; the class's picture, with Edit class, on the right */}
+      <header className="wd__head bov__head">
+        <div className="wd__intro">
+          <h1 className="wd__title">{batch.title}</h1>
+          <CopyZoomLink batch={batch} />
           <NextClassCard
             batch={batch}
             c={nextOn}
@@ -220,6 +226,7 @@ export default function BatchOverview({
             onCancel={() => nextOn && cancel(nextOn)}
           />
         </div>
+        <ClassPicture batch={batch} onEdit={onEdit} />
         <span className="oh__sr-only" aria-live="polite">
           {said}
         </span>
@@ -340,6 +347,21 @@ export default function BatchOverview({
           </div>
         )}
       </section>
+
+      {cancelling && (
+        <CancelClassDialog
+          batch={batch}
+          c={cancelling}
+          count={students.length}
+          onClose={() => setCancelling(null)}
+          onQuiet={() => cancelQuietly(cancelling)}
+          onNotify={() => {
+            const c = cancelling;
+            setCancelling(null);
+            onAnnounce({ kind: 'cancel', sessionId: c.id, date: c.date });
+          }}
+        />
+      )}
 
       {scheduling && (
         <ScheduleClassDialog
@@ -523,15 +545,72 @@ function StudentRow({ student: s, showContracts }) {
   );
 }
 
-// ---------- The next class: a card in the header, as a webinar's next session ----------
-// Light orange, the same every day: one line, the date with Join as
-// host, the one filled
-// orange button on the page. Share Zoom link sits by it (copies the
-// class's one Zoom link, the same every class, for the coach's own
-// groups; turns green, "Zoom link copied", for 3 seconds), and Change
-// time and Cancel this class do until it starts. Nothing coming up: a quiet white card with + Schedule class.
-function NextClassCard({ batch, c, now, today, onSchedule, onChange, onCancel }) {
+// ---------- Copy Zoom link: under the title, as a webinar's Copy link ----------
+// The class's one Zoom room (the same every class), for coaches who also
+// post it in their own groups. One click; "✓ Copied" for a moment.
+function CopyZoomLink({ batch }) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const copy = async () => {
+    const ok = await copyText(`${window.location.origin}${classMeetingHref(batch.id)}`);
+    setFailed(!ok);
+    if (!ok) return;
+    setCopied(true);
+    window.clearTimeout(copy.t);
+    copy.t = window.setTimeout(() => setCopied(false), 3000);
+  };
+  return (
+    <div className="wd__actions">
+      <div className="wd__actions-row">
+        <button
+          type="button"
+          className={`wd__act wd__act--quiet ${copied ? 'wd__act--done' : ''}`}
+          onClick={copy}
+          aria-label={copied ? 'Zoom link copied' : 'Copy the class’s Zoom link'}
+        >
+          {copied ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
+          {copied ? 'Copied' : 'Copy Zoom link'}
+        </button>
+      </div>
+      <span className="oh__sr-only" aria-live="polite">
+        {copied && 'Zoom link copied'}
+      </span>
+      {failed && (
+        <p className="oh__copy-error wd__copy-error" role="alert">
+          Couldn’t copy. Use Join as host and copy the address from the browser.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------- The class's picture, with Edit class ----------
+// Where a webinar shows its landing page: the class's picture at 16:9, or,
+// without one, the same orange cover as a course, with the class's name on
+// it (CoverArt.jsx). The whole picture is the Edit class button, under a
+// light wash with a white pill, as "Edit webinar pages".
+function ClassPicture({ batch, onEdit }) {
+  const picture = batch.thumbnail ? previewOf(batch.thumbnail.previewId) : null;
+  return (
+    <div className="wd-thumb bov-pic">
+      <div className="wd-thumb__view bov-pic__view">
+        <CoverArt course={{ title: batch.title, cover: picture ? { src: picture } : null }} />
+        <button type="button" className="wd-thumb__edit" onClick={onEdit} aria-label={`Edit ${batch.title}`}>
+          <span className="wd-thumb__pill">
+            <Pencil size={16} aria-hidden="true" /> Edit class
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- The next class: a card in the header, as a webinar's next session ----------
+// Light orange while a class is coming up, as a webinar's: the date line,
+// with Change time and Cancel this class (until it starts) and Join as
+// host, the one filled orange button on the page. Nothing coming up: a
+// quiet white card with + Schedule class.
+function NextClassCard({ batch, c, now, today, onSchedule, onChange, onCancel }) {
   if (!c) {
     return (
       <section className="wd__next wd__next--none" aria-labelledby="bov-next-title">
@@ -549,13 +628,6 @@ function NextClassCard({ batch, c, now, today, onSchedule, onChange, onCancel })
   }
   const state = classState(c, now);
   const live = state === 'live';
-  const copyLink = async () => {
-    if (await copyText(`${window.location.origin}${classMeetingHref(batch.id)}`)) {
-      setCopied(true);
-      window.clearTimeout(copyLink.t);
-      copyLink.t = window.setTimeout(() => setCopied(false), 3000);
-    }
-  };
   return (
     <section className="wd__next" aria-label="Next class">
       <div className="wd__next-foot bov__next-foot">
@@ -577,22 +649,6 @@ function NextClassCard({ batch, c, now, today, onSchedule, onChange, onCancel })
               </button>
             </>
           )}
-          <button
-            type="button"
-            className={`bov__link-btn bov__share ${copied ? 'bov__share--done' : ''}`}
-            onClick={copyLink}
-          >
-            {/* Both labels share one spot, so the button keeps its width */}
-            <span className="bov__share-label" aria-hidden={copied}>
-              <Link2 size={14} aria-hidden="true" /> Share Zoom link
-            </span>
-            <span className="bov__share-label" aria-hidden={!copied}>
-              <Check size={14} aria-hidden="true" /> Zoom link copied
-            </span>
-            <span className="oh__sr-only" aria-live="polite">
-              {copied ? 'Zoom link copied' : ''}
-            </span>
-          </button>
           <a
             className={`oh__add wb-row__start bov__start-class`}
             href={classMeetingHref(batch.id)}

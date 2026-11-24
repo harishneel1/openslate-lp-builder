@@ -548,12 +548,8 @@
 }
 
 /* ---------- Laid out like a webinar's page (WebinarDetails.css) ---------- */
-/* The next-class card sits under the title, in the header */
-.bov__next-wrap {
-  margin-top: 20px;
-}
-
-.bov__next-wrap .bov__next-actions {
+/* The next-class card: its buttons on the right of its date line */
+.bov__next-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -568,13 +564,8 @@
   border-top: 0;
 }
 
-/* Share Zoom link: both labels in one grid cell, only one shown, so the
-   button keeps its width when it turns into "Zoom link copied" */
-.bov__share {
-  display: inline-grid;
-  margin-left: 4px;
-}
-
+/* Both labels in one grid cell, only one shown, so a button keeps its
+   width when it turns into its "copied" label (Contracts' Share link) */
 .bov__share-label {
   grid-area: 1 / 1;
   display: inline-flex;
@@ -584,20 +575,57 @@
   white-space: nowrap;
 }
 
-.bov__share .bov__share-label:nth-child(2),
-.bov__share--done .bov__share-label:first-child {
-  visibility: hidden;
+/* ---------- Header: as a webinar's (WebinarDetails.css .wd__head) ----------
+   Both columns start at the top. The left one is packed: title, Copy
+   Zoom link, then the card right under it (not pushed to the bottom, as
+   a webinar's is). The picture keeps its own 16:9 shape.
+   One column on narrow screens, as a webinar's (max-width: 860px). */
+.bov__head {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); /* 60 / 40: the picture about as tall as the left column */
+  align-items: start;
 }
 
-.bov__share--done .bov__share-label:nth-child(2) {
-  visibility: visible;
+.bov__head .wd__intro {
+  gap: 20px;
 }
 
-.bov__share--done,
-.bov__share--done:hover {
-  color: var(--color-success);
-  text-decoration: none;
+.bov__head .wd__intro .wd__next {
+  margin-top: 4px;
 }
+
+.bov-pic {
+  min-height: 0;
+}
+
+.bov-pic__view {
+  flex: none;
+  aspect-ratio: 16 / 9;
+}
+
+.bov-pic__view .cvr {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+}
+
+/* Edit class: a white pill in the top right corner, clear of the name on
+   the cover; the picture stays as it is until hover or focus washes it */
+.bov-pic .wd-thumb__edit {
+  place-items: start end;
+  padding: 16px;
+  background: transparent;
+}
+
+.bov-pic .wd-thumb__pill {
+  padding: 9px 16px;
+  font-size: 14px;
+}
+
+.bov-pic .wd-thumb__edit:hover,
+.bov-pic .wd-thumb__edit:focus-visible {
+  background: rgba(17, 17, 17, 0.18);
+}
+
 
 /* Join as host: the one filled orange button on the page */
 .bov__start-class {
@@ -659,7 +687,7 @@
     margin: 12px 16px 4px;
   }
 
-  .bov__next-wrap .bov__next-actions {
+  .bov__next-actions {
     justify-content: flex-start;
   }
 }

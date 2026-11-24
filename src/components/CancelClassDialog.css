@@ -1,0 +1,32 @@
+/* Cancel this class?: ConfirmDialog's look, wide enough for three buttons in one row */
+.ccd {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.ccd .confirm-dialog__body {
+  gap: 4px;
+}
+
+.ccd .confirm-dialog__body p {
+  margin: 0;
+}
+
+/* The title holds focus when it opens, without a ring */
+.ccd__title:focus {
+  outline: none;
+}
+
+.ccd__actions {
+  flex-wrap: nowrap;
+}
+
+.ccd__actions .confirm-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .ccd__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

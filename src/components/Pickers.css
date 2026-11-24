@@ -67,6 +67,12 @@
   width: 320px;
 }
 
+/* No room below: the panel opens above the field instead */
+.pk__panel--up {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
 .pk__scrim {
   display: none;
 }
@@ -246,7 +252,8 @@
   }
 
   .pk__panel,
-  .pk__panel--time {
+  .pk__panel--time,
+  .pk__panel--up {
     position: fixed;
     top: auto;
     right: 0;

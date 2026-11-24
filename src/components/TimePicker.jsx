@@ -56,7 +56,7 @@ const periodOf = (time) => {
 };
 
 export default function TimePicker({ id, value, onChange, zone = null, className = '', placeholder = 'Pick a time' }) {
-  const { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown } = usePanel();
+  const { open, setOpen, close, wrapRef, triggerRef, onPanelKeyDown, up } = usePanel();
   const chosen = isTime(value) ? value : null;
   const [tab, setTab] = useState(chosen ? periodOf(chosen) : 'evening');
   const gridRef = useRef(null);
@@ -105,7 +105,7 @@ export default function TimePicker({ id, value, onChange, zone = null, className
       {open && (
         <>
           <div className="pk__scrim" onClick={() => close()} aria-hidden="true" />
-          <div className="pk__panel pk__panel--time" role="dialog" aria-label="Choose a start time" onKeyDown={onPanelKeyDown}>
+          <div className={`pk__panel pk__panel--time${up ? ' pk__panel--up' : ''}`} role="dialog" aria-label="Choose a start time" onKeyDown={onPanelKeyDown}>
             <div className="pk__tabs" role="group" aria-label="Part of the day">
               {PERIODS.map((p) => (
                 <button
