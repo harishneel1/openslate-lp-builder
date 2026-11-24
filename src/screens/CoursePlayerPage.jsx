@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, Link2, Play } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Download, ExternalLink, FileText, FolderOpen, Link2, Play } from 'lucide-react';
 import {
   academyHome,
   coursePlayerPath,
@@ -13,7 +13,7 @@ import { onProgressChange, progressOf, setDone, setLast } from '../data/coursePr
 import { canSee, onStudentChange } from '../data/students';
 import { fileById, formatBytes, onStorageChange } from '../data/cloudStorage';
 import { TextView } from '../components/TextEditor';
-import { KindTile, tileKindOf } from './lessonKinds';
+import { KIND, KindTile, tileKindOf } from './lessonKinds';
 import './AcademyCoursesPage.css';
 import './CoursePlayerPage.css';
 
@@ -30,29 +30,37 @@ import './CoursePlayerPage.css';
 //   ┌────────────────────────────────────────┐   │ Introduction            ⌃
 //   │  the lesson: video, PDF or text        │   │ 1 of 2 done
 //   └────────────────────────────────────────┘   │ ░ ✓  What is MCP?        ░
-//   ‹ Previous          [Next: Install the SDK ›] │ ░ 2  How servers work    ░ (lit)
-//                                                │ ──────────────────────────
-//   About this lesson  (its description, if any) │ Building your server    ⌄
-//   Resources          (its files, if any)       │ 0 of 3 done
+//   ‹ Previous                            Next › │ ▒ Introduction            ⌃ ▒
+//                              Install the SDK  │ ▒ 1 / 2 · 12 min          ▒
+//   About this lesson  (its description, if any) │ ✓ 1. What is MCP?
+//   Resources          (its files, if any)       │   ▶ 4 min
+//                                                │ ○ 2. How servers work (lit)
+//                                                │   ≡ 8 min    [Resources ⌄]
+//                                                │ ▒ Building your server    ⌄ ▒
 //
-// Long names (lessons, sections, the course, Next) keep to one line,
-// ending in "…", with the whole name in a tooltip (OverflowTip).
+// Lesson names in the contents wrap to two lines; the course's name and
+// the next lesson's name under Next keep to one. Any name cut short ends
+// in "…", with the whole name in a tooltip (OverflowTip).
 //
 // The bar: Back (to the academy's Courses page), the course's name, and
 // how much of it is done: a thin bar and "1 of 4". That's the only count
 // on the page.
 //
 // The contents: down the right, the window's full height, scrolling on
-// its own (the lesson scrolls on its own too). Like TagMango's, in our
-// look: each section a full-width row, a line between sections. Its name
-// in bold, how many of its lessons are done under it ("1 of 2 done"), and
+// its own (the lesson scrolls on its own too). Each section a full-width
+// row on light grey: its name in bold (wrapping, never cut), under it how
+// many of its lessons are done and how long it is ("1 / 4 · 30 min"), and
 // an arrow: the whole row folds it open or shut. Only the section they're
 // in starts open; moving into another section opens that one too. An
-// open section's lessons sit on a light grey strip under it, a row each:
-// a small number (a small green tick once done) and the name. Lessons are
+// open section's lessons sit under it on white, a row each: a circle
+// they can tick to mark it done (or untick), orange once done; then
+// "5. Its name", wrapping to two lines; and under that its kind's icon
+// and its length (lessonMinutes), or the kind's name when the length
+// isn't known. A lesson with files has a small outlined "Resources ⌄"
+// on the right, opening the list of its files to download. Lessons are
 // numbered through the whole course. The open lesson is lit in orange,
-// and kept in view. Students see sections by name
-// only, and only lessons with something in them (studentSections).
+// and kept in view. Students see sections by name only, and only
+// lessons with something in them (studentSections).
 //
 // The lesson: its section and title, then the lesson itself:
 //   Embedded video  the YouTube or Vimeo player
@@ -60,14 +68,16 @@ import './CoursePlayerPage.css';
 //   PDF             the file, to read and download (a stand-in for now)
 //   Text            the text
 // Under it, one row: ‹ Previous on the left, and the way forward on the
-// right: Next: <lesson> ›, or on the last lesson Finish course ✓, then
-// "You've finished this course" once every lesson is done.
+// right: Next › (plain text like Previous, only its arrow orange), the
+// next lesson's name under it in small grey; or on the last lesson Finish
+// course ✓, then "You've finished this course" once every lesson is done.
 // Then, only when there's something: About this lesson (its description;
 // a Text lesson never has one) and Resources (its files to download).
 //
-// Done: there's no Mark as complete. A lesson counts as done when they
-// move on from it to a later one (Next, or a later lesson in the list),
-// and the last one with Finish course. Going back changes nothing.
+// Done: a lesson counts as done when they move on from it to a later one
+// (Next, or a later lesson in the list), and the last one with Finish
+// course. Going back changes nothing. They can also tick or untick any
+// lesson's circle in the contents.
 // Progress is each student's own (courseProgress.js).
 //
 // Where they are: ?lesson= in the address, so a lesson's link opens it,
@@ -214,10 +224,14 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
 
               {next ? (
                 <a className="cpl__next" {...link(next.lesson)}>
-                  <span className="cpl__next-text" data-full={`Next: ${next.lesson.title}`}>
-                    Next: <span className="cpl__next-title">{next.lesson.title}</span>
+                  <span className="cpl__next-label">
+                    Next
+                    <ChevronRight size={18} strokeWidth={2.5} className="cpl__next-arrow" aria-hidden="true" />
                   </span>
-                  <ChevronRight size={18} aria-hidden="true" />
+                  <span className="cpl__next-title" data-full={next.lesson.title}>
+                    <span className="sr-only">: </span>
+                    {next.lesson.title}
+                  </span>
                 </a>
               ) : allDone ? (
                 <p className="cpl__finished" role="status">
@@ -229,7 +243,10 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
                 </p>
               ) : (
                 <button type="button" className="cpl__next" onClick={() => setDone(who, courseId, current.lesson.id, true)}>
-                  Finish course <Check size={18} strokeWidth={3} aria-hidden="true" />
+                  <span className="cpl__next-label">
+                    Finish course
+                    <Check size={18} strokeWidth={3} className="cpl__next-arrow" aria-hidden="true" />
+                  </span>
                 </button>
               )}
             </nav>
@@ -244,6 +261,7 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
           currentId={currentId}
           currentSectionId={current.section.id}
           link={link}
+          onTick={(lessonId, isDone) => setDone(who, courseId, lessonId, isDone)}
         />
       </div>
     </div>
@@ -251,8 +269,9 @@ export default function CoursePlayerPage({ courseId, student = null, preview = f
 }
 
 // ---------- Names cut short: the whole name in a tooltip ----------
-// Lesson and section names, the course's name in the bar, and the Next
-// button keep to one line, ending in "…" when there isn't room. Pointing
+// The course's name in the bar and the next lesson's name under Next keep
+// to one line, lesson names in the contents to two, ending in "…" when
+// there isn't room. Pointing
 // at one that's cut short (or tabbing to it) shows the whole name above
 // it, in our dark tooltip (tooltip.css, .tip). Names that fit show none.
 // The tooltip floats over the page, so the scrolling contents can't clip
@@ -270,7 +289,7 @@ function OverflowTip() {
     };
     const show = (e) => {
       const el = nameIn(e.target);
-      if (!el || el.scrollWidth <= el.clientWidth + 1) {
+      if (!el || (el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1)) {
         setTip(null);
         return;
       }
@@ -344,8 +363,43 @@ function Bar({ home, title, done = 0, total = 0 }) {
   );
 }
 
+// ---------- How long a lesson is ----------
+// In minutes, or null when it isn't known: a video's length when Cloud
+// Storage knows it, a text's reading time (about 200 words a minute).
+// PDFs, links and embedded videos have none; their row shows the kind.
+const WORDS_PER_MINUTE = 200;
+
+function lessonMinutes(lesson) {
+  const c = lesson.content;
+  if (c.kind === 'video') {
+    const ms = fileById(c.fileId)?.duration;
+    return Number.isFinite(ms) && ms > 0 ? Math.max(1, Math.round(ms / 60000)) : null;
+  }
+  if (c.kind === 'text') {
+    const words = String(c.html)
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&[a-z#0-9]+;/gi, ' ')
+      .split(/\s+/)
+      .filter(Boolean).length;
+    return Math.max(1, Math.round(words / WORDS_PER_MINUTE));
+  }
+  return null;
+}
+
+// "8 min", "1 hr 7 min", "2 hr"
+function formatMinutes(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (!h) return `${m} min`;
+  return m ? `${h} hr ${m} min` : `${h} hr`;
+}
+
 // ---------- The contents: sections that fold, a row for each lesson ----------
-function Contents({ sections, done, currentId, currentSectionId, link }) {
+function Contents({ sections, done, currentId, currentSectionId, link, onTick }) {
+  // Lengths come partly from Cloud Storage
+  const [, setTick] = useState(0);
+  useEffect(() => onStorageChange(() => setTick((n) => n + 1)), []);
+
   // Only the section they're in starts open; moving into another opens it too
   const [open, setOpen] = useState(() => new Set([currentSectionId]));
   useEffect(() => {
@@ -357,6 +411,9 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
   useEffect(() => {
     sideRef.current?.querySelector('.cpl__lesson--on')?.scrollIntoView?.({ block: 'nearest' });
   }, [currentId, open]);
+
+  // One lesson's Resources list open at a time
+  const [filesOf, setFilesOf] = useState(null);
 
   const toggle = (id) =>
     setOpen((prev) => {
@@ -377,6 +434,7 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
         const first = number;
         number += section.lessons.length;
         const sectionDone = section.lessons.filter((l) => done.has(l.id)).length;
+        const minutes = section.lessons.reduce((n, l) => n + (lessonMinutes(l) ?? 0), 0);
         return (
           <section key={section.id} className={`cpl__section ${isOpen ? 'cpl__section--open' : ''}`}>
             <h3 className="cpl__section-head">
@@ -388,11 +446,16 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
                 onClick={() => toggle(section.id)}
               >
                 <span className="cpl__section-text">
-                  <span className="cpl__section-title" data-full={section.title}>
-                    {section.title}
-                  </span>
+                  <span className="cpl__section-title">{section.title}</span>
                   <span className="cpl__section-count">
-                    {sectionDone} of {section.lessons.length} done
+                    <span aria-hidden="true">
+                      {sectionDone} / {section.lessons.length}
+                      {minutes > 0 && ` · ${formatMinutes(minutes)}`}
+                    </span>
+                    <span className="sr-only">
+                      {sectionDone} of {section.lessons.length} done
+                      {minutes > 0 && `, ${formatMinutes(minutes)}`}
+                    </span>
                   </span>
                 </span>
                 <ChevronDown size={20} className="cpl__chev" aria-hidden="true" />
@@ -400,33 +463,123 @@ function Contents({ sections, done, currentId, currentSectionId, link }) {
             </h3>
             {isOpen && (
               <ol className="cpl__lessons" id={`cpl-sec-${section.id}`}>
-                {section.lessons.map((lesson, i) => {
-                  const on = lesson.id === currentId;
-                  const isDone = done.has(lesson.id);
-                  return (
-                    <li key={lesson.id}>
-                      <a
-                        className={`cpl__lesson ${on ? 'cpl__lesson--on' : ''} ${isDone ? 'cpl__lesson--done' : ''}`}
-                        aria-current={on ? 'page' : undefined}
-                        {...link(lesson)}
-                      >
-                        <span className="cpl__mark" aria-hidden="true">
-                          {isDone ? <Check size={14} strokeWidth={2.75} /> : first + i + 1}
-                        </span>
-                        <span className="cpl__lesson-name" data-full={lesson.title}>
-                          {lesson.title}
-                        </span>
-                        {isDone && <span className="sr-only">, done</span>}
-                      </a>
-                    </li>
-                  );
-                })}
+                {section.lessons.map((lesson, i) => (
+                  <LessonRow
+                    key={lesson.id}
+                    lesson={lesson}
+                    number={first + i + 1}
+                    on={lesson.id === currentId}
+                    isDone={done.has(lesson.id)}
+                    link={link}
+                    onTick={onTick}
+                    filesOpen={filesOf === lesson.id}
+                    setFilesOpen={(isOpen) => setFilesOf(isOpen ? lesson.id : null)}
+                  />
+                ))}
               </ol>
             )}
           </section>
         );
       })}
     </nav>
+  );
+}
+
+// One lesson in the contents. The whole row opens it (the link stretches
+// over it); the circle and Resources sit above the link, so they work on
+// their own.
+function LessonRow({ lesson, number, on, isDone, link, onTick, filesOpen, setFilesOpen }) {
+  const kind = KIND[lesson.content.kind] ?? KIND.text;
+  const KindIcon = kind.icon;
+  const minutes = lessonMinutes(lesson);
+  const files = lesson.resources.filter((r) => fileById(r.fileId)); // deleted ones aren't offered
+  const menuId = `cpl-files-${lesson.id}`;
+
+  return (
+    <li className={`cpl__lesson ${on ? 'cpl__lesson--on' : ''} ${isDone ? 'cpl__lesson--done' : ''}`}>
+      <button
+        type="button"
+        className="cpl__tick"
+        role="checkbox"
+        aria-checked={isDone}
+        aria-label={`${lesson.title}: done`}
+        title={isDone ? 'Mark as not done' : 'Mark as done'}
+        onClick={() => onTick(lesson.id, !isDone)}
+      >
+        {isDone && <Check size={13} strokeWidth={3.25} aria-hidden="true" />}
+      </button>
+
+      <div className="cpl__lesson-body">
+        <a className="cpl__lesson-link" aria-current={on ? 'page' : undefined} {...link(lesson)}>
+          <span className="cpl__lesson-name" data-full={`${number}. ${lesson.title}`}>
+            {number}. {lesson.title}
+          </span>
+          {isDone && <span className="sr-only">, done</span>}
+        </a>
+
+        <div className="cpl__lesson-meta">
+          <span className="cpl__lesson-kind">
+            <KindIcon size={14} aria-hidden="true" />
+            {minutes ? formatMinutes(minutes) : kind.label}
+          </span>
+          {files.length > 0 && (
+            <button
+              type="button"
+              className={`cpl__files-btn ${filesOpen ? 'cpl__files-btn--open' : ''}`}
+              aria-expanded={filesOpen}
+              aria-controls={menuId}
+              onClick={() => setFilesOpen(!filesOpen)}
+            >
+              <FolderOpen size={14} aria-hidden="true" />
+              Resources
+              <ChevronDown size={14} className="cpl__files-chev" aria-hidden="true" />
+              <span className="sr-only"> for {lesson.title}</span>
+            </button>
+          )}
+        </div>
+
+        {filesOpen && files.length > 0 && <FilesMenu id={menuId} files={files} onClose={() => setFilesOpen(false)} />}
+      </div>
+    </li>
+  );
+}
+
+// A lesson's files, under its Resources button. Closes on Escape or a
+// click anywhere else.
+function FilesMenu({ id, files, onClose }) {
+  const ref = useRef(null);
+  const [noted, setNoted] = useState(null); // the file whose Download was pressed
+  useEffect(() => {
+    const away = (e) => {
+      if (!ref.current?.contains(e.target) && !e.target.closest?.('.cpl__files-btn')) onClose();
+    };
+    const esc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [onClose]);
+
+  return (
+    <ul className="cpl__files" id={id} ref={ref}>
+      {files.map((r) => (
+        <li key={r.id}>
+          <button type="button" className="cpl__file" onClick={() => setNoted(r.id)}>
+            <Download size={15} className="cpl__file-icon" aria-hidden="true" />
+            <span className="cpl__file-text">
+              <span className="cpl__file-name">{r.name}</span>
+              <span className="cpl__file-detail">
+                {noted === r.id ? 'The prototype keeps only the file’s name, so nothing downloads.' : `${r.ext ?? 'File'} · ${formatBytes(r.bytes)}`}
+              </span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

@@ -111,8 +111,8 @@
 }
 
 /* ---------- The contents: flush to the right, the full height ----------
-   As TagMango's, in our look: each section a full-width row with a line
-   between sections; an open section's lessons on a light grey strip. */
+   Each section a full-width row on light grey; an open section's
+   lessons under it on white. */
 .cpl__side {
   flex: none;
   width: 360px;
@@ -131,26 +131,28 @@
 }
 
 .cpl__section {
-  border-bottom: 1px solid #ececef;
+  border-bottom: 1px solid #e6e6ea;
 }
 
-/* The section's name, how many are done, and the arrow: one button */
+/* The section's name, done / total · length, and the arrow: one button,
+   on light grey */
 .cpl__section-btn {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   width: 100%;
   padding: 16px 16px 16px 20px;
   font: inherit;
   color: #141414;
   text-align: left;
-  background: none;
+  background: #f6f6f7;
   border: 0;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
 .cpl__section-btn:hover {
-  background: #fafafb;
+  background: #efeff1;
 }
 
 .cpl__section-btn:focus-visible {
@@ -162,28 +164,28 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
+/* Wraps: a section's name is never cut */
 .cpl__section-title {
-  overflow: hidden;
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 700;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .cpl__section-count {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 400;
-  color: #8a8a90;
+  color: #7a7a80;
   font-variant-numeric: tabular-nums;
 }
 
 .cpl__chev {
   flex: none;
+  margin-top: 1px;
   color: #55555b;
   transition: transform 0.15s;
 }
@@ -192,71 +194,231 @@
   transform: rotate(180deg);
 }
 
-/* Its lessons: on a light grey strip, a row each */
+/* Its lessons: on white, a row each */
 .cpl__lessons {
-  padding: 4px 0;
   list-style: none;
-  background: #f6f6f7;
-  border-top: 1px solid #ececef;
+  background: var(--color-surface);
+  border-top: 1px solid #e6e6ea;
 }
 
+/* The circle, then the name and under it the kind and length (and
+   Resources). The link stretches over the whole row; the circle and
+   Resources sit above it. */
 .cpl__lesson {
+  position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding: 11px 20px;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: #2b2b30;
-  text-decoration: none;
+  padding: 12px 16px 12px 20px;
   transition: background 0.15s;
 }
 
 .cpl__lesson:hover {
-  background: #eeeef0;
+  background: #f6f6f7;
 }
 
 .cpl__lesson--on,
 .cpl__lesson--on:hover {
-  font-weight: 600;
-  color: #141414;
   background: var(--color-primary-tint);
   box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
-.cpl__lesson:focus-visible {
+.cpl__lesson-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cpl__lesson-link {
+  display: block;
+  color: #2b2b30;
+  text-decoration: none;
+}
+
+.cpl__lesson-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.cpl__lesson-link:focus-visible {
+  outline: none;
+}
+
+.cpl__lesson-link:focus-visible::after {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
 
-/* Its number; a small green tick in the same place once done */
-.cpl__mark {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  font-size: 13px;
+/* Two lines at most, then "…" */
+.cpl__lesson-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.cpl__lesson--on .cpl__lesson-name {
   font-weight: 600;
-  color: #8a8a90;
+  color: #141414;
+}
+
+/* The circle: tick it to mark the lesson done; orange once done */
+.cpl__tick {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  padding: 0;
+  color: #fff;
+  background: var(--color-surface);
+  border: 1.5px solid #b9b9bf;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cpl__tick:hover {
+  border-color: var(--color-primary);
+}
+
+.cpl__lesson--done .cpl__tick {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.cpl__tick:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Under the name: the kind and length, Resources on the right */
+.cpl__lesson-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cpl__lesson-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: #7a7a80;
   font-variant-numeric: tabular-nums;
 }
 
-.cpl__lesson--done .cpl__mark {
-  color: var(--color-success);
+.cpl__files-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2b2b30;
+  background: var(--color-surface);
+  border: 1px solid #d6d6da;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
 }
 
-.cpl__lesson--on .cpl__mark {
+.cpl__files-btn:hover,
+.cpl__files-btn--open {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.cpl__files-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cpl__files-chev {
+  transition: transform 0.15s;
+}
+
+.cpl__files-btn--open .cpl__files-chev {
+  transform: rotate(180deg);
+}
+
+/* Its files, dropped under the button */
+.cpl__files {
+  position: absolute;
+  top: calc(100% - 8px);
+  right: 16px;
+  z-index: 5;
+  width: 260px;
+  max-width: calc(100% - 32px);
+  padding: 6px;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid #e3e3e7;
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 10px 28px rgba(20, 20, 20, 0.12);
+}
+
+.cpl__file {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  color: #141414;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cpl__file:hover {
+  background: #f6f6f7;
+}
+
+.cpl__file:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.cpl__file-icon {
+  flex: none;
+  margin-top: 2px;
   color: var(--color-primary);
 }
 
-.cpl__lesson-name {
+.cpl__file-text {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+}
+
+.cpl__file-name {
   overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cpl__file-detail {
+  font-size: 12px;
+  color: #7a7a80;
 }
 
 /* ---------- The lesson ---------- */
@@ -446,45 +608,54 @@
   background: #ececef;
 }
 
-/* The way forward: the one orange button on the page */
+/* The way forward: plain text like Previous, only its arrow orange, and
+   the next lesson's name under it in small grey */
 .cpl__next {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
   min-width: 0;
-  max-width: 70%;
-  min-height: 46px;
-  padding: 0 18px 0 20px;
+  max-width: 60%;
+  padding: 8px 8px 8px 14px;
   font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
+  color: #2b2b30;
+  text-align: right;
   text-decoration: none;
-  background: var(--color-primary);
+  background: none;
   border: 0;
   border-radius: var(--radius-sm);
-  box-shadow: 0 4px 14px rgba(239, 138, 60, 0.25);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .cpl__next:hover {
-  background: var(--color-primary-hover);
+  color: #141414;
+  background: #ececef;
 }
 
-.cpl__next-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cpl__next-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cpl__next-arrow {
+  flex: none;
+  color: var(--color-primary);
 }
 
 .cpl__next-title {
-  font-weight: 700;
-}
-
-.cpl__next svg {
-  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  padding-right: 22px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #8a8a90;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cpl__finished {
@@ -658,9 +829,7 @@
   }
 
   .cpl__next {
-    max-width: none;
-    flex: 1;
-    justify-content: space-between;
+    max-width: 65%;
   }
 }
 
@@ -669,6 +838,9 @@
   .cpl__tip,
   .cpl__next,
   .cpl__lesson,
+  .cpl__tick,
+  .cpl__section-btn,
+  .cpl__files-chev,
   .cpl__chev {
     transition: none;
   }
