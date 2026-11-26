@@ -41,6 +41,17 @@
 //              so the setup opens on the document to fix and keeps the
 //              rest. doc is one of DOCS. Bank: problem, { field, message }.
 //   verified   done (verifiedAt)
+//   rejected   identity only: Razorpay won't approve the account, and
+//              won't look at it again. No resubmitting: Book a call.
+//   suspended  identity only: it was verified, then Razorpay stopped it
+//              (suspendedAt). Withdrawals and payments are paused until
+//              it's sorted out on a call.
+// A needs-fix with no problems is Razorpay asking about something we
+// can't place on a document (outcome 'other'): nothing is highlighted,
+// and the coach books a call instead of fixing it (unknownFix).
+// Razorpay's own names: created / under_review = checking,
+// needs_clarification = needs-fix, activated = verified, rejected,
+// suspended.
 //
 // Changing a verified bank account (submitBankChange): the new one is
 // checked as a pending change, and withdrawals keep going to the old one
@@ -53,7 +64,7 @@
 //   { kyc: { status, type: 'individual' | 'business', businessType,
 //            business: { pan, name }, pan, panName, aadhaar, gstin,
 //            docs: { pan, aadhaar, businessPan, certificate, gst },
-//            submittedAt, verifiedAt, outcome },
+//            submittedAt, verifiedAt, suspendedAt, outcome },
 //     (pan, panName, aadhaar: the person, the coach or the one signing
 //      for the business; business.name: as registered, from its PAN, or
 //      as they typed it for a proprietorship; gstin: '' when not registered)
@@ -101,6 +112,7 @@ const DEMO = {
     },
     submittedAt: null,
     verifiedAt: null,
+    suspendedAt: null,
     outcome: 'approve',
   },
   account: {
@@ -134,6 +146,7 @@ const NONE = {
     docs: { ...NO_DOCS },
     submittedAt: null,
     verifiedAt: null,
+    suspendedAt: null,
     outcome: 'approve',
   },
   account: {
@@ -295,7 +308,9 @@ function settle(s, now) {
     kyc =
       kyc.outcome === 'approve'
         ? { ...kyc, status: 'verified', verifiedAt: kyc.submittedAt + KYC_CHECK_MS }
-        : { ...kyc, status: 'needs-fix' };
+        : kyc.outcome === 'rejected'
+          ? { ...kyc, status: 'rejected' }
+          : { ...kyc, status: 'needs-fix' };
   }
 
   // The bank account is verified along with KYC (one submission)
@@ -324,7 +339,8 @@ function settle(s, now) {
   return { ...s, kyc, account };
 }
 
-// What an identity check that failed says, document by document
+// What an identity check that failed says, document by document. 'other'
+// (Razorpay asks about something outside these five) has none: [].
 function kycProblemsOf(outcome, kyc) {
   const label = (doc) => docLabelOf(doc, kyc);
   if (outcome === 'pan-photo') {
@@ -417,8 +433,10 @@ export function payoutState(now = Date.now()) {
             : null,
       }
     : null;
+  const problems = kyc.status === 'needs-fix' ? kycProblemsOf(kyc.outcome, kyc) : [];
   return {
-    kyc: { ...kyc, problems: kyc.status === 'needs-fix' ? kycProblemsOf(kyc.outcome, kyc) : [] },
+    // unknownFix: needs a fix, but not one we can show on a document
+    kyc: { ...kyc, problems, unknownFix: kyc.status === 'needs-fix' && problems.length === 0 },
     bank: {
       ...account,
       problem: account.status === 'needs-fix' ? bankProblemOf(account.outcome, account.bank, payee) : null,
@@ -725,6 +743,10 @@ export const KYC_OUTCOMES = [
   { id: 'aadhaar-name', label: 'Aadhaar name doesn’t match' },
   { id: 'certificate-unclear', label: 'Certificate unclear (business)' },
   { id: 'gst-mismatch', label: 'GST doesn’t match (business)' },
+  { id: 'other', label: 'Needs a fix, unknown reason' },
+  { id: 'rejected', label: 'Not approved (rejected)' },
+  // Only once a check has ended: verified, then stopped by Razorpay
+  { id: 'suspended', label: 'Paused (suspended)', afterCheck: true },
 ];
 
 export const BANK_OUTCOMES = [
@@ -737,6 +759,52 @@ export const BANK_OUTCOMES = [
 export function setNextOutcome(part, outcome) {
   const s = load();
   return save({ ...s, next: { ...s.next, [part]: outcome } });
+}
+
+// KYC checks that have ended (verified, needs a fix, rejected, suspended)
+export const kycFinished = (status) => ['verified', 'needs-fix', 'rejected', 'suspended'].includes(status);
+
+// The Next KYC check buttons: before KYC is sent, or while it's being
+// checked, they choose how that check ends. Once it has ended, the
+// outcome picked replaces the result straight away, as if Razorpay had
+// sent a new status, so each one can be tried without starting over. An
+// outcome that doesn't fit this coach (a business one for an individual)
+// counts as Verified, as it does when sent.
+export function pickKycOutcome(outcome, now = Date.now()) {
+  const s = settle(load(), now);
+  if (!kycFinished(s.kyc.status)) return outcome === 'suspended' ? false : setNextOutcome('kyc', outcome);
+  if (outcome === 'suspended') {
+    // Suspended means it was verified first: it keeps a Verified on date
+    return save({
+      ...s,
+      kyc: { ...s.kyc, status: 'suspended', outcome: 'approve', verifiedAt: s.kyc.verifiedAt ?? now, suspendedAt: now },
+      next: { ...s.next, kyc: 'approve' },
+    });
+  }
+  const o = applies(outcome, s.kyc) ? outcome : 'approve';
+  const status = o === 'approve' ? 'verified' : o === 'rejected' ? 'rejected' : 'needs-fix';
+  const kyc = {
+    ...s.kyc,
+    status,
+    outcome: o,
+    suspendedAt: null,
+    // Only a verified account has a Verified on date
+    verifiedAt: status === 'verified' ? (s.kyc.verifiedAt ?? now) : null,
+  };
+  // A bank account sent with KYC is verified along with it
+  const account =
+    status === 'verified' && s.account.status === 'added'
+      ? { ...s.account, status: 'verified', verifiedAt: kyc.verifiedAt }
+      : s.account;
+  return save({ ...s, kyc, account, next: { ...s.next, kyc: 'approve' } });
+}
+
+// Razorpay stops a verified account (suspended). false when KYC isn't
+// verified.
+export function suspendKyc(now = Date.now()) {
+  const s = settle(load(), now);
+  if (s.kyc.status !== 'verified') return false;
+  return save({ ...s, kyc: { ...s.kyc, status: 'suspended', suspendedAt: now } });
 }
 
 // A coach who hasn't started

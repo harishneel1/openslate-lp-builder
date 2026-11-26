@@ -131,8 +131,32 @@ export default function WithdrawalsTab({ webinars = [], onOpenPayouts }) {
 // (data/payouts.js), which verifies the bank account with it. Every one
 // opens Settings → Payment details, on the first step not done yet. A fix
 // comes first, then what's missing (in Payment details' order: bank
-// account, address, KYC), then what's being checked.
+// account, address, KYC), then what's being checked. When Razorpay has
+// stopped the account (rejected, suspended) or asks something we can't
+// show (unknownFix), the details and Book a call are on Payment details.
 function blockerOf({ kyc, bank }, invoices) {
+  if (kyc.status === 'rejected' || kyc.status === 'suspended') {
+    return {
+      tone: 'amber',
+      icon: AlertTriangle,
+      title: kyc.status === 'rejected' ? 'Razorpay couldn’t approve your account' : 'Razorpay has paused your account',
+      text: 'Withdrawals are paused. See what to do next in Payment details.',
+      action: 'View',
+      primary: true,
+      urgent: true,
+    };
+  }
+  if (kyc.status === 'needs-fix' && kyc.unknownFix) {
+    return {
+      tone: 'amber',
+      icon: AlertTriangle,
+      title: 'Razorpay needs something else from you',
+      text: 'See what to do next in Payment details.',
+      action: 'View',
+      primary: true,
+      urgent: true,
+    };
+  }
   if (kyc.status === 'needs-fix') {
     return {
       tone: 'amber',

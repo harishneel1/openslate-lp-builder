@@ -18,6 +18,8 @@ import './KycBanner.css';
 // they're already doing it (hidden).
 //
 // Gone once identity is verified (payoutState().kyc.status, data/payouts.js).
+// Rejected, suspended or a fix we can't show get no copy of their own here
+// either: the banner stays as it is, and Payment details says what happened.
 // Prototype controls on Payment details: "New coach, nothing added" brings
 // it back, "Demo, all verified" takes it away.
 //

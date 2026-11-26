@@ -24,6 +24,7 @@ import {
   panNameOf,
   panProblem,
 } from '../data/payouts';
+import { SPECIALIST_CALL_URL } from '../data/whatsappBusiness';
 import { readPhoto } from '../utils/readPhoto';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -36,8 +37,17 @@ import ConfirmDialog from '../components/ConfirmDialog';
 //     none       "Verify your KYC": what we need and why, and Verify KYC
 //     checking   "KYC verification is in progress", an In progress pill,
 //                and what they sent
-//     needs-fix  amber: what's wrong with which document, and Fix it
+//     needs-fix  amber: what's wrong with which document, and Fix it.
+//                When Razorpay asks about something we can't place on a
+//                document (kyc.unknownFix): "Razorpay needs something else
+//                from you", nothing highlighted, and Book a call
 //     verified   what they sent, masked, with a green Verified pill
+//     rejected   red Not approved: "Razorpay couldn't approve your
+//                account", Book a call, and no resubmitting
+//     suspended  red Not approved: "Razorpay has paused your account",
+//                withdrawals paused, Book a call
+//   Book a call opens our booking page in a new tab (SPECIALIST_CALL_URL,
+//   the same one WhatsApp's verification offers).
 //
 //   IdentitySetup  one screen a document or two. The first asks, once,
 //   "Who are we paying?": an individual, or a business and its type.
@@ -71,6 +81,33 @@ import ConfirmDialog from '../components/ConfirmDialog';
 export const titleCase = nameCase;
 
 const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+// What the card says when only a call can sort it out (rejected,
+// suspended, or a fix we can't show): { title, text, tone } or null
+function callNoteOf(kyc) {
+  if (kyc.status === 'rejected') {
+    return {
+      tone: 'stopped',
+      title: 'Razorpay couldn’t approve your account',
+      text: 'Razorpay has checked your details and won’t take this account. This can’t be changed by sending your documents again. Book a call with our team and we’ll go through what you can do next.',
+    };
+  }
+  if (kyc.status === 'suspended') {
+    return {
+      tone: 'stopped',
+      title: 'Razorpay has paused your account',
+      text: 'Withdrawals are paused for now. Book a call with our team and we’ll help you get it running again.',
+    };
+  }
+  if (kyc.status === 'needs-fix' && kyc.unknownFix) {
+    return {
+      tone: 'fix',
+      title: 'Razorpay needs something else from you',
+      text: 'Razorpay has asked about something we can’t show here. Book a call with our team and we’ll sort it out with you.',
+    };
+  }
+  return null;
+}
 
 const fullDate = (ms) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -110,9 +147,13 @@ export function IdentityCard({ kyc, onStart, onFix }) {
       <span className="po-pill po-pill--done">Verified</span>
     ) : kyc.status === 'checking' ? (
       <span className="po-pill po-pill--processing">In progress</span>
+    ) : kyc.status === 'rejected' || kyc.status === 'suspended' ? (
+      <span className="po-pill po-pill--stopped">Not approved</span>
     ) : (
       <span className="po-pill po-pill--refund">Needs a fix</span>
     );
+
+  const call = callNoteOf(kyc);
 
   return (
     <div className="po-part">
@@ -135,7 +176,22 @@ export function IdentityCard({ kyc, onStart, onFix }) {
         </p>
       )}
 
-      {kyc.status === 'needs-fix' && (
+      {call && (
+        <div className={`po-alert po-alert--${call.tone} po-part__alert`} role="alert">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <div className="po-alert__grow">
+            <p className="po-alert__title">{call.title}</p>
+            <p>{call.text}</p>
+            <div className="po-alert__actions">
+              <a className="oh__add" href={SPECIALIST_CALL_URL} target="_blank" rel="noreferrer">
+                Book a call
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {kyc.status === 'needs-fix' && !kyc.unknownFix && (
         <div className="po-alert po-alert--fix po-part__alert" role="alert">
           <AlertTriangle size={18} aria-hidden="true" />
           <div className="po-alert__grow">

@@ -15,6 +15,10 @@
   --po-green-ink: #177a42;
   --po-amber-tint: #fef6e7;
   --po-amber-ink: #8a4b0b;
+  /* Red: Razorpay has stopped the account (not approved, paused), as
+     WhatsApp's Not connected tag (WhatsAppSettings.css) */
+  --po-red-tint: #fef3f2;
+  --po-red-ink: #b42318;
   --po-input-border: #d6d6da;
 }
 
@@ -299,6 +303,11 @@
   background: var(--po-amber-tint);
 }
 
+.po-pill--stopped {
+  color: var(--po-red-ink);
+  background: var(--po-red-tint);
+}
+
 .po-pill--processing {
   color: var(--po-blue-ink);
   background: var(--po-blue-tint);
@@ -390,6 +399,11 @@
 .po-alert--fix {
   color: var(--po-amber-ink);
   background: var(--po-amber-tint);
+}
+
+.po-alert--stopped {
+  color: var(--po-red-ink);
+  background: var(--po-red-tint);
 }
 
 .po-alert--checking {

@@ -17,11 +17,12 @@ import {
   payeeOf,
   payoutState,
   resetToDemo,
-  setNextOutcome,
   startFresh,
   submitBank,
   submitBankChange,
   submitKyc,
+  kycFinished,
+  pickKycOutcome,
 } from '../data/payouts';
 import { IdentityCard, IdentitySetup, titleCase } from './IdentitySetup';
 import { InvoiceSetup, InvoicesCard, useInvoiceSettings } from './InvoiceSettings';
@@ -708,7 +709,9 @@ function BankSetup({ start, problem, payeeLine: whose, onCancel, onSubmit, chang
 // ---------- Prototype controls (not part of the product) ----------
 // Rows for a Prototype controls panel (PrototypeControls.css): start as a
 // new coach (no bank account, address or KYC) or the demo's verified one,
-// how the next KYC check ends, and ending a running check now. Used on
+// how the next KYC check ends (or, once one has ended, what it says now,
+// including Razorpay pausing the account: suspended), and ending a running
+// check now. Used on
 // Settings and under Sales.
 export function PayoutControlRows() {
   const payout = usePayout();
@@ -749,20 +752,27 @@ export function PayoutControlRows() {
       <div className="proto__row">
         <span className="proto__label">Next KYC check</span>
         <div className="proto__controls">
-          {KYC_OUTCOMES.map((o) => (
+          {KYC_OUTCOMES.filter((o) => !o.afterCheck || kycFinished(payout.kyc.status)).map((o) => (
             <button
               key={o.id}
               type="button"
               className="proto__btn"
-              aria-pressed={(payout.next.kyc ?? 'approve') === o.id}
-              onClick={() => setNextOutcome('kyc', o.id)}
+              aria-pressed={
+                kycFinished(payout.kyc.status)
+                  ? payout.kyc.status === 'suspended'
+                    ? o.id === 'suspended'
+                    : payout.kyc.outcome === o.id
+                  : (payout.next.kyc ?? 'approve') === o.id
+              }
+              onClick={() => pickKycOutcome(o.id)}
             >
               {o.label}
             </button>
           ))}
           <p className="proto__note">
             In the prototype a KYC check takes {KYC_CHECK_MS / 1000} seconds. After a failed one, the next goes through
-            unless you pick again.
+            unless you pick again. Once a check has ended, picking one changes the result straight away. Not approved, paused and
+            the unknown reason end in Book a call, not Fix it.
           </p>
         </div>
       </div>
