@@ -25,18 +25,13 @@ import './WhatsAppTab.css';
 // one for the whole account, connected and looked after in Settings →
 // WhatsApp (WhatsAppSettings.jsx). This tab only points there:
 //
-// Connected, while Meta verifies the business (verificationPending): no
-// WhatsApp message can go out yet, so instead of the reminders, one card
-// says so and that emails keep going:
-//   We're verifying your business                  (or, turned down:
-//   Meta checks it before any WhatsApp reminder     Meta couldn't verify
-//   can go. …                [ WhatsApp settings ]  your business, with
-//                                                   Fix it in Settings)
-//
-// Not connected (or setup not finished otherwise):
+// Until WhatsApp is ready (isSetUp), for any reason (not connected, Meta
+// verifying or turning down the business, the contact number, Meta's
+// review of the reminders), one card, the same every time. What's wrong
+// and what to do about it is said in Settings → WhatsApp only.
 //   Remind people on WhatsApp too
-//   Connect your number once in Settings, and every webinar and 1:1
-//   call can use it.
+//   Set up WhatsApp once in Settings, and every webinar, 1:1 call
+//   and class can use it.
 //   [ Set up in Settings ]
 //
 // Connected: one line at the top, with the way to Settings:
@@ -103,8 +98,7 @@ export default function WhatsAppTab({ kind, offering, offeringName, links, offDe
   const connection = useWhatsApp();
 
   // Until setup is finished (business verified, contact number added, Meta
-  // done reviewing), a card instead: what's left is shown in Settings
-  const pending = verificationPending(connection);
+  // done reviewing), one card instead: what's left is shown in Settings
   return (
     <div className="wa">
       {isSetUp(connection) ? (
@@ -116,8 +110,6 @@ export default function WhatsAppTab({ kind, offering, offeringName, links, offDe
           links={links}
           offDefaults={offDefaults}
         />
-      ) : pending ? (
-        <Verifying pending={pending} />
       ) : (
         <NotConnected />
       )}
@@ -127,50 +119,15 @@ export default function WhatsAppTab({ kind, offering, offeringName, links, offDe
 }
 
 // ------------------------------------------------------------
-// Not connected: the way to Settings
+// Not ready, whatever the reason: the way to Settings
 // ------------------------------------------------------------
 function NotConnected() {
   return (
     <div className="wa-card wa-invite">
       <h3 className="wa-head__title">Remind people on WhatsApp too</h3>
-      <p className="wa-head__text">Connect your number once in Settings, and every webinar, 1:1 call and class can use it.</p>
+      <p className="wa-head__text">Set up WhatsApp once in Settings, and every webinar, 1:1 call and class can use it.</p>
       <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={() => goToWhatsAppSettings()}>
         Set up in Settings
-      </button>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------
-// Connected, while Meta verifies the business
-// pending: 'review' | 'fix' | 'ineligible' (verificationPending)
-// ------------------------------------------------------------
-const VERIFYING = {
-  review: {
-    title: 'We’re verifying your business',
-    text: 'Meta checks your business before any WhatsApp reminder can go. It usually takes a few days. Your emails keep going out meanwhile.',
-    action: 'WhatsApp settings',
-  },
-  fix: {
-    title: 'Meta couldn’t verify your business',
-    text: 'Settings shows why and what to change. WhatsApp reminders start once it’s verified. Your emails keep going out meanwhile.',
-    action: 'Fix it in Settings',
-  },
-  ineligible: {
-    title: 'Meta says your business can’t use WhatsApp',
-    text: 'WhatsApp reminders can’t go out. Your emails keep going out.',
-    action: 'See why in Settings',
-  },
-};
-
-function Verifying({ pending }) {
-  const c = VERIFYING[pending] ?? VERIFYING.review;
-  return (
-    <div className="wa-card wa-invite">
-      <h3 className="wa-head__title">{c.title}</h3>
-      <p className="wa-head__text">{c.text}</p>
-      <button type="button" className="es__btn es__btn--primary wa-invite__go" onClick={() => goToWhatsAppSettings()}>
-        {c.action}
       </button>
     </div>
   );

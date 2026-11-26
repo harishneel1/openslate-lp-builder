@@ -1,7 +1,7 @@
 import { Mail, MessageCircle } from 'lucide-react';
 import { useWhatsApp } from './WhatsAppTab';
 import { useSwitches } from './WhatsAppMessages';
-import { isSetUp, messageStatus, verificationPending } from '../data/whatsappConnection';
+import { isSetUp, messageStatus } from '../data/whatsappConnection';
 import { MESSAGES } from '../data/whatsappMessages';
 import './ReminderChannels.css';
 
@@ -93,15 +93,9 @@ export default function ReminderChannels({ channel, onChannel, kind, offering, o
 
 // How WhatsApp stands, in a few words; warn: it needs fixing (the red dot)
 function whatsAppSummary(connection, kind, switches) {
-  // Until setup is finished (as the Reminders tab): Meta verifying the
-  // business, the contact number, Meta's review of the reminders
-  if (!isSetUp(connection)) {
-    const pending = verificationPending(connection);
-    if (pending === 'fix') return { text: 'Needs a fix', warn: true };
-    if (pending === 'ineligible') return { text: 'Not eligible', warn: true };
-    if (pending === 'review') return { text: 'Verifying' };
-    return { text: 'Not set up' };
-  }
+  // Until setup is finished, whatever's left (as the Reminders tab):
+  // what it is shows in Settings → WhatsApp only
+  if (!isSetUp(connection)) return { text: 'Not set up' };
   if (connection.status === 'lost') return { text: 'Paused', warn: true };
   if (connection.nameStatus === 'rejected') return { text: 'Needs a new name', warn: true };
 

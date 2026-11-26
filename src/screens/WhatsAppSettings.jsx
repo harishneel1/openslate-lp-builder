@@ -23,11 +23,14 @@ import {
 } from '../data/metaSignup';
 import {
   REJECTION_REASONS,
+  atMetaLimit,
   businessDemo,
   businessProblems,
   businessReady,
+  couldntSend,
   markBusinessSent,
   useBusiness,
+  waitingTooLong,
 } from '../data/whatsappBusiness';
 import '../components/WhatsAppTab.css'; // the badges' shape (wa-badge)
 import './WhatsAppSettings.css';
@@ -774,14 +777,20 @@ function SetupCallControlRow() {
 // proprietor with every field filled in, to skip typing. Once connected,
 // the sample counts as sent with the setup (read-only). Once sent, Meta's
 // check of it: in review (the stand-in verifies it after a short wait),
-// verified, turned down for each of Meta's reasons, discarded or revoked
-// (with a reason), as Meta's webhook would say it.
+// verified, turned down for each of Meta's reasons (or none), discarded or
+// revoked (with a reason), as Meta's webhook would say it. And the cases
+// around it: the document not reaching AiSensy after our retries, still
+// in review after 48 hours, and turned down a third time (Meta's limit).
 function BusinessControlRow({ connected }) {
   const business = useBusiness();
   const empty = !business.type && !business.legalName && !business.doc;
   const filled = businessReady(business);
   const sent = business.status === 'sent';
-  const check = business.verification;
+  // Which control is on: our own cases first, as they look like others
+  const handoff = couldntSend(business);
+  const long = waitingTooLong(business);
+  const limit = atMetaLimit(business);
+  const check = handoff ? 'HANDOFF' : long ? 'LONG' : business.verification;
   return (
     <>
       <div className="proto__row">
@@ -807,16 +816,18 @@ function BusinessControlRow({ connected }) {
             <div className="proto__controls">
               {[
                 ['PENDING', 'In review'],
+                ['LONG', 'In review 48h+', businessDemo.waitingTooLong],
+                ['HANDOFF', 'Couldn’t send to AiSensy', businessDemo.couldntSend],
                 ['APPROVED', 'Verified'],
                 ['DISCARDED', 'Discarded'],
                 ['REVOKED', 'Revoked'],
-              ].map(([status, label]) => (
+              ].map(([status, label, set]) => (
                 <button
                   key={status}
                   type="button"
                   className="proto__btn"
                   aria-pressed={check === status}
-                  onClick={() => businessDemo.setVerification(status, status === 'REVOKED' ? ['ADDRESS_NOT_MATCHING'] : [])}
+                  onClick={set ?? (() => businessDemo.setVerification(status, status === 'REVOKED' ? ['ADDRESS_NOT_MATCHING'] : []))}
                 >
                   {label}
                 </button>
@@ -826,19 +837,29 @@ function BusinessControlRow({ connected }) {
           <div className="proto__row">
             <span className="proto__label">Failed</span>
             <div className="proto__controls">
-              {[...Object.entries(REJECTION_REASONS).map(([id, r]) => [[id], r.label]), [['LEGAL_NAME_NOT_MATCHING', 'ADDRESS_NOT_MATCHING'], 'Name and address']].map(
-                ([reasons, label]) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="proto__btn"
-                    aria-pressed={check === 'FAILED' && reasons.join() === business.rejectionReasons.join()}
-                    onClick={() => businessDemo.setVerification('FAILED', reasons)}
-                  >
-                    {label}
-                  </button>
-                ),
-              )}
+              {[
+                ...Object.entries(REJECTION_REASONS).map(([id, r]) => [[id], r.label]),
+                [['LEGAL_NAME_NOT_MATCHING', 'ADDRESS_NOT_MATCHING'], 'Name and address'],
+                [[], 'No reason given'],
+              ].map(([reasons, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="proto__btn"
+                  aria-pressed={check === 'FAILED' && !limit && reasons.join() === business.rejectionReasons.join()}
+                  onClick={() => businessDemo.setVerification('FAILED', reasons)}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="proto__btn"
+                aria-pressed={limit}
+                onClick={() => businessDemo.thirdRejection()}
+              >
+                3rd rejection (Meta’s limit)
+              </button>
             </div>
           </div>
         </>

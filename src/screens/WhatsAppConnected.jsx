@@ -7,10 +7,14 @@ import TemplateDialog, { autoReplyRow } from './TemplateDialog';
 import { BusinessDetails, BusinessSummary } from './WhatsAppBusinessForm';
 import {
   META_COMMERCE_POLICY_URL,
+  META_REJECTION_LIMIT,
   REJECTION_REASONS,
-  SUPPORT_URL,
+  SPECIALIST_CALL_URL,
   applyEdit,
+  atMetaLimit,
   businessTypeOf,
+  couldntSend,
+  failedNoReason,
   fixProblems,
   flaggedParts,
   isVerified,
@@ -18,6 +22,7 @@ import {
   notEligible,
   resubmitBusiness,
   useBusiness,
+  waitingTooLong,
 } from '../data/whatsappBusiness';
 import {
   CONTACT_COUNTRIES,
@@ -62,12 +67,18 @@ import './WhatsAppConnected.css';
 // The note at the top, one at a time:
 //   something wrong   most urgent first, each with the one thing to do
 //                     (it replaces the others):
-//     the number dropped by WhatsApp   paused, emails still go     Reconnect
+//     the number dropped by WhatsApp   paused                      Reconnect
 //     Meta turned the business down    Meta's reasons, in plain    Fix and resubmit
 //       (FAILED, or REVOKED)           words, each with its fix
+//     the document didn't reach        Meta hasn't got it; our     Book a call
+//       AiSensy (after our retries)      team sends it
+//     Meta's limit: turned down 3      can't go back from here     Book a call
+//       times (atMetaLimit)
+//     Meta turned the business down    Meta didn't say why: our    Book a call
+//       with no reason (FAILED)          team sorts it out
 //     Meta closed it unchecked         nothing to change           Send again
 //       (DISCARDED)
-//     the business not eligible        no fix changes it           Contact us
+//     the business not eligible        no fix changes it           Book a call
 //     the display name rejected        Meta's reason, and the fix  Choose another name
 //     a message rejected               where to see why            See which
 //   setup not finished  until Meta has verified the business, approved the
@@ -75,7 +86,10 @@ import './WhatsAppConnected.css';
 //                     five steps, Connected → Verifying your business (or
 //                     Business verified) → Meta approving · 5 of 8 (or Meta
 //                     approved) → Add contact number → Reminders live, each
-//                     marked on its own. No WhatsApp message goes out until
+//                     marked on its own. Still verifying 48 hours after
+//                     the details went in (waitingTooLong): the waiting
+//                     line gives way to a call with our team.
+//                     No WhatsApp message goes out until
 //                     the business is verified. It can't be closed while it's true, and the
 //                     pill at the top says "Not live yet" instead of
 //                     "Connected". Meanwhile webinars' and calls' Reminders
@@ -135,6 +149,8 @@ const STATUS = {
   FAILED: { label: 'Not verified', badge: 'bad' },
   DISCARDED: { label: 'Not checked', badge: 'bad' },
   REVOKED: { label: 'Verification withdrawn', badge: 'bad' },
+  // The document didn't reach AiSensy (couldntSend)
+  NOT_SENT: { label: 'Not sent', badge: 'bad' },
 };
 
 const fmt = (n) => n.toLocaleString('en-IN');
@@ -218,6 +234,7 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
               total={total}
               inReview={inReview}
               verified={verified}
+              waitingLong={waitingTooLong(business)}
               hasContact={!needsContact}
               onAddContact={() => setPanel('contact')}
             />
@@ -281,7 +298,9 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
                 <dt>Business</dt>
                 <dd>
                   {business.legalName}
-                  {business.status === 'sent' && <Badge status={business.verification ?? 'PENDING'} />}
+                  {business.status === 'sent' && (
+                    <Badge status={couldntSend(business) ? 'NOT_SENT' : (business.verification ?? 'PENDING')} />
+                  )}
                   <button type="button" className="wcn-link" onClick={() => setPanel('business')}>
                     View details
                   </button>
@@ -346,7 +365,13 @@ export default function WhatsAppConnected({ connection, onSeeAll, startPanel = n
 // ---------- What's wrong, most urgent first ----------
 function problemOf(c, business) {
   if (c.status === 'lost') return { id: 'lost' };
-  if (needsFix(business)) return { id: notEligible(business) ? 'ineligible' : business.verification === 'DISCARDED' ? 'discarded' : 'business' };
+  if (couldntSend(business)) return { id: 'handoff' };
+  if (needsFix(business)) {
+    if (notEligible(business)) return { id: 'ineligible' };
+    if (atMetaLimit(business)) return { id: 'limit' };
+    if (failedNoReason(business)) return { id: 'noreason' };
+    return { id: business.verification === 'DISCARDED' ? 'discarded' : 'business' };
+  }
   if (c.nameStatus === 'rejected') return { id: 'name' };
   const rejected = SHOWN_MESSAGE_IDS.filter((id) => messageStatus(c, id) === 'rejected');
   if (rejected.length) return { id: 'message', count: rejected.length };
@@ -357,10 +382,12 @@ function Problem({ problem, connection, business, onOpen, onSeeAll }) {
   const heading = useRef(null);
   useEffect(() => heading.current?.focus(), [problem.id]);
 
+  // Meta gave no reason (it can send none): what to check instead
+  const noReason = business.rejectionReasons.length === 0;
   const content = {
     lost: {
       title: 'WhatsApp reminders are paused',
-      text: 'WhatsApp stopped letting us send from this number. Emails still go out.',
+      text: 'WhatsApp stopped letting us send from this number.',
       action: 'Reconnect',
       onAction: reconnectWhatsApp,
     },
@@ -372,22 +399,40 @@ function Problem({ problem, connection, business, onOpen, onSeeAll }) {
       reasons: business.rejectionReasons,
       text:
         business.verification === 'REVOKED'
-          ? `WhatsApp reminders have stopped. ${business.rejectionReasons.length ? 'Fix this and send your details again.' : 'Check your details and document, and send them again.'} Emails still go out.`
-          : 'Fix this and send your details again. WhatsApp reminders start once your business is verified. Emails still go out.',
+          ? `WhatsApp reminders have stopped. ${noReason ? 'Meta didn’t say why. Check that your legal name, address and website match your document exactly, and send them again.' : 'Fix this and send your details again.'}`
+          : 'Fix this and send your details again. WhatsApp reminders start once your business is verified.',
       action: 'Fix and resubmit',
       onAction: () => onOpen('fix'),
     },
+    noreason: {
+      title: 'Meta couldn’t verify your business',
+      text: 'Meta didn’t say why. Book a call with our team and we’ll sort it out for you.',
+      action: 'Book a call',
+      href: SPECIALIST_CALL_URL,
+    },
+    limit: {
+      title: `Meta has turned this down ${META_REJECTION_LIMIT} times`,
+      text: `Meta only allows ${META_REJECTION_LIMIT} tries, so this can’t go back to them from here. Book a call with our team and we’ll sort it out with Meta together.`,
+      action: 'Book a call',
+      href: SPECIALIST_CALL_URL,
+    },
+    handoff: {
+      title: 'We couldn’t send your details to Meta',
+      text: 'We tried a few times, but your document didn’t go through to our WhatsApp partner, so Meta hasn’t started checking it. Book a call with our team and we’ll get it sent.',
+      action: 'Book a call',
+      href: SPECIALIST_CALL_URL,
+    },
     discarded: {
       title: 'Meta closed your verification without checking it',
-      text: 'This can happen when a request waits too long on Meta’s side. Nothing needs to change: send your details again. Emails still go out.',
+      text: 'This can happen when a request waits too long on Meta’s side. Nothing needs to change: send your details again.',
       action: 'Send again',
       onAction: () => resubmitBusiness(business),
     },
     ineligible: {
       title: 'Meta says your business can’t use WhatsApp',
-      text: 'Meta says it’s not allowed under its Commerce Policy, so WhatsApp reminders can’t go out. Changing your details won’t fix this. If you think it’s a mistake, contact us and we’ll ask Meta to look again. Your emails keep going out.',
-      action: 'Contact us',
-      href: SUPPORT_URL,
+      text: 'Meta says it’s not allowed under its Commerce Policy, so WhatsApp reminders can’t go out. Changing your details won’t fix this. If you think it’s a mistake, book a call with our team and we’ll ask Meta to look again.',
+      action: 'Book a call',
+      href: SPECIALIST_CALL_URL,
       more: { label: 'Read Meta’s policy', href: META_COMMERCE_POLICY_URL },
     },
     name: {
@@ -471,7 +516,9 @@ const STEP_SR = { done: ', done', now: ', in progress', todo: ', to do', next: '
 
 // onAddContact(): open the contact number panel (the step's own action,
 //   right under the steps while it's still to do)
-function SetupSteps({ approved, total, inReview, verified, hasContact, onAddContact }) {
+// waitingLong: Meta still verifying 48 hours after the details went in:
+//   the waiting line gives way to a call with our team
+function SetupSteps({ approved, total, inReview, verified, waitingLong, hasContact, onAddContact }) {
   const steps = [
     { id: 'connected', label: 'Connected', state: 'done' },
     verified
@@ -490,14 +537,18 @@ function SetupSteps({ approved, total, inReview, verified, hasContact, onAddCont
       <div className="wcn-note__words">
         <h3 className="wcn-note__title">
           {!verified
-            ? 'Connected. Meta is verifying your business.'
+            ? waitingLong
+              ? 'Connected. Meta is still verifying your business.'
+              : 'Connected. Meta is verifying your business.'
             : inReview
               ? 'Your business is verified. Your reminders are being approved.'
               : 'Your business is verified and your reminders are approved.'}
         </h3>
         <p className="wcn-note__text">
           {!verified
-            ? 'Verification approx takes 24 hours. Check back later.'
+            ? waitingLong
+              ? 'It’s been more than 48 hours, which is longer than it usually takes.'
+              : 'Verification approx takes 24 hours. Check back later.'
             : inReview
               ? 'It usually takes a few minutes, and up to 24 hours.'
               : 'Add your contact number to start sending them.'}
@@ -513,6 +564,21 @@ function SetupSteps({ approved, total, inReview, verified, hasContact, onAddCont
             </li>
           ))}
         </ol>
+
+        {/* Meta's taking too long: a call with our team, right under the steps */}
+        {!verified && waitingLong && (
+          <div className="wcn-ask">
+            <div className="wcn-ask__words">
+              <h4 className="wcn-ask__title">Talk to our team</h4>
+              <p className="wcn-ask__text">
+                Book a call with a setup specialist and we’ll follow up with Meta for you.
+              </p>
+            </div>
+            <a className="oh__add" href={SPECIALIST_CALL_URL} target="_blank" rel="noreferrer">
+              Book a call
+            </a>
+          </div>
+        )}
 
         {/* The step to do now, with its reason and its button, right under it */}
         {!hasContact && (
@@ -638,6 +704,12 @@ function BusinessPanel({ business, onClose }) {
       <p className="wcn-business__note">
         {business.verification === 'APPROVED'
           ? 'Meta has verified your business.'
+          : couldntSend(business)
+            ? 'These haven’t reached Meta yet. The note on this page says what you can do.'
+          : failedNoReason(business)
+            ? 'Meta didn’t verify these and didn’t say why. The note on this page says what you can do.'
+          : atMetaLimit(business)
+            ? `Meta has turned these down ${META_REJECTION_LIMIT} times, so they can’t be sent again from here. The note on this page says what you can do.`
           : notEligible(business)
             ? 'Meta says this business can’t use WhatsApp. The note on this page says what you can do.'
             : needsFix(business)
@@ -701,12 +773,16 @@ function FixPanel({ business, onClose }) {
       }
     >
       <div className="wcn-fix">
-        {business.rejectionReasons.length > 0 && (
-          <div className="wcn-business__request">
-            <p className="wcn-fix__head">What Meta said</p>
+        <div className="wcn-business__request">
+          <p className="wcn-fix__head">What Meta said</p>
+          {business.rejectionReasons.length > 0 ? (
             <ReasonList reasons={business.rejectionReasons} record={business} />
-          </div>
-        )}
+          ) : (
+            <p className="wcn-note__text">
+              Meta didn’t give a reason. Check that your legal name, address and website match your document exactly.
+            </p>
+          )}
+        </div>
         <p className="wcn-fix__type">
           {businessTypeOf(business.type)?.label}. Meta checks these against your document, word for word.
         </p>
@@ -717,7 +793,7 @@ function FixPanel({ business, onClose }) {
           onEdit={edit}
           flags={flags}
           showAll={tried}
-          website={flagged.has('website') || Boolean(business.website)}
+          website={flagged.has('website') || Boolean(business.website) || business.rejectionReasons.length === 0}
         />
         {failed && (
           <p className="po-field__note" role="alert">

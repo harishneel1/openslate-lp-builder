@@ -1,6 +1,6 @@
 import { mockAccount } from './myPage';
 import { MESSAGE_IDS, SHOWN_MESSAGE_IDS } from './whatsappMessages';
-import { isVerified, loadBusiness, needsFix, notEligible } from './whatsappBusiness';
+import { atMetaLimit, couldntSend, isVerified, loadBusiness, needsFix, notEligible } from './whatsappBusiness';
 
 // ------------------------------------------------------------
 // The creator's WhatsApp connection: one for the whole account, used by
@@ -291,9 +291,13 @@ export const isSetUp = (connection, business = loadBusiness()) =>
 // what the Reminders tab and the channel switch say while it's checked
 //   null | 'review' (Meta checking) | 'fix' (turned down: fix and
 //   resubmit) | 'ineligible' (turned down for a reason no fix changes)
+//   | 'limit' (turned down 3 times, Meta's limit: a call with our team)
+//   | 'handoff' (the document didn't reach AiSensy: a call with our team)
 export function verificationPending(connection, business = loadBusiness()) {
   if (!hasNumber(connection) || isVerified(business)) return null;
+  if (couldntSend(business)) return 'handoff';
   if (notEligible(business)) return 'ineligible';
+  if (atMetaLimit(business)) return 'limit';
   return needsFix(business) ? 'fix' : 'review';
 }
 

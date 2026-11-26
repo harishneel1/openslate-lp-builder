@@ -46,6 +46,16 @@ import { mockAccount } from './myPage';
 //                                 this has passed (settleVerification)
 //     decidedAt: ISO string or null,
 //     attempts: 1,                times sent to Meta (1 + resubmits)
+//     submittedAt: ISO string,    when the latest details went to Meta
+//                                 (setup or a resubmit): the 48-hour wait
+//                                 is counted from here (waitingTooLong)
+//     rejections: 0,              times Meta turned it down (FAILED). Meta
+//                                 allows META_REJECTION_LIMIT, then it
+//                                 can't go back from here (atMetaLimit)
+//     handoff: 'ok' | 'failed',   whether the document reached AiSensy.
+//                                 We retry on our own; 'failed' only once
+//                                 those retries have run out (couldntSend).
+//                                 Not one of Meta's tries: Meta never saw it.
 //   }
 // Once sent it's read-only, except to fix what Meta turned down
 // (resubmitBusiness). No WhatsApp message goes out until it's APPROVED
@@ -205,6 +215,9 @@ export const EMPTY_BUSINESS = {
   reviewEndsAt: null,
   decidedAt: null,
   attempts: 0,
+  submittedAt: null,
+  rejections: 0,
+  handoff: 'ok',
 };
 
 // How long the stand-in's verification takes. Meta's real one usually
@@ -277,14 +290,26 @@ export const REJECTION_REASONS = {
     label: 'Not eligible',
     fixes: [],
     text: () => 'Meta says your business can’t use WhatsApp Business under its Commerce Policy.',
-    fix: () => 'This can’t be fixed by changing your details. If you think it’s a mistake, contact us and we’ll ask Meta to look again.',
+    fix: () => 'This can’t be fixed by changing your details. If you think it’s a mistake, book a call with our team and we’ll ask Meta to look again.',
   },
 };
 
 // Where to read Meta's policy, for BUSINESS_NOT_ELIGIBLE
 export const META_COMMERCE_POLICY_URL = 'https://www.whatsapp.com/legal/commerce-policy';
-// TODO: our support link
-export const SUPPORT_URL = '#';
+
+// Our booking page for a call with a setup specialist: the one way to get
+// help with verification, wherever it's offered (not eligible, Meta's
+// limit reached, the document not reaching AiSensy, a long wait). Opens
+// in a new tab. TODO: the real link (a placeholder for now)
+export const SPECIALIST_CALL_URL = 'https://example.com/book-a-call';
+
+// Meta turns a business down this many times, then it can't be sent again
+// through a partner: it has to be sorted out with Meta directly
+export const META_REJECTION_LIMIT = 3;
+
+// How long Meta can take before we offer a call: 48 hours from when the
+// latest details went in (submittedAt)
+export const STILL_WAITING_MS = 48 * 60 * 60 * 1000;
 
 // A saved verification. Older saves used our own words: read as Meta's.
 // Sent before verification was tracked: in review.
@@ -324,6 +349,12 @@ export function loadBusiness() {
       reviewEndsAt: typeof s.reviewEndsAt === 'string' ? s.reviewEndsAt : null,
       decidedAt: typeof s.decidedAt === 'string' ? s.decidedAt : null,
       attempts: Number.isInteger(s.attempts) ? s.attempts : s.status === 'sent' ? 1 : 0,
+      submittedAt: typeof s.submittedAt === 'string' ? s.submittedAt : typeof s.sentAt === 'string' ? s.sentAt : null,
+      // Older saves didn't count: one, if it's turned down now
+      rejections: Number.isInteger(s.rejections)
+        ? s.rejections
+        : ['FAILED', 'needs-info'].includes(s.verification) ? 1 : 0,
+      handoff: s.status === 'sent' && s.handoff === 'failed' ? 'failed' : 'ok',
     };
   } catch {
     return EMPTY_BUSINESS;
@@ -390,6 +421,8 @@ const inReview = (now = Date.now()) => ({
   rejectionReasons: [],
   reviewEndsAt: new Date(now + VERIFY_MS).toISOString(),
   decidedAt: null,
+  submittedAt: new Date(now).toISOString(),
+  handoff: 'ok',
 });
 
 // Setup finished: the details went with it, to Meta and to AiSensy, and
@@ -403,7 +436,16 @@ export function markBusinessSent() {
 // ---------- Meta's check ----------
 
 export const isVerified = (record) => record?.verification === 'APPROVED';
-export const inMetaReview = (record) => record?.verification === 'PENDING';
+
+// The document never reached AiSensy, even after our retries: Meta hasn't
+// got it, so it isn't being checked. Our team sends it (a call).
+export const couldntSend = (record) => record?.status === 'sent' && record.handoff === 'failed';
+
+export const inMetaReview = (record) => record?.verification === 'PENDING' && !couldntSend(record);
+
+// Meta still checking, 48 hours or more after the latest details went in
+export const waitingTooLong = (record, now = Date.now()) =>
+  inMetaReview(record) && Boolean(record.submittedAt) && now - Date.parse(record.submittedAt) >= STILL_WAITING_MS;
 
 // Meta turned it down (or withdrew it, or closed it): something to do
 export const needsFix = (record) => ['FAILED', 'DISCARDED', 'REVOKED'].includes(record?.verification);
@@ -411,8 +453,20 @@ export const needsFix = (record) => ['FAILED', 'DISCARDED', 'REVOKED'].includes(
 // Turned down for a reason no change of details fixes
 export const notEligible = (record) => needsFix(record) && record.rejectionReasons.includes('BUSINESS_NOT_ELIGIBLE');
 
-// Can go back to Meta: anything turned down, unless it's not eligible
-export const canResubmit = (record) => needsFix(record) && !notEligible(record);
+// Turned down for the third time (META_REJECTION_LIMIT): Meta won't take
+// it again from us, so no Resubmit. Our team sorts it out with Meta.
+export const atMetaLimit = (record) =>
+  record?.verification === 'FAILED' && record.rejections >= META_REJECTION_LIMIT;
+
+// Turned down with no reason from Meta (it can send none): nothing to
+// point the coach at, so our team sorts it out on a call. No Resubmit.
+export const failedNoReason = (record) =>
+  record?.verification === 'FAILED' && (record.rejectionReasons ?? []).length === 0;
+
+// Can go back to Meta: anything turned down, unless it's not eligible,
+// Meta gave no reason, or Meta's limit is reached
+export const canResubmit = (record) =>
+  needsFix(record) && !notEligible(record) && !failedNoReason(record) && !atMetaLimit(record);
 
 // The parts of the details Meta's reasons point at, as a set
 export function flaggedParts(record) {
@@ -481,6 +535,10 @@ export function applyCertificationUpdate(value, now = Date.now()) {
   const reasons = (info.rejection_reasons ?? []).filter((id) => REJECTION_REASONS[id]);
   return saveBusiness({
     ...r,
+    // A word from Meta means the details reached it
+    handoff: 'ok',
+    // One more rejection, unless this repeats the last one
+    rejections: info.status === 'FAILED' && r.verification !== 'FAILED' ? r.rejections + 1 : r.rejections,
     verification: info.status,
     rejectionReasons: ['FAILED', 'REVOKED'].includes(info.status) ? reasons : [],
     reviewEndsAt: info.status === 'PENDING' ? r.reviewEndsAt : null,
@@ -502,7 +560,7 @@ export const certificationUpdate = (status, reasons = []) => ({
 // The real product hears this from AiSensy instead.
 export function settleVerification(now = Date.now()) {
   const r = loadBusiness();
-  if (r.verification !== 'PENDING') return;
+  if (r.verification !== 'PENDING' || couldntSend(r)) return;
   if (r.reviewEndsAt && now < Date.parse(r.reviewEndsAt)) return;
   applyCertificationUpdate(certificationUpdate('APPROVED'), now);
 }
@@ -605,8 +663,40 @@ export const businessDemo = {
   setVerification: (status, reasons = []) => {
     const r = loadBusiness();
     if (r.status !== 'sent') return;
-    if (status === 'PENDING') saveBusiness({ ...r, ...inReview() });
-    else applyCertificationUpdate(certificationUpdate(status, reasons));
+    // Past Meta's limit, the controls start the count again: a plain
+    // rejection here is never the last one (thirdRejection is)
+    const fresh = r.rejections >= META_REJECTION_LIMIT ? { ...r, rejections: 0, verification: 'PENDING' } : r;
+    if (status === 'PENDING') saveBusiness({ ...fresh, ...inReview() });
+    else {
+      if (fresh !== r) saveBusiness(fresh);
+      applyCertificationUpdate(certificationUpdate(status, reasons));
+    }
+  },
+  // The document didn't reach AiSensy, after every retry: Meta hasn't got it
+  couldntSend: () => {
+    const r = loadBusiness();
+    if (r.status !== 'sent') return;
+    saveBusiness({ ...r, ...inReview(), handoff: 'failed', reviewEndsAt: null });
+  },
+  // Still in review, sent 49 hours ago. The stand-in doesn't finish it.
+  waitingTooLong: () => {
+    const r = loadBusiness();
+    if (r.status !== 'sent') return;
+    const now = Date.now();
+    saveBusiness({
+      ...r,
+      ...inReview(now),
+      submittedAt: new Date(now - 49 * 60 * 60 * 1000).toISOString(),
+      reviewEndsAt: new Date(now + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+  },
+  // Turned down for the third time: two rejections and resubmits before
+  // this one, then Meta's reason
+  thirdRejection: (reasons = ['ADDRESS_NOT_MATCHING']) => {
+    const r = loadBusiness();
+    if (r.status !== 'sent') return;
+    saveBusiness({ ...r, ...inReview(), attempts: META_REJECTION_LIMIT, rejections: META_REJECTION_LIMIT - 1 });
+    applyCertificationUpdate(certificationUpdate('FAILED', reasons));
   },
   // For the Connected shortcut: the sample, unless they've filled their own
   fillIfNotReady: () => {
