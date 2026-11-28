@@ -15,7 +15,7 @@ import PriceExample from './PriceExample';
 import WeeklyHoursInput from './WeeklyHoursInput';
 import ServiceSummaryInput from './ServiceSummaryInput';
 import CalendarConnectInput from './CalendarConnectInput';
-import PickCallsInput from './PickCallsInput';
+import { TestimonialsInput, TrackRecordInput } from './TrustInput';
 import QuestionsInput from './QuestionsInput';
 import DatePicker from './DatePicker';
 import TimePicker from './TimePicker';
@@ -497,6 +497,10 @@ export default function QuestionInput(props) {
       return <HeadlinePicker {...props} />;
     case 'handle':
       return <HandleInput {...props} />;
+    case 'trackRecord':
+      return <TrackRecordInput {...props} />;
+    case 'testimonials':
+      return <TestimonialsInput {...props} />;
     case 'offerType':
       return <OfferTypeInput {...props} />;
     // A price, with a discount only when it's ticked (webinar "Set your price")
@@ -523,8 +527,6 @@ export default function QuestionInput(props) {
       return <ServiceSummaryInput {...props} />;
     case 'calendar':
       return <CalendarConnectInput {...props} />;
-    case 'pickCalls':
-      return <PickCallsInput {...props} />;
     case 'callQuestions':
       // The same builder as the call editor's Booking questions, starting from
       // the call's questions (the default one until they change it)

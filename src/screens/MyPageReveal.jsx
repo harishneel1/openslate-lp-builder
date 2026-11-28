@@ -6,8 +6,9 @@ import './MyPageReveal.css';
 // ------------------------------------------------------------
 // The end of setup: their page, built from their answers and
 // already live, with a way to open it and a way to finish.
+// hasCalls: false when they finished with no calls switched on
 // ------------------------------------------------------------
-export default function MyPageReveal({ handle, onDone }) {
+export default function MyPageReveal({ handle, hasCalls = true, onDone }) {
   const link = `${PAGE_DOMAIN}/${handle}`;
   const url = pageUrl(handle);
 
@@ -18,7 +19,11 @@ export default function MyPageReveal({ handle, onDone }) {
           <PartyPopper size={16} aria-hidden="true" /> It’s live
         </p>
         <h1 className="mpr__title">Your storefront is ready</h1>
-        <p className="mpr__sub">Share your link and people can book a call with you right away.</p>
+        <p className="mpr__sub">
+          {hasCalls
+            ? 'Share your link and people can book a call with you right away.'
+            : 'Your profile is live. Switch on a 1:1 call from your storefront so people have something to book.'}
+        </p>
 
         <div className="mpr__link">
           <span className="mpr__url">{link}</span>

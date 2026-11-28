@@ -720,3 +720,68 @@
     transition: none;
   }
 }
+/* ---------- On / Off, with the short description under what's on ---------- */
+/* The name and actions stay on the row's grid; the description spans it */
+.oh-row__main {
+  display: contents;
+}
+
+.oh-row--off .oh-row__text {
+  opacity: 0.55;
+}
+
+/* "On" and "Off" take the same room, so the buttons don't shift */
+.oh-switch--short {
+  min-width: 72px;
+}
+
+.oh-row__line {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.oh-row__line-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.oh-row__line-box {
+  width: 100%;
+  resize: vertical;
+}
+
+.oh-row__line-under {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.oh-row__line-error {
+  color: #c0392b;
+}
+
+/* ---------- Track record off: one line at the foot of the profile card ---------- */
+.oh__nudge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--color-primary-tint);
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.oh__nudge-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+}

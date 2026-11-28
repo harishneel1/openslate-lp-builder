@@ -41,7 +41,16 @@ import './CourseTestimonials.css';
 //
 // course, onSave(change) → true if it saved
 // onRemove(count): Remove was pressed (count: testimonials with words in them)
+// copy: { title, help, textPlaceholder }, its words for somewhere other than
+//   a course (the storefront's profile: TrustInput.jsx). Left out, a
+//   course's. help: null leaves the line out; title: null, the heading.
 // ------------------------------------------------------------
+
+const COURSE_COPY = {
+  help:
+    'What past students have said, in their words: copy real reviews from Google, WhatsApp, LinkedIn or Instagram. Add their photo if you have it. They show as testimonials, not star ratings.',
+  textPlaceholder: 'The course got me the hike. It goes deep on exactly what interviewers ask about.',
+};
 
 let seed = 0;
 const blank = () => ({ id: `tst-new-${Date.now().toString(36)}-${(seed += 1)}`, name: '', from: '', text: '', photo: '', source: '', linkedin: '' });
@@ -57,7 +66,7 @@ const toSaved = (r) => ({
   linkedin: readLinkedIn(r.linkedin) ?? '',
 });
 
-export default function TestimonialsField({ course, onSave, onRemove }) {
+export default function TestimonialsField({ course, onSave, onRemove, copy = COURSE_COPY }) {
   const saved = testimonialsOf(course);
   const [rows, setRows] = useState(() => (saved.length ? saved.map((t) => ({ ...t })) : [blank()]));
   const [focusId, setFocusId] = useState(null);
@@ -96,11 +105,14 @@ export default function TestimonialsField({ course, onSave, onRemove }) {
   };
 
   return (
-    <section className="lnd__part lrn--testimonials" aria-labelledby="lrn-testimonials" data-guide="testimonials">
+    <section className="lnd__part lrn--testimonials" aria-labelledby={copy.title !== null ? 'lrn-testimonials' : undefined} aria-label={copy.title !== null ? undefined : 'Testimonials'} data-guide="testimonials">
+      {(copy.title !== null || onRemove) && (
       <div className="lrn__head">
-        <h3 className="lrn__title" id="lrn-testimonials">
-          Testimonials
-        </h3>
+        {copy.title !== null && (
+          <h3 className="lrn__title" id="lrn-testimonials">
+            Testimonials
+          </h3>
+        )}
         {onRemove && (
           <button
             type="button"
@@ -113,10 +125,8 @@ export default function TestimonialsField({ course, onSave, onRemove }) {
           </button>
         )}
       </div>
-      <p className="lrn__help">
-        What past students have said, in their words: copy real reviews from Google, WhatsApp, LinkedIn or Instagram. Add their
-        photo if you have it. They show as testimonials, not star ratings.
-      </p>
+      )}
+      {copy.help && <p className="lrn__help">{copy.help}</p>}
 
       <ul className="ctm__list">
         {rows.map((row, i) => {
@@ -125,9 +135,12 @@ export default function TestimonialsField({ course, onSave, onRemove }) {
           return (
             <li key={row.id} className="ctm__card">
               <div className="ctm__person">
-                <ItemPicture name={row.name} photo={row.photo} source={row.source} onChange={(patch) => setPicture(row.id, patch)} />
+                {/* data-field: which part a focused field is, for a guide beside it (TrustInput.jsx) */}
+                <span className="ctm__picture" data-field="photo">
+                  <ItemPicture name={row.name} photo={row.photo} source={row.source} onChange={(patch) => setPicture(row.id, patch)} />
+                </span>
                 <div className="ctm__person-fields">
-                  <label className="ctm__field">
+                  <label className="ctm__field" data-field="name">
                     <span className="ctm__label">Name</span>
                     <span className="lrn__box">
                       <input
@@ -143,7 +156,7 @@ export default function TestimonialsField({ course, onSave, onRemove }) {
                       />
                     </span>
                   </label>
-                  <label className="ctm__field">
+                  <label className="ctm__field" data-field="from">
                     <span className="ctm__label">Who they are</span>
                     <span className="lrn__box">
                       <input
@@ -172,7 +185,7 @@ export default function TestimonialsField({ course, onSave, onRemove }) {
                 )}
               </div>
 
-              <label className="ctm__field">
+              <label className="ctm__field" data-field="text">
                 <span className="ctm__label">What they said</span>
                 <span className="lrn__box tst__quote">
                   <textarea
@@ -180,14 +193,14 @@ export default function TestimonialsField({ course, onSave, onRemove }) {
                     rows={3}
                     value={row.text}
                     maxLength={TESTIMONIAL_TEXT_MAX}
-                    placeholder="The course got me the hike. It goes deep on exactly what interviewers ask about."
+                    placeholder={copy.textPlaceholder}
                     onChange={(e) => edit(row.id, { text: e.target.value })}
                     onBlur={() => commit(rows)}
                   />
                 </span>
               </label>
 
-              <label className="ctm__field">
+              <label className="ctm__field" data-field="linkedin">
                 <span className="ctm__label">
                   LinkedIn profile <span className="crs-field__optional">(optional)</span>
                 </span>

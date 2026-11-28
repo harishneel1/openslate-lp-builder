@@ -3,25 +3,32 @@ import { callAboutOf, callDetailsComplete } from './callDetails';
 import { questionsOf, questionsProblem } from './callQuestions';
 
 // ------------------------------------------------------------
-// Questions that set up the creator's page, one per screen.
+// Questions that set up the creator's storefront, one per screen.
 // Each id matches an entry in profileAnnotations.js, which points
 // at the part of the example page that answer fills in.
 //
-// The link, about you, what they offer first, then either which of their
-// existing calls go on the page, or a new call: its details, their Google
-// Calendar, when people can book it, its description, what checkout asks,
-// and the service (registration form) made for it.
-// After the last one comes the reveal: their page, built.
+// Storefront setup is four screens (STOREFRONT_SETUP_IDS): the link,
+// about you, their track record, then testimonials (the last two optional).
+// After that comes the reveal: their page, live. What goes on
+// it is switched on afterwards, on the storefront page (OfferingsHome.jsx,
+// storefrontItems.js). Calls aren't made here: they're made in the 1:1
+// calls tab.
+//
+// The call questions further down (callDetails … service) aren't part of
+// storefront setup any more. They're kept here because the 1:1 calls
+// tab's "Create call" flow uses them (CreateCallFlow.jsx).
 // ------------------------------------------------------------
 
-// The call questions: for everyone with no calls yet, and for those who
-// chose "Create a new 1:1 call" over their existing ones (callSource)
+// The call questions, as CreateCallFlow.jsx shows them (it never sets
+// callSource, so they always show there)
 const MAKING_A_CALL = { field: 'callSource', in: ['new', undefined] };
 
-// The most screens there can be. The progress counts the ones actually
-// showing, since picking existing calls skips the call questions and a
-// connected calendar skips its screen.
-export const MY_PAGE_STEPS = 10;
+// The screens storefront setup shows, in order (MyPageSetup.jsx)
+export const STOREFRONT_SETUP_IDS = ['handle', 'about', 'trust', 'testimonials'];
+export const MY_PAGE_STEPS = STOREFRONT_SETUP_IDS.length;
+
+// The grey line under the two optional screens' titles
+const OPTIONAL_HELPER = 'Optional. You can skip this and add it later in Edit profile.';
 
 export const myPageQuestions = [
   {
@@ -77,38 +84,34 @@ export const myPageQuestions = [
     ],
   },
   {
-    id: 'offerType',
-    type: 'offerType',
-    required: true,
-    question: 'What’s the first thing people can book from you?',
-    helper: 'Start with a 1:1 call. The others are on their way.',
-    // ids match the kinds on the page (serviceKinds.js).
-    // soon: shown, but can't be picked yet
-    options: [
-      { id: 'call', label: '1:1 call', line: 'A video or phone call, one on one' },
-      { id: 'dm', label: 'Priority DM', line: 'Answer questions in writing, on your own time', soon: true },
-      { id: 'webinar', label: 'Webinar', line: 'A live session for a group', soon: true },
-      { id: 'course', label: 'Course', line: 'Recorded lessons people buy once', soon: true },
-    ],
-    default: 'call', // the only one open for now, so it starts picked
-    // An earlier pick that isn't open yet (from testing) can't be carried on with
-    validate: (v) => (v === 'call' ? null : 'Only 1:1 calls are open for now'),
-    nextHint: 'Pick one to continue',
+    // Their track record: optional (shows nothing until switched on), so
+    // Next always works. The same editor as a course's landing page
+    // (TrustInput.jsx), and the same in Edit profile.
+    id: 'trust',
+    type: 'trackRecord', // TrackRecordInput: saves trackRecord
+    question: 'Show people you’re trusted',
+    helper: OPTIONAL_HELPER,
+    isComplete: () => true,
+    // It saves as they go ("Saved"); the button says so. Skipping leaves it
+    // off, even if they'd switched it on.
+    nextLabel: 'Save and continue',
+    skipLabel: 'Skip for now',
+    skipAnswers: (answers) => (answers.trackRecord ? { trackRecord: { ...answers.trackRecord, on: false } } : {}),
   },
   {
-    // Only for someone who made calls in the 1:1 calls tab before setting up
-    // their page (MyPageSetup.jsx leaves it out otherwise). Ticking calls
-    // and Continue skips the call questions; the "Create a new 1:1 call
-    // instead" button goes straight into them.
-    id: 'callSource',
-    type: 'pickCalls', // PickCallsInput: saves callSource ('existing' or 'new') and pickedCalls
-    required: true,
-    onlyWithCalls: true,
-    question: 'Which calls go on your page?',
-    helper: 'You’ve made these already. Tick the ones people should see.',
-    isComplete: (answers) =>
-      answers.callSource === 'new' || (Array.isArray(answers.pickedCalls) && answers.pickedCalls.length > 0),
-    nextHint: 'Tick at least one call to continue',
+    // Testimonials: optional, so Continue always works. Focusing a field
+    // highlights that part of a testimonial on the example page beside it
+    // (MyPageSetup.jsx passes onFocusField; profileAnnotations.js).
+    id: 'testimonials',
+    type: 'testimonials', // TestimonialsInput: saves testimonials
+    question: 'What do past clients say about you?',
+    helper: OPTIONAL_HELPER,
+    isComplete: () => true,
+    nextLabel: 'Save and finish',
+    // Only while nothing's saved, so skipping never throws one away
+    skipLabel: 'Skip for now',
+    skipAnswers: () => ({}),
+    showSkip: (answers) => !(Array.isArray(answers.testimonials) && answers.testimonials.some((t) => String(t?.text ?? '').trim())),
   },
   {
     id: 'callDetails',

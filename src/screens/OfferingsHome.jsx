@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, ExternalLink, Link2, Pencil, Plus, Trash2 } from 'lucide-react';
-import { getListedOnPage, getMyProfile, isHiddenOnPage, isOnPage, myCallIds } from '../data/myProfile';
-import { buildProfileJson } from '../data/buildProfileJson';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowRight, Check, Copy, ExternalLink, Link2, Pencil } from 'lucide-react';
 import { PAGE_DOMAIN, offeringUrl, pageUrl } from '../data/myPage';
+import { SHORT_DESCRIPTION_MAX, STOREFRONT_SOURCES } from '../data/storefrontItems';
 import { initials } from '../utils/initials';
-import AddToPagePicker from '../components/AddToPagePicker';
-import RowMenu from '../components/RowMenu';
-import ConfirmDialog from '../components/ConfirmDialog';
 import './OfferingsHome.css';
 
 // Copies text, with a fallback where the Clipboard API isn't allowed
@@ -51,83 +47,102 @@ export function useCopy() {
   return [state, copy];
 }
 
-// One offering, as a full-width row (the same rows as 1:1 calls): what it
-// is on the left, then what you can do with it:
+// One thing they've made, as a full-width row: what it is on the left,
+// its switch and actions on the right. Switched on, the short description
+// on its card opens underneath, prefilled, to change in place:
 //
-//   Discovery call  [Hidden]          [● Visible] [Copy link] [Edit] [↗] [⋯]
+//   Discovery call                      [● On ] [Copy link] [Edit] [↗]
 //   Video call · 30 min · Free
+//   Short description
+//   ┌ A short call to get to know each other and see if… ┐
+//   └────────────────────────────────────────────────────┘
+//   Shows under its name on your storefront.          88/200
 //
-// Visible: a switch. Off, it stays in this list (faded, tagged Hidden) but
-// visitors don't see it on the page; on, it's back. Its own link works
-// either way. ⋯ holds Remove from page, which asks first and takes it off
-// this list only: it stays in 1:1 calls, where it can be deleted for good.
-// There's no kind icon: every offering is a call, and the details already
-// say "Video call".
-// url: this offering's own link (offeringUrl)
-// isNew: just added, so it's marked and lit up briefly
-// hidden: on the list but not shown to visitors
-function OfferingRow({ offering, url, hidden, isNew = false, menuOpen, onMenu, onEdit, onSetHidden, onRemove }) {
+// Off, it isn't on the storefront, but its own link still works.
+// url: its own link (offeringUrl)
+function OfferingRow({ offering, url, on, line, onSetOn, onLine, onEdit }) {
   const details = offering.facts.map((f) => f.text).join(' · ');
   const [copy, copyLink] = useCopy();
+  const boxId = `oh-line-${offering.id}`;
+  const empty = on && line.trim() === '';
 
   return (
-    <li className={`oh-row ${isNew ? 'oh-row--new' : ''} ${menuOpen ? 'oh-row--menu' : ''} ${hidden ? 'oh-row--hidden' : ''}`}>
-      <div className="oh-row__text">
-        {isNew && <span className="oh-card__new">Just added</span>}
-        <h3 className="oh-row__name">
-          {offering.title}
-          {hidden && <span className="oh-row__tag">Hidden</span>}
-        </h3>
-        <p className="oh-row__detail">
-          {details} ·{' '}
-          <span className={offering.price.isFree ? 'oh-row__price oh-row__price--free' : 'oh-row__price'}>
-            {offering.price.label}
-          </span>
-        </p>
+    <li className={`oh-row ${on ? '' : 'oh-row--off'}`}>
+      <div className="oh-row__main">
+        <div className="oh-row__text">
+          <h3 className="oh-row__name">{offering.title}</h3>
+          <p className="oh-row__detail">
+            {details} ·{' '}
+            <span className={offering.price.isFree ? 'oh-row__price oh-row__price--free' : 'oh-row__price'}>
+              {offering.price.label}
+            </span>
+          </p>
+        </div>
+
+        <div className="oh-row__actions">
+          {/* On the storefront, or not: a switch, as it flips straight away */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={on}
+            aria-label={`Show ${offering.title} on your storefront`}
+            className="oh-switch oh-switch--short"
+            onClick={() => onSetOn(!on)}
+          >
+            <span className="oh-switch__track" aria-hidden="true">
+              <span className="oh-switch__thumb" />
+            </span>
+            <span className="oh-switch__label" aria-hidden="true">
+              {on ? 'On' : 'Off'}
+            </span>
+          </button>
+          <button type="button" className="oh-card__copy" onClick={() => copyLink(url)} aria-label={`Copy link to ${offering.title}`}>
+            {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
+            {copy === 'copied' ? 'Copied' : 'Copy link'}
+          </button>
+          <button type="button" className="oh__edit oh-card__edit" onClick={() => onEdit(offering.id)} aria-label={`Edit ${offering.title}`}>
+            <Pencil size={15} aria-hidden="true" /> Edit
+          </button>
+          <a
+            className="oh__edit oh-card__preview"
+            href={url}
+            target="_blank"
+            rel="noopener"
+            aria-label={`Preview the booking page for ${offering.title} (opens in a new tab)`}
+            data-tip="Preview"
+            data-tip-align="end"
+          >
+            <ExternalLink size={16} aria-hidden="true" />
+          </a>
+        </div>
       </div>
 
-      <div className="oh-row__actions">
-        {/* Shown on the page, or not: a switch, as it flips straight away */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={!hidden}
-          aria-label={`Show ${offering.title} on your page`}
-          className="oh-switch"
-          onClick={() => onSetHidden(!hidden)}
-        >
-          <span className="oh-switch__track" aria-hidden="true">
-            <span className="oh-switch__thumb" />
+      {/* Only for what's on the storefront: the line on its card */}
+      {on && (
+        <div className="oh-row__line">
+          <label className="oh-row__line-label" htmlFor={boxId}>
+            Short description
+          </label>
+          <textarea
+            id={boxId}
+            className={`qinput__text oh-row__line-box ${empty ? 'qinput__text--error' : ''}`}
+            rows={2}
+            maxLength={SHORT_DESCRIPTION_MAX}
+            value={line}
+            placeholder="A line or two on what happens in it"
+            aria-invalid={empty || undefined}
+            onChange={(e) => onLine(e.target.value)}
+          />
+          <span className="oh-row__line-under">
+            <span className={empty ? 'oh-row__line-error' : ''}>
+              {empty ? 'Add a short description, so its card isn’t bare.' : 'Shows under its name on your storefront.'}
+            </span>
+            <span>
+              {line.length}/{SHORT_DESCRIPTION_MAX}
+            </span>
           </span>
-          <span className="oh-switch__label" aria-hidden="true">
-            {hidden ? 'Hidden' : 'Visible'}
-          </span>
-        </button>
-        <button type="button" className="oh-card__copy" onClick={() => copyLink(url)} aria-label={`Copy link to ${offering.title}`}>
-          {copy === 'copied' ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
-          {copy === 'copied' ? 'Copied' : 'Copy link'}
-        </button>
-        <button type="button" className="oh__edit oh-card__edit" onClick={() => onEdit(offering.id)} aria-label={`Edit ${offering.title}`}>
-          <Pencil size={15} aria-hidden="true" /> Edit
-        </button>
-        <a
-          className="oh__edit oh-card__preview"
-          href={url}
-          target="_blank"
-          rel="noopener"
-          aria-label={`Preview the booking page for ${offering.title} (opens in a new tab)`}
-          data-tip="Preview"
-          data-tip-align="end"
-        >
-          <ExternalLink size={16} aria-hidden="true" />
-        </a>
-        <RowMenu
-          title={offering.title}
-          open={menuOpen}
-          onOpenChange={onMenu}
-          items={[{ label: 'Remove from page', icon: Trash2, danger: true, onSelect: onRemove }]}
-        />
-      </div>
+        </div>
+      )}
 
       <span className="oh__sr-only" aria-live="polite">
         {copy === 'copied' && `Link to ${offering.title} copied`}
@@ -142,73 +157,25 @@ function OfferingRow({ offering, url, hidden, isNew = false, menuOpen, onMenu, o
 }
 
 // ------------------------------------------------------------
-// Home for a live offerings page, as two cards with the same frame:
+// The storefront page, once setup is done, as cards with the same frame:
 //
 //   Your page   ┌ (photo) Name, one line of bio          [Edit profile] ┐
-//               └ Your offerings page link  harishneel.page  [Copy link] [↗] ┘
-//   Offerings   the calls that are on their page, each with its own link
+//               └ Your storefront link  harishneel.page  [Copy link] [↗] ┘
+//   1:1 calls   every call they've made, each with an On/Off switch and,
+//               when on, the short description on its card
 //
-// Every action lines up on the card's right edge. Each offering is a
-// full-width row (OfferingRow), with a Visible switch and ⋯ → Remove from page.
-// Add to your page is the one filled button on the page.
-// This page only shows calls: they're made and changed in the 1:1 calls
-// tab (CallsPage.jsx), with the calendar. "Add to your page" picks from
-// the ones that aren't on it (AddToPagePicker), or makes a new one.
-// Where creators land once setup is done; from here on, no step-by-step questions.
+// Nothing is made here: calls are made in the 1:1 calls tab and show up
+// here switched off. One card per type (STOREFRONT_SOURCES), so webinars
+// and courses can join later the same way. A type with nothing made yet
+// says so, with a way to its tab.
 //
 // onEditProfile: opens the profile editor (photo, name, bio, link)
 // onEditOffering(id): opens the editor for one offering
-// onAddCalls({ ids, descriptions }): put these calls on the page, with any card lines changed
-// onCreateCall(): make a new call (the guided flow); it lands on the page
-// onSetOnPage(id, on): take one off the page, or put it back (Undo)
-// onSetHidden(id, hidden): hide one from visitors, or show it again
-// justAddedIds: the offerings just added, if they've come back from adding them
+// onSetOn(source, item, on): switch one on or off
+// onSetLine(source, id, text): its short description changed
+// onGoToTab(tab): opens a sidebar tab ('calls')
 // ------------------------------------------------------------
-const UNDO_MS = 6000;
-
-export default function OfferingsHome({
-  answers,
-  onEditProfile,
-  onEditOffering,
-  onAddCalls,
-  onCreateCall,
-  onSetOnPage,
-  onSetHidden,
-  justAddedIds = [],
-}) {
-  // The calls on their page, hidden ones too (the rest are in the 1:1 calls tab)
-  const offerings = useMemo(() => buildProfileJson(getListedOnPage(answers)).services, [answers]);
-  const [menuFor, setMenuFor] = useState(null); // the row whose ⋯ menu is open
-  const [removing, setRemoving] = useState(null); // { id, title } while the pop-up asks
-  // The calls that aren't, newest first: what "Add to your page" offers
-  const offPage = useMemo(() => {
-    const all = buildProfileJson(getMyProfile(answers)).services;
-    return myCallIds(answers)
-      .filter((id) => !isOnPage(answers, id))
-      .map((id) => all.find((s) => s.id === id))
-      .filter(Boolean);
-  }, [answers]);
-  const [choosing, setChoosing] = useState(false); // "Add to your page" showing
-  const justAdded = offerings.filter((o) => justAddedIds.includes(o.id));
-
-  // Just taken off: its name, for the note with Undo, until it fades
-  const [removed, setRemoved] = useState(null);
-  const undoTimer = useRef(null);
-  useEffect(() => () => clearTimeout(undoTimer.current), []);
-  const remove = (o) => {
-    onSetOnPage(o.id, false);
-    setRemoved({ id: o.id, title: o.title });
-    clearTimeout(undoTimer.current);
-    undoTimer.current = setTimeout(() => setRemoved(null), UNDO_MS);
-  };
-  const undo = () => {
-    clearTimeout(undoTimer.current);
-    onSetOnPage(removed.id, true);
-    setRemoved(null);
-  };
-
-  // No calls at all: nothing to pick, so straight to making one
-  const add = () => (offPage.length === 0 && offerings.length === 0 ? onCreateCall() : setChoosing(true));
+export default function OfferingsHome({ answers, onEditProfile, onEditOffering, onSetOn, onSetLine, onGoToTab }) {
   const link = `${PAGE_DOMAIN}/${answers.handle}`;
   const url = pageUrl(answers.handle);
 
@@ -267,106 +234,68 @@ export default function OfferingsHome({
             </p>
           )}
         </div>
-      </section>
 
-      {/* ---------- Offerings ---------- */}
-      <section className="oh__panel" aria-labelledby="oh-offerings">
-        <div className="oh__panel-head oh__panel-head--split">
-          <div>
-            <h2 className="oh__panel-title" id="oh-offerings">
-              Offerings <span className="oh__count">{offerings.length}</span>
-            </h2>
-            <p className="oh__panel-sub">Each one has its own link, to share on its own.</p>
-          </div>
-          <button type="button" className="oh__add" onClick={add}>
-            <Plus size={16} strokeWidth={2.5} aria-hidden="true" /> Add to your page
-          </button>
-        </div>
-
-        <div className="oh__panel-body">
-          {offerings.length === 0 ? (
-            <div className="oh__none">
-              <p className="oh__none-title">Nothing on your page yet</p>
-              <p className="oh__none-text">Add a 1:1 call so people have something to book.</p>
-            </div>
-          ) : (
-            <ul className="oh__rows">
-              {offerings.map((o) => (
-                <OfferingRow
-                  key={o.id}
-                  offering={o}
-                  url={offeringUrl(answers.handle, o.id)}
-                  hidden={isHiddenOnPage(answers, o.id)}
-                  isNew={justAddedIds.includes(o.id)}
-                  menuOpen={menuFor === o.id}
-                  onMenu={(open) => setMenuFor(open ? o.id : null)}
-                  onEdit={onEditOffering}
-                  onSetHidden={(hide) => onSetHidden(o.id, hide)}
-                  onRemove={() => {
-                    setMenuFor(null);
-                    setRemoving({ id: o.id, title: o.title });
-                  }}
-                />
-              ))}
-            </ul>
-          )}
-          {/* Tells screen readers what's just been added */}
-          <p className="oh__sr-only" aria-live="polite">
-            {justAdded.length === 1
-              ? `${justAdded[0].title} is now on your page.`
-              : justAdded.length > 1
-                ? `${justAdded.length} calls are now on your page.`
-                : ''}
-          </p>
-        </div>
-      </section>
-
-      {/* Just taken off the page: a note with Undo, for a few seconds */}
-      <div className="oh__notice-wrap" aria-live="polite">
-        {removed && (
-          <p className="oh__notice">
-            <span className="oh__notice-text">“{removed.title}” is off your page</span>
-            <button type="button" className="oh__notice-undo" onClick={undo}>
-              Undo
+        {/* Track record off: the one nudge, as on a course's page. It's in Edit profile. */}
+        {!answers.trackRecord?.on && (
+          <div className="oh__nudge">
+            <p className="oh__nudge-text">
+              <strong>Your track record isn’t shown.</strong> It’s recommended: your rating and how many people you’ve helped
+              make people more likely to book.
+            </p>
+            <button type="button" className="oh__btn" onClick={onEditProfile}>
+              Add it
             </button>
-          </p>
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* Remove from page: asked first. Only this page: deleting for good is in 1:1 calls */}
-      {removing && (
-        <ConfirmDialog
-          title="Remove from your page?"
-          confirmLabel="Remove from page"
-          onCancel={() => setRemoving(null)}
-          onConfirm={() => {
-            remove(removing);
-            setRemoving(null);
-          }}
-        >
-          <p>
-            <strong>“{removing.title}”</strong> will be removed from your storefront only. 
-          </p>
-          <p>
-            To delete it permantly, go to <strong>1:1 calls</strong> in the sidebar.
-          </p>
-        </ConfirmDialog>
-      )}
+      {/* ---------- One card per type: everything they've made ---------- */}
+      {STOREFRONT_SOURCES.map((source) => {
+        const items = source.items(answers);
+        const onCount = items.filter((i) => source.isOn(answers, i.id)).length;
+        const headId = `oh-${source.kind}`;
+        return (
+          <section key={source.kind} className="oh__panel" aria-labelledby={headId}>
+            <div className="oh__panel-head oh__panel-head--split">
+              <div>
+                <h2 className="oh__panel-title" id={headId}>
+                  {source.label} <span className="oh__count">{onCount} of {items.length} on</span>
+                </h2>
+                <p className="oh__panel-sub">Switch on what people should see, and give each a short description.</p>
+              </div>
+              {onGoToTab && (
+                <button type="button" className="oh__btn" onClick={() => onGoToTab(source.tab)}>
+                  Go to {source.tabLabel} <ArrowRight size={15} aria-hidden="true" />
+                </button>
+              )}
+            </div>
 
-      {choosing && (
-        <AddToPagePicker
-          calls={offPage}
-          onClose={() => setChoosing(false)}
-          onAdd={(picked) => {
-            setChoosing(false);
-            onAddCalls(picked);
-          }}
-          onCreate={() => {
-            setChoosing(false);
-            onCreateCall();
-          }}
-        />
-      )}
+            <div className="oh__panel-body">
+              {items.length === 0 ? (
+                <div className="oh__none">
+                  <p className="oh__none-title">Nothing here yet</p>
+                  <p className="oh__none-text">{source.empty}</p>
+                </div>
+              ) : (
+                <ul className="oh__rows">
+                  {items.map((item) => (
+                    <OfferingRow
+                      key={item.id}
+                      offering={item}
+                      url={offeringUrl(answers.handle, item.id)}
+                      on={source.isOn(answers, item.id)}
+                      line={source.lineOf(answers, item)}
+                      onSetOn={(on) => onSetOn(source, item, on)}
+                      onLine={(text) => onSetLine(source, item.id, text)}
+                      onEdit={onEditOffering}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

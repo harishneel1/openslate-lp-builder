@@ -1,94 +1,86 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, Plus } from 'lucide-react';
-import { buildProfileJson } from '../data/buildProfileJson';
-import { addedCallsOf, getMyProfile } from '../data/myProfile';
+import { useMemo } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { pickedCallIds, setupCallsOf, setupLineOf } from '../data/myPageQuestions';
 import './PickCallsInput.css';
 
+const DESCRIPTION_MAX = 200; // as the card line everywhere else (CallDetailsInput.jsx)
+
 // ------------------------------------------------------------
-// Setup's "Which calls go on your page?", only for someone who made
-// calls in the 1:1 calls tab before setting up their page.
+// Storefront setup's "Which 1:1 calls go on your storefront?".
+// Calls aren't made here: this lists the ones made in the 1:1 calls
+// tab, each with a switch. Switched on, a call goes on the storefront,
+// and a box opens under it for the short description on its card
+// (the only thing asked here, since nothing else asks for it):
 //
-// Picking is a choice; creating is an action, and they look it:
+//   YOUR 1:1 CALLS · 2
+//   ┌ Discovery call                                  [● On ] ┐
+//   │ Video call · 30 min · ₹400                              │
+//   │ Short description                                       │
+//   │ ┌ A short call to get to know each other and see… ┐     │
+//   │ └─────────────────────────────────────────────────┘     │
+//   │ Shows under the call’s name on your storefront.  88/200 │
+//   ├ Career clarity call                              [○ Off] ┤
+//   └ Video call · 30 min · Free                              ┘
 //
-//   YOUR CALLS · 2
-//   ┌ ☑  Discovery call                                         ┐
-//   │    Video call · 30 min · ₹400                              │
-//   ├ ☐  Career clarity call                                    ┤
-//   └    Video call · 30 min · Free                              ┘
-//   Tick at least one call to continue.
-//
-//   [+ Create a new 1:1 call instead]       ← a button, not a choice
-//                                    [Continue →]  ← for the ticked calls
-//
-// The calls are a checklist (square boxes: tick as many as you like),
-// and Continue puts them on the page. "Create a new 1:1 call instead"
-// has no tick: pressing it goes straight into the call questions.
-// Coming back here from those questions, it's a fresh choice again.
-// Card text isn't asked for here: it's changed from "Add to your page"
-// on My offerings, where the cards are.
+// The box starts with the call's own line (a suggestion from its name,
+// until one's written), so most can just switch on and go.
+// None switched on is fine: the page goes live with just their profile.
+// No calls at all: a note, and a way to the 1:1 calls tab to make one.
 //
 // Saves:
-//   callSource    'existing' (ticked some) or 'new' (pressed create);
-//                 the call questions only show for 'new'
-//   pickedCalls   the ids ticked
-// Setup puts the ticked calls on the page when it finishes (MyPageSetup.jsx).
-// onSubmit: the flow's Next, used to move on once "create" has been saved
+//   pickedCalls   the ids switched on
+//   pickedLines   { [id]: text }, the lines they've changed here
+// Setup puts the calls on the page, with their lines, when it finishes
+// (MyPageSetup.jsx).
+// question.onGoToCalls(): opens the 1:1 calls tab (from MyPageSetup.jsx)
 // ------------------------------------------------------------
-export default function PickCallsInput({ answers, onChange, onSubmit }) {
-  // Every call they've made, newest first (the setup call doesn't exist yet)
-  const calls = useMemo(() => {
-    const all = buildProfileJson(getMyProfile(answers)).services;
-    return addedCallsOf(answers)
-      .map((c) => all.find((s) => s.id === c.id))
-      .filter(Boolean);
-  }, [answers]);
-
-  const picked = Array.isArray(answers.pickedCalls) ? answers.pickedCalls : [];
-
-  // Back from the call questions: not committed to making one any more
-  useEffect(() => {
-    if (answers.callSource === 'new') onChange(undefined, 'callSource');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // "Create instead" saves first, then moves on once the flow has the
-  // answer (so the call questions are there to move on to)
-  const [creating, setCreating] = useState(false);
-  useEffect(() => {
-    if (creating && answers.callSource === 'new') {
-      setCreating(false);
-      onSubmit();
-    }
-  }); // eslint-disable-line react-hooks/exhaustive-deps
+export default function PickCallsInput({ question, answers, onChange }) {
+  const calls = useMemo(() => setupCallsOf(answers), [answers]);
+  const picked = pickedCallIds(answers);
+  const lines = answers.pickedLines ?? {};
 
   const toggle = (id) => {
     const next = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id];
     onChange(next, 'pickedCalls');
-    onChange(next.length > 0 ? 'existing' : undefined, 'callSource');
   };
 
-  const createInstead = () => {
-    onChange([], 'pickedCalls');
-    onChange('new', 'callSource');
-    setCreating(true);
-  };
+  const setLine = (id, text) => onChange({ ...lines, [id]: text }, 'pickedLines');
+
+  // ---------- No calls yet ----------
+  if (calls.length === 0) {
+    return (
+      <div className="qinput pick">
+        <div className="pick__empty">
+          <p className="pick__empty-title">You don’t have any 1:1 calls yet</p>
+          <p className="pick__empty-text">
+            Make one in the 1:1 calls tab and come back here to switch it on. Or continue without one: your
+            storefront goes live with just your profile, and you can add calls to it anytime.
+          </p>
+          {question.onGoToCalls && (
+            <button type="button" className="pick__go" onClick={question.onGoToCalls}>
+              Go to 1:1 calls <ArrowRight size={16} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="qinput pick">
       <p className="pick__label" id="pick-label">
-        Your calls <span className="pick__count">{calls.length}</span>
+        Your 1:1 calls <span className="pick__count">{calls.length}</span>
       </p>
 
       <ul className="pick__list" aria-labelledby="pick-label">
         {calls.map((call) => {
           const on = picked.includes(call.id);
-          const boxId = `pick-${call.id}`;
+          const line = setupLineOf(answers, call);
+          const boxId = `pick-line-${call.id}`;
+          const empty = on && line.trim() === '';
           return (
-            <li key={call.id}>
-              <label className={`pick__row ${on ? 'pick__row--on' : ''}`} htmlFor={boxId}>
-                <input id={boxId} type="checkbox" checked={on} onChange={() => toggle(call.id)} />
-                <span className="pick__box" aria-hidden="true">
-                  {on && <Check size={14} strokeWidth={3} />}
-                </span>
+            <li key={call.id} className={`pick__row ${on ? 'pick__row--on' : ''}`}>
+              <div className="pick__head">
                 <span className="pick__text">
                   <span className="pick__name">{call.title}</span>
                   <span className="pick__meta">
@@ -97,21 +89,60 @@ export default function PickCallsInput({ answers, onChange, onSubmit }) {
                     <span className={call.price.isFree ? 'pick__free' : ''}>{call.price.label}</span>
                   </span>
                 </span>
-              </label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  aria-label={`Show ${call.title} on your storefront`}
+                  className="pick__switch"
+                  onClick={() => toggle(call.id)}
+                >
+                  <span className="pick__switch-track" aria-hidden="true">
+                    <span className="pick__switch-thumb" />
+                  </span>
+                  <span className="pick__switch-label" aria-hidden="true">
+                    {on ? 'On' : 'Off'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Only for calls going on the storefront: the line on its card */}
+              {on && (
+                <div className="pick__line">
+                  <label className="qinput__label pick__line-label" htmlFor={boxId}>
+                    Short description
+                  </label>
+                  <textarea
+                    id={boxId}
+                    className={`qinput__text pick__line-box ${empty ? 'qinput__text--error' : ''}`}
+                    rows={2}
+                    maxLength={DESCRIPTION_MAX}
+                    value={line}
+                    placeholder="A line or two on what happens in the call"
+                    aria-invalid={empty || undefined}
+                    onChange={(e) => setLine(call.id, e.target.value)}
+                  />
+                  <span className="pick__line-under">
+                    <span className={empty ? 'pick__line-error' : ''}>
+                      {empty ? 'Add a short description, or switch this call off.' : 'Shows under the call’s name on your storefront.'}
+                    </span>
+                    <span>
+                      {line.length}/{DESCRIPTION_MAX}
+                    </span>
+                  </span>
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
 
-      {/* Why Continue is waiting, right under what unlocks it */}
+      {/* What Continue does with nothing switched on, so it isn't a surprise */}
       <p className="pick__hint" aria-live="polite">
-        {picked.length === 0 ? 'Tick at least one call to continue.' : ''}
+        {picked.length === 0
+          ? 'Nothing switched on yet. You can still continue: your storefront goes live with just your profile.'
+          : ''}
       </p>
-
-      <button type="button" className="pick__create" onClick={createInstead}>
-        <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
-        Create a new 1:1 call instead
-      </button>
     </div>
   );
 }

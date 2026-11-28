@@ -68,7 +68,9 @@ export function useEditDraft(saved, fields) {
 //      editor, like a webinar's pages). Given, there's no back button here:
 //      exitRef.current() does what it would, asking first about unsaved changes.
 // bar: false for no bar at all (a screen with its own buttons, like the
-//      contract's steps); otherwise the save bar below.
+//      contract's steps); 'always' to keep the save bar showing with Save
+//      in it even before anything's changed (Edit profile, where some boxes
+//      save into the form only when they're left); otherwise the save bar below.
 //
 // The save bar only shows when it has something to do:
 //   unsaved changes   "You have unsaved changes"  [Discard changes] [Save changes]
@@ -111,7 +113,8 @@ export default function EditFrame({
     const timer = setTimeout(() => setSavedShown(false), SAVED_SHOWN_MS);
     return () => clearTimeout(timer);
   }, [justSaved]);
-  const showBar = bar !== false && (creating || dirty || savedShown || Boolean(message));
+  const always = bar === 'always';
+  const showBar = bar !== false && (always || creating || dirty || savedShown || Boolean(message));
 
   // Closing the tab with unsaved changes: the browser asks first
   useEffect(() => {
@@ -183,7 +186,7 @@ export default function EditFrame({
             ) : creating ? (
               problem
             ) : (
-              dirty && (problem ?? 'You have unsaved changes')
+              (dirty && (problem ?? 'You have unsaved changes')) || (always && !savedShown && 'No changes yet')
             )}
             {/* Saved: say so, and offer a look at the live page */}
             {!creating && !dirty && savedShown && (
@@ -213,16 +216,28 @@ export default function EditFrame({
                 </button>
               </>
             ) : (
-              dirty && (
-                <>
+              // Discard and Save keep their places, so Save is the same button
+              // before and after a change. With bar="always" it's there, faded,
+              // before anything's changed: pressing it from a box that saves when
+              // it's left (a testimonial) leaves the box, then saves.
+              <>
+                {dirty && (
                   <button type="button" className="es__btn es__btn--quiet" onClick={edit.discard}>
                     Discard changes
                   </button>
-                  <button type="button" className="es__btn es__btn--primary" onClick={onSave} disabled={Boolean(problem)}>
+                )}
+                {(dirty || always) && (
+                  <button
+                    type="button"
+                    className={`es__btn es__btn--primary ${dirty ? '' : 'es__btn--idle'}`}
+                    onClick={onSave}
+                    disabled={dirty && Boolean(problem)}
+                    aria-disabled={dirty ? undefined : 'true'}
+                  >
                     Save changes
                   </button>
-                </>
-              )
+                )}
+              </>
             )}
           </div>
         </div>

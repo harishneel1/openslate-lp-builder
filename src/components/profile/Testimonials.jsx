@@ -59,11 +59,14 @@ export default function Testimonials({ items, titleId, showService = true }) {
               <blockquote className="tm__text">{t.text}</blockquote>
               <figcaption className="tm__by">
                 <span className="tm__avatar" aria-hidden="true">
-                  {t.initials || <User size={16} />}
+                  {t.photo ? <img src={t.photo} alt="" /> : t.initials || <User size={16} />}
                 </span>
                 <span className="tm__who">
                   <span className="tm__name">{t.name}</span>
-                  <span className="tm__detail">{showService && t.service ? `${t.service}, ${t.date}` : t.date}</span>
+                  {/* Who they are, when the creator added it; else which call and when */}
+                  <span className="tm__detail">
+                    {t.from || (showService && t.service ? `${t.service}, ${t.date}` : t.date)}
+                  </span>
                 </span>
               </figcaption>
             </figure>

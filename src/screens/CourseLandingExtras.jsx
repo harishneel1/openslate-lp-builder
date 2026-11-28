@@ -38,7 +38,30 @@ import './CourseExtras.css';
 // fields highlights that part of the example page.
 //
 // course, onSave(change) → true if it saved
+// TrackRecordField also takes copy: its words, for somewhere other than a
+// course (the storefront's profile: TrustInput.jsx). Left out, a course's.
+// copy.why: null leaves out the box saying why it matters; copy.title:
+// null, the heading.
+// copy.showReviews adds a "Reviews" box (how many reviews they have), shown
+// in the preview line as "· 12 reviews".
+// copy.showSource adds a "Where it's from" box (Topmate, Google, …), shown
+// in the preview line as "rated on Topmate".
 // ------------------------------------------------------------
+
+// A course's words for the track record
+const COURSE_TRACK_COPY = {
+  title: 'Your track record',
+  why: (
+    <>
+      <strong>Buyers trust a course more when they can see others have taken it.</strong> Showing your rating and how many
+      students you’ve taught is one of the simplest ways to get more sales.
+    </>
+  ),
+  countLabel: 'Students you’ve taught',
+  unit: 'students',
+  switchLabel: 'Show these on my landing page',
+  showSource: false,
+};
 
 const UNIT_LABEL = { hours: 'hours', days: 'days', weeks: 'weeks' };
 
@@ -134,18 +157,20 @@ function Stars({ value }) {
   );
 }
 
-export function TrackRecordField({ course, onSave }) {
+export function TrackRecordField({ course, onSave, copy = COURSE_TRACK_COPY }) {
   const saved = trackRecordOf(course);
   const stored = Boolean(course.trackRecord); // saved at least once (else the defaults)
   const [students, setStudents] = useState(String(saved.students));
+  const [reviews, setReviews] = useState(String(saved.reviews));
   const [rating, setRating] = useState(String(saved.rating));
   const [source, setSource] = useState(saved.source);
   const [tried, setTried] = useState(false);
   const on = saved.on;
 
-  const savedKey = `${saved.students}|${saved.rating}|${saved.source}`;
+  const savedKey = `${saved.students}|${saved.rating}|${saved.source}|${saved.reviews}`;
   useEffect(() => {
     setStudents(String(saved.students));
+    setReviews(String(saved.reviews));
     setRating(String(saved.rating));
     setSource(saved.source);
   }, [savedKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -154,9 +179,19 @@ export function TrackRecordField({ course, onSave }) {
   const ratingNum = Number(rating);
   const studentsOk = students.trim() !== '' && Number.isInteger(studentsNum) && studentsNum >= 0 && studentsNum <= TRACK_STUDENTS_MAX;
   const ratingOk = rating.trim() !== '' && ratingNum >= 1 && ratingNum <= 5;
-  const valid = studentsOk && ratingOk;
+  const reviewsNum = Number(reviews);
+  const reviewsOk =
+    !copy.showReviews || (reviews.trim() !== '' && Number.isInteger(reviewsNum) && reviewsNum >= 0 && reviewsNum <= TRACK_STUDENTS_MAX);
+  const valid = studentsOk && ratingOk && reviewsOk;
 
-  const values = (extra = {}) => ({ students: studentsNum, rating: Math.round(ratingNum * 10) / 10, source: source.trim(), on, ...extra });
+  const values = (extra = {}) => ({
+    students: studentsNum,
+    rating: Math.round(ratingNum * 10) / 10,
+    source: source.trim(),
+    reviews: copy.showReviews ? reviewsNum : saved.reviews,
+    on,
+    ...extra,
+  });
 
   // Leaving a box: saves when something changed (and it's been saved before,
   // or they've changed the defaults)
@@ -166,7 +201,7 @@ export function TrackRecordField({ course, onSave }) {
       return;
     }
     const next = values();
-    const changed = `${next.students}|${next.rating}|${next.source}` !== savedKey;
+    const changed = `${next.students}|${next.rating}|${next.source}|${next.reviews}` !== savedKey;
     if (changed || (stored && next.on !== saved.on)) onSave({ trackRecord: next });
   };
 
@@ -180,23 +215,23 @@ export function TrackRecordField({ course, onSave }) {
 
   const shownRating = ratingOk ? (Math.round(ratingNum * 10) / 10).toFixed(1) : '–';
   const shownStudents = studentsOk ? studentsNum.toLocaleString('en-IN') : '–';
+  const shownReviews = reviewsOk ? reviewsNum.toLocaleString('en-IN') : '–';
   const from = source.trim();
 
   return (
-    <section className="lnd__part trk" aria-labelledby="trk-title" data-guide="trackRecord">
-      <div className="lrn__head">
-        <h3 className="lrn__title" id="trk-title">
-          Your track record
-        </h3>
-      </div>
-      <p className="trk__why">
-        <strong>Buyers trust a course more when they can see others have taken it.</strong> Showing your rating and how many
-        students you’ve taught is one of the simplest ways to get more sales.
-      </p>
+    <section className="lnd__part trk" aria-labelledby={copy.title ? 'trk-title' : undefined} aria-label={copy.title ? undefined : 'Your track record'} data-guide="trackRecord">
+      {copy.title && (
+        <div className="lrn__head">
+          <h3 className="lrn__title" id="trk-title">
+            {copy.title}
+          </h3>
+        </div>
+      )}
+      {copy.why && <p className="trk__why">{copy.why}</p>}
 
-      <div className="trk__fields">
+      <div className={`trk__fields ${copy.showReviews ? 'trk__fields--three' : ''}`}>
         <label className="trk__field">
-          <span className="trk__label">Students you’ve taught</span>
+          <span className="trk__label">{copy.countLabel}</span>
           <span className="lrn__box">
             <input
               className="lrn__input"
@@ -234,6 +269,47 @@ export function TrackRecordField({ course, onSave }) {
           </span>
           {tried && !ratingOk && <span className="trk__error">From 1.0 to 5.0</span>}
         </label>
+
+        {copy.showReviews && (
+          <label className="trk__field">
+            <span className="trk__label">Reviews</span>
+            <span className="lrn__box">
+              <input
+                className="lrn__input"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={reviews}
+                aria-invalid={(tried && !reviewsOk) || undefined}
+                onChange={(e) => setReviews(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+              />
+            </span>
+            {tried && !reviewsOk && <span className="trk__error">A whole number, like 12</span>}
+          </label>
+        )}
+
+        {copy.showSource && (
+          <label className="trk__field">
+            <span className="trk__label">
+              Where it’s from <span className="crs-field__optional">(optional)</span>
+            </span>
+            <span className="lrn__box">
+              <input
+                className="lrn__input"
+                value={source}
+                maxLength={TRACK_SOURCE_MAX}
+                placeholder="Topmate"
+                autoComplete="off"
+                onChange={(e) => setSource(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+              />
+            </span>
+          </label>
+        )}
       </div>
 
       {/* How it will look on the landing page: dimmed while it's off */}
@@ -242,8 +318,17 @@ export function TrackRecordField({ course, onSave }) {
         <span className="trk__preview-line">
           <strong>{shownRating}</strong>
           {ratingOk && <Stars value={ratingNum} />}
+          {copy.showSource && from && <span>rated on {from}</span>}
+          {copy.showReviews && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{shownReviews} reviews</span>
+            </>
+          )}
           <span aria-hidden="true">·</span>
-          <span>{shownStudents} students</span>
+          <span>
+            {shownStudents} {copy.unit}
+          </span>
         </span>
       </p>
 
@@ -252,7 +337,7 @@ export function TrackRecordField({ course, onSave }) {
           <span className="trk__switch-track" aria-hidden="true">
             <span className="trk__switch-thumb" />
           </span>
-          Show these on my landing page
+          {copy.switchLabel}
         </button>
         <span className="trk__pill">Recommended</span>
       </div>

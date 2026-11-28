@@ -224,6 +224,50 @@ function callService(c, { id, order, stats = {} }) {
   };
 }
 
+// ------------------------------------------------------------
+// Their track record and testimonials, from setup's "Show people you're
+// trusted" or Edit profile (TrustInput.jsx), as the storefront uses them.
+// Cleaned here rather than with courseExtras.js / courses.js, which would
+// import this file back (through mockServices.js).
+// ------------------------------------------------------------
+const TRACK_MAX = 10000000;
+
+// { students, rating, reviews, source } when they've switched it on, else null
+export function trackRecordShown(answers) {
+  const t = answers?.trackRecord;
+  if (t?.on !== true) return null;
+  const students = Math.round(Number(t.students));
+  const rating = Math.round(Number(t.rating) * 10) / 10;
+  const reviews = Math.round(Number(t.reviews ?? 12)); // 12: the box's default, if it was saved before it existed
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) return null;
+  return {
+    students: Number.isFinite(students) && students > 0 ? Math.min(TRACK_MAX, students) : 0,
+    rating,
+    reviews: Number.isFinite(reviews) && reviews > 0 ? Math.min(TRACK_MAX, reviews) : 0,
+    source: '', // "Where it's from" isn't asked for now, so the stat just says "rating"
+  };
+}
+
+const TESTIMONIALS_MAX = 6;
+const keepPhoto = (v) => (typeof v === 'string' && /^(data:image\/|https?:\/\/)/.test(v) ? v : '');
+
+// The ones with words in them, up to 6, in the shape the page's
+// "What clients say" row takes (mockProfile.js testimonials, plus from/photo)
+export function testimonialsShown(answers) {
+  return (Array.isArray(answers?.testimonials) ? answers.testimonials : [])
+    .map((t, i) => ({
+      id: typeof t?.id === 'string' && t.id ? t.id : `tst-${i}`,
+      name: String(t?.name ?? '').trim(),
+      from: String(t?.from ?? '').trim(),
+      text: String(t?.text ?? '').trim(),
+      photo: keepPhoto(t?.photo),
+      linkedin: typeof t?.linkedin === 'string' ? t.linkedin : '',
+      order: i, // kept in the order they added them
+    }))
+    .filter((t) => t.text)
+    .slice(0, TESTIMONIALS_MAX);
+}
+
 export function getMyProfile(answers = loadAnswers()) {
   // Their first call holds all their ratings, so the page and that call show the same rating
   const stats = answers.callStats ?? {};
@@ -240,7 +284,8 @@ export function getMyProfile(answers = loadAnswers()) {
     rating: stats.rating ?? null,
     ratingCount: stats.ratingCount ?? 0,
     bookingCount: stats.bookingCount ?? 0,
-    reviewCount: stats.reviewCount ?? 0,
+    reviewCount: stats.reviewCount ?? 0, // real reviews only: testimonials don't count
+    trackRecord: trackRecordShown(answers), // until real ratings take over (buildProfileJson.js)
   };
 
   // Newest first: added calls (already newest first), then the first call.
@@ -250,22 +295,16 @@ export function getMyProfile(answers = loadAnswers()) {
   // No setup call when setup put calls they'd already made on the page instead
   const hasFirst = String(answers.callTitle ?? '').trim() !== '';
 
-  return { creator, services: hasFirst ? [...added, first] : added, testimonials: [] };
+  return { creator, services: hasFirst ? [...added, first] : added, testimonials: testimonialsShown(answers) };
 }
 
 // Their offerings page: the same, with only the calls that are on it and
 // not hidden.
 // Booking and checkout use getMyProfile, so a call that's off the page
 // can still be booked from its own link.
-// While setup is picking from calls they'd already made (not live yet, and
-// not making a new one), the page is what it will be: just the ticked calls.
-// That's what the preview beside that screen shows. Half-made setup call
-// answers, from going into the call screens and back, don't count.
 export function getMyPage(answers = loadAnswers()) {
   const profile = getMyProfile(answers);
-  const picking = !answers.publishedAt && answers.callSource !== 'new' && addedCallsOf(answers).length > 0;
-  const picked = Array.isArray(answers.pickedCalls) ? answers.pickedCalls : [];
-  const shows = (id) => (picking ? picked.includes(id) : isOnPage(answers, id) && !isHiddenOnPage(answers, id));
+  const shows = (id) => isOnPage(answers, id) && !isHiddenOnPage(answers, id);
   return { ...profile, services: profile.services.filter((s) => shows(s.id)) };
 }
 

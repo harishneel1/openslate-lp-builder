@@ -3,6 +3,7 @@ import { ArrowDown } from 'lucide-react';
 import EditFrame, { EditPanel, useEditDraft } from './EditFrame';
 import QuestionInput from '../components/QuestionInput';
 import HandleInput from '../components/HandleInput';
+import { TestimonialsInput, TrackRecordInput } from '../components/TrustInput';
 import { myPageQuestions } from '../data/myPageQuestions';
 import { PAGE_DOMAIN, pageUrl } from '../data/myPage';
 import '../components/QuestionInput.css';
@@ -12,13 +13,14 @@ import './EditProfile.css';
 const ABOUT = myPageQuestions.find((q) => q.id === 'about'); // photo, name, bio
 const LINK = myPageQuestions.find((q) => q.id === 'handle');
 
-const FIELDS = ['photo', 'name', 'bio', 'handle'];
+const FIELDS = ['photo', 'name', 'bio', 'handle', 'trackRecord', 'testimonials'];
 
 const filled = (v) => String(v ?? '').trim() !== '';
 
 // ------------------------------------------------------------
 // Editing their profile, from the "Your profile" panel on the
-// offerings home: photo, name and bio, and the link to their page.
+// storefront page: photo, name and bio, the link to their page, and their
+// track record and testimonials (the same editors as setup: TrustInput.jsx).
 // Changes stay on this screen until Save (see EditFrame.jsx).
 // A new link asks first: the old one stops working.
 // ------------------------------------------------------------
@@ -66,6 +68,7 @@ export default function EditProfile({ answers, onBack, onSave }) {
       onSave={save}
       problem={problem}
       viewHref={pageUrl(saved.handle)}
+      bar="always" // Save always in view: testimonials only count as a change once their box is left
       confirm={
         confirming
           ? {
@@ -97,6 +100,15 @@ export default function EditProfile({ answers, onBack, onSave }) {
           autoFocus={false}
           current={saved.handle}
         />
+      </EditPanel>
+
+      {/* The same as setup's last two screens, without their headings: the panels name them */}
+      <EditPanel id="ep-trust" title="Your track record">
+        <TrackRecordInput key={formKey} answers={draft} onChange={handleChange} showSaved={false} />
+      </EditPanel>
+
+      <EditPanel id="ep-testimonials" title="What past clients say">
+        <TestimonialsInput key={formKey} answers={draft} onChange={handleChange} showSaved={false} />
       </EditPanel>
     </EditFrame>
   );

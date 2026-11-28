@@ -5,12 +5,10 @@ import MyPageIntro from './MyPageIntro';
 import MyPageReveal from './MyPageReveal';
 import OfferingsHome from './OfferingsHome';
 import EditService from './EditService';
-import CreateCallFlow from './CreateCallFlow';
 import EditProfile from './EditProfile';
-import { myPageQuestions } from '../data/myPageQuestions';
-import { SHARED_CALL_KEYS, addedCallsOf, withAddedCall, withCallChanges, withHiddenOnPage, withOnPage, withoutSetupCall } from '../data/myProfile';
-import { isCalendarConnected, loadCalendar } from '../data/calendarStore';
-import { PAGE_DOMAIN } from '../data/myPage';
+import { STOREFRONT_SETUP_IDS, myPageQuestions } from '../data/myPageQuestions';
+import { SHARED_CALL_KEYS, withCallChanges, withoutSetupCall } from '../data/myProfile';
+import { STOREFRONT_SOURCES, withItemOn } from '../data/storefrontItems';
 import { useSetupAnswers } from '../utils/useSetupAnswers';
 
 // Answers the 1:1 calls tab saves (its calls, which are on the page, and
@@ -19,62 +17,49 @@ import { useSetupAnswers } from '../utils/useSetupAnswers';
 const CALLS_TAB_KEYS = ['addedCalls', 'offPage', 'hiddenOnPage', ...SHARED_CALL_KEYS];
 const hasStartedSetup = (answers) => Object.keys(answers).some((key) => !CALLS_TAB_KEYS.includes(key));
 
-// Setup's screens for this creator, decided once when it opens:
-// "Which of your 1:1 calls…" only if they've made calls already, and the
-// calendar screen only if it isn't connected (so connecting on it
-// doesn't make it vanish mid-setup).
-// With calls to pick from, the call questions wait until they choose
-// "Create a new 1:1 call", so the progress doesn't count screens they
-// may never see.
-function questionsFor(answers) {
-  const hasCalls = addedCallsOf(answers).length > 0;
-  const calendarDone = isCalendarConnected(loadCalendar());
-  return myPageQuestions
-    .filter((q) => (q.onlyWithCalls ? hasCalls : q.id === 'calendar' ? !calendarDone : true))
-    .map((q) => (hasCalls && q.showIf?.field === 'callSource' ? { ...q, showIf: { field: 'callSource', equals: 'new' } } : q));
-}
+// Setup's screens (STOREFRONT_SETUP_IDS): the link, about you, track
+// record, testimonials. What goes on the storefront is switched on
+// afterwards, on the storefront page itself (OfferingsHome.jsx).
+// The testimonials screen reports which field is focused, for the example
+// page beside it to highlight.
+const setupQuestions = (onFocusField) =>
+  STOREFRONT_SETUP_IDS.map((id) => myPageQuestions.find((q) => q.id === id)).map((q) =>
+    q.id === 'testimonials' ? { ...q, onFocusField } : q,
+  );
 
-// Finishing setup with calls they'd already made: those go on the page.
-// The picking answers aren't kept, and nor is a setup call they'd started
-// (gone into "Create a new 1:1 call", then come back and ticked calls).
-function withPickedCalls(answers) {
-  const { pickedCalls = [], pickedLines, ...rest } = answers; // eslint-disable-line no-unused-vars
-  return pickedCalls.reduce((acc, id) => withOnPage(acc, id, true), withoutSetupCall(rest));
-}
+// Answers from earlier versions of setup, dropped once it's done, with a
+// half-made call from the old setup flow if there is one
+const OLD_SETUP_KEYS = ['offerType', 'pickedCalls', 'pickedLines', 'setupAt', 'callSource'];
+const withoutOldSetup = (answers) =>
+  Object.fromEntries(Object.entries(withoutSetupCall(answers)).filter(([key]) => !OLD_SETUP_KEYS.includes(key)));
 
-// Beside "Which calls go on your page?": their own page, not Meera's,
-// showing just the calls they've ticked as they tick them (?live=1)
-const ownPagePreview = (handle) => ({
-  src: `${window.location.pathname}?mock=profile&source=mine&live=1`,
-  link: `${PAGE_DOMAIN}/${handle ?? ''}`,
-  caption: 'Your storefront',
-  byline: 'Your calls show up as you pick them',
-});
+// Anything switched on already (from before this version of setup)
+const anythingOn = (answers) =>
+  STOREFRONT_SOURCES.some((source) => source.items(answers).some((item) => source.isOn(answers, item.id)));
 
 // ------------------------------------------------------------
-// The offerings page, the first time: an intro to what a page is, then
-// questions on the left with a popular creator's page on the right,
+// The storefront, the first time: an intro to what a page is, then two
+// questions (link, about you) with a popular creator's page on the right,
 // the part each answer fills in highlighted, then their page, live.
-// After that, the offerings home: no more questions, just their page and
-// the calls on it. Calls are made in the 1:1 calls tab; here they're put
-// on the page (or a new one is made with the same guided flow, and lands
-// on the page). Edit opens the same call editor as 1:1 calls.
+// After that, the storefront page: their profile and link, and everything
+// they've made, each switched on or off, with the short description on its
+// card. Nothing is made here: calls are made in the 1:1 calls tab.
+// Edit opens the same call editor as 1:1 calls.
+// onGoToTab(tab): opens a sidebar tab ('calls'), from the storefront page
 // Answers are kept in this browser for now.
 // ------------------------------------------------------------
-export default function MyPageSetup() {
+export default function MyPageSetup({ onGoToTab }) {
   const [answers, setAnswers] = useSetupAnswers();
   // Setup: 'intro' → 'questions' → 'done' (the page, live, shown once).
-  // Then: 'home' (the offerings home) ↔ 'editService' (one offering)
-  //                                    ↔ 'createCall' (a new 1:1 call, guided)
+  // Then: 'home' (the storefront page) ↔ 'editService' (one offering)
   //                                    ↔ 'editProfile' (photo, name, bio, link).
   // Finished before? The home. Started before? Straight to the questions.
   const [step, setStep] = useState(() =>
     answers.publishedAt ? 'home' : hasStartedSetup(answers) ? 'questions' : 'intro'
   );
   const [editingId, setEditingId] = useState(null); // the offering open in 'editService'
-  const [justAddedIds, setJustAddedIds] = useState([]); // marked on the home after adding them
-  const [questions] = useState(() => questionsFor(answers));
-  const ownPage = useMemo(() => ownPagePreview(answers.handle), [answers.handle]);
+  const [focusField, setFocusField] = useState(null); // the testimonial field focused in setup
+  const questions = useMemo(() => setupQuestions(setFocusField), []);
 
   const handleAnswer = (id, value) => setAnswers((prev) => ({ ...prev, [id]: value }));
 
@@ -82,9 +67,9 @@ export default function MyPageSetup() {
     return <MyPageIntro onStart={() => setStep('questions')} />;
   }
 
-  // Done: the page is live. "Done" goes to the home, not back to the questions.
+  // Done: the page is live. "Done" goes to the storefront page, to switch things on.
   if (step === 'done') {
-    return <MyPageReveal handle={answers.handle} onDone={() => setStep('home')} />;
+    return <MyPageReveal handle={answers.handle} hasCalls={anythingOn(answers)} onDone={() => setStep('home')} />;
   }
 
   if (step === 'home') {
@@ -92,51 +77,13 @@ export default function MyPageSetup() {
       <OfferingsHome
         answers={answers}
         onEditProfile={() => setStep('editProfile')}
-        justAddedIds={justAddedIds}
         onEditOffering={(id) => {
           setEditingId(id);
-          setJustAddedIds([]);
           setStep('editService');
         }}
-        // Picked in "Add to your page": on the page, with any card lines they changed
-        onAddCalls={({ ids, descriptions }) => {
-          setAnswers((prev) => {
-            const withLines = Object.entries(descriptions).reduce(
-              (acc, [id, text]) => withCallChanges(acc, id, { callDescription: text }),
-              prev,
-            );
-            return ids.reduce((acc, id) => withOnPage(acc, id, true), withLines);
-          });
-          setJustAddedIds(ids);
-        }}
-        onCreateCall={() => {
-          setJustAddedIds([]);
-          setStep('createCall');
-        }}
-        onSetOnPage={(id, on) => {
-          setAnswers((prev) => withOnPage(prev, id, on));
-          setJustAddedIds([]);
-        }}
-        // Visible / Hidden: stays on the list either way
-        onSetHidden={(id, hidden) => setAnswers((prev) => withHiddenOnPage(prev, id, hidden))}
-      />
-    );
-  }
-
-  // A new 1:1 call, made the same way as in 1:1 calls. Started from here,
-  // it goes on the page as soon as it's made.
-  if (step === 'createCall') {
-    return (
-      <CreateCallFlow
-        handle={answers.handle ?? null}
-        hasLinks={Boolean(answers.handle)}
-        onExit={() => setStep('home')}
-        onCreate={(call) => setAnswers((prev) => withAddedCall(prev, call))}
-        doneLabel="Back to your storefront"
-        onDone={(id) => {
-          setJustAddedIds([id]);
-          setStep('home');
-        }}
+        onSetOn={(source, item, on) => setAnswers((prev) => withItemOn(prev, source, item, on))}
+        onSetLine={(source, id, text) => setAnswers((prev) => source.withLine(prev, id, text))}
+        onGoToTab={onGoToTab}
       />
     );
   }
@@ -175,19 +122,13 @@ export default function MyPageSetup() {
       onAnswer={handleAnswer}
       finishLabel={answers.publishedAt ? 'Save changes' : 'Continue'}
       onExit={() => setStep('intro')}
-      // Finishing puts the page live straight away: no separate publish step
-      // Picked calls they'd already made: those go on it (no setup call is made)
+      // Finishing puts the page live straight away: no separate publish step.
+      // It starts with just their profile; they switch things on next.
       onComplete={() => {
-        setAnswers((prev) => {
-          const live = { ...prev, publishedAt: prev.publishedAt ?? new Date().toISOString() };
-          if (prev.callSource === 'existing') return withPickedCalls(live);
-          const { pickedCalls, pickedLines, ...rest } = live; // eslint-disable-line no-unused-vars
-          return rest;
-        });
+        setAnswers((prev) => withoutOldSetup({ ...prev, publishedAt: prev.publishedAt ?? new Date().toISOString() }));
         setStep('done');
       }}
       asideWidth="half"
-      // Counts the screens actually showing: picking existing calls skips the call questions
       renderProgress={({ index, visible }) => (
         <div className="flow__progress">
           <div className="flow__progress-label">
@@ -203,8 +144,9 @@ export default function MyPageSetup() {
         </div>
       )}
       renderAside={({ question }) =>
-        question.preview === false ? null : question.id === 'callSource' ? (
-          <ProfileExample questionId="callSource" page={ownPage} />
+        question.preview === false ? null : question.id === 'testimonials' ? (
+          // The part of a testimonial the focused field fills in
+          <ProfileExample questionId="testimonials" answer={focusField} />
         ) : (
           <ProfileExample questionId={question.id} answer={answers[question.id] ?? question.default} />
         )

@@ -4,7 +4,7 @@ import QuestionInput from '../components/QuestionInput';
 import './QuestionFlow.css';
 
 // Grows as we build each input type
-const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair', 'handle', 'offerType', 'callDetails', 'priceDiscount', 'callAbout', 'weeklyHours', 'serviceSummary', 'calendar', 'pickCalls', 'callQuestions'];
+const SUPPORTED_TYPES = ['text', 'textarea', 'choice', 'sentence', 'group', 'items', 'number', 'ramble', 'headlinePair', 'handle', 'offerType', 'callDetails', 'priceDiscount', 'callAbout', 'weeklyHours', 'serviceSummary', 'calendar', 'callQuestions', 'trackRecord', 'testimonials'];
 
 // Screens that move on with their own button (Use this and continue), so Next is hidden
 const OWN_NEXT_TYPES = ['ramble'];
@@ -131,8 +131,14 @@ export default function QuestionFlow({
   // starts filled in) moves on with skipValue saved as its answer, whatever
   // is on screen, so a half-written answer never blocks skipping.
   // showSkip(answers): hides it when Next already means the same.
+  // skipAnswers(answers): { id: value } to save instead of skipValue, for a
+  //   screen whose answers live under other ids (the track record).
   const goSkip = () => {
-    onAnswer(question.id, question.skipValue);
+    if (question.skipAnswers) {
+      Object.entries(question.skipAnswers(answers)).forEach(([id, v]) => onAnswer(id, v));
+    } else {
+      onAnswer(question.id, question.skipValue);
+    }
     isLast ? onComplete() : goTo(index + 1);
   };
   const skipButton = question.skipLabel && (!question.showSkip || question.showSkip(answers)) && (
@@ -188,7 +194,10 @@ export default function QuestionFlow({
     question.type === 'items'
       ? filledCount(answers[question.id], question.mainField) === 0
       : !isFilled(value);
-  const nextLabel = isLast
+  // nextLabel: a screen's own words for the main button ("Save and continue")
+  const nextLabel = question.nextLabel
+    ? question.nextLabel
+    : isLast
     ? finishLabel
     : !question.required && isEmptyAnswer
       ? 'Skip'

@@ -75,17 +75,34 @@ function buildKinds(services) {
     .filter((k) => k.count > 0);
 }
 
-// Only the numbers worth showing, so a brand-new creator gets none
-// reviewCount: a count given on the creator (made-up, for a new page) wins
-// over counting the testimonials, so it can show before any are added
+// Only the numbers worth showing, so a brand-new creator gets none.
+// reviewCount: a count given on the creator wins over counting the
+// testimonials. The creator's own page always gives one (real reviews
+// only), so testimonials they typed in don't count as reviews there.
+// trackRecord: { students, rating, source }, the numbers they've switched
+// on (myProfile.js). Its rating shows until they have enough real ratings
+// of their own, its clients when it's more than their real bookings, and
+// its reviews when it's more than their real reviews.
+const plural = (n, one, many) => (n === 1 ? one : many);
+
 function buildStats(creator, testimonialCount) {
-  const reviewCount = count(creator.reviewCount) || testimonialCount;
+  const track = creator.trackRecord ?? null;
+  const given = creator.reviewCount != null ? count(creator.reviewCount) : testimonialCount;
+  // Their own count of reviews (track record) until they have more real ones
+  const reviewCount = Math.max(given, track ? count(track.reviews) : 0);
   const stats = [];
   const r = rating(creator.rating, creator.ratingCount);
   if (r) stats.push({ id: 'rating', value: r.value, label: `from ${r.count} ratings` });
+  else if (track)
+    stats.push({ id: 'rating', value: track.rating.toFixed(1), label: track.source ? `rated on ${track.source}` : 'rating' });
   const bookings = count(creator.bookingCount);
-  if (bookings) stats.push({ id: 'bookings', value: String(bookings), label: bookings === 1 ? 'booking' : 'bookings' });
-  if (reviewCount) stats.push({ id: 'reviews', value: String(reviewCount), label: reviewCount === 1 ? 'review' : 'reviews' });
+  const clients = track ? count(track.students) : 0;
+  if (clients > bookings) {
+    stats.push({ id: 'clients', value: clients.toLocaleString('en-IN'), label: plural(clients, 'client', 'clients') });
+  } else if (bookings) {
+    stats.push({ id: 'bookings', value: String(bookings), label: plural(bookings, 'booking', 'bookings') });
+  }
+  if (reviewCount) stats.push({ id: 'reviews', value: String(reviewCount), label: plural(reviewCount, 'review', 'reviews') });
   return stats;
 }
 
@@ -107,6 +124,8 @@ export function buildProfileJson({ creator, services, testimonials }) {
       id: t.id,
       name: text(t.name) || 'Anonymous',
       initials: initials(t.name),     // '' when anonymous: show an icon instead
+      photo: text(t.photo) || null,   // the creator's own testimonials can have one
+      from: text(t.from),             // who they are ("Software Engineer, Pune"), if given
       text: text(t.text),
       date: formatDate(t.date),
       serviceId: t.serviceId,

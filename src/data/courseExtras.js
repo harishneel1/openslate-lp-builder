@@ -40,7 +40,7 @@ import { readLink, readVideoLink } from './courses';
 export const DURATION_UNITS = ['hours', 'days', 'weeks'];
 export const DURATION_MAX = 9999;
 
-export const TRACK_DEFAULTS = { students: 125, rating: 4.7, source: '' };
+export const TRACK_DEFAULTS = { students: 125, rating: 4.7, source: '', reviews: 12 };
 export const TRACK_STUDENTS_MAX = 10000000;
 export const TRACK_SOURCE_MAX = 40;
 
@@ -90,7 +90,9 @@ export const durationText = (d) => (d ? `${d.amount.toLocaleString('en-IN')} ${d
 export function cleanTrackRecord(t) {
   const students = Math.round(Number(t?.students));
   const rating = Math.round(Number(t?.rating) * 10) / 10;
+  const reviews = Math.round(Number(t?.reviews)); // asked on a coach's profile only (TrustInput.jsx)
   return {
+    reviews: Number.isFinite(reviews) && reviews >= 0 ? Math.min(TRACK_STUDENTS_MAX, reviews) : TRACK_DEFAULTS.reviews,
     students: Number.isFinite(students) && students >= 0 ? Math.min(TRACK_STUDENTS_MAX, students) : TRACK_DEFAULTS.students,
     rating: Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : TRACK_DEFAULTS.rating,
     source: String(t?.source ?? '').trim().slice(0, TRACK_SOURCE_MAX),

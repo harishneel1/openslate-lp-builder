@@ -1140,7 +1140,7 @@ function App() {
         {activeNav === 'page-builder' ? (
         renderPageBuilder()
       ) : activeNav === 'my-page' ? (
-        <MyPageSetup />
+        <MyPageSetup onGoToTab={navigateFromSidebar} />
       ) : activeNav === 'calls' ? (
         <CallsPage openRequest={callRequest} onFocus={setCallFocus} />
       ) : activeNav === 'live-classes' ? (

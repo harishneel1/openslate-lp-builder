@@ -578,3 +578,8 @@
   gap: 12px;
   margin-top: 20px;
 }
+/* bar="always", nothing changed yet: Save is there, faded */
+.es__btn--idle {
+  opacity: 0.45;
+  cursor: default;
+}

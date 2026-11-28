@@ -1,0 +1,28 @@
+/* "Show people you're trusted" (TrustInput.jsx): the course landing page's
+   track record and testimonials editors, one under the other. Their own
+   styles come from CoursePage.css, CourseExtras.css and CourseTestimonials.css. */
+.trust {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* The course editors sit in their own section frames; here they're the screen */
+.trust .lnd__part {
+  margin: 0;
+}
+
+/* "✓ Saved", for a moment after each change (setup only) */
+.trust__saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px; /* keeps its room, so nothing jumps when it shows */
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.trust__saved svg {
+  color: var(--color-success);
+}

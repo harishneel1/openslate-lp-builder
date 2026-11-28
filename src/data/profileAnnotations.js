@@ -36,6 +36,16 @@ const offerNotes = {
   }
 };
 
+// The first card in "What clients say", and its parts
+const FIRST_TESTIMONIAL = '.tm-track > li:first-child';
+const testimonialNotes = {
+  card: { target: FIRST_TESTIMONIAL, label: 'This is a testimonial' },
+  photo: { target: `${FIRST_TESTIMONIAL} .tm__avatar`, label: 'Their photo shows here' },
+  name: { target: `${FIRST_TESTIMONIAL} .tm__name`, label: 'Their name shows here' },
+  from: { target: `${FIRST_TESTIMONIAL} .tm__detail`, label: 'Who they are shows here' },
+  text: { target: `${FIRST_TESTIMONIAL} .tm__text`, label: 'What they said shows here' },
+};
+
 export const profileAnnotations = {
   handle: {
     target: 'link',
@@ -72,13 +82,6 @@ export const profileAnnotations = {
     stayAtTop: true, // the top of checkout always in view, so it reads as checkout
     header: false, // no caption or note above the frame: the page speaks for itself
   },
-  // Shown on their own page (not Meera's), filling in as they pick: see
-  // MyPageSetup.jsx. The whole calls section, so it's there even before
-  // anything is picked. No bubble: the cards appearing say enough.
-  callSource: {
-    target: 'section[aria-labelledby="pf-services"]',
-    label: 'Your calls show here',
-  },
   callDetails: {
     target: '.pf__services > li[data-kind="call"]',
     label: 'This is your call',
@@ -109,6 +112,15 @@ export const profileAnnotations = {
     label: 'This is what you help with',
     tip: 'A few words on who you help. Visitors decide in seconds if this is for them.',
   },
+  // Meera's numbers under her bio: where a track record shows
+  trust: {
+    target: '.cp__stats',
+    label: 'This is your track record',
+    tip: 'Your rating and how many people you’ve helped.',
+  },
+  // Her first testimonial, or the part of it the focused field fills in
+  // (the answer here is that field: MyPageSetup.jsx)
+  testimonials: (field) => testimonialNotes[field] ?? testimonialNotes.card,
   bio: {
     target: '.cp__about',
     label: 'This is about you',

@@ -179,3 +179,7 @@
   background: #0a66c2;
   border-radius: 4px;
 }
+/* The picture's wrapper only marks it (data-field): it takes no room of its own */
+.ctm__picture {
+  display: contents;
+}

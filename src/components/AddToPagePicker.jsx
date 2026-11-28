@@ -22,8 +22,9 @@ const DESCRIPTION_MAX = 200; // as in the call editor's short description
 // asked for when a call is made, so this is where it's checked:
 // "Edit card text" opens it in place. Cleared, the card has no line.
 //
-// The rows are CallPickList (below), which setup's "Which of your 1:1
-// calls should go on your page?" screen uses too (PickCallsInput.jsx).
+// The rows are CallPickList (below).
+// Not used by the storefront page any more: it switches calls on in place
+// (OfferingsHome.jsx). Kept for now.
 //
 // calls: the calls not on the page, as on the offerings home (buildProfileJson)
 // onAdd({ ids, descriptions }): ids to put on the page, and any card
@@ -105,7 +106,7 @@ export default function AddToPagePicker({ calls, onAdd, onCreate, onClose }) {
 
 // ------------------------------------------------------------
 // The calls to tick, each as its card will look, with its card line
-// and "Edit card text". Used here and in setup (PickCallsInput.jsx).
+// and "Edit card text". Used here.
 //
 // calls: as on the offerings home (buildProfileJson)
 // picked: ids ticked
