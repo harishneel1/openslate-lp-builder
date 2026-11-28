@@ -83,6 +83,7 @@ export default function MyPageSetup({ onGoToTab }) {
         }}
         onSetOn={(source, item, on) => setAnswers((prev) => withItemOn(prev, source, item, on))}
         onSetLine={(source, id, text) => setAnswers((prev) => source.withLine(prev, id, text))}
+        onSetPick={(source, id, value) => setAnswers((prev) => source.withPick(prev, id, value))}
         onGoToTab={onGoToTab}
       />
     );

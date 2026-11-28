@@ -55,7 +55,44 @@ export const serviceKinds = [
       { icon: 'clock', text: durationLabel(s.durationMins) },
     ],
     href: (s) => link('book', s.id),
-  }
+  },
+  {
+    // A published course the coach has switched on (storefrontItems.js).
+    // The card goes to its landing page, where people buy it; never
+    // straight to checkout.
+    id: 'course',
+    label: 'Courses',
+    title: 'Courses',
+    cta: 'View course',
+    facts: (s) =>
+      [
+        { icon: 'lessons', text: plural(count(s.lessonCount), 'lesson', 'lessons') },
+        s.durationText ? { icon: 'clock', text: s.durationText } : null,
+      ].filter(Boolean),
+    href: (s) => s.href, // its landing page, /web/course/<course>
+  },
+  {
+    // A live class the coach has switched on (storefrontItems.js). A class
+    // has no page of its own: Join opens the checkout of the contract the
+    // coach picked for it ("People join with"). No class times on the card.
+    id: 'class',
+    label: 'Live classes',
+    title: 'Live classes',
+    cta: 'Join',
+    facts: () => [{ icon: 'video', text: 'Live on Zoom' }],
+    href: (s) => s.href, // /web/checkout/<contract>
+  },
+  {
+    // A published webinar the coach has switched on (storefrontItems.js).
+    // One card per webinar however many sessions it has: Sign up opens its
+    // shared link, which shows whichever session is next. No date on the card.
+    id: 'webinar',
+    label: 'Webinars',
+    title: 'Webinars',
+    cta: 'Sign up',
+    facts: () => [{ icon: 'video', text: 'Live on Zoom' }],
+    href: (s) => s.href, // its landing page (liveHref)
+  },
 ];
 
 // One kind by id, or null for kinds this page doesn't know (they aren't shown)

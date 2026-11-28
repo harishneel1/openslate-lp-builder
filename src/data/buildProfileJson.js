@@ -30,8 +30,14 @@ function rating(value, ratingCount) {
   return n >= MIN_RATINGS && Number.isFinite(value) ? { value: value.toFixed(1), count: n } : null;
 }
 
-// The crossed-out price only shows when it's higher than a paid price
+// The crossed-out price only shows when it's higher than a paid price.
+// priceLabel: the price already written out ("₹1,999", "Free"), for a
+// kind priced by its contract (a course: storefrontItems.js)
 function price(service) {
+  if (text(service.priceLabel)) {
+    const label = text(service.priceLabel);
+    return { isFree: label === 'Free', amount: count(service.price), label, compare: null };
+  }
   const amount = count(service.price);
   const compare = count(service.comparePrice);
   return {

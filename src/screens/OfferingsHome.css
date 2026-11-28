@@ -785,3 +785,175 @@
   line-height: 1.5;
   color: var(--color-text);
 }
+
+/* ---------- Offerings: a tab per type ---------- */
+.oh-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.oh-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px 12px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* sits on the line under the tabs */
+  cursor: pointer;
+}
+
+.oh-tab:hover {
+  color: var(--color-text);
+}
+
+.oh-tab--on {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+}
+
+.oh-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* "2 of 3 on": what's live, without opening the tab */
+
+/* Above the list: the type's note (if any) and its "Go to …" */
+.oh-pane__note {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* The tabs carry the line under the heading */
+.oh__panel-head--tabs {
+  padding-bottom: 8px;
+  border-bottom: 0;
+}
+
+/* ---------- A live class: which contract its card sells ---------- */
+.oh-row__pick-label {
+  margin-top: 10px;
+}
+
+.oh-row__pick {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Can't be switched on yet (no contract): what to do first */
+.oh-row__blocked {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.oh-switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------- Inputs in a row: the product's regular field size ---------- */
+.oh-field {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.oh-field::placeholder {
+  color: var(--color-text-disabled);
+}
+
+.oh-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.oh-field--error,
+.oh-field--error:focus {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+}
+
+/* Same chevron as the call details selects, with room on the right */
+.oh-select {
+  padding-right: 36px;
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b6b6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 5.5 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  appearance: none;
+  -webkit-appearance: none;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* ---------- Folding a row's settings ---------- */
+.oh-row--folds {
+  cursor: pointer;
+}
+
+.oh-row--folds .oh-row__line {
+  cursor: default;
+}
+
+.oh-row__fold {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.oh-row__fold:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.oh-row__fold:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.oh-row__fold svg {
+  transition: transform 0.15s;
+}
+
+.oh-row__fold--open svg {
+  transform: rotate(180deg);
+}
+
+.oh-row__fold--spacer {
+  visibility: hidden;
+  cursor: default;
+}
+
+/* Empty tab: the way to where these are made */
+.oh__none-go {
+  margin-top: 16px;
+}

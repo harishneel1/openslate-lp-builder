@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMockProfile } from '../data/mockProfile';
-import { getMyPage } from '../data/myProfile';
+import { getStorefrontPage } from '../data/storefrontItems';
 import { buildProfileJson } from '../data/buildProfileJson';
 import CreatorPanel from '../components/profile/CreatorPanel';
 import ServiceCard from '../components/profile/ServiceCard';
@@ -13,7 +13,7 @@ import './ProfilePage.css';
 // The creator's public profile, opened at ?mock=profile (see main.jsx).
 // Add &state=calls-only, &state=new or &state=single for other situations (mockProfile.js).
 // Add &source=mine for the creator's own page, built from their setup answers, with
-// only the calls they've put on it (getMyPage in myProfile.js).
+// only what they've switched on: calls and courses (getStorefrontPage in storefrontItems.js).
 // Add &live=1 (with &source=mine) to redraw whenever their answers change in
 // this browser: the preview beside setup's "Which calls go on your page?"
 // Renders only from the page JSON (buildProfileJson), never raw data.
@@ -27,7 +27,7 @@ export default function ProfilePage({ state, source, live = false }) {
     return () => window.removeEventListener('storage', redraw);
   }, [live]);
   const page = useMemo(
-    () => buildProfileJson(source === 'mine' ? getMyPage() : getMockProfile(state)),
+    () => buildProfileJson(source === 'mine' ? getStorefrontPage() : getMockProfile(state)),
     [state, source, version] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const { creator, services, kinds, testimonials } = page;
