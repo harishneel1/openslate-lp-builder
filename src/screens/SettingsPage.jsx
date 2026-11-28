@@ -1,4 +1,4 @@
-import { Check, ChevronDown, FlaskConical, Landmark, Lock, MessageCircle } from 'lucide-react';
+import { Check, ChevronDown, FlaskConical, Globe, Landmark, Lock, MessageCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PaymentStep, { PAYMENT_STEPS, PayoutControlRows, currentStep, stepsOf, usePayout } from './PayoutSetup';
 import { useInvoiceSettings } from './InvoiceSettings';
@@ -7,6 +7,8 @@ import { loadInvoiceSettings } from '../data/invoiceSettings';
 import WhatsAppSettings, { WhatsAppControlRows } from './WhatsAppSettings';
 import { useWhatsApp } from '../components/WhatsAppTab';
 import { hasNumber, needsContactNumber, verificationPending } from '../data/whatsappConnection';
+import CustomDomainSettings, { CustomDomainControlRows } from './CustomDomainSettings';
+import { useCustomDomain } from '../data/customDomain';
 import './OfferingsHome.css'; // the page frame and panels
 import '../components/PrototypeControls.css';
 import './SettingsPage.css';
@@ -23,6 +25,8 @@ import './SettingsPage.css';
 //   WhatsApp (WhatsAppSettings.jsx), in two pages:
 //     Connection  the one number every webinar and 1:1 call sends from
 //     Templates   the messages it sends, and Meta's review of each
+//   Custom domain (CustomDomainSettings.jsx): their own web address,
+//     academy.yourdomain.com; a tick in the menu once it's live
 // Other pages join PAGES.
 //
 //   Settings
@@ -45,7 +49,7 @@ import './SettingsPage.css';
 // startOn: the page to open on: 'payments' (the first step not done yet),
 //   one step ('payments-bank', 'payments-address', 'payments-kyc'),
 //   'whatsapp' (its Connection), 'whatsapp-connection' or
-//   'whatsapp-templates'; Payment details if left out
+//   'whatsapp-templates', or 'domain'; Payment details if left out
 // startCreate: { product, moment } to open Templates on a new template for
 //   that message (a reminder's "Create a new template")
 //
@@ -72,6 +76,7 @@ const PAGES = [
       { id: 'whatsapp-templates', label: 'Templates', short: 'WhatsApp templates' },
     ],
   },
+  { id: 'domain', label: 'Custom domain', icon: Globe },
 ];
 
 // Every page that can be open, in menu order
@@ -112,10 +117,14 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
     if (lockedNow) setPage(fallback);
   }, [lockedNow, fallback]);
   const onWhatsApp = page.startsWith('whatsapp');
+  const onDomain = page === 'domain';
+  const domainLive = useCustomDomain().status === 'live';
 
   // Tell the app which page is open (the KYC banner hides on Payment details,
   // all three steps)
-  const reported = onWhatsApp ? page : 'payments';
+  const reported = onWhatsApp || onDomain ? page : 'payments';
+  const open = OPENABLE.find((p) => p.id === page);
+  const panelLabel = open?.short ?? open?.label ?? 'Payment details';
   useEffect(() => {
     onPageChange?.(reported);
   }, [reported, onPageChange]);
@@ -131,10 +140,13 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
           connected={connected}
           attention={attention}
           steps={steps}
+          domainLive={domainLive}
         />
 
-        <section className="oh__panel settings__panel" aria-label={OPENABLE.find((p) => p.id === page)?.short ?? 'Payment details'}>
-          {onWhatsApp ? (
+        <section className="oh__panel settings__panel" aria-label={panelLabel}>
+          {onDomain ? (
+            <CustomDomainSettings />
+          ) : onWhatsApp ? (
             <WhatsAppSettings
               view={page === 'whatsapp-templates' ? 'templates' : 'connection'}
               onView={(v) => setPage(`whatsapp-${v}`)}
@@ -156,7 +168,7 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
         </section>
       </div>
 
-      <SettingsTestControls section={onWhatsApp ? 'whatsapp' : 'payments'} />
+      <SettingsTestControls section={onDomain ? 'domain' : onWhatsApp ? 'whatsapp' : 'payments'} />
     </div>
   );
 }
@@ -181,7 +193,8 @@ const STEP_SUBS = {
 const LOCKED = { 'whatsapp-templates': 'Connect WhatsApp first' };
 const NEEDS_DOT = 'whatsapp'; // the section with the dot, and its first page on a phone
 
-function SettingsMenu({ page, onPage, connected, attention, steps }) {
+// domainLive: the custom domain is live, so Custom domain gets a tick
+function SettingsMenu({ page, onPage, connected, attention, steps, domainLive }) {
   const dot = (
     <span className="smenu__dot" aria-hidden="true" />
   );
@@ -203,8 +216,10 @@ function SettingsMenu({ page, onPage, connected, attention, steps }) {
                 <span className="smenu__label">
                   {label}
                   {attention && id === NEEDS_DOT && <span className="oh__sr-only">, {attention}</span>}
+                  {id === 'domain' && domainLive && <span className="oh__sr-only">, live</span>}
                 </span>
                 {attention && id === NEEDS_DOT && dot}
+                {id === 'domain' && domainLive && <Check size={14} className="smenu__tick" aria-hidden="true" />}
               </button>
               {children && (
                 <ul className="smenu__sub">
@@ -363,7 +378,13 @@ function SettingsTestControls({ section }) {
       </button>
       {open && (
         <div className="proto__body">
-          {section === 'whatsapp' ? <WhatsAppControlRows /> : <PayoutControlRows />}
+          {section === 'domain' ? (
+            <CustomDomainControlRows />
+          ) : section === 'whatsapp' ? (
+            <WhatsAppControlRows />
+          ) : (
+            <PayoutControlRows />
+          )}
         </div>
       )}
     </section>

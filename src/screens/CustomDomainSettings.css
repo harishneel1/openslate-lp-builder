@@ -1,0 +1,469 @@
+/* Settings → Custom domain (CustomDomainSettings.jsx).
+   Colours are Settings' own (SettingsPage.css: --po-*). */
+
+.cdom {
+  max-width: 720px;
+  padding: 24px;
+}
+
+/* ---------- Buttons and small text ---------- */
+.cdom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cdom-btn--primary {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.cdom-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.cdom-btn--primary:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.cdom-btn--quiet {
+  color: var(--color-text);
+  text-decoration: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.cdom-btn--quiet:hover {
+  border-color: #d6d6d6;
+}
+
+.cdom-btn:focus-visible,
+.cdom-copy:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cdom-note {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.cdom-note--error {
+  font-weight: 500;
+  color: #b45309;
+}
+
+/* ---------- Status pill ---------- */
+.cdom-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: var(--radius-pill);
+}
+
+.cdom-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.cdom-pill--off {
+  color: var(--color-text-muted);
+  background: #f0f0f1;
+}
+
+.cdom-pill--wait {
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+}
+
+.cdom-pill--bad {
+  color: var(--po-red-ink);
+  background: var(--po-red-tint);
+}
+
+.cdom-pill--live {
+  color: var(--po-green-ink);
+  background: var(--po-green-tint);
+}
+
+/* ---------- Not connected ---------- */
+.cdom-connect .po-field__label {
+  display: block;
+}
+
+.cdom-connect__row {
+  display: flex;
+  gap: 10px;
+}
+
+.cdom-connect__row .po-input {
+  flex: 1;
+  min-height: 44px;
+  font-variant-numeric: normal;
+}
+
+/* ---------- Connecting ---------- */
+.cdom-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cdom-domain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cdom-domain__icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.cdom-domain__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+/* DNS record ── SSL ── Live */
+.cdom-steps {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.cdom-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cdom-step + .cdom-step::before {
+  content: '';
+  width: 40px;
+  height: 1px;
+  margin: 0 12px;
+  background: #dedede;
+}
+
+.cdom-step__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #fff;
+  border: 1.5px solid #d0d0d4;
+  border-radius: 50%;
+}
+
+.cdom-step--done,
+.cdom-step--now,
+.cdom-step--bad {
+  color: var(--color-text);
+}
+
+.cdom-step--done .cdom-step__dot {
+  background: var(--po-green-ink);
+  border-color: var(--po-green-ink);
+}
+
+.cdom-step--now .cdom-step__dot {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 9px var(--color-primary);
+}
+
+.cdom-step--bad .cdom-step__dot {
+  background: var(--po-red-ink);
+  border-color: var(--po-red-ink);
+}
+
+/* A problem, with how to fix it */
+.cdom-problem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--po-red-ink);
+  background: var(--po-red-tint);
+  border-radius: var(--radius-md);
+}
+
+.cdom-problem__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cdom-problem__text {
+  flex: 1;
+  min-width: 220px;
+}
+
+.cdom-problem__title {
+  font-weight: 600;
+}
+
+/* Record found, SSL on its way */
+.cdom-wait {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--po-amber-ink);
+  background: var(--po-amber-tint);
+  border-radius: var(--radius-md);
+}
+
+.cdom-spin {
+  flex-shrink: 0;
+  animation: cdom-spin 1s linear infinite;
+}
+
+@keyframes cdom-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The record */
+.cdom-record__title {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cdom-record__table {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.cdom-record__row {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: center;
+  min-height: 48px;
+  padding: 6px 8px 6px 16px;
+}
+
+.cdom-record__row + .cdom-record__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.cdom-record__row dt {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.cdom-record__row dd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  min-width: 0;
+}
+
+.cdom-record__row code {
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.cdom-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.cdom-copy:hover {
+  color: var(--color-text);
+  background: #f2f2f3;
+}
+
+/* How to add it, on the right (Settings' help panel, settings__help) */
+.cdom--split {
+  display: grid;
+  grid-template-columns: minmax(0, 640px) minmax(220px, 300px);
+  gap: 40px;
+  align-items: start;
+  max-width: none;
+}
+
+.cdom-guides__picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cdom-guides__pick {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cdom-guides__pick:hover {
+  border-color: #d6d6d6;
+}
+
+.cdom-guides__pick[aria-pressed='true'] {
+  font-weight: 600;
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.cdom-guides__pick:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cdom-guides__steps {
+  margin: 14px 0 0;
+  padding-left: 18px;
+}
+
+.cdom-guides__steps li + li {
+  margin-top: 6px;
+}
+
+/* Verify now */
+.cdom-verify {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.cdom-verify .cdom-note {
+  margin: 0;
+}
+
+/* ---------- Live ---------- */
+.cdom-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+}
+
+.cdom-live__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  color: var(--po-green-ink);
+  background: var(--po-green-tint);
+  border-radius: 50%;
+}
+
+.cdom-live__text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.cdom-live__title {
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.cdom-live__text .cdom-note {
+  margin-top: 2px;
+}
+
+.cdom-live__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .cdom--split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+/* ---------- Phone ---------- */
+@media (max-width: 560px) {
+  .cdom {
+    padding: 20px 16px;
+  }
+
+  .cdom-connect__row {
+    flex-direction: column;
+  }
+
+  .cdom-step + .cdom-step::before {
+    width: 16px;
+    margin: 0 8px;
+  }
+
+  .cdom-record__row {
+    grid-template-columns: 56px minmax(0, 1fr);
+    padding-left: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdom-spin {
+    animation: none;
+  }
+
+  .cdom-btn,
+  .cdom-guides__pick {
+    transition: none;
+  }
+}
