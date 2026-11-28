@@ -14,6 +14,8 @@ import { allClassesBetween, onBatchesChange } from '../data/batches';
 import { loadSaved } from '../utils/storage';
 import { formatTime, zoned } from '../utils/slots';
 import AccountMenu from './AccountMenu';
+import BrandMark from './BrandMark';
+import { useBranding } from '../data/branding';
 import KycBanner from './KycBanner';
 import UpdatesBell from './UpdatesBell';
 import InlineTitle from './InlineTitle';
@@ -299,6 +301,36 @@ function CalendarCard({ active, onOpen }) {
   );
 }
 
+// Once the coach has saved their branding, the browser tab shows it:
+// their favicon (or logo) and business name. Put back when they leave.
+function useBrandTab(brand) {
+  const icon = brand.saved ? brand.favicon || brand.logo : null;
+  const name = brand.saved ? brand.name : null;
+  useEffect(() => {
+    if (!icon) return undefined;
+    let link = document.querySelector("link[rel~='icon']");
+    const before = link?.getAttribute('href') ?? null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = icon;
+    return () => {
+      if (before === null) link.remove();
+      else link.setAttribute('href', before);
+    };
+  }, [icon]);
+  useEffect(() => {
+    if (!name) return undefined;
+    const before = document.title;
+    document.title = name;
+    return () => {
+      document.title = before;
+    };
+  }, [name]);
+}
+
 // onOpenBooking(id): an update in the bell was clicked; open that call on Bookings
 // onOpenWebinar(id): a sign-up line in the bell was clicked; open that
 //   webinar session with its people showing
@@ -308,6 +340,8 @@ function CalendarCard({ active, onOpen }) {
 // hideKycBanner: true on Payment details, where they're already doing it
 export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpenWebinar, onOpenBatch, onOpenPayments, hideKycBanner = false, webinars = [], focus = null, children }) {
   const hasStorefront = useHasStorefront();
+  const brand = useBranding();
+  useBrandTab(brand);
 
   // One tree for both modes: the top bar and sidebar change, but the page
   // (<main>) stays in the same place. Switching into focus mode then keeps
@@ -319,8 +353,9 @@ export default function AppLayout({ activeNav, onNavigate, onOpenBooking, onOpen
         <FocusBar {...focus} />
       ) : (
         <header className="topnav">
-          {/* The coach's own brand: what their students see too */}
-          <div className="topnav__logo">HN</div>
+          {/* OpenSlate's logo until the coach saves their branding
+              (Settings → Branding), then theirs: their logo, or initials */}
+          <BrandMark brand={brand} />
 
           {/* Updates. Their account and Settings are at the foot of the sidebar. */}
           <div className="topnav__actions">

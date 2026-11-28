@@ -326,6 +326,27 @@
   margin-top: 24px;
 }
 
+/* White label → Custom email, until it's built */
+.settings__soon {
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: #f0f0f1;
+  border-radius: var(--radius-pill);
+}
+
+.settings__soon-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 24px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 /* The two parts on the left, how payouts work on the right */
 .settings__body--split {
   display: grid;

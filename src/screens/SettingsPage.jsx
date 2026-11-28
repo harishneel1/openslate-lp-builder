@@ -1,4 +1,4 @@
-import { Check, ChevronDown, FlaskConical, Globe, Landmark, Lock, MessageCircle } from 'lucide-react';
+import { Check, ChevronDown, FlaskConical, Globe, Landmark, Lock, Mail, MessageCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PaymentStep, { PAYMENT_STEPS, PayoutControlRows, currentStep, stepsOf, usePayout } from './PayoutSetup';
 import { useInvoiceSettings } from './InvoiceSettings';
@@ -8,7 +8,9 @@ import WhatsAppSettings, { WhatsAppControlRows } from './WhatsAppSettings';
 import { useWhatsApp } from '../components/WhatsAppTab';
 import { hasNumber, needsContactNumber, verificationPending } from '../data/whatsappConnection';
 import CustomDomainSettings, { CustomDomainControlRows } from './CustomDomainSettings';
-import { useCustomDomain } from '../data/customDomain';
+import { customDomain, useCustomDomain } from '../data/customDomain';
+import BrandingSettings, { BrandingControlRows } from './BrandingSettings';
+import { branding, useBranding } from '../data/branding';
 import './OfferingsHome.css'; // the page frame and panels
 import '../components/PrototypeControls.css';
 import './SettingsPage.css';
@@ -25,8 +27,13 @@ import './SettingsPage.css';
 //   WhatsApp (WhatsAppSettings.jsx), in two pages:
 //     Connection  the one number every webinar and 1:1 call sends from
 //     Templates   the messages it sends, and Meta's review of each
-//   Custom domain (CustomDomainSettings.jsx): their own web address,
-//     academy.yourdomain.com; a tick in the menu once it's live
+//   White label, in three steps done in order, like Payment details:
+//     Custom domain  their own web address, academy.yourdomain.com
+//                    (CustomDomainSettings.jsx); done once it's live
+//     Branding       business name, logo, favicon (BrandingSettings.jsx);
+//                    locked until the domain's live, done once saved
+//     Custom email   sending from their own address; locked until branding's
+//                    saved. Coming soon for now (EmailComingSoon)
 // Other pages join PAGES.
 //
 //   Settings
@@ -49,7 +56,8 @@ import './SettingsPage.css';
 // startOn: the page to open on: 'payments' (the first step not done yet),
 //   one step ('payments-bank', 'payments-address', 'payments-kyc'),
 //   'whatsapp' (its Connection), 'whatsapp-connection' or
-//   'whatsapp-templates', or 'domain'; Payment details if left out
+//   'whatsapp-templates', 'whitelabel' (its first step not done), or one
+//   step ('domain', 'branding', 'email'); Payment details if left out
 // startCreate: { product, moment } to open Templates on a new template for
 //   that message (a reminder's "Create a new template")
 //
@@ -60,10 +68,33 @@ import './SettingsPage.css';
 // moment on a tap (phones have no hover). Asked to open Templates then,
 // Connection opens instead; disconnecting while on Templates goes there too.
 //
-// Payment details' steps lock the same way (greyed, with a lock, the
-// reason on hover, not clickable) until the one before is done, and get a
-// tick once they're done.
+// Payment details' and White label's steps lock the same way (greyed,
+// with a lock, the reason on hover, not clickable) until the one before is
+// done, and get a tick once they're done.
 // ------------------------------------------------------------
+
+// White label's steps, in order (whiteLabelSteps says which are done and locked)
+const WHITE_LABEL_STEPS = [
+  { id: 'domain', label: 'Custom domain', short: 'Custom domain' },
+  { id: 'branding', label: 'Branding', short: 'Branding' },
+  { id: 'email', label: 'Custom email', short: 'Custom email' },
+];
+const STEPPED = ['payments', 'whitelabel']; // sections whose pages are steps
+
+// White label's steps: { done, locked } as Payment details' (stepsOf).
+// Branding waits for the domain to be live; email for branding to be saved.
+function whiteLabelSteps(domainLive, brandSaved) {
+  const brandDone = domainLive && brandSaved;
+  return {
+    done: { domain: domainLive, branding: brandDone, email: false },
+    locked: {
+      branding: !domainLive && { reason: 'Connect your domain first' },
+      email: !brandDone && { reason: domainLive ? 'Save your branding first' : 'Connect your domain first' },
+    },
+  };
+}
+// The first of them that isn't done
+const firstWhiteLabelStep = (wl) => WHITE_LABEL_STEPS.find((st) => !wl.done[st.id] && !wl.locked[st.id])?.id ?? 'domain';
 
 const PAGES = [
   { id: 'payments', label: 'Payment details', icon: Landmark, children: PAYMENT_STEPS },
@@ -76,7 +107,7 @@ const PAGES = [
       { id: 'whatsapp-templates', label: 'Templates', short: 'WhatsApp templates' },
     ],
   },
-  { id: 'domain', label: 'Custom domain', icon: Globe },
+  { id: 'whitelabel', label: 'White label', icon: Globe, children: WHITE_LABEL_STEPS },
 ];
 
 // Every page that can be open, in menu order
@@ -85,11 +116,13 @@ const OPENABLE = PAGES.flatMap((p) => (p.children ? p.children : [p]));
 const firstPaymentStep = () => currentStep(payoutState(), loadInvoiceSettings());
 const openable = (id) => {
   if (id === 'whatsapp') return 'whatsapp-connection';
+  if (id === 'whitelabel') return firstWhiteLabelStep(whiteLabelSteps(customDomain().status === 'live', branding().saved));
   return OPENABLE.some((p) => p.id === id) ? id : firstPaymentStep();
 };
 
 export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'payments', startCreate = null }) {
   const [chosen, setPage] = useState(() => openable(startOn));
+  const wl = whiteLabelSteps(useCustomDomain().status === 'live', useBranding().saved);
   const payout = usePayout();
   const invoices = useInvoiceSettings();
   const steps = stepsOf(payout, invoices);
@@ -108,8 +141,10 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
   // Templates is locked until a number is connected: Connection instead
   // A Payment details step that's locked (the details were cleared while
   // it was open) gives way to the first step not done
-  const lockedNow = Boolean(steps.locked[chosen]);
-  const fallback = currentStep(payout, invoices);
+  // (White label's the same: its first step not done)
+  const inWl = WHITE_LABEL_STEPS.some((st) => st.id === chosen);
+  const lockedNow = Boolean(inWl ? wl.locked[chosen] : steps.locked[chosen]);
+  const fallback = inWl ? firstWhiteLabelStep(wl) : currentStep(payout, invoices);
   const page =
     !connected && chosen === 'whatsapp-templates' ? 'whatsapp-connection' : lockedNow ? fallback : chosen;
   // …and stays there, so the steps after it don't move the page on
@@ -118,11 +153,13 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
   }, [lockedNow, fallback]);
   const onWhatsApp = page.startsWith('whatsapp');
   const onDomain = page === 'domain';
-  const domainLive = useCustomDomain().status === 'live';
+  const onBranding = page === 'branding';
+  const onEmail = page === 'email';
+  const onWhiteLabel = onDomain || onBranding || onEmail;
 
   // Tell the app which page is open (the KYC banner hides on Payment details,
   // all three steps)
-  const reported = onWhatsApp || onDomain ? page : 'payments';
+  const reported = onWhatsApp || onWhiteLabel ? page : 'payments';
   const open = OPENABLE.find((p) => p.id === page);
   const panelLabel = open?.short ?? open?.label ?? 'Payment details';
   useEffect(() => {
@@ -136,15 +173,20 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
       <div className="settings__layout">
         <SettingsMenu
           page={page}
-          onPage={(id) => setPage(id === 'payments' ? firstPaymentStep() : id)}
+          onPage={(id) =>
+            setPage(id === 'payments' ? firstPaymentStep() : id === 'whitelabel' ? firstWhiteLabelStep(wl) : id)
+          }
           connected={connected}
           attention={attention}
-          steps={steps}
-          domainLive={domainLive}
+          steps={{ payments: steps, whitelabel: wl }}
         />
 
         <section className="oh__panel settings__panel" aria-label={panelLabel}>
-          {onDomain ? (
+          {onEmail ? (
+            <EmailComingSoon />
+          ) : onBranding ? (
+            <BrandingSettings />
+          ) : onDomain ? (
             <CustomDomainSettings />
           ) : onWhatsApp ? (
             <WhatsAppSettings
@@ -168,7 +210,9 @@ export default function SettingsPage({ onWithdraw, onPageChange, startOn = 'paym
         </section>
       </div>
 
-      <SettingsTestControls section={onDomain ? 'domain' : onWhatsApp ? 'whatsapp' : 'payments'} />
+      <SettingsTestControls
+        section={onWhiteLabel ? 'whitelabel' : onWhatsApp ? 'whatsapp' : 'payments'}
+      />
     </div>
   );
 }
@@ -189,12 +233,12 @@ const STEP_SUBS = {
 //   'more information needed' (Meta, about the business), or
 //   'contact number needed'. While there's one, WhatsApp has a red dot,
 //   and screen readers hear why.
-// steps: Payment details' steps, done and locked (stepsOf, PayoutSetup.jsx)
+// steps: { payments, whitelabel }, each section's steps, done and locked
+//   (stepsOf, PayoutSetup.jsx; whiteLabelSteps)
 const LOCKED = { 'whatsapp-templates': 'Connect WhatsApp first' };
 const NEEDS_DOT = 'whatsapp'; // the section with the dot, and its first page on a phone
 
-// domainLive: the custom domain is live, so Custom domain gets a tick
-function SettingsMenu({ page, onPage, connected, attention, steps, domainLive }) {
+function SettingsMenu({ page, onPage, connected, attention, steps }) {
   const dot = (
     <span className="smenu__dot" aria-hidden="true" />
   );
@@ -209,32 +253,30 @@ function SettingsMenu({ page, onPage, connected, attention, steps, domainLive })
                 type="button"
                 className={`smenu__item ${!children && inside ? 'smenu__item--on' : ''}`}
                 aria-current={!children && inside ? 'page' : undefined}
-                // Payment details: its first step not done yet
-                onClick={() => onPage(id === 'payments' ? 'payments' : children ? children[0].id : id)}
+                // Payment details, White label: their first step not done yet
+                onClick={() => onPage(STEPPED.includes(id) ? id : children ? children[0].id : id)}
               >
                 <Icon size={18} className="smenu__icon" aria-hidden="true" />
                 <span className="smenu__label">
                   {label}
                   {attention && id === NEEDS_DOT && <span className="oh__sr-only">, {attention}</span>}
-                  {id === 'domain' && domainLive && <span className="oh__sr-only">, live</span>}
                 </span>
                 {attention && id === NEEDS_DOT && dot}
-                {id === 'domain' && domainLive && <Check size={14} className="smenu__tick" aria-hidden="true" />}
               </button>
               {children && (
                 <ul className="smenu__sub">
                   {children.map((c, i) =>
-                    id === 'payments' && steps.locked[c.id] && page !== c.id ? (
+                    STEPPED.includes(id) && steps[id].locked[c.id] && page !== c.id ? (
                       <li key={c.id}>
-                        <LockedItem label={c.label} short={c.short} reason={steps.locked[c.id].reason} />
+                        <LockedItem label={c.label} short={c.short} reason={steps[id].locked[c.id].reason} />
                       </li>
-                    ) : id === 'payments' ? (
+                    ) : STEPPED.includes(id) ? (
                       <li key={c.id}>
                         <StepItem
                           step={c}
                           on={page === c.id}
-                          done={steps.done[c.id]}
-                          lock={steps.locked[c.id]}
+                          done={steps[id].done[c.id]}
+                          lock={steps[id].locked[c.id]}
                           onOpen={() => onPage(c.id)}
                         />
                       </li>
@@ -330,6 +372,24 @@ function LockedItem({ label, short, reason }) {
   );
 }
 
+// ---------- White label → Custom email: coming soon ----------
+function EmailComingSoon() {
+  return (
+    <>
+      <div className="oh__panel-head">
+        <h2 className="oh__panel-title">
+          Custom email <span className="settings__soon">Coming soon</span>
+        </h2>
+        <p className="oh__panel-sub">Send emails from your own address, like hello@yourdomain.com.</p>
+      </div>
+      <div className="settings__body settings__soon-body">
+        <Mail size={28} aria-hidden="true" />
+        <p>Until then, emails go out from OpenSlate’s address.</p>
+      </div>
+    </>
+  );
+}
+
 // ---------- How payouts work, beside the parts ----------
 function PayoutHelp() {
   return (
@@ -378,8 +438,11 @@ function SettingsTestControls({ section }) {
       </button>
       {open && (
         <div className="proto__body">
-          {section === 'domain' ? (
-            <CustomDomainControlRows />
+          {section === 'whitelabel' ? (
+            <>
+              <CustomDomainControlRows />
+              <BrandingControlRows />
+            </>
           ) : section === 'whatsapp' ? (
             <WhatsAppControlRows />
           ) : (

@@ -1,0 +1,348 @@
+/* Settings → Branding (BrandingSettings.jsx). Every class starts brd-,
+   so nothing else in the app can clash with it. */
+
+/* The form on the left, the preview on the right (like Payment details) */
+.brd {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(220px, 300px);
+  gap: 40px;
+  align-items: start;
+  padding: 24px;
+}
+
+.brd-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.brd-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brd-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.brd-field .po-input {
+  min-height: 44px;
+  font-variant-numeric: normal;
+}
+
+.brd-note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.brd-field > .brd-note {
+  margin-top: 6px;
+}
+
+.brd-note--error {
+  font-weight: 500;
+  color: #b45309;
+}
+
+/* ---------- Buttons ---------- */
+.brd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.brd-btn--primary {
+  min-height: 44px;
+  padding: 0 22px;
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.brd-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.brd-btn--primary:disabled {
+  color: var(--color-text-disabled);
+  background: var(--color-border);
+  cursor: default;
+}
+
+.brd-btn--quiet {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.brd-btn--quiet:hover {
+  border-color: #d6d6d6;
+}
+
+.brd-btn:focus-visible,
+.brd-clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Logo and favicon ---------- */
+.brd-image {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.brd-image__box {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border: 1px dashed #d0d0d4;
+  border-radius: var(--radius-sm);
+}
+
+.brd-image__box--small {
+  width: 40px;
+  height: 40px;
+}
+
+.brd-image__box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.brd-image__box:has(img) {
+  border-style: solid;
+  border-color: var(--color-border);
+}
+
+.brd-clear {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: -6px;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.brd-clear:hover {
+  color: var(--color-text);
+  background: #f0f0f1;
+}
+
+/* ---------- Brand colour: coming soon ---------- */
+.brd-soon {
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: #f0f0f1;
+  border-radius: var(--radius-pill);
+}
+
+.brd-colours {
+  display: flex;
+  gap: 10px;
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.brd-colour {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+/* ---------- Save ---------- */
+.brd-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brd-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-success);
+}
+
+/* ---------- Preview ---------- */
+/* A small browser window */
+.brd-win {
+  margin-top: 6px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+/* The tab strip: three dots, then the one tab */
+.brd-win__strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px 10px 0;
+  background: #ececef;
+}
+
+.brd-win__dots {
+  display: flex;
+  gap: 4px;
+  padding-bottom: 9px;
+}
+
+.brd-win__dots i {
+  width: 7px;
+  height: 7px;
+  background: #cfcfd4;
+  border-radius: 50%;
+}
+
+.brd-win__tab {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 170px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-radius: 8px 8px 0 0;
+}
+
+.brd-win__favicon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+.brd-win__favicon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brd-win__tabname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.brd-win__close {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+/* The dashboard's top bar */
+.brd-win__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brd-win__bell {
+  color: var(--color-text-muted);
+}
+
+/* A hint of the page under it */
+.brd-win__page {
+  display: flex;
+  gap: 10px;
+  height: 64px;
+  background: var(--color-bg);
+}
+
+.brd-win__rail {
+  width: 28px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+}
+
+.brd-win__lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 12px 0 0;
+}
+
+.brd-win__lines i {
+  height: 6px;
+  background: #e4e4e7;
+  border-radius: 3px;
+}
+
+.brd-win__lines i:nth-child(1) {
+  width: 45%;
+}
+
+.brd-win__lines i:nth-child(2) {
+  width: 80%;
+}
+
+.brd-win__lines i:nth-child(3) {
+  width: 65%;
+}
+
+.brd-preview__note {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+/* ---------- Narrower: the preview drops below ---------- */
+@media (max-width: 960px) {
+  .brd {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 560px) {
+  .brd {
+    padding: 20px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brd-btn {
+    transition: none;
+  }
+}

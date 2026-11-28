@@ -1,0 +1,24 @@
+/* The dashboard's square logo (BrandMark.jsx) */
+.brd-mark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  overflow: hidden;
+  font-weight: 700;
+  color: #fff;
+  background: #111;
+  border-radius: var(--radius-sm);
+}
+
+.brd-mark--img {
+  object-fit: contain;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+/* OpenSlate's logo: the picture fills the square; the rounded corners
+   trim the white edge around it */
+.brd-mark--openslate {
+  object-fit: cover;
+  background: transparent;
+}
