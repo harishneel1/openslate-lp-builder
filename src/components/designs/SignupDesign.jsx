@@ -4,6 +4,7 @@ import { lengthLabel, webinarPrice, webinarWhen } from '../../data/webinar';
 import { mockAccount } from '../../data/myPage';
 import { COUNTRY_CODES } from '../../data/checkoutRules';
 import { initials } from '../../utils/initials';
+import { useStudentBrand } from '../../data/branding';
 import '../../styles/storeTheme.css';
 import '../../screens/CheckoutPage.css'; // the same look as every OpenSlate checkout
 import './SignupDesign.css';
@@ -37,6 +38,7 @@ function checkDetails({ name, email, phone }) {
 }
 
 export default function SignupDesign({ answers, onRegister = null }) {
+  const brand = useStudentBrand();
   const live = Boolean(onRegister);
   const [form, setForm] = useState({ name: '', email: '', code: COUNTRY_CODES[0]?.code ?? '+91', phone: '' });
   const [errors, setErrors] = useState({});
@@ -87,8 +89,9 @@ export default function SignupDesign({ answers, onRegister = null }) {
         <section className="co__what" aria-label="The webinar">
           <h1 className="co__title">{title}</h1>
           <p className="co__by">
+            {/* Their logo once branding's saved, else their initials */}
             <span className="co__photo" aria-hidden="true">
-              {initials(mockAccount.name)}
+              {brand.logo ? <img src={brand.logo} alt="" /> : initials(mockAccount.name)}
             </span>
             with {mockAccount.name}
           </p>

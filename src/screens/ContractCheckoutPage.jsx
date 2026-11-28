@@ -15,6 +15,7 @@ import { Field, QuestionField, checkDetails, describe } from './CheckoutPage';
 import '../styles/storeTheme.css';
 import './CheckoutPage.css';
 import './ContractCheckoutPage.css';
+import { BrandBar } from '../components/BrandMark';
 
 // ------------------------------------------------------------
 // A contract's own checkout: /web/checkout/<contract id>. The page a
@@ -217,6 +218,8 @@ function CheckoutForm({ page, fail }) {
 
   return (
     <div className="co store-theme">
+      {/* Their logo and business name, once branding's saved */}
+      <BrandBar />
       <div className="co__layout">
         {/* ================= Left: what they're signing up for ================= */}
         <section className="co__what" aria-label="What you’re signing up for">

@@ -1,4 +1,5 @@
 import { initials } from '../utils/initials';
+import { useStudentBrand } from '../data/branding';
 import openslateLogo from '../assets/openslate-logo.png';
 import './BrandMark.css';
 
@@ -31,5 +32,35 @@ export default function BrandMark({ brand, size = 40 }) {
     >
       {initials(brand.name)}
     </span>
+  );
+}
+
+// ---------- Student pages ----------
+// Inside a page's own logo square (the academy's, sign-in's, an invoice's):
+// their logo filling it, else the initials it always showed. Give the
+// square boxStyle(brand) so a logo sits on white, edge to edge.
+export function LogoFill({ brand }) {
+  if (!brand.logo) return initials(brand.name);
+  return (
+    <img src={brand.logo} alt="" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+  );
+}
+export const boxStyle = (brand) =>
+  brand.logo ? { overflow: 'hidden', padding: 0, background: '#fff', border: '1px solid #ececec' } : undefined;
+
+// Their logo on its own at the top left of the checkouts and the
+// payment-done page, no bar (as TagMango's). Only once branding's saved: until
+// then those pages look as they always have.
+export function BrandBar() {
+  const brand = useStudentBrand();
+  if (!brand.branded) return null;
+  return (
+    <div className="brd-bar">
+      <div className="brd-bar__in">
+        <span className="brd-bar__logo" style={boxStyle(brand)} role="img" aria-label={brand.name}>
+          <LogoFill brand={brand} />
+        </span>
+      </div>
+    </div>
   );
 }

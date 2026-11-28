@@ -10,6 +10,7 @@ import { canTakePayments } from '../data/payouts';
 import { createBooking } from '../data/bookingsStore';
 import { ANSWER_MAX, EXAMPLE_QUESTIONS, answersFor, checkAnswers, emptyAnswer } from '../data/callQuestions';
 import LinkedText from '../components/LinkedText';
+import { BrandBar } from '../components/BrandMark';
 
 // ------------------------------------------------------------
 // Mock checkout, laid out like the product's real checkout:
@@ -464,6 +465,8 @@ export default function CheckoutPage({ serviceId, time, state, slots, timeZone, 
 
   return (
     <div className="co store-theme">
+      {/* Their logo and business name, once branding's saved */}
+      <BrandBar />
       {previewing && (
         <p className="co__preview">
           <Eye size={16} aria-hidden="true" /> This is a preview of your contract. Nobody can book from it.

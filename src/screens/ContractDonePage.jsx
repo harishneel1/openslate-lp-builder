@@ -10,6 +10,7 @@ import { isWebLink, shortLink, withScheme } from '../utils/links';
 import '../styles/storeTheme.css';
 import './CheckoutPage.css';
 import './ContractCheckoutPage.css';
+import { BrandBar } from '../components/BrandMark';
 
 // ------------------------------------------------------------
 // After they pay on a contract's checkout: /web/checkout/<id>/done?order=<id>.
@@ -109,6 +110,8 @@ export default function ContractDonePage({ contractId, orderId }) {
 
   return (
     <div className="cc-done store-theme">
+      {/* Their logo and business name, once branding's saved */}
+      <BrandBar />
       <main className="cc-done__main">
         <div className="cc-done__top">
           <span className="cc-done__tick" aria-hidden="true">

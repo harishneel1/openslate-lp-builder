@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Info, Mail, Smartphone } from 'lucide-react';
 import { EMAIL, INDIAN_MOBILE, fullPhone, showPhone, signIn } from '../data/students';
 import CodeBoxes, { CODE_LENGTH, emptyCode } from '../components/CodeBoxes';
-import { mockAccount } from '../data/myPage';
-import { initials } from '../utils/initials';
+import { LogoFill, boxStyle } from '../components/BrandMark';
+import { useStudentBrand } from '../data/branding';
 import './StudentSignIn.css';
 
 // ------------------------------------------------------------
@@ -42,10 +42,12 @@ export default function StudentSignIn() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
   const [sentTo, setSentTo] = useState(null); // where the code went; the code step when set
+  // Their logo and business name (Settings → Branding), else initials and name
+  const brand = useStudentBrand();
 
   useEffect(() => {
-    document.title = `Sign in - ${mockAccount.name}`;
-  }, []);
+    document.title = `Sign in - ${brand.name}`;
+  }, [brand.name]);
 
   const send = (e) => {
     e.preventDefault();
@@ -70,8 +72,8 @@ export default function StudentSignIn() {
   return (
     <div className="ssi">
       <main className="ssi__card">
-        <span className="ssi__logo" aria-label={mockAccount.name} role="img">
-          {initials(mockAccount.name)}
+        <span className="ssi__logo" style={boxStyle(brand)} aria-label={brand.name} role="img">
+          <LogoFill brand={brand} />
         </span>
 
         {sentTo ? (
@@ -170,7 +172,7 @@ export default function StudentSignIn() {
       </main>
 
       <p className="ssi__foot">
-        © {new Date().getFullYear()} {mockAccount.name}. All rights reserved.
+        © {new Date().getFullYear()} {brand.name}. All rights reserved.
       </p>
     </div>
   );

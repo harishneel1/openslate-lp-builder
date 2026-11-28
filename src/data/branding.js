@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { mockAccount } from './myPage';
 
 // ------------------------------------------------------------
@@ -81,3 +81,41 @@ export const brandingDemo = {
     write({ saved: true, name: DEFAULT_NAME, logo: null, favicon: null });
   },
 };
+
+// ---------- Student pages ----------
+// What students see: the saved business name and logo, or (before
+// branding's saved) the coach's own name and no logo, as before.
+// saved is always true here: students never see OpenSlate's logo.
+export function studentBrand(b) {
+  return {
+    saved: true,
+    branded: b.saved,
+    name: (b.saved && b.name) || DEFAULT_NAME,
+    logo: b.saved ? b.logo : null,
+    favicon: b.saved ? b.favicon || b.logo : null,
+  };
+}
+
+export function useStudentBrand() {
+  return studentBrand(useBranding());
+}
+
+// Shows `icon` (a data URL) as the browser tab's icon while mounted, or
+// leaves it alone when null. Puts the old one back after.
+export function useFavicon(icon) {
+  useEffect(() => {
+    if (!icon) return undefined;
+    let link = document.querySelector("link[rel~='icon']");
+    const before = link?.getAttribute('href') ?? null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = icon;
+    return () => {
+      if (before === null) link.remove();
+      else link.setAttribute('href', before);
+    };
+  }, [icon]);
+}

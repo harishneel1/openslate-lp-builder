@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { useBranding, useFavicon } from './data/branding'
 import PreviewPage from './screens/PreviewPage.jsx'
 import ContractEditorTab from './screens/ContractEditorTab.jsx'
 import ProfilePage from './screens/ProfilePage.jsx'
@@ -203,8 +204,18 @@ function Root() {
   return <App />
 }
 
+// Every page students see shows the coach's favicon in the browser tab,
+// once their branding's saved (Settings → Branding). The dashboard (App)
+// sets its own, in AppLayout.jsx.
+function Shell() {
+  const page = Root()
+  const brand = useBranding()
+  useFavicon(page.type !== App && brand.saved ? brand.favicon || brand.logo : null)
+  return page
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Root />
+    <Shell />
   </StrictMode>,
 )

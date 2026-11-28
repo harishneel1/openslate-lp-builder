@@ -15,7 +15,7 @@ import { loadSaved } from '../utils/storage';
 import { formatTime, zoned } from '../utils/slots';
 import AccountMenu from './AccountMenu';
 import BrandMark from './BrandMark';
-import { useBranding } from '../data/branding';
+import { useBranding, useFavicon } from '../data/branding';
 import KycBanner from './KycBanner';
 import UpdatesBell from './UpdatesBell';
 import InlineTitle from './InlineTitle';
@@ -304,23 +304,8 @@ function CalendarCard({ active, onOpen }) {
 // Once the coach has saved their branding, the browser tab shows it:
 // their favicon (or logo) and business name. Put back when they leave.
 function useBrandTab(brand) {
-  const icon = brand.saved ? brand.favicon || brand.logo : null;
+  useFavicon(brand.saved ? brand.favicon || brand.logo : null);
   const name = brand.saved ? brand.name : null;
-  useEffect(() => {
-    if (!icon) return undefined;
-    let link = document.querySelector("link[rel~='icon']");
-    const before = link?.getAttribute('href') ?? null;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
-    }
-    link.href = icon;
-    return () => {
-      if (before === null) link.remove();
-      else link.setAttribute('href', before);
-    };
-  }, [icon]);
   useEffect(() => {
     if (!name) return undefined;
     const before = document.title;

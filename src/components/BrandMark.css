@@ -22,3 +22,21 @@
   object-fit: cover;
   background: transparent;
 }
+
+/* ---------- BrandBar: their logo, alone at the top left of the
+   checkouts (no bar, no line), the same size as the dashboard's ---------- */
+.brd-bar__in {
+  padding: 20px 24px 0;
+}
+
+.brd-bar__logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: #111;
+  border-radius: 8px;
+}

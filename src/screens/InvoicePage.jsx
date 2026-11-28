@@ -1,6 +1,8 @@
 import { Printer } from 'lucide-react';
 import { amountInWords, clockTime, dayKey, invoiceFrom, moneyIn, ordersOf } from '../data/earnings';
 import { loadSaved } from '../utils/storage';
+import { LogoFill, boxStyle } from '../components/BrandMark';
+import { useStudentBrand } from '../data/branding';
 import './InvoicePage.css';
 
 // ------------------------------------------------------------
@@ -67,6 +69,8 @@ const plain = (minor, currency) =>
   });
 
 export default function InvoicePage({ orderId }) {
+  // Their logo in the corner, once branding's saved (Settings → Branding)
+  const { logo } = useStudentBrand();
   const webinars = (loadSaved().funnels ?? []).filter((f) => f.type === 'webinar');
   const order = ordersOf({ webinars }).find((o) => o.id === orderId && o.kind === 'paid');
 
@@ -99,8 +103,8 @@ export default function InvoicePage({ orderId }) {
       <article className="inv" aria-label={`Invoice ${order.invoiceNo}`}>
         <header className="inv__head">
           <div className="inv__from">
-            <span className="inv__logo" aria-hidden="true">
-              {BUSINESS.initials}
+            <span className="inv__logo" style={boxStyle({ logo })} aria-hidden="true">
+              {logo ? <LogoFill brand={{ logo }} /> : BUSINESS.initials}
             </span>
             <div>
               <p className="inv__business">{BUSINESS.name}</p>

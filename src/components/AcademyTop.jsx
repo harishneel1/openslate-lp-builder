@@ -2,18 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { BookOpen, ChevronRight, KeyRound, LogOut, User, Users } from 'lucide-react';
 import { academyCoursesPath } from '../data/courses';
 import { communityPath } from '../data/studentClasses';
-import { mockAccount } from '../data/myPage';
 import { accountPath, contactPath, showPhone, signOut } from '../data/students';
 import { initials } from '../utils/initials';
+import { LogoFill, boxStyle } from './BrandMark';
+import { useStudentBrand } from '../data/branding';
 
 // ------------------------------------------------------------
 // The academy's own top bar, on every page students see (Courses,
 // Community, My account): a slim 56px bar, quiet so the page's own orange
 // buttons (Continue, Join) stand out.
 //
-//   (HN) Harish Neel       (👥 Community)  📖 Courses                (AR)
+//   (HN)                   (👥 Community)  📖 Courses                (AR)
 //
-// The coach's logo and name on the left; the tabs in the middle as
+// The coach's logo on the left, on its own (Settings → Branding; their
+// initials until it's saved); the tabs in the middle as
 // compact pills, as TagMango's: the one you're on in our orange tint, the
 // others a soft grey on hover; the student's picture on the right. Community (CommunityPage.jsx) first, then Courses.
 //
@@ -43,13 +45,13 @@ import { initials } from '../utils/initials';
 export default function AcademyTop({ student = null, home = academyCoursesPath, onCourses = true, on = null, preview = false }) {
   const active = on ?? (onCourses ? 'courses' : null);
   const community = preview ? `${communityPath}?preview=1` : communityPath;
+  const brand = useStudentBrand();
   return (
     <header className="acd__top">
-      <a className="acd__brand" href={home} aria-label={`${mockAccount.name}, Courses`}>
-        <span className="acd__logo" aria-hidden="true">
-          {initials(mockAccount.name)}
+      <a className="acd__brand" href={home} aria-label={`${brand.name}, Courses`}>
+        <span className="acd__logo" style={boxStyle(brand)} aria-hidden="true">
+          <LogoFill brand={brand} />
         </span>
-        <span className="acd__name">{mockAccount.name}</span>
       </a>
       <nav className="acd__nav" aria-label="Academy">
         <a
